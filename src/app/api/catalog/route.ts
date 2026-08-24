@@ -99,12 +99,12 @@ export async function GET(req: NextRequest) {
     ];
   }
 
-  let orderBy: any = { createdAt: "desc" };
-  if (sort === "popular") orderBy = { isBestseller: "desc", stockQty: "desc" };
-  if (sort === "priceAsc") orderBy = { price: "asc" };
-  if (sort === "priceDesc") orderBy = { price: "desc" };
-  if (sort === "new") orderBy = { isNew: "desc", createdAt: "desc" };
-  if (sort === "available") orderBy = { stockQty: "desc" };
+  let orderBy: any = [{ createdAt: "desc" }];
+  if (sort === "popular") orderBy = [{ isBestseller: "desc" }, { stockQty: "desc" }];
+  if (sort === "priceAsc") orderBy = [{ price: "asc" }];
+  if (sort === "priceDesc") orderBy = [{ price: "desc" }];
+  if (sort === "new") orderBy = [{ isNew: "desc" }, { createdAt: "desc" }];
+  if (sort === "available") orderBy = [{ stockQty: "desc" }];
 
   const [total, products] = await Promise.all([
     db.product.count({ where }),
