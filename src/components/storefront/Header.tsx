@@ -61,7 +61,7 @@ export function Header() {
           <SheetContent side="left" className="w-80 bg-cream p-0">
             <SheetHeader className="border-b border-border p-4">
               <SheetTitle className="text-left">
-                <Image src="/logo-jma.png" alt="Je mange Africain" width={148} height={148} className="h-16 w-16 object-contain" priority />
+                <Image src="/logo-jma.png" alt="Je mange Africain" width={148} height={148} className="h-16 w-16 object-contain" />
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col p-2">
@@ -94,8 +94,8 @@ export function Header() {
 
         {/* logo */}
         <button onClick={() => go("home")} className="flex items-center gap-2" aria-label="Accueil">
-          <Image src="/logo-jma.png" alt="Je mange Africain" width={160} height={160} className="hidden h-12 w-12 object-contain sm:block" priority />
-          <Image src="/logo-jma.png" alt="Je mange Africain" width={96} height={96} className="h-10 w-10 object-contain sm:hidden" priority />
+          <Image src="/logo-jma.png" alt="Je mange Africain" width={160} height={160} className="hidden h-12 w-12 object-contain sm:block" />
+          <Image src="/logo-jma.png" alt="Je mange Africain" width={96} height={96} className="h-10 w-10 object-contain sm:hidden" />
           <span className="hidden leading-tight sm:block">
             <span className="block text-sm font-extrabold text-charcoal">Je mange Africain</span>
             <span className="block text-[10px] font-semibold uppercase tracking-wide text-terre">Épicerie mobile</span>

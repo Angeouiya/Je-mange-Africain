@@ -57,7 +57,7 @@ export function AdminView() {
         <div className="african-kente-stripe h-1.5" />
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Image src="/logo-jma.png" alt="Je mange Africain" width={96} height={96} className="h-14 w-14 object-contain" priority />
+            <Image src="/logo-jma.png" alt="Je mange Africain" width={96} height={96} className="h-14 w-14 object-contain" />
             <div>
               <p className="text-sm font-extrabold text-cream">JMA Admin</p>
               <p className="text-[10px] uppercase tracking-wide text-cream/55">Opérations</p>

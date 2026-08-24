@@ -32,7 +32,7 @@ export default function Page() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/logo-jma.png" alt="Je mange Africain" width={180} height={180} className="h-24 w-24 animate-pulse object-contain" priority />
+          <Image src="/logo-jma.png" alt="Je mange Africain" width={180} height={180} className="h-24 w-24 animate-pulse object-contain" />
           <div className="h-1 w-24 overflow-hidden rounded-full bg-muted">
             <div className="shimmer h-full w-full" />
           </div>
