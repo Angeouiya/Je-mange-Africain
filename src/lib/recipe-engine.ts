@@ -11,13 +11,25 @@ export interface RecipeConfigInput {
   adults: number;
   children: number;
   portion: "normal" | "generous";
-  protein?: "meat" | "fish" | "none";
+  protein?: "recipe" | "meat" | "fish" | "none";
   kplo: boolean;
   spiceLevel: "mild" | "medium" | "hot" | "veryHot";
-  allergies: string;
+  allergies?: string;
   budget?: number;
   formula: "economy" | "standard" | "premium";
-  haveAtHome: string[]; // productIds already in the pantry
+  haveAtHome: string[]; // recipe ingredient IDs or product IDs already in the pantry
+  excludedIngredients?: string[]; // recipe ingredient IDs deliberately removed
+  replacements?: Record<string, string>; // recipe ingredient ID -> replacement product ID
+}
+
+export interface IngredientReplacementOption {
+  productId: string;
+  nameFr: string;
+  nameEn: string;
+  emoji: string;
+  availableStock: number;
+  packLabel: string;
+  unitPrice: number;
 }
 
 export interface EngineIngredient {
@@ -39,12 +51,19 @@ export interface EngineIngredient {
   packLabel: string; // variant label
   packWeightGrams: number;
   leftover: number; // leftover in neededUnit
+  leftoverUnit: "g" | "ml" | "piece";
   unitPrice: number;
   lineTotal: number;
   available: boolean;
   stockQty: number;
   thermalClass: ThermalClass;
-  removed: boolean; // marked as already-have
+  removed: boolean;
+  removalReason: "pantry" | "excluded" | "protein-none" | null;
+  originalProductId: string;
+  originalNameFr: string;
+  originalNameEn: string;
+  isReplacement: boolean;
+  replacementOptions: IngredientReplacementOption[];
   substituteProductId?: string | null;
   substituteName?: string | null;
 }
@@ -128,6 +147,7 @@ interface RawIngredient {
     stockQty: number;
     reservedQty: number;
     categoryId: string;
+    categorySlug: string;
     translations: { locale: string; name: string }[];
   };
   variants: {
@@ -140,12 +160,58 @@ interface RawIngredient {
   }[];
 }
 
+interface SubstituteProduct {
+  id: string;
+  traditionalName: string;
+  imageEmoji: string;
+  imageColor: string;
+  thermalClass: string;
+  stockQty: number;
+  reservedQty: number;
+  categoryId: string;
+  categorySlug: string;
+  translations: { locale: string; name: string }[];
+  variants: RawIngredient["variants"];
+}
+
 interface RecipeCtx {
   recipeId: string;
   baseServings: number;
   steps: { fr: string[]; en: string[] };
   rawIngredients: RawIngredient[];
-  allProductsForSubstitute: { id: string; traditionalName: string; stockQty: number; thermalClass: string; categoryId: string; translations: { locale: string; name: string }[] }[];
+  allProductsForSubstitute: SubstituteProduct[];
+}
+
+const availableStock = (product: { stockQty: number; reservedQty: number }) => Math.max(0, product.stockQty - product.reservedQty);
+
+function productNames(product: { traditionalName: string; translations: { locale: string; name: string }[] }) {
+  return {
+    fr: product.translations.find((translation) => translation.locale === "fr")?.name || product.traditionalName,
+    en: product.translations.find((translation) => translation.locale === "en")?.name || product.traditionalName,
+  };
+}
+
+function proteinKind(product: { traditionalName: string; categorySlug: string }): "fish" | "meat" | "other" {
+  const value = `${product.categorySlug} ${product.traditionalName}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/poisson|fish|tilapia|maquereau|thon|capitaine|crevette/.test(value)) return "fish";
+  if (/viande|meat|poulet|boeuf|agneau|mouton|kplo|tripe|chevre/.test(value)) return "meat";
+  return "other";
+}
+
+function normalizedProductName(product: { traditionalName: string; translations: { locale: string; name: string }[] }) {
+  return `${product.traditionalName} ${product.translations.map((translation) => translation.name).join(" ")}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function isCompatibleReplacement(role: string, original: { categoryId: string }, candidate: SubstituteProduct) {
+  const name = normalizedProductName(candidate);
+  if (role === "protein") return proteinKind(candidate) !== "other";
+  if (role === "fat") return /huile|oil|beurre|butter|graisse/.test(name);
+  if (role === "spice") return /piment|chili|poivre|pepper|epice|spice|gingembre|ginger/.test(name);
+  if (role === "aromatic") return /tomate|tomato|oignon|onion|ail|garlic|gingembre|ginger|bouillon|soumbala|akpi/.test(name);
+  return candidate.categoryId === original.categoryId;
 }
 
 export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineResult {
@@ -180,15 +246,16 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
           product: {
             id: kploSub.id,
             traditionalName: kploSub.traditionalName,
-            imageEmoji: "🥩",
-            imageColor: "#C0392B",
+            imageEmoji: kploSub.imageEmoji,
+            imageColor: kploSub.imageColor,
             thermalClass: kploSub.thermalClass,
             stockQty: kploSub.stockQty,
-            reservedQty: 0,
+            reservedQty: kploSub.reservedQty,
             categoryId: kploSub.categoryId,
+            categorySlug: kploSub.categorySlug,
             translations: kploSub.translations,
           },
-          variants: [], // will be fetched/simulated below
+          variants: kploSub.variants,
         } as RawIngredient);
       }
     }
@@ -200,28 +267,54 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
       working.push({
         ri: { id: "injected-chili", quantityPerBase: 15, unit: "g", role: "spice", optional: true, alternatives: null, note: "Piment frais ajouté" },
         product: {
-          id: chiliSub.id, traditionalName: chiliSub.traditionalName, imageEmoji: "🌶️", imageColor: "#C0392B",
-          thermalClass: chiliSub.thermalClass, stockQty: chiliSub.stockQty, reservedQty: 0, categoryId: chiliSub.categoryId,
+          id: chiliSub.id, traditionalName: chiliSub.traditionalName, imageEmoji: chiliSub.imageEmoji, imageColor: chiliSub.imageColor,
+          thermalClass: chiliSub.thermalClass, stockQty: chiliSub.stockQty, reservedQty: chiliSub.reservedQty, categoryId: chiliSub.categoryId, categorySlug: chiliSub.categorySlug,
           translations: chiliSub.translations,
         },
-        variants: [],
+        variants: chiliSub.variants,
       } as RawIngredient);
     }
   }
 
   const ingredients: EngineIngredient[] = [];
   for (const w of working) {
-    const { ri, product, variants } = w;
+    const { ri } = w;
+    const originalProduct = w.product;
+    const originalVariants = w.variants;
+    const originalNames = productNames(originalProduct);
 
-    // skip protein if user said none
-    let effScale = scale;
-    if (ri.role === "protein" && input.protein === "none") {
-      // skip entirely
-      continue;
+    let alternativeIds: string[] = [];
+    try { alternativeIds = ri.alternatives ? JSON.parse(ri.alternatives) : []; } catch {}
+
+    const replacementCandidates = [
+      ...alternativeIds.map((id) => allProductsForSubstitute.find((product) => product.id === id)),
+      ...allProductsForSubstitute.filter((product) => isCompatibleReplacement(ri.role, originalProduct, product)),
+    ].filter((product): product is SubstituteProduct => Boolean(product && product.id !== originalProduct.id && isCompatibleReplacement(ri.role, originalProduct, product)));
+    const uniqueCandidates = Array.from(new Map(replacementCandidates.map((product) => [product.id, product])).values())
+      .sort((a, b) => availableStock(b) - availableStock(a))
+      .slice(0, 8);
+
+    const hasExplicitReplacement = Object.prototype.hasOwnProperty.call(input.replacements || {}, ri.id);
+    let selectedCandidate = hasExplicitReplacement
+      ? allProductsForSubstitute.find((product) => product.id === input.replacements?.[ri.id])
+      : undefined;
+
+    if (!hasExplicitReplacement && ri.role === "protein" && input.protein && input.protein !== "recipe" && input.protein !== "none" && proteinKind(originalProduct) !== input.protein) {
+      selectedCandidate = allProductsForSubstitute.find((product) => proteinKind(product) === input.protein && availableStock(product) > 0);
     }
+
+    const product = selectedCandidate || originalProduct;
+    const variants = selectedCandidate?.variants || originalVariants;
+    const names = productNames(product);
+
+    let effScale = scale;
     if (ri.role === "spice") effScale = scale * spiceFactor;
 
-    const removed = input.haveAtHome.includes(product.id);
+    const deliberatelyExcluded = Boolean(input.excludedIngredients?.includes(ri.id));
+    const proteinRemoved = ri.role === "protein" && input.protein === "none";
+    const pantryRemoved = input.haveAtHome.includes(ri.id) || input.haveAtHome.includes(product.id);
+    const removalReason = deliberatelyExcluded ? "excluded" : proteinRemoved ? "protein-none" : pantryRemoved ? "pantry" : null;
+    const removed = removalReason !== null;
 
     // needed qty in the ri unit
     let neededQty = ri.quantityPerBase * effScale;
@@ -229,43 +322,54 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
     const isLiquid = ri.unit === "ml" || ri.unit === "L";
     const neededBase = toBaseUnit(neededQty, ri.unit, isLiquid);
 
-    // pick variant: default first, else first
-    const variant = (variants && variants.length ? (variants.find((v) => v.isDefault) || variants[0]) : null);
+    const pricedVariants = [...(variants || [])].filter((variant) => variant.price >= 0);
+    const variant = pricedVariants.length
+      ? input.formula === "economy"
+        ? pricedVariants.sort((a, b) => a.price - b.price)[0]
+        : input.formula === "premium"
+          ? pricedVariants.sort((a, b) => b.price - a.price)[0]
+          : pricedVariants.find((item) => item.isDefault) || pricedVariants[0]
+      : null;
     const packWeight = variant ? (variant.weightGrams || variant.volumeMl || 1) : (isLiquid ? 500 : 400);
-    const packs = removed ? 0 : computePacks(neededBase, packWeight);
+    const packagingMeasure = ri.unit === "piece" ? 1 : packWeight;
+    const packs = removed ? 0 : computePacks(neededBase, packagingMeasure);
     const boughtBase = packs * packWeight;
-    const leftoverBase = Math.max(0, boughtBase - neededBase);
+    const leftoverBase = ri.unit === "piece" ? Math.max(0, packs - neededQty) : Math.max(0, boughtBase - neededBase);
+    const leftoverUnit = ri.unit === "piece" ? "piece" : (ri.unit === "ml" || ri.unit === "L" || Boolean(variant?.volumeMl)) ? "ml" : "g";
 
-    const available = product.stockQty > 0;
+    const stockAvailable = availableStock(product);
+    const available = stockAvailable >= packs && stockAvailable > 0;
     let substitute: { productId: string; name: string } | null = null;
     if (!available) {
-      // find substitute: alternatives JSON or sibling in same category with stock
-      let altIds: string[] = [];
-      try { altIds = ri.alternatives ? JSON.parse(ri.alternatives) : []; } catch {}
-      let sub = altIds
-        .map((id) => allProductsForSubstitute.find((p) => p.id === id))
-        .find((p) => p && p.stockQty > 0);
-      if (!sub) {
-        sub = allProductsForSubstitute.find((p) => p.categoryId === product.categoryId && p.id !== product.id && p.stockQty > 0);
-      }
+      const sub = uniqueCandidates.find((candidate) => availableStock(candidate) > 0);
       if (sub) {
-        const name = sub.translations.find((t) => t.locale === "fr")?.name || sub.traditionalName;
-        substitute = { productId: sub.id, name };
+        substitute = { productId: sub.id, name: productNames(sub).fr };
       }
     }
 
     const unitPrice = variant ? Number(variant.price) : 0;
-    const lineTotal = unitPrice * packs;
+    const lineTotal = removed ? 0 : unitPrice * packs;
 
-    const nameFr = product.translations.find((t) => t.locale === "fr")?.name || product.traditionalName;
-    const nameEn = product.translations.find((t) => t.locale === "en")?.name || product.traditionalName;
+    const replacementOptions = uniqueCandidates.map((candidate) => {
+      const candidateNames = productNames(candidate);
+      const candidateVariant = candidate.variants.find((item) => item.isDefault) || candidate.variants[0];
+      return {
+        productId: candidate.id,
+        nameFr: candidateNames.fr,
+        nameEn: candidateNames.en,
+        emoji: candidate.imageEmoji,
+        availableStock: availableStock(candidate),
+        packLabel: candidateVariant?.label || "",
+        unitPrice: candidateVariant?.price || 0,
+      };
+    });
 
     ingredients.push({
       recipeIngredientId: ri.id,
       productId: product.id,
       variantId: variant?.id || "",
-      nameFr,
-      nameEn,
+      nameFr: names.fr,
+      nameEn: names.en,
       traditionalName: product.traditionalName,
       emoji: product.imageEmoji,
       color: product.imageColor,
@@ -273,18 +377,25 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
       optional: ri.optional,
       neededQty: Math.round(neededQty * 100) / 100,
       neededUnit: ri.unit,
-      boughtQty: boughtBase,
+      boughtQty: removed ? 0 : boughtBase,
       boughtLabel: variant ? `${packs} × ${variant.label}` : `${packs} × ${packWeight} g`,
       packs,
       packLabel: variant?.label || `${packWeight} g`,
       packWeightGrams: packWeight,
-      leftover: Math.round(leftoverBase * 100) / 100,
+      leftover: removed ? 0 : Math.round(leftoverBase * 100) / 100,
+      leftoverUnit,
       unitPrice,
       lineTotal,
       available,
-      stockQty: product.stockQty,
+      stockQty: stockAvailable,
       thermalClass: product.thermalClass as ThermalClass,
       removed,
+      removalReason,
+      originalProductId: originalProduct.id,
+      originalNameFr: originalNames.fr,
+      originalNameEn: originalNames.en,
+      isReplacement: product.id !== originalProduct.id,
+      replacementOptions,
       substituteProductId: substitute?.productId || null,
       substituteName: substitute?.name || null,
     });

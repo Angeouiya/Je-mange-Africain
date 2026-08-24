@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   ChevronLeft, Users, Clock, Flame, Minus, Plus, ShoppingCart, RotateCcw,
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
+  Trash2, Undo2, RefreshCw, House,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,80 +45,135 @@ export function RecipeConfiguratorView() {
   const { data: recipe, loading } = useFetch(recipeId ? `/api/recipes/${recipeId}?locale=${locale}` : null, [recipeId, locale]);
 
   // config state
-  const [servings, setServings] = useState(4);
   const [adults, setAdults] = useState(4);
   const [children, setChildren] = useState(0);
   const [portion, setPortion] = useState<"normal" | "generous">("normal");
-  const [protein, setProtein] = useState<"meat" | "fish" | "none">("fish");
+  const [protein, setProtein] = useState<"recipe" | "meat" | "fish" | "none">("recipe");
   const [kplo, setKplo] = useState(false);
   const [spiceLevel, setSpiceLevel] = useState<"mild" | "medium" | "hot" | "veryHot">("medium");
   const [formula, setFormula] = useState<"economy" | "standard" | "premium">("standard");
   const [haveAtHome, setHaveAtHome] = useState<string[]>([]);
+  const [excludedIngredients, setExcludedIngredients] = useState<string[]>([]);
+  const [replacements, setReplacements] = useState<Record<string, string>>({});
   const [packOverrides, setPackOverrides] = useState<Record<string, number>>({});
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [calc, setCalc] = useState<CalcResult | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
+  const [calcError, setCalcError] = useState("");
   const [shared, setShared] = useState(false);
+  const calcRequestRef = useRef(0);
+
+  const servings = Math.max(1, adults + children);
 
   const isSaved = savedRecipes.includes(recipeId || "");
 
   // init defaults from recipe
   useEffect(() => {
     if (recipe) {
-      setServings(recipe.baseServings);
       setAdults(recipe.baseServings);
+      setChildren(0);
+      setCompletedSteps([]);
     }
   }, [recipe?.id]);
 
   // debounced calculation
   const calcKey = useMemo(
-    () => JSON.stringify({ servings, adults, children, portion, protein, kplo, spiceLevel, formula, haveAtHome, packOverrides }),
-    [servings, adults, children, portion, protein, kplo, spiceLevel, formula, haveAtHome, packOverrides]
+    () => JSON.stringify({ servings, adults, children, portion, protein, kplo, spiceLevel, formula, haveAtHome, excludedIngredients, replacements, packOverrides }),
+    [servings, adults, children, portion, protein, kplo, spiceLevel, formula, haveAtHome, excludedIngredients, replacements, packOverrides]
   );
 
   const doCalc = useCallback(async () => {
     if (!recipe) return;
+    const requestId = ++calcRequestRef.current;
     setCalcLoading(true);
+    setCalcError("");
     try {
       const res = await postJSON<{ result: CalcResult }>(`/api/recipes/${recipe.id}/calculate?locale=${locale}`, {
-        servings, adults, children, portion, protein, kplo, spiceLevel, formula, haveAtHome, budget: undefined,
+        servings, adults, children, portion, protein, kplo, spiceLevel, formula, haveAtHome, excludedIngredients, replacements, allergies: "", budget: undefined,
       });
+      if (requestId !== calcRequestRef.current) return;
       // apply pack overrides after calc
       const ings = res.result.ingredients.map((ing: any) => {
-        const ov = packOverrides[ing.productId];
+        const ov = packOverrides[ing.recipeIngredientId];
         if (ov !== undefined && ov >= 0) {
           const boughtQty = ov * ing.packWeightGrams;
-          return { ...ing, packs: ov, boughtQty, boughtLabel: `${ov} × ${ing.packLabel}`, leftover: Math.max(0, boughtQty - ing.neededQty * (ing.neededUnit === "kg" ? 1000 : ing.neededUnit === "L" ? 1000 : 1)), lineTotal: ov * ing.unitPrice };
+          const neededBase = ing.neededQty * (ing.neededUnit === "kg" || ing.neededUnit === "L" ? 1000 : ing.neededUnit === "tbsp" ? 15 : ing.neededUnit === "tsp" ? 5 : 1);
+          const leftover = ing.neededUnit === "piece" ? Math.max(0, ov - ing.neededQty) : Math.max(0, boughtQty - neededBase);
+          return { ...ing, packs: ov, boughtQty, boughtLabel: `${ov} × ${ing.packLabel}`, leftover, lineTotal: ov * ing.unitPrice, available: ov > 0 ? ov <= ing.stockQty : true };
         }
         return ing;
       });
       const totalCost = ings.reduce((s: number, i: any) => s + (i.removed ? 0 : i.lineTotal), 0);
       const totalWeight = ings.reduce((s: number, i: any) => s + (i.removed ? 0 : i.boughtQty), 0);
-      setCalc({ ...res.result, ingredients: ings, totalCost, totalWeightGrams: totalWeight, costPerPerson: servings > 0 ? totalCost / servings : totalCost });
-    } catch (e) {
-      console.error(e);
+      const activeIngredients = ings.filter((ingredient: any) => !ingredient.removed && ingredient.packs > 0);
+      const thermalSplit = Array.from(new Set(activeIngredients.map((ingredient: any) => ingredient.thermalClass))) as string[];
+      setCalc({
+        ...res.result,
+        ingredients: ings,
+        totalCost,
+        totalWeightGrams: totalWeight,
+        costPerPerson: servings > 0 ? totalCost / servings : totalCost,
+        thermalSplit,
+        packageCount: thermalSplit.length,
+        unavailableCount: activeIngredients.filter((ingredient: any) => !ingredient.available).length,
+        leftoverCount: activeIngredients.filter((ingredient: any) => ingredient.leftover > 0).length,
+      });
+    } catch {
+      if (requestId === calcRequestRef.current) setCalcError(locale === "fr" ? "Le calcul n'a pas abouti. Vérifiez vos choix puis réessayez." : "The calculation could not be completed. Check your choices and try again.");
     } finally {
-      setCalcLoading(false);
+      if (requestId === calcRequestRef.current) setCalcLoading(false);
     }
-  }, [recipe, servings, adults, children, portion, protein, kplo, spiceLevel, formula, haveAtHome, packOverrides, locale]);
+  }, [recipe, servings, adults, children, portion, protein, kplo, spiceLevel, formula, haveAtHome, excludedIngredients, replacements, packOverrides, locale]);
 
   useEffect(() => {
     const id = setTimeout(doCalc, 200);
     return () => clearTimeout(id);
   }, [calcKey]);
 
-  const toggleHave = (pid: string) => {
-    setHaveAtHome((prev) => prev.includes(pid) ? prev.filter((x) => x !== pid) : [...prev, pid]);
+  const toggleHave = (ingredientId: string) => {
+    const adding = !haveAtHome.includes(ingredientId);
+    setHaveAtHome((previous) => adding ? [...previous, ingredientId] : previous.filter((id) => id !== ingredientId));
+    if (adding) setExcludedIngredients((items) => items.filter((id) => id !== ingredientId));
   };
-  const setPack = (pid: string, delta: number) => {
-    setPackOverrides((prev) => {
-      const ing = calc?.ingredients.find((i) => i.productId === pid);
-      if (!ing) return prev;
-      const current = prev[pid] ?? ing.packs;
-      const next = Math.max(0, current + delta);
-      return { ...prev, [pid]: next };
+  const toggleExcluded = (ingredientId: string) => {
+    const adding = !excludedIngredients.includes(ingredientId);
+    setExcludedIngredients((previous) => adding ? [...previous, ingredientId] : previous.filter((id) => id !== ingredientId));
+    if (adding) setHaveAtHome((items) => items.filter((id) => id !== ingredientId));
+  };
+  const setReplacement = (ingredientId: string, productId: string) => {
+    setReplacements((previous) => ({ ...previous, [ingredientId]: productId }));
+    setPackOverrides((previous) => {
+      const next = { ...previous };
+      delete next[ingredientId];
+      return next;
     });
   };
-  const resetOverrides = () => setPackOverrides({});
+  const setPack = (ingredientId: string, delta: number) => {
+    setPackOverrides((prev) => {
+      const ing = calc?.ingredients.find((i) => i.recipeIngredientId === ingredientId);
+      if (!ing) return prev;
+      const current = prev[ingredientId] ?? ing.packs;
+      const next = Math.max(0, Math.min(ing.stockQty, current + delta));
+      return { ...prev, [ingredientId]: next };
+    });
+  };
+  const resetOverrides = () => {
+    setPackOverrides({});
+    setExcludedIngredients([]);
+    setReplacements({});
+    setHaveAtHome([]);
+    setAdults(recipe?.baseServings || 4);
+    setChildren(0);
+    setPortion("normal");
+    setProtein("recipe");
+    setKplo(false);
+    setSpiceLevel("medium");
+    setFormula("standard");
+  };
+  const updateAdults = (value: number) => setAdults(Math.max(children === 0 ? 1 : 0, Math.min(24 - children, value)));
+  const updateChildren = (value: number) => setChildren(Math.max(adults === 0 ? 1 : 0, Math.min(24 - adults, value)));
+  const hasManualChoices = haveAtHome.length > 0 || excludedIngredients.length > 0 || Object.keys(replacements).length > 0 || Object.keys(packOverrides).length > 0 || adults !== (recipe?.baseServings || 4) || children !== 0 || portion !== "normal" || protein !== "recipe" || kplo || spiceLevel !== "medium" || formula !== "standard";
+  const toggleStep = (index: number) => setCompletedSteps((previous) => previous.includes(index) ? previous.filter((item) => item !== index) : [...previous, index]);
 
   const addAllToCart = () => {
     if (!calc || !recipe) return;
@@ -137,6 +193,8 @@ export function RecipeConfiguratorView() {
         recipeId: recipe.id,
         recipeName: recipe.title,
         maxStock: i.stockQty || 99,
+        imageColor: i.color,
+        imageEmoji: i.emoji,
       }));
     addManyToCart(items);
     navigate("cart");
@@ -148,6 +206,9 @@ export function RecipeConfiguratorView() {
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
   const recipePhoto = getRecipePhoto(recipe);
   const preparationSteps = calc?.steps?.[locale as "fr" | "en"] || recipe.steps || [];
+  const completedStepCount = completedSteps.filter((index) => index < preparationSteps.length).length;
+  const preparationAdjustments = (calc?.ingredients || []).filter((ingredient) => ingredient.removalReason === "excluded" || ingredient.removalReason === "protein-none" || ingredient.isReplacement);
+  const purchasableCount = (calc?.ingredients || []).filter((ingredient) => !ingredient.removed && ingredient.packs > 0 && ingredient.available).length;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
@@ -192,21 +253,13 @@ export function RecipeConfiguratorView() {
             {/* people */}
             <div className="space-y-3 border-b border-border pb-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.stepPeople}</p>
-              <div className="flex items-center justify-between">
-                <div className="inline-flex items-center rounded-full border border-border">
-                  <button onClick={() => { const n = Math.max(1, servings - 1); setServings(n); setAdults(n); }} className="grid h-9 w-9 place-items-center rounded-full hover:bg-muted"><Minus className="h-4 w-4" /></button>
-                  <span className="min-w-10 text-center text-lg font-bold">{servings}</span>
-                  <button onClick={() => { const n = Math.min(24, servings + 1); setServings(n); setAdults(n); }} className="grid h-9 w-9 place-items-center rounded-full hover:bg-muted"><Plus className="h-4 w-4" /></button>
-                </div>
-                <span className="text-xs text-muted-foreground">{t.config.peopleUnit}</span>
+              <div className="flex items-center justify-between rounded-lg bg-terre/8 px-3 py-2">
+                <span className="text-xs font-semibold text-charcoal">{locale === "fr" ? "Table configurée" : "Configured table"}</span>
+                <strong className="text-sm text-terre">{servings} {t.config.peopleUnit}</strong>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-xs text-muted-foreground">{t.config.adults}
-                  <input type="number" min={0} value={adults} onChange={(e) => setAdults(Math.max(0, parseInt(e.target.value) || 0))} className="mt-0.5 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm" />
-                </label>
-                <label className="text-xs text-muted-foreground">{t.config.children}
-                  <input type="number" min={0} value={children} onChange={(e) => setChildren(Math.max(0, parseInt(e.target.value) || 0))} className="mt-0.5 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm" />
-                </label>
+                <CounterField label={t.config.adults} value={adults} onChange={updateAdults} max={24 - children} />
+                <CounterField label={t.config.children} value={children} onChange={updateChildren} max={24 - adults} />
               </div>
               <div className="flex gap-1">
                 {(["normal", "generous"] as const).map((p) => (
@@ -220,8 +273,8 @@ export function RecipeConfiguratorView() {
             {/* protein */}
             <div className="space-y-2 border-b border-border py-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.protein}</p>
-              <div className="flex gap-1">
-                {([["fish", t.config.fish], ["meat", t.config.meat], ["none", t.config.none]] as const).map(([v, label]) => (
+              <div className="grid grid-cols-2 gap-1">
+                {([["recipe", locale === "fr" ? "Recette originale" : "Original recipe"], ["fish", t.config.fish], ["meat", t.config.meat], ["none", t.config.none]] as const).map(([v, label]) => (
                   <button key={v} onClick={() => setProtein(v)} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${protein === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {label}
                   </button>
@@ -262,13 +315,18 @@ export function RecipeConfiguratorView() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.alreadyHave}</p>
               <div className="max-h-40 space-y-1 overflow-y-auto scroll-pretty">
                 {recipe.ingredients?.map((ri: any) => (
-                  <label key={ri.productId} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-xs text-charcoal hover:bg-muted">
-                    <input type="checkbox" checked={haveAtHome.includes(ri.productId)} onChange={() => toggleHave(ri.productId)} className="accent-terre" />
+                  <label key={ri.recipeIngredientId} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-xs text-charcoal hover:bg-muted">
+                    <input type="checkbox" checked={haveAtHome.includes(ri.recipeIngredientId)} onChange={() => toggleHave(ri.recipeIngredientId)} className="accent-terre" />
                     <span className="text-base">{ri.product.emoji}</span>
                     <span className="flex-1 truncate">{locale === "en" ? ri.product.nameEn : ri.product.nameFr}</span>
                   </label>
                 ))}
               </div>
+              {hasManualChoices ? (
+                <Button type="button" variant="outline" size="sm" onClick={resetOverrides} className="mt-2 w-full border-terre/30 text-xs text-terre">
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> {locale === "fr" ? "Réinitialiser mes choix" : "Reset my choices"}
+                </Button>
+              ) : null}
             </div>
           </div>
         </aside>
@@ -283,11 +341,36 @@ export function RecipeConfiguratorView() {
                   <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-gold" /> {locale === "fr" ? "Étapes de préparation" : "Preparation steps"} · {preparationSteps.length}</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pb-3">
-                  <ol className="grid gap-2 md:grid-cols-2">
+                  <div className="mb-3 flex items-center gap-3 border-b border-border pb-3">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted" aria-label={locale === "fr" ? `${completedStepCount} étapes terminées sur ${preparationSteps.length}` : `${completedStepCount} of ${preparationSteps.length} steps completed`}>
+                      <div className="h-full rounded-full bg-forest transition-all" style={{ width: `${preparationSteps.length ? (completedStepCount / preparationSteps.length) * 100 : 0}%` }} />
+                    </div>
+                    <span className="text-xs font-bold text-forest">{completedStepCount}/{preparationSteps.length}</span>
+                    {completedStepCount > 0 ? <button type="button" onClick={() => setCompletedSteps([])} className="text-xs font-semibold text-terre hover:underline">{locale === "fr" ? "Recommencer" : "Restart"}</button> : null}
+                  </div>
+                  {preparationAdjustments.length > 0 ? (
+                    <div className="mb-3 border-l-2 border-gold bg-gold/8 px-3 py-2">
+                      <p className="text-xs font-bold text-charcoal">{locale === "fr" ? "Vos adaptations à appliquer pendant la préparation" : "Your preparation adjustments"}</p>
+                      <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                        {preparationAdjustments.map((ingredient) => (
+                          <li key={ingredient.recipeIngredientId}>
+                            {ingredient.isReplacement
+                              ? (locale === "fr" ? `Remplacer ${ingredient.originalNameFr} par ${ingredient.nameFr}.` : `Replace ${ingredient.originalNameEn} with ${ingredient.nameEn}.`)
+                              : (locale === "fr" ? `Préparer la recette sans ${ingredient.originalNameFr}.` : `Prepare without ${ingredient.originalNameEn}.`)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  <ol className="divide-y divide-border">
                     {preparationSteps.map((s: string, i: number) => (
-                      <li key={i} className="flex gap-3 rounded-lg border border-border bg-muted/25 p-3 text-sm text-charcoal">
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-terre text-xs font-bold text-cream">{i + 1}</span>
-                        <span className="pt-0.5 leading-relaxed">{s}</span>
+                      <li key={i} className="py-1">
+                        <button type="button" onClick={() => toggleStep(i)} aria-pressed={completedSteps.includes(i)} className="flex w-full gap-3 px-1 py-3 text-left text-sm text-charcoal transition hover:bg-muted/40">
+                          <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${completedSteps.includes(i) ? "bg-forest text-white" : "bg-terre text-cream"}`}>
+                            {completedSteps.includes(i) ? <Check className="h-4 w-4" /> : i + 1}
+                          </span>
+                          <span className={`pt-1 leading-relaxed ${completedSteps.includes(i) ? "text-muted-foreground line-through" : ""}`}>{s}</span>
+                        </button>
                       </li>
                     ))}
                   </ol>
@@ -300,15 +383,24 @@ export function RecipeConfiguratorView() {
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="text-sm font-bold text-charcoal">{t.config.ingredientsNeeded}</h2>
-              {Object.keys(packOverrides).length > 0 && (
+              {hasManualChoices && (
                 <Button variant="ghost" size="sm" onClick={resetOverrides} className="text-xs text-terre">
                   <RotateCcw className="mr-1 h-3 w-3" /> {t.config.reset}
                 </Button>
               )}
             </div>
+            {calcError ? <div role="alert" className="border-b border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800">{calcError}</div> : null}
             <div className="divide-y divide-border">
               {calc?.ingredients.map((ing) => (
-                <IngredientRow key={ing.productId} ing={ing} locale={locale} onPackDelta={(d) => setPack(ing.productId, d)} />
+                <IngredientRow
+                  key={ing.recipeIngredientId}
+                  ing={ing}
+                  locale={locale}
+                  onPackDelta={(delta) => setPack(ing.recipeIngredientId, delta)}
+                  onToggleExcluded={() => toggleExcluded(ing.recipeIngredientId)}
+                  onTogglePantry={() => toggleHave(ing.recipeIngredientId)}
+                  onReplace={(productId) => setReplacement(ing.recipeIngredientId, productId)}
+                />
               ))}
               {calcLoading && !calc && <div className="p-6 text-center text-sm text-muted-foreground">{t.loading}</div>}
             </div>
@@ -357,7 +449,7 @@ export function RecipeConfiguratorView() {
               )}
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button onClick={addAllToCart} size="lg" className="flex-1 bg-terre text-cream hover:bg-terre-dark shadow-md">
+                <Button onClick={addAllToCart} disabled={purchasableCount === 0 || calcLoading} size="lg" className="flex-1 bg-terre text-cream hover:bg-terre-dark shadow-md">
                   <ShoppingCart className="mr-2 h-4 w-4" /> {t.config.addAllToCart}
                 </Button>
                 <Button variant="outline" size="icon" className="h-11 w-11 border-terre/40" onClick={() => toggleSavedRecipe(recipe.id)} aria-label={t.config.saveRecipe}>
@@ -385,7 +477,20 @@ function RecipeMetric({ icon: Icon, label, value }: { icon: React.ComponentType<
   );
 }
 
-function IngredientRow({ ing, locale, onPackDelta }: { ing: any; locale: string; onPackDelta: (d: number) => void }) {
+function CounterField({ label, value, onChange, max }: { label: string; value: number; onChange: (value: number) => void; max: number }) {
+  return (
+    <div className="rounded-lg border border-border bg-background p-2">
+      <p className="mb-1 text-[10px] font-semibold text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={() => onChange(value - 1)} disabled={value <= 0} className="grid h-8 w-8 place-items-center rounded-md text-charcoal transition hover:bg-muted disabled:opacity-35" aria-label={`Réduire ${label}`}><Minus className="h-3.5 w-3.5" /></button>
+        <span className="min-w-8 text-center text-base font-extrabold text-charcoal">{value}</span>
+        <button type="button" onClick={() => onChange(value + 1)} disabled={value >= max} className="grid h-8 w-8 place-items-center rounded-md text-charcoal transition hover:bg-muted disabled:opacity-35" aria-label={`Augmenter ${label}`}><Plus className="h-3.5 w-3.5" /></button>
+      </div>
+    </div>
+  );
+}
+
+function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePantry, onReplace }: { ing: any; locale: string; onPackDelta: (delta: number) => void; onToggleExcluded: () => void; onTogglePantry: () => void; onReplace: (productId: string) => void }) {
   const t = dict[locale as "fr" | "en"];
   const roleColor: Record<string, string> = {
     protein: "bg-red-100 text-red-700", base: "bg-amber-100 text-amber-700", aromatic: "bg-green-100 text-green-700",
@@ -394,66 +499,90 @@ function IngredientRow({ ing, locale, onPackDelta }: { ing: any; locale: string;
   const roleLabel: Record<string, [string, string]> = {
     protein: ["Protéine", "Protein"], base: ["Base", "Base"], aromatic: ["Aromate", "Aromatic"], spice: ["Épice", "Spice"], fat: ["Matière grasse", "Fat"], side: ["Accompagnement", "Side"], optional: ["Optionnel", "Optional"],
   };
+  const localizedName = locale === "en" ? ing.nameEn : ing.nameFr;
+  const originalName = locale === "en" ? ing.originalNameEn : ing.originalNameFr;
+  const pantryRemoved = ing.removalReason === "pantry";
+  const deliberatelyRemoved = ing.removalReason === "excluded";
+  const proteinRemoved = ing.removalReason === "protein-none";
+  const replacementOptions = ing.replacementOptions || [];
+  const currentMissingFromOptions = ing.isReplacement && !replacementOptions.some((option: any) => option.productId === ing.productId);
 
   return (
-    <div className={`flex flex-col gap-3 p-3 sm:flex-row sm:items-center ${ing.removed ? "opacity-50" : ""}`}>
-      <div className="flex flex-1 items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-lg text-xl" style={{ background: ing.color + "22" }}>{ing.emoji}</span>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-charcoal">{locale === "en" ? ing.nameEn : ing.nameFr}</p>
+    <div className={`space-y-3 p-4 transition ${ing.removed ? "bg-muted/20" : ""}`}>
+      <div className="flex items-start gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-xl" style={{ background: ing.color + "22" }}>{ing.emoji}</span>
+        <div className="min-w-0 flex-1">
+          <p className={`truncate text-sm font-semibold ${ing.removed ? "text-muted-foreground line-through" : "text-charcoal"}`}>{localizedName}</p>
           <div className="flex flex-wrap items-center gap-1">
             <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-medium ${roleColor[ing.role] || "bg-gray-100 text-gray-600"}`}>
               {(roleLabel[ing.role] || ["", ""])[locale === "en" ? 1 : 0]}
             </span>
             {ing.optional && <span className="text-[9px] text-muted-foreground">· {t.config.ingredient}</span>}
+            {ing.isReplacement ? <span className="rounded bg-terre/10 px-1.5 py-0.5 text-[9px] font-bold text-terre">{locale === "fr" ? `Remplace ${originalName}` : `Replaces ${originalName}`}</span> : null}
           </div>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} title={locale === "fr" ? (pantryRemoved ? "Retirer de mes ingrédients disponibles" : "Je l'ai déjà à la maison") : (pantryRemoved ? "Remove from pantry" : "I already have this")} className={`grid h-9 w-9 place-items-center rounded-md border transition ${pantryRemoved ? "border-forest bg-forest text-white" : "border-border text-muted-foreground hover:border-forest hover:text-forest"}`}>
+            <House className="h-4 w-4" />
+          </button>
+          {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} title={locale === "fr" ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette") : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe")} aria-label={locale === "fr" ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette") : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe")} className={`grid h-9 w-9 place-items-center rounded-md border transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-border text-muted-foreground hover:border-terre hover:text-terre"}`}>
+            {deliberatelyRemoved ? <Undo2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+          </button> : null}
         </div>
       </div>
 
-      <div className="flex items-center gap-4 text-xs">
-        {/* needed */}
-        <div className="text-center">
+      {ing.removed ? (
+        <div className="flex items-center gap-2 border-l-2 border-gold pl-2 text-xs font-medium text-muted-foreground">
+          {pantryRemoved ? <><House className="h-3.5 w-3.5" /> {locale === "fr" ? "Déjà disponible à la maison : non ajouté au panier." : "Already at home: not added to the basket."}</> : proteinRemoved ? <>{locale === "fr" ? "Retiré par le choix Sans protéine." : "Removed by the No protein choice."}</> : <><Trash2 className="h-3.5 w-3.5" /> {locale === "fr" ? "Retiré de cette recette. Action réversible." : "Removed from this recipe. This can be undone."}</>}
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-3 items-end gap-2 text-xs">
+        <div>
           <p className="text-[10px] text-muted-foreground">{t.config.neededQty}</p>
           <p className="font-semibold text-charcoal">{formatQty(ing.neededQty, ing.neededUnit, locale as any)}</p>
         </div>
-        <span className="text-muted-foreground">→</span>
-        {/* packs stepper */}
-        <div className="text-center">
+        <div>
           <p className="text-[10px] text-muted-foreground">{t.config.packs}</p>
           {!ing.removed ? (
-            <div className="inline-flex items-center rounded-full border border-border">
-              <button onClick={() => onPackDelta(-1)} disabled={ing.packs <= 0} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted disabled:opacity-40"><Minus className="h-3 w-3" /></button>
+            <div className="inline-flex h-8 items-center rounded-md border border-border bg-background">
+              <button type="button" onClick={() => onPackDelta(-1)} disabled={ing.packs <= 0} className="grid h-8 w-8 place-items-center hover:bg-muted disabled:opacity-35" aria-label={locale === "fr" ? `Réduire les paquets de ${localizedName}` : `Reduce ${localizedName} packs`}><Minus className="h-3 w-3" /></button>
               <span className="min-w-7 text-center font-semibold">{ing.packs}</span>
-              <button onClick={() => onPackDelta(1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted"><Plus className="h-3 w-3" /></button>
+              <button type="button" onClick={() => onPackDelta(1)} disabled={ing.packs >= ing.stockQty} className="grid h-8 w-8 place-items-center hover:bg-muted disabled:opacity-35" aria-label={locale === "fr" ? `Augmenter les paquets de ${localizedName}` : `Increase ${localizedName} packs`}><Plus className="h-3 w-3" /></button>
             </div>
-          ) : <span className="text-gold">{t.config.removedHave}</span>}
+          ) : <span className="font-medium text-gold">0</span>}
         </div>
-        {/* leftover */}
-        <div className="hidden text-center sm:block">
-          <p className="text-[10px] text-muted-foreground">{t.config.leftover}</p>
-          <p className="font-medium text-blue-700">{ing.leftover > 0 ? formatQty(ing.leftover, ing.neededUnit === "kg" ? "g" : ing.neededUnit === "L" ? "ml" : ing.neededUnit, locale as any) : "—"}</p>
-        </div>
-        {/* line total */}
         <div className="text-right">
           <p className="text-[10px] text-muted-foreground">{t.config.lineTotal}</p>
           <p className="font-bold text-terre">{formatPrice(ing.lineTotal, locale as any)}</p>
         </div>
       </div>
 
-      {/* availability / substitute */}
-      {!ing.removed && (
-        <div className="sm:w-32">
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+        <label className="min-w-0 text-[10px] font-semibold text-muted-foreground">
+          <span className="mb-1 flex items-center gap-1"><RefreshCw className="h-3 w-3" /> {locale === "fr" ? "Remplacer cet ingrédient" : "Replace this ingredient"}</span>
+          <select value={ing.productId} onChange={(event) => onReplace(event.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-2 text-xs font-medium text-charcoal outline-none transition focus:border-terre focus:ring-2 focus:ring-terre/15">
+            <option value={ing.originalProductId}>{locale === "fr" ? `Original : ${ing.originalNameFr}` : `Original: ${ing.originalNameEn}`}</option>
+            {currentMissingFromOptions ? <option value={ing.productId}>{locale === "fr" ? `Sélection : ${ing.nameFr}` : `Selected: ${ing.nameEn}`}</option> : null}
+            {replacementOptions.map((option: any) => (
+              <option key={option.productId} value={option.productId} disabled={option.availableStock <= 0}>
+                {option.emoji} {locale === "fr" ? option.nameFr : option.nameEn} · {option.availableStock > 0 ? `${option.availableStock} ${locale === "fr" ? "en stock" : "in stock"}` : t.config.unavailable} · {formatPrice(option.unitPrice, locale as any)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {!ing.removed ? <div>
           {ing.available ? (
-            <Badge variant="outline" className="w-full justify-center border-forest/40 bg-forest/5 text-forest"><Check className="mr-1 h-3 w-3" /> {t.config.inStockOk}</Badge>
+            <Badge variant="outline" className="h-10 w-full justify-center border-forest/40 bg-forest/5 text-forest"><Check className="mr-1 h-3 w-3" /> {t.config.inStockOk} · {ing.stockQty}</Badge>
           ) : ing.substituteName ? (
-            <Badge variant="outline" className="w-full justify-center border-amber-400 bg-amber-50 text-amber-700">
-              <AlertTriangle className="mr-1 h-3 w-3" /> {t.config.substitute}: {ing.substituteName}
-            </Badge>
+            <button type="button" onClick={() => onReplace(ing.substituteProductId)} className="flex h-10 w-full items-center justify-center rounded-md border border-amber-400 bg-amber-50 px-2 text-[10px] font-bold text-amber-800"><RefreshCw className="mr-1 h-3 w-3" /> {locale === "fr" ? `Utiliser ${ing.substituteName}` : `Use ${ing.substituteName}`}</button>
           ) : (
-            <Badge variant="outline" className="w-full justify-center border-destructive/40 bg-red-50 text-destructive">{t.config.unavailable}</Badge>
+            <Badge variant="outline" className="h-10 w-full justify-center border-destructive/40 bg-red-50 text-destructive">{t.config.unavailable}</Badge>
           )}
-        </div>
-      )}
+        </div> : <div className="flex h-10 items-center text-[10px] text-muted-foreground">{locale === "fr" ? "Aucun achat pour cette ligne" : "No purchase for this line"}</div>}
+      </div>
+
+      {!ing.removed && ing.leftover > 0 ? <p className="text-[10px] text-blue-700">{t.config.leftover} : {formatQty(ing.leftover, ing.leftoverUnit || (ing.neededUnit === "L" ? "ml" : "g"), locale as any)} · {ing.packLabel}</p> : null}
     </div>
   );
 }

@@ -1,12 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { computeRecipe, type RecipeConfigInput } from "@/lib/recipe-engine";
 
 export const dynamic = "force-dynamic";
 
+const RecipeConfiguration = z.object({
+  servings: z.number().int().min(1).max(24),
+  adults: z.number().int().min(0).max(24),
+  children: z.number().int().min(0).max(24),
+  portion: z.enum(["normal", "generous"]),
+  protein: z.enum(["recipe", "meat", "fish", "none"]).default("recipe"),
+  kplo: z.boolean(),
+  spiceLevel: z.enum(["mild", "medium", "hot", "veryHot"]),
+  allergies: z.string().trim().max(500).optional().default(""),
+  budget: z.number().positive().max(10000).optional(),
+  formula: z.enum(["economy", "standard", "premium"]),
+  haveAtHome: z.array(z.string().min(1)).max(100).default([]),
+  excludedIngredients: z.array(z.string().min(1)).max(100).default([]),
+  replacements: z.record(z.string(), z.string().min(1)).default({}),
+}).refine((value) => value.adults + value.children >= 1 && value.adults + value.children <= 24, {
+  message: "Le nombre total de personnes doit être compris entre 1 et 24.",
+  path: ["servings"],
+});
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const body = (await req.json()) as RecipeConfigInput;
+  const payload = await req.json().catch(() => null);
+  const parsed = RecipeConfiguration.safeParse(payload);
+  if (!parsed.success) return NextResponse.json({ error: "Configuration de recette invalide." }, { status: 400 });
+  const body = parsed.data as RecipeConfigInput;
   const url = new URL(req.url);
   const locale = (url.searchParams.get("locale") as "fr" | "en") || "fr";
 
@@ -32,7 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // All products available for substitution (same categories broadly)
   const allProducts = await db.product.findMany({
     where: { status: "published" },
-    include: { translations: true, category: true },
+    include: { translations: true, category: true, variants: true },
   });
 
   const rawIngredients = recipe.ingredients.map((ri) => ({
@@ -54,6 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       stockQty: ri.product.stockQty,
       reservedQty: ri.product.reservedQty,
       categoryId: ri.product.categoryId,
+      categorySlug: ri.product.category.slug,
       translations: ri.product.translations.map((t) => ({ locale: t.locale, name: t.name })),
     },
     variants: ri.product.variants.map((v) => ({
@@ -72,8 +96,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     steps,
     rawIngredients,
     allProductsForSubstitute: allProducts.map((p) => ({
-      id: p.id, traditionalName: p.traditionalName, stockQty: p.stockQty, thermalClass: p.thermalClass, categoryId: p.categoryId,
+      id: p.id, traditionalName: p.traditionalName, imageEmoji: p.imageEmoji, imageColor: p.imageColor,
+      stockQty: p.stockQty, reservedQty: p.reservedQty, thermalClass: p.thermalClass, categoryId: p.categoryId, categorySlug: p.category.slug,
       translations: p.translations.map((t) => ({ locale: t.locale, name: t.name })),
+      variants: p.variants.map((v) => ({
+        id: v.id, label: v.label, weightGrams: v.weightGrams, volumeMl: v.volumeMl, price: Number(v.price), isDefault: v.isDefault,
+      })),
     })),
   });
 
