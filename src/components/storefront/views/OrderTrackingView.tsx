@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertCircle, CheckCircle2, Circle, MapPin, Truck, Package, ChevronLeft, LogIn } from "lucide-react";
+import { AlertCircle, CheckCircle2, Circle, MapPin, Truck, Package, LogIn } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +9,7 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatDate, formatDateTime, orderStatusColor, thermalColor, thermalLabel } from "@/lib/format";
+import { PageBackButton } from "@/components/shared/PageBackButton";
 
 export function OrderTrackingView() {
   const locale = useStore((s) => s.locale);
@@ -35,9 +36,7 @@ export function OrderTrackingView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 lg:px-6">
-      <button onClick={() => navigate("orders")} className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-terre">
-        <ChevronLeft className="h-4 w-4" /> {t.back}
-      </button>
+      <PageBackButton fallbackView="orders" className="mb-4" />
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, ArrowLeft, Check } from "lucide-react";
+import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PageBackButton } from "@/components/shared/PageBackButton";
 
 export function CartView() {
   const locale = useStore((s) => s.locale);
@@ -100,6 +101,7 @@ export function CartView() {
   if (cart.length === 0) {
     return (
       <div className="mx-auto flex max-w-2xl flex-col items-center justify-center gap-4 px-4 py-20 text-center">
+        <PageBackButton fallbackView="catalog" className="self-start" />
         <ShoppingBag className="h-16 w-16 text-muted-foreground/50" />
         <h2 className="text-xl font-bold text-charcoal">{t.cart.empty}</h2>
         <Button onClick={() => navigate("catalog")} className="bg-terre text-cream hover:bg-terre-dark">
@@ -111,6 +113,7 @@ export function CartView() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+      <PageBackButton fallbackView="catalog" className="mb-2" />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-charcoal md:text-3xl">{t.cart.title}</h1>
         <AlertDialog>
@@ -151,9 +154,6 @@ export function CartView() {
             </div>
           )}
 
-          <Button variant="outline" onClick={() => navigate("catalog")} className="text-charcoal">
-            <ArrowLeft className="mr-1 h-4 w-4" /> {t.cart.continueShopping}
-          </Button>
         </div>
 
         {/* summary */}

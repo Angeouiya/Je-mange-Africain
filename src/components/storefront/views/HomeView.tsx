@@ -209,10 +209,10 @@ function GridSkeleton() {
 
 function ProductRail({ products }: { products: any[] }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:px-0 lg:grid-cols-4">
+    <div className="-mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0 lg:grid-cols-5">
       {products.map((product, index) => (
-        <div key={product.id} className="w-[72vw] max-w-72 shrink-0 snap-start md:w-auto md:max-w-none">
-          <ProductCard product={product} index={index} />
+        <div key={product.id} className="w-[58vw] max-w-52 shrink-0 snap-start md:w-auto md:max-w-none">
+          <ProductCard product={product} index={index} compact />
         </div>
       ))}
     </div>

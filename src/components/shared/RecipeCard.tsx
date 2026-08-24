@@ -38,7 +38,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-lg hover:-translate-y-0.5"
+      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-forest/30 hover:shadow-lg"
     >
       <div className="relative flex aspect-[4/3] items-center justify-center bg-muted/40">
         <ProductImage
@@ -48,7 +48,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
           color={recipe.imageColor}
           size="lg"
           className="h-full w-full"
-          rounded="rounded-2xl"
+          rounded="rounded-none"
         />
         {recipe.isPopular && (
           <Badge className="absolute left-3 top-3 bg-terre text-cream border-0 shadow-sm">★ {t.recipes.popular}</Badge>

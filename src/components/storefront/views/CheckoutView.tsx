@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, Check, CreditCard, Truck, ShieldCheck, Loader2, Lock } from "lucide-react";
+import { Check, CreditCard, Truck, ShieldCheck, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { useStore, cartSubtotal, cartWeightGrams, cartThermalSplit } from "@/lib
 import { dict } from "@/lib/i18n";
 import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
 import { postJSON } from "@/lib/use-fetch";
+import { PageBackButton } from "@/components/shared/PageBackButton";
 
 export function CheckoutView() {
   const locale = useStore((s) => s.locale);
@@ -85,9 +86,7 @@ export function CheckoutView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 lg:px-6">
-      <button onClick={() => navigate("cart")} className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-terre">
-        <ChevronLeft className="h-4 w-4" /> {t.back}
-      </button>
+      <PageBackButton fallbackView="cart" className="mb-4" />
       <h1 className="mb-4 text-2xl font-bold text-charcoal md:text-3xl">{t.checkout.title}</h1>
 
       {/* stepper */}

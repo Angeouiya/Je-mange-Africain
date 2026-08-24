@@ -89,7 +89,9 @@ interface AppState {
   // navigation
   view: ViewId;
   params: ViewParams;
+  navigationHistory: { view: ViewId; params: ViewParams }[];
   navigate: (view: ViewId, params?: ViewParams) => void;
+  goBack: (fallbackView?: ViewId, fallbackParams?: ViewParams) => void;
 
   // delivery context
   country: string;
@@ -142,8 +144,29 @@ export const useStore = create<AppState>()(
 
       view: "home",
       params: {},
+      navigationHistory: [],
       navigate: (view, params = {}) => {
-        set({ view, params });
+        set((state) => {
+          const isSameDestination = state.view === view && JSON.stringify(state.params) === JSON.stringify(params);
+          if (isSameDestination) return state;
+          return {
+            view,
+            params,
+            navigationHistory: [...state.navigationHistory, { view: state.view, params: state.params }].slice(-30),
+          };
+        });
+        if (typeof window !== "undefined") {
+          window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+        }
+      },
+      goBack: (fallbackView = "home", fallbackParams = {}) => {
+        const state = get();
+        const previous = state.navigationHistory.at(-1);
+        set({
+          view: previous?.view || fallbackView,
+          params: previous?.params || fallbackParams,
+          navigationHistory: previous ? state.navigationHistory.slice(0, -1) : [],
+        });
         if (typeof window !== "undefined") {
           window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
         }

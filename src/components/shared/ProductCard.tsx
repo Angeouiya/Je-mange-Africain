@@ -38,7 +38,7 @@ export interface ProductListItem {
   variants?: { id: string; label: string; weightGrams: number; price: number; isDefault: boolean }[];
 }
 
-export function ProductCard({ product, index = 0 }: { product: ProductListItem; index?: number }) {
+export function ProductCard({ product, index = 0, compact = false }: { product: ProductListItem; index?: number; compact?: boolean }) {
   const locale = useStore((s) => s.locale);
   const navigate = useStore((s) => s.navigate);
   const addToCart = useStore((s) => s.addToCart);
@@ -86,10 +86,10 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
       onClick={() => navigate("product", { productId: product.id })}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl"
+      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg"
     >
       <div className="relative">
-        <div className="flex aspect-[4/3] w-full items-center justify-center bg-muted/40">
+        <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-[5/4]" : "aspect-[4/3]"}`}>
           <ProductImage
             src={photoUrl}
             alt={product.name}
@@ -97,6 +97,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
             color={product.imageColor}
             size="lg"
             className="h-full w-full"
+            rounded="rounded-none"
           />
         </div>
         <div className="absolute left-2 top-2 flex max-w-[74%] flex-col gap-1">
@@ -118,20 +119,20 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2.5 p-3">
+      <div className={`flex min-w-0 flex-1 flex-col ${compact ? "gap-1.5 p-2.5" : "gap-2.5 p-3"}`}>
         <div className="flex items-center gap-1.5">
-          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${thermalColor(product.thermalClass)}`}>
+          <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium ${thermalColor(product.thermalClass)}`}>
             {thermalLabel(product.thermalClass, locale)}
           </span>
           {lowStock && <span className="text-[10px] font-semibold text-gold">{t.lowStock}</span>}
           {outOfStock && <span className="text-[10px] font-semibold text-destructive">{t.outOfStock}</span>}
         </div>
         <div>
-          <h3 className="line-clamp-2 text-sm font-bold leading-tight text-charcoal">{product.name}</h3>
+          <h3 className={`line-clamp-2 break-words font-bold leading-tight text-charcoal ${compact ? "text-xs" : "text-sm"}`}>{product.name}</h3>
           <p className="mt-0.5 line-clamp-1 text-[11px] font-medium text-terre">{product.traditionalName}</p>
         </div>
-        <p className="line-clamp-2 min-h-[2.2rem] text-[11px] leading-relaxed text-muted-foreground">{commercialLine}</p>
-        <div className="mt-auto flex items-end justify-between gap-2 pt-1">
+        {!compact && <p className="line-clamp-2 min-h-[2.2rem] text-[11px] leading-relaxed text-muted-foreground">{commercialLine}</p>}
+        <div className="mt-auto flex min-w-0 items-end justify-between gap-1.5 pt-1">
           <div className="min-w-0">
             {product.promoPrice && (
               <div className="flex flex-wrap items-center gap-1">
@@ -143,8 +144,8 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
                 )}
               </div>
             )}
-            <span className="text-base font-extrabold text-terre">{formatPrice(price, locale)}</span>
-            {product.pricePerKg && <span className="ml-1 text-[10px] text-muted-foreground">/ {formatUnitPrice(product.pricePerKg, locale)} kg</span>}
+            <span className={`${compact ? "text-sm" : "text-base"} block whitespace-nowrap font-extrabold text-terre`}>{formatPrice(price, locale)}</span>
+            {product.pricePerKg && !compact && <span className="block truncate text-[10px] text-muted-foreground">{formatUnitPrice(product.pricePerKg, locale)} / kg</span>}
           </div>
           <Button
             size="sm"

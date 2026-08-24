@@ -10,6 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { LegalDocument } from "@/components/storefront/LegalDocument";
+import { PageBackButton } from "@/components/shared/PageBackButton";
 
 export function InfoView() {
   const locale = useStore((s) => s.locale);
@@ -70,6 +71,7 @@ export function InfoView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 lg:px-6">
+      <PageBackButton fallbackView="home" className="mb-3" />
       <h1 className="mb-5 text-2xl font-bold text-charcoal md:text-3xl">{c.title}</h1>
       <div className="jma-card rounded-2xl p-5 md:p-7">{c.body}</div>
     </div>

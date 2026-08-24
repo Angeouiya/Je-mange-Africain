@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft, Users, Clock, Flame, Minus, Plus, ShoppingCart, RotateCcw,
+  Users, Clock, Flame, Minus, Plus, ShoppingCart, RotateCcw,
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
   Trash2, Undo2, RefreshCw, House,
 } from "lucide-react";
@@ -19,6 +19,7 @@ import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/for
 import { formatQty } from "@/lib/recipe-engine";
 import { getRecipePhoto } from "@/lib/market-media";
 import { shareRecipe } from "@/lib/client-actions";
+import { PageBackButton } from "@/components/shared/PageBackButton";
 
 interface CalcResult {
   ingredients: any[];
@@ -212,9 +213,7 @@ export function RecipeConfiguratorView() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
-      <button onClick={() => navigate("recipes")} className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-terre">
-        <ChevronLeft className="h-4 w-4" /> {t.back}
-      </button>
+      <PageBackButton fallbackView="recipes" className="mb-3" />
 
       {/* recipe header */}
       <div className="mb-5 grid overflow-hidden rounded-2xl border border-border bg-card shadow-sm md:grid-cols-[240px_1fr]">
