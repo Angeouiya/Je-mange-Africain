@@ -6,3 +6,6 @@ node_modules.partial-*
 *.log
 *.db
 db/*.db
+.env
+.env.local
+.env.*.local
