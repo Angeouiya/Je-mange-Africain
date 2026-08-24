@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { sendPushToSubscriptionId } from "@/lib/push-server";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ interface CheckoutBody {
   coupon?: string | null;
   giftCardCode?: string | null;
   customerEmail?: string;
+  locale?: "fr" | "en";
+  pushSubscriptionId?: string;
 }
 
 const ORDER_STATUS_FLOW = [
@@ -223,6 +226,16 @@ export async function POST(req: NextRequest) {
 
     return ord;
   });
+
+  if (body.pushSubscriptionId) {
+    await sendPushToSubscriptionId(body.pushSubscriptionId, {
+      title: body.locale === "en" ? "Order confirmed" : "Commande confirmée",
+      body: body.locale === "en" ? `${number} is being prepared. We will keep you updated.` : `${number} est en préparation. Nous vous tiendrons informé ici.`,
+      url: "/?view=orders",
+      type: "order",
+      tag: `order-${order.id}`,
+    });
+  }
 
   return NextResponse.json({ order: { id: order.id, number: order.number, total, status: order.status } });
 }

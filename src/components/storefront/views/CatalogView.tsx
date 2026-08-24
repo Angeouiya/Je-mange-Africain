@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { PackageSearch, Percent, Search as SearchIcon, ShieldCheck, SlidersHorizontal, Truck, X } from "lucide-react";
+import { PackageSearch, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { ProductCard } from "@/components/shared/ProductCard";
+import { CategoryIcon } from "@/components/shared/CategoryIcon";
 
 const THERMALS = ["AMBIANT", "REFRIGERATED", "FROZEN"];
 
@@ -20,7 +21,7 @@ export function CatalogView() {
   const params = useStore((s) => s.params);
   const t = dict[locale];
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(params.query || "");
   const [cat, setCat] = useState<string | null>(params.category || null);
   const [brand, setBrand] = useState<string | null>(null);
   const [country, setCountry] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export function CatalogView() {
 
   // Sync category from navigation params + reset page on filter change.
   useEffect(() => { setCat(params.category || null); }, [params.category]);
+  useEffect(() => { if (params.query !== undefined) setSearch(params.query); }, [params.query]);
   useEffect(() => { setPage(1); }, [search, cat, brand, country, thermal, maxPrice, sort]);
 
   const qs = new URLSearchParams({ locale, sort, page: String(page), pageSize: "12" });
@@ -60,7 +62,10 @@ export function CatalogView() {
         <div className="space-y-1">
           <FilterChip active={!cat} onClick={() => setCat(null)}>{locale === "fr" ? "Toutes" : "All"}</FilterChip>
           {filters?.categories?.map((c: any) => (
-            <FilterChip key={c.id} active={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)}>{c.name}</FilterChip>
+            <FilterChip key={c.id} active={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)}>
+              <CategoryIcon slug={c.slug} color={c.color} className="h-7 w-7 border-0 shadow-none" />
+              <span className="min-w-0 truncate">{c.name}</span>
+            </FilterChip>
           ))}
         </div>
       </FilterGroup>
@@ -105,23 +110,6 @@ export function CatalogView() {
     <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
       <div className="mb-4 flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-charcoal md:text-3xl">{t.catalog.title}</h1>
-        <div className="grid gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm md:grid-cols-3">
-          <CatalogSignal
-            icon={Percent}
-            label={locale === "fr" ? "Remises lisibles" : "Clear discounts"}
-            value={locale === "fr" ? "Pourcentage visible dès la carte" : "Percentage visible on cards"}
-          />
-          <CatalogSignal
-            icon={ShieldCheck}
-            label={locale === "fr" ? "Sélection maîtrisée" : "Controlled selection"}
-            value={locale === "fr" ? "Origine, format et conservation vérifiés" : "Origin, pack and storage verified"}
-          />
-          <CatalogSignal
-            icon={Truck}
-            label={locale === "fr" ? "Panier livrable" : "Deliverable basket"}
-            value={locale === "fr" ? "Ambiant, frais et surgelé organisés" : "Ambient, chilled and frozen organized"}
-          />
-        </div>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -136,7 +124,7 @@ export function CatalogView() {
           </select>
           <Sheet open={filtersOpenMobile} onOpenChange={setFiltersOpenMobile}>
             <SheetTrigger asChild>
-              <Button variant="outline" className="lg:hidden"><SlidersHorizontal className="h-4 w-4" /></Button>
+              <Button variant="outline" className="lg:hidden" aria-label={t.catalog.filters}><SlidersHorizontal className="h-4 w-4" /></Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-80 overflow-y-auto bg-cream">
               <SheetHeader><SheetTitle>{t.catalog.filters}</SheetTitle></SheetHeader>
@@ -218,7 +206,7 @@ function FilterChip({ active, onClick, children }: { active?: boolean; onClick: 
   return (
     <button
       onClick={onClick}
-      className={`block w-full rounded-lg px-3 py-1.5 text-left text-xs font-medium transition ${
+      className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-xs font-medium transition ${
         active ? "bg-terre text-cream" : "text-charcoal hover:bg-muted"
       }`}
     >
@@ -232,19 +220,5 @@ function ActiveFilter({ onClear, children }: { onClear: () => void; children: Re
       {children}
       <button onClick={onClear} aria-label="Retirer"><X className="h-3 w-3" /></button>
     </Badge>
-  );
-}
-
-function CatalogSignal({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
-  return (
-    <div className="flex min-h-16 items-center gap-3 rounded-lg bg-muted/35 px-3 py-2">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-terre/10">
-        <Icon className="h-4 w-4 text-terre" />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-xs font-extrabold leading-tight text-charcoal">{label}</span>
-        <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{value}</span>
-      </span>
-    </div>
   );
 }

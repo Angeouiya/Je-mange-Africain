@@ -20,7 +20,6 @@ export type ViewId =
   | "orders"
   | "order-tracking"
   | "account"
-  | "admin"
   | "info";
 
 export type ThermalClass = "AMBIANT" | "REFRIGERATED" | "FROZEN";
@@ -49,6 +48,9 @@ export interface ViewParams {
   recipeId?: string;
   orderId?: string;
   category?: string;
+  query?: string;
+  recipeMode?: "recipes" | "library";
+  accountSection?: "profile" | "settings";
   infoPage?: "about" | "help" | "contact" | "cgv" | "privacy" | "cookies" | "delivery";
 }
 
@@ -67,9 +69,10 @@ export interface Address {
 export interface Customer {
   id: string;
   email: string;
+  phone: string;
   firstName: string;
   lastName: string;
-  role: "customer" | "admin";
+  role: "customer";
   loyaltyPoints: number;
   walletCredit: number;
 }
@@ -115,9 +118,9 @@ interface AppState {
   recentlyViewed: string[];
   pushRecentlyViewed: (productId: string) => void;
 
-  // auth (simulated)
+  // customer session
   customer: Customer | null;
-  login: (email: string) => void;
+  setCustomer: (customer: Customer | null) => void;
   logout: () => void;
 
   // addresses
@@ -221,18 +224,7 @@ export const useStore = create<AppState>()(
         })),
 
       customer: null,
-      login: (email) =>
-        set({
-          customer: {
-            id: "demo-customer",
-            email,
-            firstName: email.split("@")[0]?.split(".")[0]?.replace(/^\w/, (c) => c.toUpperCase()) || "Client",
-            lastName: "Demo",
-            role: email.toLowerCase().includes("admin") ? "admin" : "customer",
-            loyaltyPoints: 1250,
-            walletCredit: 15,
-          },
-        }),
+      setCustomer: (customer) => set({ customer }),
       logout: () => set({ customer: null }),
 
       addresses: [

@@ -12,6 +12,7 @@ import { ProductCard } from "@/components/shared/ProductCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCategoryPhoto } from "@/lib/market-media";
+import { CategoryIcon } from "@/components/shared/CategoryIcon";
 
 export function HomeView() {
   const locale = useStore((s) => s.locale);
@@ -19,12 +20,6 @@ export function HomeView() {
   const t = dict[locale];
   const { data, loading } = useFetch(`/api/catalog?section=home&locale=${locale}`);
 
-  const stats = [
-    { value: "200+", label: t.home.statProducts },
-    { value: "50+", label: t.home.statRecipes },
-    { value: "48 h", label: t.home.statDelivery },
-    { value: "12k", label: t.home.statFamilies },
-  ];
   const commitments = [
     { icon: ShieldCheck, title: t.home.commitment1Title, desc: t.home.commitment1Desc, color: "#3F681C" },
     { icon: Snowflake, title: t.home.commitment2Title, desc: t.home.commitment2Desc, color: "#3F681C" },
@@ -37,10 +32,10 @@ export function HomeView() {
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <Image src="/hero.jpg" alt="" fill sizes="100vw" className="object-cover" priority />
-          <div className="absolute inset-0 bg-gradient-to-r from-charcoal/88 via-charcoal/58 to-charcoal/10" />
+          <Image src="/hero-feast-v2.webp" alt="" fill sizes="100vw" className="object-cover object-[63%_center] md:object-center" priority />
+          <div className="absolute inset-0 bg-charcoal/55 md:bg-gradient-to-r md:from-charcoal/88 md:via-charcoal/58 md:to-charcoal/10" />
         </div>
-        <div className="relative mx-auto flex min-h-[62svh] max-w-7xl flex-col justify-center gap-6 px-4 py-12 md:min-h-[560px] md:py-20 lg:px-6">
+        <div className="relative mx-auto flex min-h-[48svh] max-w-4xl flex-col justify-center gap-5 px-4 py-10 md:min-h-[500px] md:py-16">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Badge className="border-0 bg-terre/90 text-cream shadow-lg">
               <Sparkles className="mr-1 h-3 w-3" /> {t.home.heroBadge}
@@ -48,7 +43,7 @@ export function HomeView() {
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="max-w-2xl text-4xl font-extrabold leading-tight text-cream md:text-6xl"
+            className="max-w-2xl text-3xl font-extrabold leading-tight text-cream sm:text-4xl"
           >
             {t.home.heroTitle.split("\n").map((line, i) => (
               <span key={i} className="block">{i === 1 ? <span className="text-gold">{line}</span> : line}</span>
@@ -56,7 +51,7 @@ export function HomeView() {
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-xl text-base text-cream/90 md:text-lg"
+            className="max-w-xl text-sm leading-6 text-cream/90 sm:text-base"
           >
             {t.home.heroSubtitle}
           </motion.p>
@@ -70,17 +65,6 @@ export function HomeView() {
             <Button size="lg" variant="outline" onClick={() => navigate("recipes")} className="border-cream/40 bg-cream/10 text-cream backdrop-blur hover:bg-cream/20">
               {t.home.heroCtaRecipes}
             </Button>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.5 }}
-            className="grid grid-cols-2 gap-4 pt-4 md:grid-cols-4"
-          >
-            {stats.map((s) => (
-              <div key={s.label} className="rounded-xl border border-cream/15 bg-cream/12 p-3 backdrop-blur-md">
-                <div className="text-2xl font-bold text-gold md:text-3xl">{s.value}</div>
-                <div className="text-xs text-cream/80">{s.label}</div>
-              </div>
-            ))}
           </motion.div>
         </div>
       </section>
@@ -101,7 +85,7 @@ export function HomeView() {
                 >
                   <Image src={getCategoryPhoto(c)} alt="" fill sizes="(max-width: 768px) 50vw, 160px" className="object-cover transition duration-500 group-hover:scale-105" />
                   <span className="absolute inset-0 bg-gradient-to-t from-charcoal/82 via-charcoal/30 to-transparent" />
-                  <span className="relative grid h-9 w-9 place-items-center rounded-full bg-white/90 text-xl shadow-sm">{c.icon}</span>
+                  <CategoryIcon slug={c.slug} color={c.color} className="relative h-10 w-10" />
                   <span className="relative mt-2 text-xs font-bold leading-tight text-cream">{c.name}</span>
                 </motion.button>
               ))}

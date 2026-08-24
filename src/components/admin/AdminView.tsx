@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ChefHat, Boxes, Truck, ShoppingCart, Users,
   CreditCard, ScrollText, Settings, Menu, X, Store, AlertTriangle,
   TrendingUp, Clock, DollarSign, PackageCheck, Snowflake, FileText, ShieldCheck,
+  LogOut, BellRing,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,12 +19,28 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatDate, orderStatusColor, thermalColor, thermalLabel } from "@/lib/format";
+import { ProductCreateDialog } from "@/components/admin/ProductCreateDialog";
+import { BrandLockup } from "@/components/shared/BrandLockup";
+import { PushCampaignAdmin } from "@/components/admin/PushCampaignAdmin";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type AdminSection =
   | "dashboard" | "products" | "recipes" | "stock" | "orders"
-  | "customers" | "payments" | "audit" | "settings";
+  | "customers" | "payments" | "notifications" | "audit" | "settings";
 
-export function AdminView() {
+export function AdminView({
+  adminEmail = "",
+  adminRole = "",
+  onLogout,
+}: {
+  adminEmail?: string;
+  adminRole?: string;
+  onLogout?: () => void;
+}) {
   const locale = useStore((s) => s.locale);
   const navigate = useStore((s) => s.navigate);
   const t = dict[locale].admin;
@@ -32,7 +48,7 @@ export function AdminView() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const backToStore = () => {
     if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
-      window.location.assign("/");
+      window.location.assign("https://je-mange-africain.com");
       return;
     }
     navigate("home");
@@ -46,6 +62,7 @@ export function AdminView() {
     { id: "orders", icon: ShoppingCart, label: t.orders },
     { id: "customers", icon: Users, label: t.customers },
     { id: "payments", icon: CreditCard, label: t.payments },
+    { id: "notifications", icon: BellRing, label: locale === "fr" ? "Notifications" : "Notifications" },
     { id: "audit", icon: ScrollText, label: t.audit },
     { id: "settings", icon: Settings, label: t.settings },
   ];
@@ -56,13 +73,7 @@ export function AdminView() {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-charcoal text-cream transition-transform md:relative md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="african-kente-stripe h-1.5" />
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <Image src="/logo-jma.png" alt="Je mange Africain" width={96} height={96} className="h-14 w-14 object-contain" />
-            <div>
-              <p className="text-sm font-extrabold text-cream">JMA Admin</p>
-              <p className="text-[10px] uppercase tracking-wide text-cream/55">Opérations</p>
-            </div>
-          </div>
+          <BrandLockup context="admin" compact inverse />
           <button onClick={() => setSidebarOpen(false)} className="md:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="flex-1 space-y-0.5 px-2 py-2">
@@ -83,9 +94,18 @@ export function AdminView() {
             <Store className="mr-2 h-4 w-4" /> {t.backToStore}
           </Button>
           <div className="mt-3 rounded-lg bg-cream/5 p-2 text-[11px] text-cream/60">
-            <p className="font-semibold text-cream/80">Aïssata Koné</p>
-            <p>Super admin · 2FA ✓</p>
+            <p className="truncate font-semibold text-cream/80">{adminEmail || "Session locale"}</p>
+            <p className="truncate">{adminRole ? adminRole.replaceAll("_", " ") : "Console d'exploitation"}</p>
           </div>
+          {onLogout ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild><Button variant="ghost" className="mt-1 w-full justify-start text-cream/70 hover:bg-cream/10 hover:text-cream"><LogOut className="mr-2 h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</Button></AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader><AlertDialogTitle>{locale === "fr" ? "Fermer la session professionnelle ?" : "Close the professional session?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? "L'accès aux opérations, données clients et réglages sera immédiatement fermé sur cet appareil. Les modifications déjà enregistrées seront conservées." : "Access to operations, customer data and settings will close immediately on this device. Saved changes will remain."}</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogFooter><AlertDialogCancel>{locale === "fr" ? "Annuler" : "Cancel"}</AlertDialogCancel><AlertDialogAction onClick={onLogout} className="bg-destructive text-white hover:bg-destructive/90">{locale === "fr" ? "Oui, me déconnecter" : "Yes, sign out"}</AlertDialogAction></AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
         </div>
       </aside>
 
@@ -111,6 +131,7 @@ export function AdminView() {
               {section === "orders" && <OrdersAdmin locale={locale} />}
               {section === "customers" && <CustomersAdmin locale={locale} />}
               {section === "payments" && <PaymentsAdmin locale={locale} />}
+              {section === "notifications" && <PushCampaignAdmin locale={locale} />}
               {section === "audit" && <AuditAdmin locale={locale} />}
               {section === "settings" && <SettingsAdmin locale={locale} />}
             </motion.div>
@@ -225,13 +246,13 @@ function Dashboard({ locale }: { locale: string }) {
 
 /* ---------------- Products admin ---------------- */
 function ProductsAdmin({ locale }: { locale: string }) {
-  const { data, loading } = useFetch(`/api/catalog?locale=${locale}&pageSize=100`, [locale]);
+  const { data, loading, refetch } = useFetch(`/api/catalog?locale=${locale}&pageSize=100`, [locale]);
   if (loading) return <SkeletonGrid />;
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{data?.total ?? 0} {locale === "fr" ? "produits" : "products"}</p>
-        <Button size="sm" className="bg-terre text-cream hover:bg-terre-dark">+ {locale === "fr" ? "Nouveau produit" : "New product"}</Button>
+        <ProductCreateDialog locale={locale} onCreated={refetch} />
       </div>
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
@@ -278,7 +299,6 @@ function RecipesAdmin({ locale }: { locale: string }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{data?.recipes?.length ?? 0} {locale === "fr" ? "recettes" : "recipes"}</p>
-        <Button size="sm" className="bg-forest text-cream hover:bg-forest-dark">+ {locale === "fr" ? "Nouvelle recette" : "New recipe"}</Button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {data?.recipes?.map((r: any) => (

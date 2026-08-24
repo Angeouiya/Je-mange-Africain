@@ -17,7 +17,7 @@ import { useFetch, postJSON } from "@/lib/use-fetch";
 import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
 import { formatQty } from "@/lib/recipe-engine";
 import { getRecipePhoto } from "@/lib/market-media";
-import { toast } from "sonner";
+import { shareRecipe } from "@/lib/client-actions";
 
 interface CalcResult {
   ingredients: any[];
@@ -56,6 +56,7 @@ export function RecipeConfiguratorView() {
   const [packOverrides, setPackOverrides] = useState<Record<string, number>>({});
   const [calc, setCalc] = useState<CalcResult | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const isSaved = savedRecipes.includes(recipeId || "");
 
@@ -116,7 +117,7 @@ export function RecipeConfiguratorView() {
       return { ...prev, [pid]: next };
     });
   };
-  const resetOverrides = () => { setPackOverrides({}); toast.success(locale === "fr" ? "Panier réinitialisé" : "Basket reset"); };
+  const resetOverrides = () => setPackOverrides({});
 
   const addAllToCart = () => {
     if (!calc || !recipe) return;
@@ -138,7 +139,6 @@ export function RecipeConfiguratorView() {
         maxStock: i.stockQty || 99,
       }));
     addManyToCart(items);
-    toast.success(locale === "fr" ? `Recette ajoutée au panier (${items.length} produits)` : `Recipe added to cart (${items.length} products)`);
     navigate("cart");
   };
 
@@ -360,11 +360,11 @@ export function RecipeConfiguratorView() {
                 <Button onClick={addAllToCart} size="lg" className="flex-1 bg-terre text-cream hover:bg-terre-dark shadow-md">
                   <ShoppingCart className="mr-2 h-4 w-4" /> {t.config.addAllToCart}
                 </Button>
-                <Button variant="outline" size="icon" className="h-11 w-11 border-terre/40" onClick={() => { toggleSavedRecipe(recipe.id); toast.success(isSaved ? (locale === "fr" ? "Recette retirée" : "Recipe removed") : (locale === "fr" ? "Recette sauvegardée" : "Recipe saved")); }} aria-label={t.config.saveRecipe}>
+                <Button variant="outline" size="icon" className="h-11 w-11 border-terre/40" onClick={() => toggleSavedRecipe(recipe.id)} aria-label={t.config.saveRecipe}>
                   <Bookmark className={`h-5 w-5 ${isSaved ? "fill-terre text-terre" : "text-charcoal"}`} />
                 </Button>
-                <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => toast.success(locale === "fr" ? "Lien copié !" : "Link copied!")} aria-label={t.config.shareRecipe}>
-                  <Share2 className="h-5 w-5" />
+                <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => void shareRecipe(recipe.title, recipe.id).then(() => { setShared(true); window.setTimeout(() => setShared(false), 1800); }).catch(() => undefined)} aria-label={t.config.shareRecipe}>
+                  {shared ? <Check className="h-5 w-5 text-forest" /> : <Share2 className="h-5 w-5" />}
                 </Button>
               </div>
             </motion.div>

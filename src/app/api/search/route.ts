@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
+import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
 
 export const dynamic = "force-dynamic";
 
@@ -18,35 +19,33 @@ export async function GET(req: NextRequest) {
   const norm = normalize(q);
 
   // 1) exact alias matches (Kplô / Kplo / beef skin → same product)
-  const aliasMatches = await db.productAlias.findMany({
-    where: { alias: { contains: norm } },
-    take: 20,
-    include: { product: { include: { translations: true, category: true } } },
-  });
-
-  // 2) translation name + description matches
-  const nameMatches = await db.product.findMany({
-    where: {
-      status: "published",
-      OR: [
-        { traditionalName: { contains: q } },
-        { sku: { contains: q } },
-        { translations: { some: { name: { contains: q } } } },
-      ],
-    },
-    take: 20,
-    include: { translations: true, category: true },
-  });
-
-  // 3) recipes matching (bonus)
-  const recipeMatches = await db.recipe.findMany({
-    where: {
-      status: "published",
-      translations: { some: { title: { contains: q } } },
-    },
-    take: 4,
-    include: { translations: true },
-  });
+  const [aliasMatches, nameMatches, recipeMatches] = await Promise.all([
+    db.productAlias.findMany({
+      where: { alias: { contains: norm } },
+      take: 20,
+      include: { product: { include: { translations: true, category: true } } },
+    }),
+    db.product.findMany({
+      where: {
+        status: "published",
+        OR: [
+          { traditionalName: { contains: q } },
+          { sku: { contains: q } },
+          { translations: { some: { name: { contains: q } } } },
+        ],
+      },
+      take: 20,
+      include: { translations: true, category: true },
+    }),
+    db.recipe.findMany({
+      where: {
+        status: "published",
+        translations: { some: { title: { contains: q } } },
+      },
+      take: 4,
+      include: { translations: true },
+    }),
+  ]);
 
   // merge & dedupe products
   const seen = new Set<string>();
@@ -116,5 +115,7 @@ export async function GET(req: NextRequest) {
     baseServings: r.baseServings,
   }));
 
-  return NextResponse.json({ results: results.slice(0, limit), recipes });
+  const dishes = searchDishLibrary({ query: q, limit: 4 }).map(({ dish, score }) => localizeDish(dish, locale, score));
+
+  return NextResponse.json({ results: results.slice(0, limit), recipes, dishes });
 }

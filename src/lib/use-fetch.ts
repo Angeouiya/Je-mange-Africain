@@ -11,12 +11,14 @@ interface FetchState<T> {
 /** Simple GET fetcher with locale-aware query + abort. */
 export function useFetch<T = any>(
   url: string | null,
-  deps: any[] = []
+  deps: any[] = [],
+  headers: Record<string, string> = {}
 ): FetchState<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(!!url);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const headerKey = JSON.stringify(headers);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
@@ -29,7 +31,7 @@ export function useFetch<T = any>(
     let aborted = false;
     setLoading(true);
     setError(null);
-    fetch(url, { headers: { Accept: "application/json" } })
+    fetch(url, { headers: { Accept: "application/json", ...headers } })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
@@ -47,7 +49,7 @@ export function useFetch<T = any>(
     return () => {
       aborted = true;
     };
-  }, [url, tick, ...deps]);
+  }, [url, tick, headerKey, ...deps]);
 
   return { data, loading, error, refetch };
 }

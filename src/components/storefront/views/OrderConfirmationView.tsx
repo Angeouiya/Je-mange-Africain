@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatDate } from "@/lib/format";
-import { toast } from "sonner";
+import { downloadOrderInvoice } from "@/lib/client-actions";
 
 export function OrderConfirmationView() {
   const locale = useStore((s) => s.locale);
@@ -62,7 +62,7 @@ export function OrderConfirmationView() {
         <Button onClick={() => navigate("order-tracking", { orderId: order.id })} className="bg-terre text-cream hover:bg-terre-dark">
           <Truck className="mr-1 h-4 w-4" /> {t.checkout.trackOrder}
         </Button>
-        <Button variant="outline" onClick={() => toast.success(locale === "fr" ? "Facture téléchargée" : "Invoice downloaded")}>
+        <Button variant="outline" onClick={() => downloadOrderInvoice(order, locale)}>
           <Download className="mr-1 h-4 w-4" /> {t.orders.invoice}
         </Button>
         <Button variant="ghost" onClick={() => navigate("home")}>

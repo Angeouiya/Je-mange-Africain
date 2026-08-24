@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { authorizeAdminRequest } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const authorization = await authorizeAdminRequest(req);
+  if (!authorization.ok) return authorization.response;
   const { searchParams } = new URL(req.url);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
 

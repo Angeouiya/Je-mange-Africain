@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminView } from "@/components/admin/AdminView";
+import { AdminGate } from "@/components/admin/AdminGate";
 
 export const metadata: Metadata = {
   title: "Administration - Je mange Africain",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminPage() {
-  return <AdminView />;
+  return <AdminGate />;
 }

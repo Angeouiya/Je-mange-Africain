@@ -47,7 +47,8 @@ const CATEGORY_PHOTOS: Record<string, string> = {
 };
 
 const KEYWORD_PHOTOS: Array<{ terms: string[]; photo: string }> = [
-  { terms: ["attieke", "attieke", "placali", "gari", "garri", "fufu", "foufou", "chikwangue", "kwanga", "manioc", "cassava"], photo: MARKET_PHOTOS.cassava },
+  { terms: ["attieke", "garba", "jollof", "thieboudienne", "waakye", "riz gras"], photo: MARKET_PHOTOS.riceCooked },
+  { terms: ["placali", "gari", "garri", "fufu", "foufou", "chikwangue", "kwanga", "manioc", "cassava"], photo: MARKET_PHOTOS.africanMarket },
   { terms: ["plantain", "banane", "alloco"], photo: MARKET_PHOTOS.plantain },
   { terms: ["gombo", "okra"], photo: MARKET_PHOTOS.okra },
   { terms: ["arachide", "peanut", "dakatine", "mafe", "mafe"], photo: MARKET_PHOTOS.peanuts },

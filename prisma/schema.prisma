@@ -21,7 +21,7 @@ model User {
   role         String   @default("customer") // customer | super_admin | direction | catalog_manager | recipe_manager | purchase_manager | warehouse_manager | picker | logistics | support | marketing | accounting
   firstName    String?
   lastName     String?
-  phone        String?
+  phone        String?  @unique
   isActive     Boolean  @default(true)
   twoFactor    Boolean @default(false)
   lastLoginAt  DateTime?
@@ -527,6 +527,18 @@ model SupportTicket {
   updatedAt  DateTime @updatedAt
 }
 
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
 /* ----------------------------------------------------------------- */
 /* Audit & notifications                                              */
 /* ----------------------------------------------------------------- */
@@ -557,4 +569,23 @@ model Notification {
   sent      Boolean  @default(false)
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model PushSubscription {
+  id           String   @id @default(cuid())
+  endpoint     String   @unique
+  p256dh       String
+  auth         String
+  deviceId     String?
+  locale       String   @default("fr")
+  userAgent    String?
+  enabled      Boolean  @default(true)
+  failureCount Int      @default(0)
+  lastSeenAt   DateTime @default(now())
+  lastSentAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([deviceId])
+  @@index([enabled])
 }

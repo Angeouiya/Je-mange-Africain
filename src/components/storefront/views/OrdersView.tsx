@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatDate, orderStatusColor } from "@/lib/format";
-import { toast } from "sonner";
+import { downloadOrderInvoice } from "@/lib/client-actions";
 
 export function OrdersView() {
   const locale = useStore((s) => s.locale);
@@ -24,7 +24,6 @@ export function OrdersView() {
         unitPrice: it.unitPrice, unitLabel: "", packWeightGrams: 0, thermalClass: it.thermalClass, qty: it.qty, maxStock: 99,
       });
     });
-    toast.success(locale === "fr" ? "Produits ajoutés au panier" : "Products added to cart");
     navigate("cart");
   };
 
@@ -62,7 +61,7 @@ export function OrdersView() {
                   <Button size="sm" variant="ghost" onClick={() => reorder(o)}>
                     <RotateCcw className="mr-1 h-3.5 w-3.5" /> {t.orders.reorder}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => toast.success(locale === "fr" ? "Facture téléchargée" : "Invoice downloaded")}>
+                  <Button size="sm" variant="ghost" onClick={() => downloadOrderInvoice(o, locale)} aria-label={locale === "fr" ? `Télécharger la facture ${o.number}` : `Download invoice ${o.number}`}>
                     <Download className="h-3.5 w-3.5" />
                   </Button>
                 </div>

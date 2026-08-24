@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Phone, MapPin, MessageSquare } from "lucide-react";
+import { Mail, Phone, MapPin, MessageSquare, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
-import { toast } from "sonner";
 import { LegalDocument } from "@/components/storefront/LegalDocument";
 
 export function InfoView() {
@@ -79,23 +78,36 @@ export function InfoView() {
 
 function ContactForm({ locale }: { locale: string }) {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
-  const submit = (e: React.FormEvent) => {
+  const [status, setStatus] = useState<"idle" | "busy" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success(locale === "fr" ? "Message envoyé ! Nous vous répondrons sous 48h." : "Message sent! We'll reply within 48h.");
+    setStatus("busy");
+    setMessage("");
+    const response = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }).catch(() => null);
+    const payload = response ? await response.json().catch(() => ({})) : {};
+    if (!response?.ok) {
+      setStatus("error");
+      setMessage(payload.error || (locale === "fr" ? "Votre message n'a pas pu être envoyé." : "Your message could not be sent."));
+      return;
+    }
+    setStatus("success");
+    setMessage(locale === "fr" ? `Message enregistré sous la référence ${payload.reference}. Réponse sous 48 h.` : `Message saved as ${payload.reference}. We will reply within 48 hours.`);
     setForm({ name: "", email: "", subject: "", message: "" });
   };
   return (
     <form onSubmit={submit} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <div><Label className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Nom" : "Name"}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
-        <div><Label className="mb-1 block text-xs font-semibold">E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
+        <div><Label htmlFor="contact-name" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Nom" : "Name"}</Label><Input id="contact-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
+        <div><Label htmlFor="contact-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="contact-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
       </div>
-      <div><Label className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Objet" : "Subject"}</Label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required /></div>
-      <div><Label className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Message" : "Message"}</Label><Textarea rows={5} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required /></div>
-      <Button type="submit" className="bg-terre text-cream hover:bg-terre-dark"><MessageSquare className="mr-1 h-4 w-4" /> {locale === "fr" ? "Envoyer" : "Send"}</Button>
+      <div><Label htmlFor="contact-subject" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Objet" : "Subject"}</Label><Input id="contact-subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required /></div>
+      <div><Label htmlFor="contact-message" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Message" : "Message"}</Label><Textarea id="contact-message" rows={5} minLength={10} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required /></div>
+      {message ? <div role={status === "error" ? "alert" : "status"} className={`flex gap-2 rounded-lg border p-3 text-xs ${status === "success" ? "border-forest/25 bg-forest/5 text-forest" : "border-red-200 bg-red-50 text-red-800"}`}>{status === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : null}<span>{message}</span></div> : null}
+      <Button type="submit" disabled={status === "busy"} className="bg-terre text-cream hover:bg-terre-dark"><MessageSquare className="mr-1 h-4 w-4" /> {status === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer" : "Send")}</Button>
       <div className="grid grid-cols-3 gap-2 border-t border-border pt-4 text-center text-xs text-muted-foreground">
         <div className="flex flex-col items-center gap-1"><Phone className="h-4 w-4 text-terre" /> +33 1 80 00 00 00</div>
-        <div className="flex flex-col items-center gap-1"><Mail className="h-4 w-4 text-terre" /> bonjour@jemangeafricain.fr</div>
+        <div className="flex min-w-0 flex-col items-center gap-1 break-all"><Mail className="h-4 w-4 text-terre" /> bonjour@je-mange-africain.com</div>
         <div className="flex flex-col items-center gap-1"><MapPin className="h-4 w-4 text-terre" /> Paris, France</div>
       </div>
     </form>

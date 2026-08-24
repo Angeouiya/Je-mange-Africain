@@ -9,7 +9,6 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
 import { getDiscountPercent, getProductCommercialLine, getProductPhoto } from "@/lib/market-media";
-import { toast } from "sonner";
 
 export interface ProductListItem {
   id: string;
@@ -74,7 +73,6 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
       imageEmoji: product.imageEmoji,
       maxStock: product.stockQty,
     });
-    toast.success(t.product.addedToCart, { description: product.name });
   };
 
   const handleFav = (e: React.MouseEvent) => {

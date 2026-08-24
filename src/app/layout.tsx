@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins, Caveat } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/lib/store-provider";
 
@@ -21,7 +19,7 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://je-mange-africain.vercel.app"),
+  metadataBase: new URL("https://je-mange-africain.com"),
   applicationName: "Je mange Africain",
   title: "Je mange Africain — Épicerie africaine authentique livrée chez vous",
   description:
@@ -38,14 +36,17 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Je mange Africain" }],
   icons: {
-    icon: "/logo-jma.png",
-    apple: "/logo-jma.png",
+    icon: [
+      { url: "/brand/app-icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/brand/app-icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/brand/apple-touch-icon.png",
   },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "JMA",
+    title: "Je mange Africain",
   },
   openGraph: {
     title: "Je mange Africain",
@@ -81,8 +82,6 @@ export default function RootLayout({
         <StoreProvider>
           <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         </StoreProvider>
-        <Toaster />
-        <Sonner position="top-right" richColors closeButton />
       </body>
     </html>
   );

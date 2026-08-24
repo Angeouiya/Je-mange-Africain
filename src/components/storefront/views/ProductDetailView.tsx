@@ -15,7 +15,6 @@ import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
 import { getDiscountPercent, getProductCommercialLine, getProductGallery, getProductObjective } from "@/lib/market-media";
-import { toast } from "sonner";
 
 export function ProductDetailView() {
   const locale = useStore((s) => s.locale);
@@ -74,7 +73,6 @@ export function ProductDetailView() {
       qty,
       maxStock: product.stockQty,
     });
-    toast.success(t.product.addedToCart);
   };
 
   return (

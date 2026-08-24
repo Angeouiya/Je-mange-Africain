@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
     pageSize,
     pages: Math.ceil(total / pageSize),
     filters: {
-      categories: categories.map((c) => ({ id: c.id, slug: c.slug, name: c[`name${locale === "en" ? "En" : "Fr"}`] })),
+      categories: categories.map((c) => ({ id: c.id, slug: c.slug, name: c[`name${locale === "en" ? "En" : "Fr"}`], color: c.color })),
       brands: brands.map((b) => ({ id: b.id, slug: b.slug, name: b[`name${locale === "en" ? "En" : "Fr"}`] })),
       countries: countries.map((c) => c.country),
     },

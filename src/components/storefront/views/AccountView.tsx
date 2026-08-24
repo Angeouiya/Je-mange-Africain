@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
-  User, MapPin, Package, Heart, ChefHat, ListChecks, Star, Wallet, Bell,
-  LifeBuoy, LogOut, Mail, Settings,
+  User, Package, Heart, ChefHat, Star, Wallet, LogOut, Settings, ArrowLeft, MailCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,38 +14,149 @@ import { useFetch } from "@/lib/use-fetch";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { formatPrice } from "@/lib/format";
-import { toast } from "sonner";
+import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
+import { BrandLockup } from "@/components/shared/BrandLockup";
+
+type AuthMode = "login" | "register" | "forgot";
+
+const emptyRegistration = { firstName: "", lastName: "", email: "", phone: "", password: "" };
 
 export function AccountView() {
   const locale = useStore((s) => s.locale);
   const customer = useStore((s) => s.customer);
-  const login = useStore((s) => s.login);
-  const logout = useStore((s) => s.logout);
+  const setCustomer = useStore((s) => s.setCustomer);
   const favorites = useStore((s) => s.favorites);
   const savedRecipes = useStore((s) => s.savedRecipes);
   const setLocale = useStore((s) => s.setLocale);
   const navigate = useStore((s) => s.navigate);
-  const addresses = useStore((s) => s.addresses);
+  const params = useStore((s) => s.params);
   const t = dict[locale];
-  const [email, setEmail] = useState("");
-  const [section, setSection] = useState("profile");
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [registration, setRegistration] = useState(emptyRegistration);
+  const [authStatus, setAuthStatus] = useState<"idle" | "busy" | "error" | "success">("idle");
+  const [authMessage, setAuthMessage] = useState("");
+  const [section, setSection] = useState(params.accountSection || "profile");
+
+  useEffect(() => {
+    if (params.accountSection) setSection(params.accountSection);
+  }, [params.accountSection]);
+
+  const changeAuthMode = (mode: AuthMode) => {
+    setAuthMode(mode);
+    setAuthStatus("idle");
+    setAuthMessage("");
+  };
+
+  const submitLogin = async (event: FormEvent) => {
+    event.preventDefault();
+    setAuthStatus("busy");
+    setAuthMessage("");
+    const response = await fetch("/api/auth/customer/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, password }),
+    }).catch(() => null);
+    const payload = response ? await response.json().catch(() => ({})) : {};
+    if (!response?.ok || !payload.customer) {
+      setAuthStatus("error");
+      setAuthMessage(payload.error || (locale === "fr" ? "Connexion momentanément indisponible." : "Sign-in is temporarily unavailable."));
+      return;
+    }
+    setCustomer(payload.customer);
+    setAuthStatus("idle");
+  };
+
+  const submitRegistration = async (event: FormEvent) => {
+    event.preventDefault();
+    setAuthStatus("busy");
+    setAuthMessage("");
+    const response = await fetch("/api/auth/customer/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(registration),
+    }).catch(() => null);
+    const payload = response ? await response.json().catch(() => ({})) : {};
+    if (!response?.ok) {
+      setAuthStatus("error");
+      setAuthMessage(payload.error || (locale === "fr" ? "Inscription momentanément indisponible." : "Registration is temporarily unavailable."));
+      return;
+    }
+    if (payload.customer) {
+      setCustomer(payload.customer);
+      setAuthStatus("idle");
+      return;
+    }
+    setAuthStatus("success");
+    setAuthMessage(locale === "fr" ? "Votre compte est créé. Consultez votre e-mail pour confirmer votre adresse, puis connectez-vous." : "Your account is ready. Check your email to confirm your address, then sign in.");
+  };
+
+  const submitRecovery = async (event: FormEvent) => {
+    event.preventDefault();
+    setAuthStatus("busy");
+    setAuthMessage("");
+    const response = await fetch("/api/auth/customer/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: identifier }),
+    }).catch(() => null);
+    const payload = response ? await response.json().catch(() => ({})) : {};
+    if (!response?.ok) {
+      setAuthStatus("error");
+      setAuthMessage(payload.error || (locale === "fr" ? "Envoi momentanément indisponible." : "Email is temporarily unavailable."));
+      return;
+    }
+    setAuthStatus("success");
+    setAuthMessage(locale === "fr" ? "Si un compte correspond à cette adresse, un lien de modification vient d'être envoyé." : "If an account matches this address, a reset link has just been sent.");
+  };
 
   if (!customer) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-16">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-terre/10">
-          <User className="h-8 w-8 text-terre" />
-        </div>
-        <h1 className="text-2xl font-bold text-charcoal">{t.nav.login}</h1>
-        <p className="text-center text-sm text-muted-foreground">{locale === "fr" ? "Connectez-vous pour accéder à votre compte." : "Sign in to access your account."}</p>
-        <form onSubmit={(e) => { e.preventDefault(); if (email) { login(email); toast.success(locale === "fr" ? "Connexion réussie" : "Signed in"); } }} className="w-full space-y-3">
-          <div>
-            <Label className="mb-1 block text-xs font-semibold">E-mail</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.fr" required />
+      <div className="mx-auto w-full max-w-md px-4 py-8 sm:py-12">
+        <section className="rounded-lg bg-white sm:border sm:border-border sm:p-6 sm:shadow-sm">
+          <div className="mb-8 flex justify-center sm:justify-start">
+            <BrandLockup size="large" />
           </div>
-          <Button type="submit" className="w-full bg-terre text-cream hover:bg-terre-dark">{t.nav.login}</Button>
-        </form>
-        <p className="text-[11px] text-muted-foreground">{locale === "fr" ? "Astuce : utilisez un email contenant « admin » pour voir l'espace administration." : "Tip: use an email containing 'admin' to see the admin area."}</p>
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-lg bg-terre/10"><User className="h-6 w-6 text-terre" /></div>
+            <div><h1 className="text-xl font-extrabold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</h1><p className="text-xs text-muted-foreground">{locale === "fr" ? "Un accès simple et sécurisé, sans code OTP." : "Simple, secure access without OTP codes."}</p></div>
+          </div>
+
+          {authMode !== "forgot" ? (
+            <div className="mt-6 grid grid-cols-2 rounded-lg bg-muted p-1" role="tablist" aria-label={locale === "fr" ? "Accès au compte" : "Account access"}>
+              <button type="button" role="tab" aria-selected={authMode === "login"} onClick={() => changeAuthMode("login")} className={`min-h-10 rounded-md px-3 text-sm font-bold ${authMode === "login" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{locale === "fr" ? "Connexion" : "Sign in"}</button>
+              <button type="button" role="tab" aria-selected={authMode === "register"} onClick={() => changeAuthMode("register")} className={`min-h-10 rounded-md px-3 text-sm font-bold ${authMode === "register" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{locale === "fr" ? "Inscription" : "Register"}</button>
+            </div>
+          ) : null}
+
+          {authMode === "login" ? (
+            <form onSubmit={submitLogin} className="mt-5 space-y-4">
+              <div><Label htmlFor="customer-identifier" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "E-mail ou numéro de téléphone" : "Email or phone number"}</Label><Input id="customer-identifier" autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="vous@exemple.fr ou +33..." required /></div>
+              <div><Label htmlFor="customer-password" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Mot de passe" : "Password"}</Label><Input id="customer-password" type="password" autoComplete="current-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required /></div>
+              <button type="button" onClick={() => changeAuthMode("forgot")} className="text-xs font-bold text-terre hover:underline">{locale === "fr" ? "Mot de passe oublié ?" : "Forgot password?"}</button>
+              <AuthMessage status={authStatus} message={authMessage} />
+              <Button type="submit" disabled={authStatus === "busy"} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Connexion..." : "Signing in...") : t.nav.login}</Button>
+            </form>
+          ) : authMode === "register" ? (
+            <form onSubmit={submitRegistration} className="mt-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="register-first-name" className="mb-1 block text-xs font-semibold">{t.checkout.firstName}</Label><Input id="register-first-name" autoComplete="given-name" value={registration.firstName} onChange={(event) => setRegistration({ ...registration, firstName: event.target.value })} required /></div><div><Label htmlFor="register-last-name" className="mb-1 block text-xs font-semibold">{t.checkout.lastName}</Label><Input id="register-last-name" autoComplete="family-name" value={registration.lastName} onChange={(event) => setRegistration({ ...registration, lastName: event.target.value })} required /></div></div>
+              <div><Label htmlFor="register-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="register-email" type="email" autoComplete="email" value={registration.email} onChange={(event) => setRegistration({ ...registration, email: event.target.value })} required /></div>
+              <div><Label htmlFor="register-phone" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Numéro de téléphone" : "Phone number"}</Label><Input id="register-phone" type="tel" autoComplete="tel" value={registration.phone} onChange={(event) => setRegistration({ ...registration, phone: event.target.value })} placeholder="+33 6 00 00 00 00" required /></div>
+              <div><Label htmlFor="register-password" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Mot de passe (8 caractères minimum)" : "Password (8 characters minimum)"}</Label><Input id="register-password" type="password" autoComplete="new-password" minLength={8} value={registration.password} onChange={(event) => setRegistration({ ...registration, password: event.target.value })} required /></div>
+              <AuthMessage status={authStatus} message={authMessage} />
+              <Button type="submit" disabled={authStatus === "busy"} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Création..." : "Creating...") : (locale === "fr" ? "Créer mon compte" : "Create my account")}</Button>
+            </form>
+          ) : (
+            <form onSubmit={submitRecovery} className="mt-5 space-y-4">
+              <p className="text-sm leading-relaxed text-muted-foreground">{locale === "fr" ? "Saisissez l'e-mail utilisé lors de votre inscription. Nous vous enverrons un lien sécurisé pour choisir un nouveau mot de passe." : "Enter the email used to register. We will send a secure link to choose a new password."}</p>
+              <div><Label htmlFor="recovery-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="recovery-email" type="email" autoComplete="email" value={identifier} onChange={(event) => setIdentifier(event.target.value)} required /></div>
+              <AuthMessage status={authStatus} message={authMessage} successIcon />
+              <Button type="submit" disabled={authStatus === "busy" || authStatus === "success"} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer le lien" : "Send reset link")}</Button>
+              <button type="button" onClick={() => changeAuthMode("login")} className="inline-flex items-center gap-1.5 text-xs font-bold text-charcoal hover:text-terre"><ArrowLeft className="h-3.5 w-3.5" /> {locale === "fr" ? "Retour à la connexion" : "Back to sign in"}</button>
+            </form>
+          )}
+        </section>
       </div>
     );
   }
@@ -56,11 +166,8 @@ export function AccountView() {
     { id: "orders", icon: Package, label: t.account.orders },
     { id: "favorites", icon: Heart, label: t.account.favorites },
     { id: "savedRecipes", icon: ChefHat, label: t.account.savedRecipes },
-    { id: "lists", icon: ListChecks, label: t.account.lists },
     { id: "loyalty", icon: Star, label: t.account.loyalty },
     { id: "wallet", icon: Wallet, label: t.account.wallet },
-    { id: "notifications", icon: Bell, label: t.account.notifications },
-    { id: "claims", icon: LifeBuoy, label: t.account.claims },
     { id: "settings", icon: Settings, label: t.account.language },
   ];
 
@@ -76,19 +183,17 @@ export function AccountView() {
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-[220px_1fr]">
-        <aside className="space-y-1">
+      <div>
+        <nav className="-mx-4 flex gap-1 overflow-x-auto border-y border-border bg-white px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {nav.map((n) => (
-            <button key={n.id} onClick={() => setSection(n.id)} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${section === n.id ? "bg-terre text-cream" : "text-charcoal hover:bg-muted"}`}>
+            <button key={n.id} onClick={() => setSection(n.id)} className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${section === n.id ? "bg-terre text-cream" : "text-charcoal hover:bg-muted"}`}>
               <n.icon className="h-4 w-4" /> {n.label}
             </button>
           ))}
-          <button onClick={() => { logout(); navigate("home"); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-destructive hover:bg-red-50">
-            <LogOut className="h-4 w-4" /> {t.account.logout}
-          </button>
-        </aside>
+          <LogoutConfirmDialog><button className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-destructive hover:bg-red-50"><LogOut className="h-4 w-4" /> {t.account.logout}</button></LogoutConfirmDialog>
+        </nav>
 
-        <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="py-5">
           {section === "profile" && (
             <div className="space-y-3">
               <h2 className="text-lg font-bold text-charcoal">{t.account.profile}</h2>
@@ -96,6 +201,7 @@ export function AccountView() {
                 <FieldReadonly label={t.checkout.firstName} value={customer.firstName} />
                 <FieldReadonly label={t.checkout.lastName} value={customer.lastName} />
                 <FieldReadonly label={t.checkout.email} value={customer.email} />
+                <FieldReadonly label={locale === "fr" ? "Téléphone" : "Phone"} value={customer.phone || "—"} />
                 <div>
                   <Label className="mb-1 block text-xs font-semibold text-charcoal">{t.account.language}</Label>
                   <div className="flex gap-1">
@@ -120,7 +226,6 @@ export function AccountView() {
           )}
           {section === "favorites" && <FavoritesSection locale={locale} favorites={favorites} />}
           {section === "savedRecipes" && <SavedRecipesSection locale={locale} savedRecipes={savedRecipes} />}
-          {section === "lists" && <EmptyFeature icon={ListChecks} title={t.account.lists} locale={locale} />}
           {section === "loyalty" && (
             <div className="space-y-3">
               <h2 className="text-lg font-bold text-charcoal">{t.account.loyalty}</h2>
@@ -140,8 +245,6 @@ export function AccountView() {
               <Badge variant="outline" className="border-terre/40">CADEAU-JMA-25 · 25 €</Badge>
             </div>
           )}
-          {section === "notifications" && <EmptyFeature icon={Bell} title={t.account.notifications} locale={locale} />}
-          {section === "claims" && <EmptyFeature icon={LifeBuoy} title={t.account.claims} locale={locale} />}
           {section === "settings" && (
             <div>
               <h2 className="mb-2 text-lg font-bold text-charcoal">{t.account.language}</h2>
@@ -156,6 +259,12 @@ export function AccountView() {
       </div>
     </div>
   );
+}
+
+function AuthMessage({ status, message, successIcon = false }: { status: "idle" | "busy" | "error" | "success"; message: string; successIcon?: boolean }) {
+  if (!message || status === "idle" || status === "busy") return null;
+  const success = status === "success";
+  return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-lg border p-3 text-xs leading-relaxed ${success ? "border-forest/25 bg-forest/5 text-forest" : "border-red-200 bg-red-50 text-red-800"}`}>{success && successIcon ? <MailCheck className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
 }
 
 function FieldReadonly({ label, value }: { label: string; value: string }) {

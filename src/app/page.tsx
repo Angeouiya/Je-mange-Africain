@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
-import { Footer } from "@/components/storefront/Footer";
 import { HomeView } from "@/components/storefront/views/HomeView";
 import { CatalogView } from "@/components/storefront/views/CatalogView";
 import { ProductDetailView } from "@/components/storefront/views/ProductDetailView";
@@ -19,20 +18,34 @@ import { OrdersView } from "@/components/storefront/views/OrdersView";
 import { OrderTrackingView } from "@/components/storefront/views/OrderTrackingView";
 import { AccountView } from "@/components/storefront/views/AccountView";
 import { InfoView } from "@/components/storefront/views/InfoView";
-import { AdminView } from "@/components/admin/AdminView";
 
 export default function Page() {
   const view = useStore((s) => s.view);
+  const navigate = useStore((s) => s.navigate);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    const searchParams = new URLSearchParams(window.location.search);
+    const requestedView = searchParams.get("view");
+    if (requestedView === "recipe-config" && searchParams.get("recipeId")) {
+      navigate("recipe-config", { recipeId: searchParams.get("recipeId") || undefined });
+    }
+    if (["catalog", "recipes", "orders", "account"].includes(requestedView || "")) {
+      navigate(requestedView as "catalog" | "recipes" | "orders" | "account");
+    }
+    fetch("/api/auth/customer/session", { cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((payload) => useStore.getState().setCustomer(payload?.customer || null))
+      .catch(() => undefined);
+  }, [navigate]);
 
   // Avoid hydration mismatch: render a stable shell on first paint
   if (!mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/logo-jma.png" alt="Je mange Africain" width={180} height={180} className="h-24 w-24 animate-pulse object-contain" />
+          <Image src="/brand/app-icon-192.png" alt="Je mange Africain" width={96} height={96} className="h-20 w-20 animate-pulse rounded-lg object-contain" />
           <div className="h-1 w-24 overflow-hidden rounded-full bg-muted">
             <div className="shimmer h-full w-full" />
           </div>
@@ -41,16 +54,12 @@ export default function Page() {
     );
   }
 
-  const isAdmin = view === "admin";
-
-  if (isAdmin) {
-    return <AdminView />;
-  }
-
   return (
-    <div className="jma-shell flex min-h-screen flex-col">
+    <div className="jma-shell min-h-screen">
+      <MobileNav />
+      <div className="flex min-h-screen flex-col md:pl-64">
       <Header />
-      <main className="flex-1 pb-16 md:pb-0">
+      <main className="flex-1 pb-20 md:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={view + JSON.stringify(useStore.getState().params)}
@@ -63,8 +72,7 @@ export default function Page() {
           </motion.div>
         </AnimatePresence>
       </main>
-      <Footer />
-      <MobileNav />
+      </div>
     </div>
   );
 }

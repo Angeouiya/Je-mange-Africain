@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, X, TrendingUp, Package } from "lucide-react";
+import { BookOpen, Search, X, TrendingUp, Package } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
@@ -35,11 +35,8 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
 
   const submit = () => {
     if (!q.trim()) return;
-    navigate("catalog", { category: undefined });
-    // pass query via a custom event + store? Simpler: store search in window then catalog reads it.
-    (window as any).__jmaSearch = q.trim();
+    navigate("catalog", { query: q.trim() });
     setOpen(false);
-    // navigate triggers catalog which reads window.__jmaSearch
   };
 
   return (
@@ -64,7 +61,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
 
       {open && debounced && data && (
         <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl">
-          {data.results?.length === 0 && data.recipes?.length === 0 ? (
+          {data.results?.length === 0 && data.recipes?.length === 0 && data.dishes?.length === 0 ? (
             <div className="p-4 text-sm text-muted-foreground">{t.catalog.noResults}</div>
           ) : (
             <div className="max-h-96 overflow-y-auto scroll-pretty py-1">
@@ -116,6 +113,28 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
                     <span className="inline-flex items-center gap-1 text-[11px] text-forest"><TrendingUp className="h-3 w-3" /> Recette</span>
                   </span>
                   <Package className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))}
+              {data.dishes?.map((dish: any) => (
+                <button
+                  key={dish.slug}
+                  onClick={() => { navigate("recipes", { query: dish.name, recipeMode: "library" }); setOpen(false); setQ(""); }}
+                  className="flex w-full items-center gap-3 border-t border-border px-3 py-2 text-left transition hover:bg-muted"
+                >
+                  <ProductImage
+                    src={getRecipePhoto({ name: dish.name, title: dish.name, country: dish.country, category: dish.categoryLabel })}
+                    alt=""
+                    emoji="🍽️"
+                    color="#3F681C"
+                    size="sm"
+                    className="h-10 w-10 shrink-0"
+                    rounded="rounded-lg"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-charcoal">{dish.name}</span>
+                    <span className="block text-[11px] text-muted-foreground">{dish.country} · {dish.categoryLabel}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-terre"><BookOpen className="h-3.5 w-3.5" /> {locale === "fr" ? "Plat" : "Dish"}</span>
                 </button>
               ))}
             </div>

@@ -2,36 +2,39 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { ChefHat, ListChecks, PackageCheck, Search, Sparkles, Wand2 } from "lucide-react";
+import { BookOpen, ChefHat, MapPin, Search, Sparkles, UtensilsCrossed } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { RecipeCard } from "@/components/shared/RecipeCard";
+import { DishDetailsDialog, DishLibraryCard, type DishLibraryItem } from "@/components/shared/DishLibraryCard";
 import { MARKET_PHOTOS } from "@/lib/market-media";
 
 export function RecipesView() {
   const locale = useStore((s) => s.locale);
-  const navigate = useStore((s) => s.navigate);
+  const params = useStore((s) => s.params);
   const t = dict[locale];
   const [category, setCategory] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(params.query || "");
+  const [mode, setMode] = useState<"recipes" | "library">(params.recipeMode || "recipes");
+  const [country, setCountry] = useState("");
+  const [selectedDish, setSelectedDish] = useState<DishLibraryItem | null>(null);
 
   const qs = new URLSearchParams({ locale });
   if (category) qs.set("category", category);
   if (search.trim()) qs.set("q", search.trim());
   const { data, loading } = useFetch(`/api/recipes?${qs.toString()}`, [locale, category, search]);
+  const dishQs = new URLSearchParams({ locale });
+  if (category) dishQs.set("category", category);
+  if (country) dishQs.set("country", country);
+  if (search.trim()) dishQs.set("q", search.trim());
+  const { data: dishData, loading: dishesLoading } = useFetch(`/api/dishes?${dishQs.toString()}`, [locale, category, country, search]);
 
   const suggestions = locale === "fr"
     ? ["Attiéké poisson", "Sauce gombo", "Mafé", "Kplô", "Plantain", "Dîner rapide"]
     : ["Attieke fish", "Okra sauce", "Mafe", "Kplo", "Plantain", "Quick dinner"];
-  const engineCards = [
-    { icon: Search, title: locale === "fr" ? "Recherche culinaire" : "Culinary search", value: locale === "fr" ? "plat, ingrédient, pays" : "dish, ingredient, country" },
-    { icon: Wand2, title: locale === "fr" ? "Propositions utiles" : "Smart suggestions", value: locale === "fr" ? "substituts et ajouts" : "substitutes and add-ons" },
-    { icon: PackageCheck, title: locale === "fr" ? "Panier calculé" : "Calculated basket", value: locale === "fr" ? "formats, coût, restes" : "packs, cost, leftovers" },
-    { icon: ListChecks, title: locale === "fr" ? "Étapes de préparation" : "Preparation steps", value: locale === "fr" ? "ordre clair, service fluide" : "clear order, smooth service" },
-  ];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
@@ -45,6 +48,7 @@ export function RecipesView() {
           </span>
           <h1 className="mt-3 text-2xl font-extrabold md:text-4xl">{t.recipes.title}</h1>
           <p className="mt-1 max-w-2xl text-cream/85">{t.recipes.subtitle}</p>
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-gold"><BookOpen className="h-3.5 w-3.5" /> {locale === "fr" ? "20 plats africains documentés, dont 10 spécialités ivoiriennes" : "20 documented African dishes, including 10 Ivorian specialties"}</p>
           <div className="mt-5 max-w-2xl rounded-xl border border-cream/15 bg-cream/12 p-2 backdrop-blur">
             <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-charcoal">
               <Search className="h-4 w-4 text-muted-foreground" />
@@ -70,56 +74,81 @@ export function RecipesView() {
         </div>
       </section>
 
-      <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {engineCards.map((card, index) => {
-          const Icon = card.icon;
-          return (
-            <motion.div
-              key={card.title}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="rounded-2xl border border-border bg-card p-4 shadow-sm"
-            >
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-terre/10">
-                <Icon className="h-4 w-4 text-terre" />
-              </span>
-              <h2 className="mt-3 text-sm font-extrabold leading-tight text-charcoal">{card.title}</h2>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{card.value}</p>
-            </motion.div>
-          );
-        })}
-      </section>
+      <Tabs
+        value={mode}
+        onValueChange={(value) => { setMode(value as "recipes" | "library"); setCategory(null); setCountry(""); }}
+        className="gap-5"
+      >
+        <TabsList className="grid h-11 w-full grid-cols-2 bg-muted p-1 sm:w-[32rem]">
+          <TabsTrigger value="recipes" className="h-full min-w-0 text-xs"><UtensilsCrossed className="h-4 w-4 shrink-0" /> {locale === "fr" ? "Recettes" : "Recipes"}</TabsTrigger>
+          <TabsTrigger value="library" className="h-full min-w-0 text-xs"><BookOpen className="h-4 w-4 shrink-0" /> {locale === "fr" ? "Bibliothèque" : "Dish library"}</TabsTrigger>
+        </TabsList>
 
-      {/* category chips */}
-      <div className="mb-5 flex flex-wrap gap-2">
-        <button onClick={() => setCategory(null)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${!category ? "bg-terre text-cream" : "bg-card text-charcoal hover:bg-muted border border-border"}`}>
-          {t.recipes.all}
-        </button>
-        {data?.categories?.map((c: any) => (
-          <button key={c.slug} onClick={() => setCategory(category === c.slug ? null : c.slug)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${category === c.slug ? "bg-terre text-cream" : "bg-card text-charcoal hover:bg-muted border border-border"}`}>
-            {c.name}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-72 rounded-2xl" />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data?.recipes?.length ? data.recipes.map((r: any, i: number) => <RecipeCard key={r.id} recipe={r} index={i} />) : (
-            <div className="col-span-full rounded-2xl border border-dashed border-border bg-card p-8 text-center">
-              <ChefHat className="mx-auto h-10 w-10 text-muted-foreground" />
-              <p className="mt-3 text-sm font-semibold text-charcoal">{locale === "fr" ? "Aucune recette ne correspond à cette recherche." : "No recipe matches this search."}</p>
-              <button onClick={() => { setSearch(""); setCategory(null); }} className="mt-2 text-sm font-semibold text-terre hover:underline">
-                {locale === "fr" ? "Réinitialiser le moteur" : "Reset engine"}
+        <div className="flex flex-col gap-3 border-b border-border pb-4">
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setCategory(null)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${!category ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
+              {t.recipes.all}
+            </button>
+            {(mode === "recipes" ? data?.categories : dishData?.categories)?.map((item: any) => (
+              <button key={item.slug} onClick={() => setCategory(category === item.slug ? null : item.slug)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${category === item.slug ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
+                {item.name}
               </button>
+            ))}
+          </div>
+          {mode === "library" ? (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <button onClick={() => setCountry("")} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${!country ? "bg-forest text-white" : "bg-forest/8 text-forest"}`}>{locale === "fr" ? "Toute l'Afrique" : "All Africa"}</button>
+              {dishData?.countries?.map((item: string) => (
+                <button key={item} onClick={() => setCountry(country === item ? "" : item)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${country === item ? "bg-forest text-white" : "bg-forest/8 text-forest"}`}>{item}</button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <TabsContent value="recipes">
+          {loading ? (
+            <ResultSkeleton />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {data?.recipes?.length ? data.recipes.map((recipe: any, index: number) => <RecipeCard key={recipe.id} recipe={recipe} index={index} />) : (
+                <EmptyResult locale={locale} onReset={() => { setSearch(""); setCategory(null); }} library={false} />
+              )}
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="library">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">{dishData?.dishes?.length || 0} {locale === "fr" ? "plats détaillés" : "detailed dishes"}</p>
+            <span className="text-[11px] font-semibold text-forest">{locale === "fr" ? "Fiches éditoriales vérifiables" : "Curated editorial records"}</span>
+          </div>
+          {dishesLoading ? (
+            <ResultSkeleton />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {dishData?.dishes?.length ? dishData.dishes.map((dish: DishLibraryItem) => <DishLibraryCard key={dish.slug} dish={dish} onSelect={setSelectedDish} />) : (
+                <EmptyResult locale={locale} onReset={() => { setSearch(""); setCategory(null); setCountry(""); }} library />
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+      <DishDetailsDialog dish={selectedDish} onClose={() => setSelectedDish(null)} />
+    </div>
+  );
+}
+
+function ResultSkeleton() {
+  return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-80 rounded-lg" />)}</div>;
+}
+
+function EmptyResult({ locale, onReset, library }: { locale: "fr" | "en"; onReset: () => void; library: boolean }) {
+  return (
+    <div className="col-span-full rounded-lg border border-dashed border-border bg-card p-8 text-center">
+      {library ? <BookOpen className="mx-auto h-10 w-10 text-muted-foreground" /> : <ChefHat className="mx-auto h-10 w-10 text-muted-foreground" />}
+      <p className="mt-3 text-sm font-semibold text-charcoal">{locale === "fr" ? "Aucun plat ne correspond à cette recherche." : "No dish matches this search."}</p>
+      <button onClick={onReset} className="mt-2 text-sm font-semibold text-terre hover:underline">{locale === "fr" ? "Réinitialiser le moteur" : "Reset engine"}</button>
     </div>
   );
 }

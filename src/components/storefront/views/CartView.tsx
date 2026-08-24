@@ -10,7 +10,11 @@ import { useStore, cartSubtotal, cartWeightGrams, cartThermalSplit, CartItem } f
 import { dict } from "@/lib/i18n";
 import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
 import { postJSON } from "@/lib/use-fetch";
-import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function CartView() {
   const locale = useStore((s) => s.locale);
@@ -85,10 +89,8 @@ export function CartView() {
       if (res.valid) {
         setCouponApplied({ code: res.code!, discount: res.discount!, freeShipping: res.freeShipping });
         setCoupon(res.code);
-        toast.success(locale === "fr" ? `Code ${res.code} appliqué` : `Code ${res.code} applied`);
       } else {
         setCouponError(res.error || "Code invalide");
-        toast.error(res.error || "Code invalide");
       }
     } catch { setCouponError("Erreur"); }
   };
@@ -111,9 +113,13 @@ export function CartView() {
     <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-charcoal md:text-3xl">{t.cart.title}</h1>
-        <Button variant="ghost" size="sm" onClick={clearCart} className="text-destructive hover:text-destructive">
-          <Trash2 className="mr-1 h-4 w-4" /> {t.cart.clear}
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="mr-1 h-4 w-4" /> {t.cart.clear}</Button></AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader><AlertDialogTitle>{locale === "fr" ? "Vider tout le panier ?" : "Empty the entire cart?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? "Tous les produits, quantités et paniers de recettes seront retirés. Cette action ne peut pas être annulée." : "All products, quantities and recipe baskets will be removed. This action cannot be undone."}</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogFooter><AlertDialogCancel>{locale === "fr" ? "Conserver mon panier" : "Keep my cart"}</AlertDialogCancel><AlertDialogAction onClick={clearCart} className="bg-destructive text-white hover:bg-destructive/90">{locale === "fr" ? "Oui, tout retirer" : "Yes, remove all"}</AlertDialogAction></AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -203,19 +209,19 @@ export function CartView() {
 function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string; onQty: (q: number) => void; onRemove: () => void }) {
   const t = dict[locale as "fr" | "en"];
   return (
-    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-3 rounded-xl bg-background p-2">
-      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg text-2xl" style={{ background: (c.imageColor || "#D65A32") + "22" }}>{c.imageEmoji || "🍲"}</span>
-      <div className="min-w-0 flex-1">
+    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 rounded-lg bg-background p-2 sm:flex sm:gap-3">
+      <span className="row-span-2 grid h-12 w-12 shrink-0 place-items-center rounded-lg text-2xl sm:row-auto" style={{ background: (c.imageColor || "#D65A32") + "22" }}>{c.imageEmoji || "🍲"}</span>
+      <div className="min-w-0 sm:flex-1">
         <p className="truncate text-sm font-medium text-charcoal">{c.name}</p>
         <p className="text-[11px] text-muted-foreground">{c.unitLabel} · <span className={`inline-flex items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>
       </div>
-      <div className="inline-flex items-center rounded-full border border-border">
+      <div className="col-start-2 row-start-2 inline-flex w-fit items-center rounded-full border border-border sm:col-auto sm:row-auto">
         <button onClick={() => onQty(c.qty - 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label="-"><span className="text-xs">−</span></button>
         <span className="min-w-7 text-center text-sm font-semibold">{c.qty}</span>
         <button onClick={() => onQty(Math.min(c.maxStock || 99, c.qty + 1))} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label="+"><span className="text-xs">+</span></button>
       </div>
-      <span className="w-20 text-right text-sm font-bold text-terre">{formatPrice(c.unitPrice * c.qty, locale as any)}</span>
-      <button onClick={onRemove} aria-label={t.remove} className="text-muted-foreground hover:text-destructive">
+      <span className="col-start-3 row-start-2 whitespace-nowrap text-right text-sm font-bold text-terre sm:col-auto sm:row-auto sm:w-20">{formatPrice(c.unitPrice * c.qty, locale as any)}</span>
+      <button onClick={onRemove} aria-label={t.remove} className="col-start-3 row-start-1 justify-self-end text-muted-foreground hover:text-destructive sm:col-auto sm:row-auto">
         <Trash2 className="h-4 w-4" />
       </button>
     </motion.div>

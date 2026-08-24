@@ -11,7 +11,6 @@ import { useStore, cartSubtotal, cartWeightGrams, cartThermalSplit } from "@/lib
 import { dict } from "@/lib/i18n";
 import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
 import { postJSON } from "@/lib/use-fetch";
-import { toast } from "sonner";
 
 export function CheckoutView() {
   const locale = useStore((s) => s.locale);
@@ -25,6 +24,7 @@ export function CheckoutView() {
 
   const [step, setStep] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const addr = addresses[0];
   const [form, setForm] = useState({
     firstName: addr?.firstName || customer?.firstName || "",
@@ -51,6 +51,7 @@ export function CheckoutView() {
 
   const pay = async () => {
     setProcessing(true);
+    setPaymentError("");
     try {
       const res = await postJSON<{ order: { id: string; number: string; total: number } }>("/api/checkout", {
         items: cart.map((c) => ({
@@ -59,12 +60,13 @@ export function CheckoutView() {
           recipeId: c.recipeId, recipeNameFr: c.recipeName, recipeNameEn: c.recipeName, packWeightGrams: c.packWeightGrams,
         })),
         address: form, deliverySlot: slot, paymentMethod: method, subtotal, shipping: shipFee, coupon, customerEmail: form.email || customer?.email,
+        locale,
+        pushSubscriptionId: localStorage.getItem("jma-push-subscription-v1") || undefined,
       });
       clearCart();
       navigate("order-confirmation", { orderId: res.order.id });
-      toast.success(locale === "fr" ? "Paiement confirmé" : "Payment confirmed");
     } catch (e: any) {
-      toast.error(e.message || "Erreur de paiement");
+      setPaymentError(e.message || (locale === "fr" ? "Erreur de paiement" : "Payment error"));
     } finally {
       setProcessing(false);
     }
@@ -186,6 +188,7 @@ export function CheckoutView() {
             <div className="flex items-center gap-2 rounded-lg bg-forest/5 p-2 text-xs text-forest">
               <ShieldCheck className="h-4 w-4" /> {t.checkout.securePayment}
             </div>
+            {paymentError ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">{paymentError}</p> : null}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep(1)} className="flex-1">{t.previous}</Button>
               <Button onClick={pay} disabled={processing} className="flex-1 bg-terre text-cream hover:bg-terre-dark">
