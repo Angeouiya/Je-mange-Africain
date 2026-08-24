@@ -1,0 +1,108 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Search, X, TrendingUp, Package } from "lucide-react";
+import { useStore } from "@/lib/store";
+import { dict } from "@/lib/i18n";
+import { useFetch } from "@/lib/use-fetch";
+import { formatPrice } from "@/lib/format";
+
+export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
+  const locale = useStore((s) => s.locale);
+  const navigate = useStore((s) => s.navigate);
+  const t = dict[locale];
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const [debounced, setDebounced] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(q.trim()), 250);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const { data } = useFetch(debounced ? `/api/search?q=${encodeURIComponent(debounced)}&locale=${locale}&limit=6` : null, [debounced, locale]);
+
+  const submit = () => {
+    if (!q.trim()) return;
+    navigate("catalog", { category: undefined });
+    // pass query via a custom event + store? Simpler: store search in window then catalog reads it.
+    (window as any).__jmaSearch = q.trim();
+    setOpen(false);
+    // navigate triggers catalog which reads window.__jmaSearch
+  };
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 shadow-sm transition focus-within:border-terre focus-within:ring-2 focus-within:ring-terre/20">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <input
+          autoFocus={autoFocus}
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          onFocus={() => setOpen(true)}
+          placeholder={t.header.searchPlaceholder}
+          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+        {q && (
+          <button onClick={() => { setQ(""); setDebounced(""); }} aria-label="Effacer" className="text-muted-foreground hover:text-charcoal">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {open && debounced && data && (
+        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl">
+          {data.results?.length === 0 && data.recipes?.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground">{t.catalog.noResults}</div>
+          ) : (
+            <div className="max-h-96 overflow-y-auto scroll-pretty py-1">
+              {data.results?.map((r: any) => (
+                <button
+                  key={r.id}
+                  onClick={() => { navigate("product", { productId: r.id }); setOpen(false); setQ(""); }}
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-muted"
+                >
+                  <span className="grid h-9 w-9 place-items-center rounded-lg text-xl" style={{ background: r.color + "22" }}>
+                    {r.emoji}
+                  </span>
+                  <span className="flex-1">
+                    <span className="block text-sm font-medium text-charcoal">{r.name}</span>
+                    {r.matchedAlias && <span className="block text-[11px] text-gold">↳ {r.matchedAlias}</span>}
+                    <span className="block text-[11px] text-muted-foreground">{r.category}</span>
+                  </span>
+                  <span className="text-sm font-bold text-terre">{formatPrice(r.price, locale)}</span>
+                </button>
+              ))}
+              {data.recipes?.map((r: any) => (
+                <button
+                  key={r.id}
+                  onClick={() => { navigate("recipe-config", { recipeId: r.id }); setOpen(false); setQ(""); }}
+                  className="flex w-full items-center gap-3 border-t border-border px-3 py-2 text-left transition hover:bg-muted"
+                >
+                  <span className="grid h-9 w-9 place-items-center rounded-lg text-xl" style={{ background: r.color + "22" }}>
+                    {r.emoji}
+                  </span>
+                  <span className="flex-1">
+                    <span className="block text-sm font-medium text-charcoal">{r.name}</span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-forest"><TrendingUp className="h-3 w-3" /> Recette</span>
+                  </span>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

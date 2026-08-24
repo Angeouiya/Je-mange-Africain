@@ -1,0 +1,24 @@
+<svg width="240" height="64" viewBox="0 0 240 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Je mange Africain">
+  <defs>
+    <linearGradient id="jmaPotDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E66A3A"/>
+      <stop offset="1" stop-color="#D65A32"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#7BA83A" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.9">
+    <path d="M19 13 C16 10, 22 7, 19 3"/>
+    <path d="M27 13 C30 10, 24 7, 27 3"/>
+    <path d="M35 13 C32 10, 38 7, 35 3"/>
+  </g>
+  <path d="M9 22 H45 V34 C45 47, 37 52, 27 52 C17 52, 9 47, 9 34 Z" fill="url(#jmaPotDark)"/>
+  <rect x="7" y="20" width="40" height="4" rx="2" fill="#FFF9F2"/>
+  <rect x="6" y="50" width="42" height="3" rx="1.5" fill="#FFF9F2"/>
+  <g transform="translate(18,25) scale(0.9)">
+    <path d="M9 0 C12 0, 16 1, 17 4 C19 7, 18 11, 19 14 C20 16, 22 17, 21 20 C20 23, 16 23, 14 25 C12 27, 10 28, 7 27 C4 26, 5 22, 4 19 C3 16, 1 14, 2 10 C3 6, 5 1, 9 0 Z" fill="#242424"/>
+  </g>
+  <path d="M44 16 C50 14, 54 18, 52 24 C48 24, 44 21, 44 16 Z" fill="#7BA83A"/>
+  <path d="M12 16 C8 15, 5 18, 6 22 C7 24, 10 23, 12 21 C13 19, 13 17, 12 16 Z" fill="#D65A32" stroke="#FFF9F2" stroke-width="0.6"/>
+  <text x="62" y="30" font-family="'Caveat', cursive, serif" font-size="22" font-weight="700" fill="#FFF9F2">Je mange</text>
+  <text x="62" y="52" font-family="'Poppins', sans-serif" font-size="20" font-weight="700" letter-spacing="0.5" fill="#F2A900">Africain</text>
+  <circle cx="150" cy="44" r="2.4" fill="#F2A900"/>
+</svg>

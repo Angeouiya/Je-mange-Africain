@@ -1,0 +1,1455 @@
+Tu es un architecte logiciel senior, développeur full-stack, expert UI/UX, e-commerce, logistique alimentaire, gestion d’entrepôt, paiements sécurisés et applications web internationales.
+
+Ta mission est de concevoir et développer de bout en bout une plateforme e-commerce alimentaire africaine appelée « Je mange Africain ».
+
+Ne réalise pas une simple maquette statique. Construis une application complète, professionnelle, fonctionnelle, sécurisée, responsive, évolutive et prête à être déployée en production. Aucun bouton ne doit être décoratif, aucun écran ne doit être vide et aucun parcours essentiel ne doit être simulé.
+
+# 1. IDENTITÉ DU PROJET
+
+Nom exact de la marque : « Je mange Africain »
+
+L’entreprise est installée en France et vend ses propres produits alimentaires africains. Elle gère elle-même :
+
+* Les fournisseurs ;
+* Les approvisionnements ;
+* Les produits ;
+* Les prix ;
+* Les stocks ;
+* Les entrepôts ;
+* Les commandes ;
+* La préparation ;
+* Les paiements ;
+* Les livraisons ;
+* Le service client ;
+* Les remboursements ;
+* Le marketing ;
+* Les statistiques.
+
+La plateforme doit fonctionner parfaitement sur :
+
+* Smartphone ;
+* Tablette ;
+* Ordinateur ;
+* Application web installable de type PWA.
+
+Prévoir une architecture permettant de créer ultérieurement des applications Android et iOS sans reconstruire tout le système.
+
+La devise initiale est l’euro.
+
+La plateforme doit être intégralement disponible en :
+
+* Français ;
+* Anglais.
+
+Le nom de la marque « Je mange Africain » ne doit jamais être traduit.
+
+# 2. MODÈLE ÉCONOMIQUE
+
+La plateforme appartient à une seule entreprise.
+
+Il ne s’agit pas d’une marketplace ouverte.
+
+Pour le lancement, il ne doit y avoir :
+
+* Aucun vendeur externe ;
+* Aucun portail marchand ;
+* Aucune commission ;
+* Aucun partage de paiement ;
+* Aucun portefeuille vendeur ;
+* Aucun système d’escrow ;
+* Aucune publication libre de produits ;
+* Aucun produit cosmétique, vestimentaire ou sans rapport avec la cuisine.
+
+L’entreprise est l’unique vendeuse. Elle achète ou importe les produits, les stocke, les commercialise et organise leur livraison.
+
+Prévoir techniquement une évolution future vers la vente professionnelle, mais ne pas activer un espace vendeur externe.
+
+# 3. OBJECTIF PRINCIPAL
+
+Créer une grande épicerie africaine digitale permettant aux personnes vivant en France puis en Europe de retrouver facilement des produits africains authentiques.
+
+La plateforme doit aller beaucoup plus loin qu’un site e-commerce classique.
+
+Son principal avantage concurrentiel sera un moteur de recettes intelligentes permettant au client de :
+
+1. Choisir une sauce, un plat, une boisson ou un dessert ;
+2. Indiquer le nombre de personnes ;
+3. Personnaliser la recette ;
+4. Obtenir automatiquement les ingrédients nécessaires ;
+5. Voir les quantités exactes ;
+6. Voir les conditionnements disponibles ;
+7. Connaître le coût total ;
+8. Connaître le coût par personne ;
+9. Modifier librement le panier ;
+10. Commander tous les ingrédients en une seule opération.
+
+La promesse centrale est :
+
+« Tous les produits authentiques de la cuisine africaine, livrés chez vous. »
+
+Version anglaise :
+
+« Authentic African cooking essentials, delivered to your door. »
+
+# 4. IDENTITÉ VISUELLE
+
+Utiliser le nouveau logo fourni « Je mange Africain ».
+
+Le logo représente :
+
+* Une marmite africaine ;
+* Une carte de l’Afrique ;
+* De la vapeur ;
+* Une feuille ;
+* Un piment ;
+* Une identité culinaire moderne.
+
+Palette principale :
+
+* Terre cuite : #D65A32 ;
+* Jaune doré : #F2A900 ;
+* Vert forêt : #3F681C ;
+* Noir charbon : #242424 ;
+* Blanc crème : #FFF9F2 ;
+* Gris clair : #F4F4F2.
+
+Le design doit être :
+
+* Premium ;
+* Moderne ;
+* Chaleureux ;
+* Épuré ;
+* Élégant ;
+* Très professionnel ;
+* Adapté à une marque européenne ;
+* Visuellement africain sans être folklorique ;
+* Facile à utiliser ;
+* Riche en photographies culinaires ;
+* Très fluide sur mobile.
+
+Ne pas surcharger l’interface avec trop de motifs, trop de couleurs ou trop de textes.
+
+Utiliser une typographie moderne, lisible et internationale pour l’interface. La typographie manuscrite du logo doit rester réservée au logo et aux éléments de marque.
+
+Prévoir :
+
+* Une version complète du logo ;
+* Une icône d’application avec la marmite et l’Afrique ;
+* Un favicon ;
+* Une version adaptée aux fonds clairs ;
+* Une version adaptée aux fonds foncés.
+
+# 5. LANGUES ET LOCALISATION
+
+L’intégralité de la plateforme doit être disponible en français et en anglais.
+
+Utiliser des routes localisées :
+
+* /fr ;
+* /en ;
+* /fr/produits ;
+* /en/products ;
+* /fr/recettes ;
+* /en/recipes.
+
+Détecter automatiquement la langue du navigateur lors de la première visite, mais toujours permettre au client de changer de langue.
+
+Le choix de langue doit être conservé dans le compte ou dans le navigateur.
+
+Traduire :
+
+* La navigation ;
+* Les catégories ;
+* Les fiches produits ;
+* Les recettes ;
+* Les ingrédients ;
+* Le panier ;
+* Le paiement ;
+* Le compte client ;
+* Les notifications ;
+* Les e-mails ;
+* Les factures ;
+* Les messages d’erreur ;
+* Le centre d’aide ;
+* Les pages légales ;
+* Les contenus administratifs nécessaires.
+
+Dans l’administration, prévoir pour chaque contenu :
+
+* Titre français ;
+* Titre anglais ;
+* Description française ;
+* Description anglaise ;
+* Statut de validation de chaque traduction.
+
+Ne pas publier une fiche incomplète sans avertir l’administrateur.
+
+# 6. UTILISATEURS
+
+Utilisateurs externes :
+
+* Visiteur ;
+* Client invité ;
+* Client enregistré ;
+* Client professionnel dans une phase future.
+
+Utilisateurs internes :
+
+* Super administrateur ;
+* Direction ;
+* Responsable catalogue ;
+* Responsable des recettes ;
+* Responsable des achats ;
+* Responsable d’entrepôt ;
+* Préparateur de commandes ;
+* Responsable logistique ;
+* Service client ;
+* Responsable marketing ;
+* Comptabilité.
+
+Mettre en place une gestion stricte des rôles et permissions.
+
+Chaque utilisateur interne ne doit voir que les modules nécessaires à sa fonction.
+
+Enregistrer dans un journal d’audit toutes les actions sensibles :
+
+* Modification d’un prix ;
+* Modification d’un stock ;
+* Annulation d’une commande ;
+* Remboursement ;
+* Suppression d’un produit ;
+* Modification d’une recette ;
+* Changement de permission ;
+* Modification d’un lot.
+
+# 7. CATÉGORIES DE PRODUITS
+
+Le catalogue doit gérer tous les produits alimentaires africains entrant dans la cuisine.
+
+## Manioc et produits dérivés
+
+* Placali frais ;
+* Placali surgelé ;
+* Attiéké ;
+* Attiéké déshydraté ;
+* Gari blanc ;
+* Gari jaune ;
+* Tapioca ;
+* Farine de manioc ;
+* Amidon de manioc ;
+* Fufu de manioc ;
+* Chikwangue ;
+* Bâton de manioc ;
+* Pâte de manioc fermentée.
+
+## Farines et céréales
+
+* Farine de mil ;
+* Mil en grains ;
+* Couscous de mil ;
+* Farine de maïs ;
+* Semoule de maïs ;
+* Farine de sorgho ;
+* Farine de riz ;
+* Farine de plantain ;
+* Farine de patate douce ;
+* Farine de niébé ;
+* Fonio ;
+* Préparation pour tô ;
+* Préparation pour kabato ;
+* Préparation pour dégué ;
+* Préparations pour bouillies.
+
+## Viandes et produits traditionnels
+
+* Kplô frais ;
+* Kplô fumé ;
+* Kplô surgelé ;
+* Tripes ;
+* Pieds de bœuf ;
+* Queue de bœuf ;
+* Viande de bœuf ;
+* Mouton ;
+* Chèvre ;
+* Poulet ;
+* Poulet fumé ;
+* Gésiers ;
+* Pattes de poulet.
+
+## Poissons et produits de mer
+
+* Poissons frais ;
+* Poissons surgelés ;
+* Poissons fumés ;
+* Poissons séchés ;
+* Poissons salés ;
+* Maquereau ;
+* Tilapia ;
+* Carpe ;
+* Capitaine ;
+* Thon ;
+* Hareng ;
+* Morue ;
+* Crevettes séchées ;
+* Crevettes fumées ;
+* Crabes ;
+* Poudre de poisson.
+
+## Légumes et feuilles
+
+* Gombo frais ;
+* Gombo séché ;
+* Gombo surgelé ;
+* Aubergines africaines ;
+* Piment ;
+* Feuilles de manioc ;
+* Feuilles de patate ;
+* Feuilles de taro ;
+* Feuilles de bissap ;
+* Kplala ;
+* Épinards africains ;
+* Manioc ;
+* Igname ;
+* Taro ;
+* Patate douce ;
+* Banane plantain ;
+* Gingembre.
+
+## Sauces, épices et condiments
+
+* Graine de palme ;
+* Sauce graine prête à l’emploi ;
+* Pâte d’arachide ;
+* Arachides ;
+* Djoumblé ;
+* Soumbala ;
+* Adjovan ;
+* Akpi ;
+* Djansang ;
+* Égousi ;
+* Concentré de tomate ;
+* Piment en poudre ;
+* Piment en pâte ;
+* Huile rouge ;
+* Huile de palme ;
+* Huile d’arachide ;
+* Bouillons ;
+* Cubes d’assaisonnement ;
+* Marinades ;
+* Mélanges d’épices africaines.
+
+## Légumineuses et graines
+
+* Niébé ;
+* Haricots rouges ;
+* Haricots blancs ;
+* Haricots noirs ;
+* Pois de terre ;
+* Arachides ;
+* Graines de courge ;
+* Graines de sésame ;
+* Noix de cajou.
+
+## Boissons et desserts
+
+* Bissap ;
+* Gingembre ;
+* Tamarin ;
+* Bouye ;
+* Poudre de baobab ;
+* Dégué ;
+* Thiakry ;
+* Lait en poudre ;
+* Lait concentré ;
+* Noix de coco ;
+* Préparations pour bouillie.
+
+# 8. FICHES PRODUITS
+
+Chaque produit doit contenir :
+
+* Nom traditionnel ;
+* Nom français ;
+* Nom anglais ;
+* Synonymes ;
+* Variantes orthographiques ;
+* Description française ;
+* Description anglaise ;
+* Catégorie ;
+* Sous-catégorie ;
+* Pays d’origine ;
+* Marque ;
+* Fournisseur interne ;
+* Photos ;
+* Code-barres ;
+* SKU ;
+* Poids net ;
+* Volume ;
+* Unité de vente ;
+* Conditionnement ;
+* Prix ;
+* Prix au kilogramme ou au litre ;
+* Prix promotionnel ;
+* Ingrédients ;
+* Allergènes ;
+* Valeurs nutritionnelles ;
+* Conseils de préparation ;
+* Conditions de conservation ;
+* Classe thermique ;
+* Température de stockage ;
+* Quantité disponible ;
+* Seuil d’alerte ;
+* Produits alternatifs ;
+* Recettes associées ;
+* Disponibilité par pays ;
+* Statut publié ou brouillon.
+
+Classes thermiques :
+
+* Ambiant ;
+* Réfrigéré ;
+* Surgelé.
+
+Types de conservation :
+
+* Sec ;
+* Frais ;
+* Réfrigéré ;
+* Surgelé ;
+* Fumé ;
+* Séché ;
+* En conserve.
+
+# 9. MOTEUR DE RECHERCHE
+
+Créer un moteur de recherche rapide, intelligent et bilingue.
+
+Il doit reconnaître :
+
+* Les noms traditionnels ;
+* Les noms français ;
+* Les noms anglais ;
+* Les accents ;
+* Les fautes d’orthographe ;
+* Les variantes régionales ;
+* Les marques ;
+* Les pays ;
+* Les plats ;
+* Les ingrédients.
+
+Exemples :
+
+* Kplô, Kplo, peau de bœuf, beef skin ;
+* Placali, pâte de manioc fermentée, fermented cassava dough ;
+* Djoumblé, poudre de gombo, dried okra powder ;
+* Bouye, poudre de baobab, baobab powder ;
+* Soumbala, netétou ;
+* Fufu, foufou, foutou ;
+* Farine de mil, millet flour.
+
+Ajouter :
+
+* Suggestions automatiques ;
+* Correction des fautes ;
+* Historique récent ;
+* Recherches populaires ;
+* Filtres ;
+* Tri par prix, popularité, nouveautés et disponibilité.
+
+# 10. INTERFACE CLIENT
+
+## En-tête desktop
+
+* Logo ;
+* Choix du pays ;
+* Code postal ;
+* Sélecteur FR/EN ;
+* Barre de recherche ;
+* Catégories ;
+* Recettes ;
+* Suivi de commande ;
+* Compte ;
+* Panier.
+
+## Navigation mobile
+
+Créer une barre inférieure fixe avec :
+
+* Accueil ;
+* Catégories ;
+* Recettes ;
+* Panier ;
+* Compte.
+
+## Page d’accueil
+
+Afficher :
+
+* Une bannière forte et élégante ;
+* Une recherche intelligente ;
+* Les catégories ;
+* Les meilleures ventes ;
+* Les nouveautés ;
+* Les promotions ;
+* Les produits par pays ;
+* Les produits frais ;
+* Les produits surgelés ;
+* Les recettes populaires ;
+* Les paniers prêts à cuisiner ;
+* Les produits récemment consultés ;
+* Les recommandations personnalisées ;
+* Les engagements de l’entreprise ;
+* Les informations de livraison.
+
+## Pages publiques
+
+Créer :
+
+* Accueil ;
+* Catalogue ;
+* Catégories ;
+* Résultats de recherche ;
+* Fiches produits ;
+* Liste des recettes ;
+* Fiche recette ;
+* Configurateur de recette ;
+* Favoris ;
+* Panier ;
+* Paiement ;
+* Confirmation ;
+* Suivi de commande ;
+* Connexion ;
+* Inscription ;
+* Mot de passe oublié ;
+* Compte client ;
+* Centre d’aide ;
+* Contact ;
+* À propos ;
+* Conditions générales ;
+* Politique de confidentialité ;
+* Politique de cookies ;
+* Politique de livraison et de remboursement.
+
+# 11. MOTEUR DE RECETTES INTELLIGENTES
+
+Le moteur de recettes est le cœur stratégique de la plateforme.
+
+## Catégories de recettes
+
+* Sauces ;
+* Plats complets ;
+* Accompagnements ;
+* Grillades ;
+* Boissons ;
+* Desserts ;
+* Bouillies ;
+* Menus par pays ;
+* Menus familiaux ;
+* Menus pour événements.
+
+## Exemples de recettes
+
+* Sauce graine ;
+* Sauce gombo ;
+* Sauce claire ;
+* Sauce arachide ;
+* Sauce feuille ;
+* Sauce kplala ;
+* Sauce djoumblé ;
+* Sauce pistache ;
+* Sauce égousi ;
+* Placali sauce graine ;
+* Placali sauce gombo ;
+* Foutou sauce graine ;
+* Foutou sauce claire ;
+* Attiéké-poisson ;
+* Garba ;
+* Alloco-poulet ;
+* Kedjenou ;
+* Mafé ;
+* Thiéboudienne ;
+* Tô sauce gombo ;
+* Kabato ;
+* Ndolé ;
+* Dégué ;
+* Bouillie de mil.
+
+## Parcours du configurateur
+
+Le client choisit une recette ou écrit une demande en langage naturel.
+
+Exemples :
+
+« Je veux préparer du placali sauce graine pour 8 personnes. »
+
+« I want to prepare placali with palm nut sauce for 8 people. »
+
+La plateforme doit comprendre les deux demandes et proposer le même parcours.
+
+Demander ensuite :
+
+* Nombre de personnes ;
+* Nombre d’adultes ;
+* Nombre d’enfants ;
+* Portion normale ou généreuse ;
+* Type de viande ;
+* Type de poisson ;
+* Ajout ou non de kplô ;
+* Niveau de piment ;
+* Allergies ;
+* Restrictions alimentaires ;
+* Budget maximum ;
+* Ingrédients déjà disponibles à la maison.
+
+## Calcul
+
+Pour chaque ingrédient :
+
+Quantité nécessaire = quantité de référence × nombre de personnes demandé ÷ nombre de portions de référence.
+
+Le système doit ensuite :
+
+* Convertir les unités ;
+* Gérer grammes, kilogrammes, millilitres, litres et unités ;
+* Identifier les variantes de produits disponibles ;
+* Vérifier le stock ;
+* Calculer le meilleur conditionnement ;
+* Arrondir le nombre de paquets ;
+* Limiter le gaspillage ;
+* Calculer les restes ;
+* Proposer les alternatives ;
+* Consolider les ingrédients identiques de plusieurs recettes ;
+* Retirer les ingrédients déjà possédés ;
+* Calculer le coût réel d’achat ;
+* Calculer le coût par personne.
+
+Afficher distinctement :
+
+* Quantité nécessaire ;
+* Quantité réellement achetée ;
+* Nombre de paquets ;
+* Quantité restante après préparation ;
+* Prix du produit ;
+* Coût total ;
+* Coût par personne.
+
+Exemple :
+
+* Quantité nécessaire : 600 g ;
+* Format disponible : 400 g ;
+* Quantité proposée : 2 boîtes ;
+* Quantité achetée : 800 g ;
+* Reste estimé : 200 g.
+
+## Panier modifiable
+
+Le client doit pouvoir :
+
+* Augmenter une quantité ;
+* Réduire une quantité ;
+* Supprimer un ingrédient ;
+* Ajouter un ingrédient ;
+* Changer de marque ;
+* Changer de conditionnement ;
+* Choisir une alternative moins chère ;
+* Remplacer une viande par un poisson ;
+* Ajouter ou supprimer le kplô ;
+* Modifier le niveau de piment ;
+* Indiquer qu’il possède déjà un produit ;
+* Changer le nombre de personnes ;
+* Revenir au panier initial ;
+* Sauvegarder la recette ;
+* Partager la recette.
+
+Chaque modification doit recalculer immédiatement :
+
+* Les quantités ;
+* Le coût total ;
+* Le coût par personne ;
+* Les restes ;
+* Le poids du panier ;
+* Les frais de livraison ;
+* La disponibilité.
+
+Conserver une indication permettant de savoir quelles lignes du panier proviennent d’une recette.
+
+Lorsqu’un client modifie manuellement un produit puis change le nombre de personnes, lui proposer :
+
+* Recalculer entièrement ;
+* Recalculer en conservant ses choix manuels.
+
+## Formules budgétaires
+
+Pour les recettes compatibles, proposer :
+
+* Économique ;
+* Standard ;
+* Premium.
+
+Chaque formule peut varier selon :
+
+* La marque ;
+* Le type de protéine ;
+* Le conditionnement ;
+* La quantité de viande ou de poisson ;
+* Les ingrédients facultatifs.
+
+## Produits indisponibles
+
+Si un produit est indisponible :
+
+* Ne jamais l’ajouter silencieusement ;
+* Afficher clairement l’indisponibilité ;
+* Proposer une autre marque ;
+* Proposer un autre format ;
+* Proposer un ingrédient équivalent ;
+* Proposer une autre protéine ;
+* Proposer une recette alternative ;
+* Permettre une alerte de retour en stock.
+
+# 12. ADMINISTRATION DES RECETTES
+
+Créer un éditeur avancé permettant de :
+
+* Créer une recette ;
+* Ajouter le titre français ;
+* Ajouter le titre anglais ;
+* Ajouter les descriptions ;
+* Ajouter les photos et vidéos ;
+* Définir le pays d’origine ;
+* Définir les catégories ;
+* Ajouter les étapes de préparation ;
+* Définir le temps ;
+* Définir la difficulté ;
+* Définir les portions de référence ;
+* Ajouter les ingrédients obligatoires ;
+* Ajouter les ingrédients facultatifs ;
+* Définir les quantités ;
+* Définir les unités ;
+* Définir les pertes ou rendements ;
+* Associer chaque ingrédient aux produits du catalogue ;
+* Définir plusieurs produits compatibles ;
+* Définir les alternatives ;
+* Définir les choix de viandes ou poissons ;
+* Définir les niveaux de piment ;
+* Créer les formules économique, standard et premium ;
+* Prévisualiser le panier ;
+* Prévisualiser le coût ;
+* Publier, planifier ou désactiver ;
+* Consulter les ventes générées.
+
+# 13. PANIER
+
+Le panier doit accepter :
+
+* Produits ajoutés manuellement ;
+* Produits ajoutés depuis une recette ;
+* Produits provenant de plusieurs recettes ;
+* Produits secs ;
+* Produits frais ;
+* Produits surgelés ;
+* Produits vendus à l’unité ;
+* Produits vendus au poids ;
+* Coupons ;
+* Cartes cadeaux ;
+* Avoirs ;
+* Points de fidélité.
+
+Regrouper visuellement les produits provenant d’une même recette.
+
+Calculer :
+
+* Sous-total ;
+* Promotions ;
+* TVA ;
+* Poids ;
+* Volume ;
+* Nombre de colis ;
+* Frais de livraison ;
+* Total général ;
+* Coût par personne pour les recettes.
+
+# 14. PAIEMENT
+
+Prévoir :
+
+* Carte bancaire ;
+* Apple Pay ;
+* Google Pay ;
+* PayPal si compatible avec le prestataire choisi ;
+* Carte cadeau ;
+* Avoir client ;
+* Code promotionnel.
+
+Mettre en place :
+
+* Authentification forte ;
+* Vérification serveur ;
+* Webhooks vérifiés ;
+* Clés d’idempotence ;
+* Protection contre le double paiement ;
+* Détection des commandes anormales ;
+* Mise en attente des commandes à risque ;
+* Remboursements partiels ;
+* Remboursements complets ;
+* Journal des transactions.
+
+Ne jamais considérer un paiement comme réussi sur la seule base d’une réponse provenant du navigateur.
+
+Ne jamais stocker directement les numéros de carte bancaire.
+
+# 15. COMPTE CLIENT
+
+Le client peut :
+
+* Créer un compte ;
+* Commander sans compte si cette option est activée ;
+* Se connecter ;
+* Réinitialiser son mot de passe ;
+* Choisir sa langue ;
+* Enregistrer plusieurs adresses ;
+* Consulter ses commandes ;
+* Suivre ses colis ;
+* Télécharger ses factures ;
+* Recommander en un clic ;
+* Enregistrer ses favoris ;
+* Enregistrer ses recettes favorites ;
+* Créer des listes de courses ;
+* Consulter ses points ;
+* Gérer ses avoirs ;
+* Utiliser ses cartes cadeaux ;
+* Gérer ses notifications ;
+* Ouvrir une réclamation ;
+* Ajouter des photos ;
+* Demander un remboursement ;
+* Contacter le service client.
+
+# 16. COMMANDES
+
+Prévoir une véritable machine d’états.
+
+Statuts :
+
+* Panier créé ;
+* Paiement en attente ;
+* Paiement confirmé ;
+* Vérification antifraude ;
+* Commande validée ;
+* Stock réservé ;
+* Préparation en cours ;
+* Remplacement demandé ;
+* En attente de réponse client ;
+* Contrôle terminé ;
+* Emballée ;
+* Expédiée ;
+* En transit ;
+* En cours de livraison ;
+* Livrée ;
+* Livraison échouée ;
+* Partiellement remboursée ;
+* Remboursée ;
+* Annulée.
+
+Le stock doit être réservé pendant le paiement puis :
+
+* Confirmé après paiement réussi ;
+* Libéré après échec ;
+* Libéré après expiration du délai ;
+* Réintégré correctement après annulation ou retour validé.
+
+# 17. STOCKS ET ENTREPÔTS
+
+Créer un système de gestion de stock avancé.
+
+Gérer :
+
+* Plusieurs entrepôts ;
+* Plusieurs zones ;
+* Stock ambiant ;
+* Stock réfrigéré ;
+* Stock surgelé ;
+* Emplacements ;
+* Rayons ;
+* Étagères ;
+* Codes-barres ;
+* Numéros de lot ;
+* Dates limites ;
+* Quantités disponibles ;
+* Quantités réservées ;
+* Quantités bloquées ;
+* Mouvements de stock ;
+* Inventaires ;
+* Transferts ;
+* Pertes ;
+* Produits endommagés ;
+* Retraits ;
+* Rappels ;
+* Alertes de rupture ;
+* Alertes de péremption.
+
+Appliquer la logique FEFO : les lots expirant le plus tôt doivent être utilisés en priorité.
+
+Toute modification manuelle du stock doit exiger :
+
+* Un motif ;
+* L’identité de l’utilisateur ;
+* La date ;
+* La quantité avant ;
+* La quantité après.
+
+# 18. APPROVISIONNEMENTS
+
+Créer un module interne permettant de gérer :
+
+* Fournisseurs ;
+* Produits fournisseurs ;
+* Commandes d’achat ;
+* Prix d’achat ;
+* Devise d’achat ;
+* Quantités ;
+* Transport ;
+* Assurance ;
+* Douane ;
+* Taxes ;
+* Date de départ ;
+* Date d’arrivée prévue ;
+* Réception ;
+* Contrôle qualité ;
+* Écarts ;
+* Produits refusés ;
+* Produits endommagés ;
+* Coût de revient ;
+* Marge réelle.
+
+Ne pas créer de portail fournisseur public pour le lancement.
+
+# 19. PRÉPARATION DES COMMANDES
+
+Créer une interface d’entrepôt optimisée pour mobile et terminaux de scan.
+
+Elle doit permettre :
+
+* D’afficher les commandes à préparer ;
+* D’attribuer une commande ;
+* De guider le préparateur ;
+* De localiser les produits ;
+* De scanner le code-barres ;
+* De vérifier le lot ;
+* De confirmer la quantité ;
+* De signaler un manque ;
+* De proposer un remplacement ;
+* De séparer sec, frais et surgelé ;
+* De contrôler la commande ;
+* De peser le colis ;
+* D’imprimer le bon ;
+* De générer l’étiquette ;
+* De clôturer la préparation.
+
+# 20. LOGISTIQUE
+
+L’entreprise gère la logistique de ses produits.
+
+Créer un module gérant :
+
+* Pays ;
+* Régions ;
+* Codes postaux ;
+* Zones desservies ;
+* Zones indisponibles ;
+* Tarifs par poids ;
+* Tarifs par volume ;
+* Tarifs par classe thermique ;
+* Livraison standard ;
+* Livraison express ;
+* Point relais ;
+* Livraison par flotte interne ;
+* Transporteurs externes ;
+* Créneaux ;
+* Plusieurs colis par commande ;
+* Étiquettes ;
+* Numéros de suivi ;
+* Tournées ;
+* Preuve de livraison ;
+* Signature ;
+* Photo ;
+* Code de confirmation ;
+* Échec de livraison ;
+* Colis perdu ;
+* Retour ;
+* Coût réel ;
+* Performance du transporteur.
+
+Une commande peut générer :
+
+* Un colis ambiant ;
+* Un colis réfrigéré ;
+* Un colis surgelé.
+
+Le système doit sélectionner la solution de transport la plus adaptée selon :
+
+* Pays ;
+* Code postal ;
+* Poids ;
+* Volume ;
+* Température ;
+* Prix ;
+* Délai ;
+* Disponibilité du transporteur.
+
+# 21. NOTIFICATIONS
+
+Prévoir :
+
+* E-mail ;
+* SMS ;
+* Notifications web ;
+* WhatsApp si une intégration officielle est configurée.
+
+Notifications importantes :
+
+* Création de compte ;
+* Confirmation de commande ;
+* Confirmation de paiement ;
+* Début de préparation ;
+* Demande de remplacement ;
+* Expédition ;
+* Livraison imminente ;
+* Livraison effectuée ;
+* Échec de livraison ;
+* Remboursement ;
+* Retour en stock ;
+* Panier abandonné.
+
+Toutes les notifications doivent exister en français et en anglais.
+
+# 22. ADMINISTRATION CENTRALE
+
+Créer un tableau de bord très avancé avec une sidebar rétractable.
+
+La page principale doit afficher :
+
+* Chiffre d’affaires du jour ;
+* Chiffre d’affaires du mois ;
+* Nombre de commandes ;
+* Panier moyen ;
+* Marge ;
+* Coût logistique ;
+* Commandes à préparer ;
+* Commandes en retard ;
+* Commandes à risque ;
+* Produits en rupture ;
+* Produits bientôt périmés ;
+* Produits les plus vendus ;
+* Recettes les plus consultées ;
+* Recettes générant le plus de ventes ;
+* Taux de conversion ;
+* Pays les plus performants ;
+* Réclamations ;
+* Remboursements ;
+* Performance des transporteurs.
+
+Modules administratifs :
+
+* Tableau de bord ;
+* Produits ;
+* Catégories ;
+* Marques ;
+* Recettes ;
+* Ingrédients ;
+* Fournisseurs ;
+* Achats ;
+* Stocks ;
+* Entrepôts ;
+* Commandes ;
+* Préparations ;
+* Livraisons ;
+* Clients ;
+* Paiements ;
+* Remboursements ;
+* Réclamations ;
+* Promotions ;
+* Fidélité ;
+* Cartes cadeaux ;
+* Contenus ;
+* Traductions ;
+* Statistiques ;
+* Utilisateurs ;
+* Permissions ;
+* Journal d’audit ;
+* Paramètres.
+
+# 23. MARKETING
+
+Créer :
+
+* Codes promotionnels ;
+* Promotions programmées ;
+* Promotions par catégorie ;
+* Promotions par produit ;
+* Promotions par pays ;
+* Offres de bienvenue ;
+* Livraison gratuite ;
+* Parrainage ;
+* Fidélité ;
+* Cartes cadeaux ;
+* Box culinaires ;
+* Relance de panier abandonné ;
+* Campagnes e-mail ;
+* Campagnes SMS ;
+* Alertes de retour en stock ;
+* Promotions sur les produits proches de leur date limite.
+
+# 24. SERVICE CLIENT
+
+Créer un module de tickets permettant de :
+
+* Rechercher un client ;
+* Voir ses commandes ;
+* Voir ses paiements ;
+* Voir ses livraisons ;
+* Recevoir des photos ;
+* Gérer un produit manquant ;
+* Gérer un produit abîmé ;
+* Gérer une erreur de commande ;
+* Proposer un remboursement ;
+* Proposer un avoir ;
+* Enregistrer les échanges ;
+* Affecter le ticket ;
+* Définir une priorité ;
+* Suivre les délais de réponse.
+
+# 25. ARCHITECTURE TECHNIQUE
+
+Utiliser une architecture moderne, maintenable et documentée.
+
+Architecture recommandée :
+
+* Frontend : Next.js avec TypeScript ;
+* Interface : Tailwind CSS et composants accessibles ;
+* Backend : API modulaire robuste ;
+* Base de données : PostgreSQL ;
+* ORM avec migrations versionnées ;
+* Cache et sessions : Redis ou équivalent ;
+* Tâches asynchrones : file de traitement ;
+* Stockage : service objet compatible S3 ;
+* Recherche : moteur prenant en charge synonymes et tolérance aux fautes ;
+* Paiement : prestataire certifié européen ;
+* Notifications : adaptateurs e-mail, SMS et WhatsApp ;
+* Transporteurs : architecture par connecteurs ;
+* Déploiement : infrastructure sécurisée et évolutive.
+
+Utiliser les versions stables et maintenues au moment de l’implémentation.
+
+Organiser le code par domaines :
+
+* Authentification ;
+* Catalogue ;
+* Recettes ;
+* Panier ;
+* Paiement ;
+* Commandes ;
+* Stock ;
+* Achats ;
+* Entrepôt ;
+* Logistique ;
+* Clients ;
+* Marketing ;
+* Notifications ;
+* Administration.
+
+Préférer une architecture modulaire claire à une accumulation de fichiers difficile à maintenir.
+
+# 26. MODÈLE DE DONNÉES
+
+Créer au minimum les entités suivantes :
+
+* User ;
+* Role ;
+* Permission ;
+* Customer ;
+* Address ;
+* Product ;
+* ProductVariant ;
+* ProductTranslation ;
+* ProductAlias ;
+* Category ;
+* Brand ;
+* Supplier ;
+* Recipe ;
+* RecipeTranslation ;
+* Ingredient ;
+* RecipeIngredient ;
+* IngredientAlternative ;
+* Warehouse ;
+* WarehouseLocation ;
+* InventoryBatch ;
+* InventoryReservation ;
+* StockMovement ;
+* PurchaseOrder ;
+* PurchaseOrderItem ;
+* Cart ;
+* CartItem ;
+* RecipeCartGroup ;
+* Order ;
+* OrderItem ;
+* Payment ;
+* Refund ;
+* Shipment ;
+* ShipmentItem ;
+* Carrier ;
+* DeliveryZone ;
+* Promotion ;
+* Coupon ;
+* GiftCard ;
+* LoyaltyTransaction ;
+* SupportTicket ;
+* Notification ;
+* AuditLog.
+
+Prévoir des identifiants uniques, des dates de création et modification, ainsi que la suppression logique lorsque nécessaire.
+
+# 27. SÉCURITÉ
+
+Mettre en place :
+
+* Authentification sécurisée ;
+* Double authentification pour l’administration ;
+* Permissions strictes ;
+* Sessions sécurisées ;
+* Protection CSRF ;
+* Protection XSS ;
+* Validation des entrées ;
+* Limitation des requêtes ;
+* Protection des fichiers ;
+* Chiffrement des communications ;
+* Sauvegardes automatiques ;
+* Procédure de restauration ;
+* Rotation des secrets ;
+* Journalisation ;
+* Surveillance des erreurs ;
+* Alertes de sécurité.
+
+Ne jamais exposer :
+
+* Les secrets ;
+* Les clés privées ;
+* Les données bancaires ;
+* Les prix d’achat aux clients ;
+* Les informations internes des fournisseurs ;
+* Les données d’autres utilisateurs.
+
+# 28. CONFORMITÉ
+
+Prévoir une architecture compatible avec :
+
+* RGPD ;
+* Gestion du consentement ;
+* Export des données ;
+* Suppression des données ;
+* Durées de conservation ;
+* Informations alimentaires avant achat ;
+* Allergènes ;
+* Traçabilité des lots ;
+* Retraits et rappels ;
+* TVA selon le pays ;
+* OSS pour les ventes européennes ;
+* Règles relatives aux emballages ;
+* Chaîne du froid ;
+* Conditions générales ;
+* Politique de retour ;
+* Médiation de la consommation.
+
+Faire valider juridiquement les textes et les règles avant la mise en production commerciale.
+
+# 29. PERFORMANCE ET QUALITÉ
+
+La plateforme doit être :
+
+* Rapide ;
+* Responsive ;
+* Accessible ;
+* Optimisée pour les moteurs de recherche ;
+* Optimisée pour les images ;
+* Compatible avec les navigateurs modernes ;
+* Résistante aux connexions lentes ;
+* Adaptée aux petits écrans ;
+* Facile à maintenir.
+
+Mettre en place :
+
+* Chargement progressif ;
+* Mise en cache ;
+* Images responsives ;
+* États de chargement ;
+* États vides utiles ;
+* Messages d’erreur compréhensibles ;
+* Réessais contrôlés ;
+* Pagination ;
+* Recherche performante ;
+* Surveillance des performances.
+
+# 30. SEO
+
+Créer :
+
+* Métadonnées françaises et anglaises ;
+* URLs lisibles ;
+* Balises canoniques ;
+* Hreflang ;
+* Sitemap ;
+* Robots.txt ;
+* Données structurées Product ;
+* Données structurées Recipe ;
+* Données structurées Breadcrumb ;
+* Pages catégories optimisées ;
+* Pages recettes indexables ;
+* Pages produits partageables.
+
+# 31. TESTS
+
+Créer des tests pour :
+
+* Authentification ;
+* Permissions ;
+* Recherche bilingue ;
+* Calcul des recettes ;
+* Conversion des unités ;
+* Arrondi des conditionnements ;
+* Modification du panier ;
+* Réservation de stock ;
+* Paiement ;
+* Webhooks ;
+* Remboursements ;
+* Commandes ;
+* Lots ;
+* FEFO ;
+* Séparation des températures ;
+* Calcul de livraison ;
+* Traductions ;
+* Parcours client complet.
+
+Ajouter des tests end-to-end pour :
+
+1. Recherche d’un produit ;
+2. Ajout au panier ;
+3. Configuration d’une recette ;
+4. Modification du nombre de personnes ;
+5. Remplacement d’un ingrédient ;
+6. Paiement ;
+7. Préparation ;
+8. Expédition ;
+9. Livraison ;
+10. Réclamation et remboursement.
+
+# 32. DONNÉES DE DÉMONSTRATION
+
+Créer des données réalistes en français et en anglais :
+
+* Catégories ;
+* Produits ;
+* Marques ;
+* Entrepôt ;
+* Lots ;
+* Clients ;
+* Recettes ;
+* Ingrédients ;
+* Promotions ;
+* Commandes ;
+* Livraisons.
+
+Inclure notamment :
+
+* Placali ;
+* Kplô ;
+* Farine de mil ;
+* Attiéké ;
+* Graine de palme ;
+* Djoumblé ;
+* Akpi ;
+* Soumbala ;
+* Gombo ;
+* Banane plantain ;
+* Pâte d’arachide.
+
+Créer plusieurs recettes fonctionnelles avec de vrais liens vers les produits de démonstration.
+
+# 33. LIVRABLES ATTENDUS
+
+Livrer :
+
+* Code source complet ;
+* Interface client ;
+* Administration ;
+* Base de données ;
+* Migrations ;
+* Données de démonstration ;
+* Documentation d’installation ;
+* Documentation de déploiement ;
+* Documentation des variables d’environnement ;
+* Documentation des rôles ;
+* Documentation du moteur de recettes ;
+* Documentation des intégrations ;
+* Tests ;
+* Configuration de préproduction ;
+* Configuration de production ;
+* Système de sauvegarde ;
+* Journalisation ;
+* Surveillance des erreurs.
+
+Créer un fichier README complet.
+
+Créer un fichier d’exemple des variables d’environnement sans aucun secret réel.
+
+# 34. CRITÈRES DE VALIDATION
+
+Le projet n’est pas terminé tant que les points suivants ne fonctionnent pas réellement :
+
+* Le site est entièrement utilisable en français et en anglais ;
+* Le changement de langue conserve la page actuelle ;
+* Les produits ont des traductions complètes ;
+* « Kplô », « Kplo » et « beef skin » trouvent le même produit ;
+* Le client peut sélectionner une recette ;
+* Il peut saisir un nombre de personnes ;
+* Le système calcule les quantités ;
+* Le système choisit les conditionnements ;
+* Le système affiche les restes ;
+* Le système affiche le coût total ;
+* Le système affiche le coût par personne ;
+* Le client peut modifier le panier ;
+* Les prix se recalculent instantanément ;
+* Les produits indisponibles sont signalés ;
+* Les substitutions fonctionnent ;
+* Le paiement est vérifié côté serveur ;
+* Le stock est réservé correctement ;
+* L’entrepôt peut préparer par scan ;
+* Les lots sont traçables ;
+* Les commandes peuvent être séparées par température ;
+* Le client peut suivre ses colis ;
+* L’administration peut gérer toute l’activité ;
+* Toutes les actions sensibles sont auditées ;
+* Le site fonctionne parfaitement sur mobile et desktop ;
+* Aucun bouton essentiel n’est inactif ;
+* Aucun parcours critique n’est une simple simulation.
+
+# 35. CONSIGNE FINALE
+
+Construis cette plateforme comme un véritable produit commercial européen, et non comme une démonstration visuelle.
+
+Travaille de manière autonome. Lorsque des informations secondaires manquent, prends des décisions professionnelles cohérentes et documente-les. Ne réduis pas le périmètre sans justification.
+
+Commence par :
+
+1. Définir l’architecture ;
+2. Créer le modèle de données ;
+3. Mettre en place l’identité visuelle ;
+4. Construire l’interface client ;
+5. Construire le moteur de recettes ;
+6. Construire le panier et le paiement ;
+7. Construire l’administration ;
+8. Construire les stocks et la logistique ;
+9. Ajouter les traductions ;
+10. Ajouter les tests ;
+11. Vérifier tous les parcours ;
+12. Préparer le déploiement.
+
+Le résultat final doit être élégant, puissant, fiable, rapide, bilingue, parfaitement responsive et immédiatement exploitable par l’entreprise « Je mange Africain ».

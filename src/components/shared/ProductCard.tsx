@@ -1,0 +1,129 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Heart, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ProductImage } from "./ProductImage";
+import { useStore } from "@/lib/store";
+import { dict } from "@/lib/i18n";
+import { formatPrice, thermalColor, thermalLabel } from "@/lib/format";
+import { toast } from "sonner";
+
+export interface ProductListItem {
+  id: string;
+  sku: string;
+  traditionalName: string;
+  name: string;
+  price: number;
+  promoPrice: number | null;
+  pricePerKg?: number | null;
+  stockQty: number;
+  alertThreshold?: number;
+  imageColor: string;
+  imageEmoji: string;
+  isBestseller?: boolean;
+  isNew?: boolean;
+  isOnSale?: boolean;
+  thermalClass: string;
+  packaging?: string;
+  unit?: string;
+  variants?: { id: string; label: string; weightGrams: number; price: number; isDefault: boolean }[];
+}
+
+export function ProductCard({ product, index = 0 }: { product: ProductListItem; index?: number }) {
+  const locale = useStore((s) => s.locale);
+  const navigate = useStore((s) => s.navigate);
+  const addToCart = useStore((s) => s.addToCart);
+  const favorites = useStore((s) => s.favorites);
+  const toggleFavorite = useStore((s) => s.toggleFavorite);
+  const t = dict[locale];
+  const isFav = favorites.includes(product.id);
+  const price = product.promoPrice ?? product.price;
+  const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
+  const outOfStock = product.stockQty <= 0;
+
+  const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (outOfStock) return;
+    addToCart({
+      productId: product.id,
+      variantId: defaultVariant?.id,
+      name: product.name,
+      nameFr: product.name,
+      nameEn: product.name,
+      unitPrice: price,
+      unitLabel: product.packaging || defaultVariant?.label || "",
+      packWeightGrams: defaultVariant?.weightGrams || 0,
+      thermalClass: product.thermalClass as any,
+      imageColor: product.imageColor,
+      maxStock: product.stockQty,
+    });
+    toast.success(t.product.addedToCart, { description: product.name });
+  };
+
+  const handleFav = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFavorite(product.id);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
+      onClick={() => navigate("product", { productId: product.id })}
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-lg hover:-translate-y-0.5"
+    >
+      <div className="relative">
+        <div className="flex aspect-square w-full items-center justify-center p-4">
+          <ProductImage emoji={product.imageEmoji} color={product.imageColor} size="lg" className="w-full h-full" />
+        </div>
+        {/* badges */}
+        <div className="absolute left-2 top-2 flex flex-col gap-1">
+          {product.isBestseller && <Badge className="bg-forest text-cream border-0 shadow-sm">{t.bestseller}</Badge>}
+          {product.isNew && <Badge className="bg-gold text-charcoal border-0 shadow-sm">{t.new}</Badge>}
+          {product.isOnSale && <Badge className="bg-destructive text-white border-0 shadow-sm">{t.promo}</Badge>}
+        </div>
+        <button
+          onClick={handleFav}
+          aria-label="Favori"
+          className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/80 backdrop-blur transition hover:bg-white"
+        >
+          <Heart className={`h-4 w-4 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />
+        </button>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${thermalColor(product.thermalClass)}`}>
+            {thermalLabel(product.thermalClass, locale)}
+          </span>
+          {lowStock && <span className="text-[10px] font-medium text-gold">{t.lowStock}</span>}
+          {outOfStock && <span className="text-[10px] font-medium text-destructive">{t.outOfStock}</span>}
+        </div>
+        <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-charcoal">{product.name}</h3>
+        <p className="text-[11px] text-muted-foreground">{product.traditionalName}</p>
+        <div className="mt-auto flex items-end justify-between pt-1">
+          <div>
+            {product.promoPrice && (
+              <span className="mr-1 text-xs text-muted-foreground line-through">{formatPrice(product.price, locale)}</span>
+            )}
+            <span className="text-base font-bold text-terre">{formatPrice(price, locale)}</span>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleAdd}
+            disabled={outOfStock}
+            className="h-8 w-8 rounded-full bg-terre p-0 text-cream shadow-sm hover:bg-terre-dark"
+            aria-label={t.product.addToCart}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}

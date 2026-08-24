@@ -1,0 +1,204 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-poppins);
+  --font-mono: var(--font-geist-mono);
+  --font-brand: var(--font-caveat);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Brand tokens */
+  --color-terre: var(--terre);
+  --color-gold: var(--gold);
+  --color-forest: var(--forest);
+  --color-charcoal: var(--charcoal);
+  --color-cream: var(--cream);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Brand palette */
+  --terre: #D65A32;
+  --terre-dark: #B84A26;
+  --gold: #F2A900;
+  --forest: #3F681C;
+  --forest-dark: #2F5014;
+  --charcoal: #242424;
+  --cream: #FFF9F2;
+  --light-grey: #F4F4F2;
+
+  --background: #FFF9F2;
+  --foreground: #242424;
+  --card: #FFFFFF;
+  --card-foreground: #242424;
+  --popover: #FFFFFF;
+  --popover-foreground: #242424;
+  --primary: #D65A32;
+  --primary-foreground: #FFF9F2;
+  --secondary: #3F681C;
+  --secondary-foreground: #FFF9F2;
+  --muted: #F4F4F2;
+  --muted-foreground: #6B6357;
+  --accent: #F2A900;
+  --accent-foreground: #242424;
+  --destructive: #C0392B;
+  --border: #E8DFD3;
+  --input: #E8DFD3;
+  --ring: #D65A32;
+  --chart-1: #D65A32;
+  --chart-2: #3F681C;
+  --chart-3: #F2A900;
+  --chart-4: #8B4513;
+  --chart-5: #C0392B;
+  --sidebar: #242424;
+  --sidebar-foreground: #FFF9F2;
+  --sidebar-primary: #D65A32;
+  --sidebar-primary-foreground: #FFF9F2;
+  --sidebar-accent: #3A3A3A;
+  --sidebar-accent-foreground: #FFF9F2;
+  --sidebar-border: #3A3A3A;
+  --sidebar-ring: #D65A32;
+}
+
+.dark {
+  --background: #1A1714;
+  --foreground: #FFF9F2;
+  --card: #24201C;
+  --card-foreground: #FFF9F2;
+  --popover: #24201C;
+  --popover-foreground: #FFF9F2;
+  --primary: #E66A3A;
+  --primary-foreground: #1A1714;
+  --secondary: #4A7022;
+  --secondary-foreground: #FFF9F2;
+  --muted: #2E2A25;
+  --muted-foreground: #B8AE9E;
+  --accent: #F2A900;
+  --accent-foreground: #1A1714;
+  --destructive: #E74C3C;
+  --border: #3A352F;
+  --input: #3A352F;
+  --ring: #E66A3A;
+  --chart-1: #E66A3A;
+  --chart-2: #5A8A28;
+  --chart-3: #F2A900;
+  --chart-4: #B06A3A;
+  --chart-5: #E74C3C;
+  --sidebar: #14110E;
+  --sidebar-foreground: #FFF9F2;
+  --sidebar-primary: #E66A3A;
+  --sidebar-primary-foreground: #1A1714;
+  --sidebar-accent: #2E2A25;
+  --sidebar-accent-foreground: #FFF9F2;
+  --sidebar-border: #2E2A25;
+  --sidebar-ring: #E66A3A;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv01";
+  }
+  ::selection {
+    background-color: color-mix(in srgb, var(--terre) 25%, transparent);
+    color: var(--charcoal);
+  }
+}
+
+/* Custom scrollbar */
+.scroll-pretty::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-pretty::-webkit-scrollbar-track { background: transparent; }
+.scroll-pretty::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+  border-radius: 9999px;
+}
+.scroll-pretty::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+}
+
+/* Brand helpers */
+.bg-terre { background-color: var(--terre); }
+.bg-gold { background-color: var(--gold); }
+.bg-forest { background-color: var(--forest); }
+.bg-charcoal { background-color: var(--charcoal); }
+.bg-cream { background-color: var(--cream); }
+.text-terre { color: var(--terre); }
+.text-gold { color: var(--gold); }
+.text-forest { color: var(--forest); }
+.text-charcoal { color: var(--charcoal); }
+.text-cream { color: var(--cream); }
+.border-terre { border-color: var(--terre); }
+.ring-terre { --tw-ring-color: var(--terre); }
+
+/* African-inspired subtle pattern */
+.african-dots {
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--terre) 18%, transparent) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+.african-kente-stripe {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--terre) 0 14px,
+    var(--gold) 14px 18px,
+    var(--forest) 18px 32px,
+    var(--charcoal) 32px 36px
+  );
+}
+
+@keyframes steam-rise {
+  0% { transform: translateY(0) scaleY(1); opacity: 0; }
+  30% { opacity: 0.7; }
+  100% { transform: translateY(-14px) scaleY(1.4); opacity: 0; }
+}
+.animate-steam { animation: steam-rise 2.6s ease-in-out infinite; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 30%, transparent), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}

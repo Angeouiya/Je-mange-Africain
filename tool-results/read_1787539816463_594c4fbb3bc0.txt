@@ -1,0 +1,1456 @@
+     1→Tu es un architecte logiciel senior, développeur full-stack, expert UI/UX, e-commerce, logistique alimentaire, gestion d’entrepôt, paiements sécurisés et applications web internationales.
+     2→
+     3→Ta mission est de concevoir et développer de bout en bout une plateforme e-commerce alimentaire africaine appelée « Je mange Africain ».
+     4→
+     5→Ne réalise pas une simple maquette statique. Construis une application complète, professionnelle, fonctionnelle, sécurisée, responsive, évolutive et prête à être déployée en production. Aucun bouton ne doit être décoratif, aucun écran ne doit être vide et aucun parcours essentiel ne doit être simulé.
+     6→
+     7→# 1. IDENTITÉ DU PROJET
+     8→
+     9→Nom exact de la marque : « Je mange Africain »
+    10→
+    11→L’entreprise est installée en France et vend ses propres produits alimentaires africains. Elle gère elle-même :
+    12→
+    13→* Les fournisseurs ;
+    14→* Les approvisionnements ;
+    15→* Les produits ;
+    16→* Les prix ;
+    17→* Les stocks ;
+    18→* Les entrepôts ;
+    19→* Les commandes ;
+    20→* La préparation ;
+    21→* Les paiements ;
+    22→* Les livraisons ;
+    23→* Le service client ;
+    24→* Les remboursements ;
+    25→* Le marketing ;
+    26→* Les statistiques.
+    27→
+    28→La plateforme doit fonctionner parfaitement sur :
+    29→
+    30→* Smartphone ;
+    31→* Tablette ;
+    32→* Ordinateur ;
+    33→* Application web installable de type PWA.
+    34→
+    35→Prévoir une architecture permettant de créer ultérieurement des applications Android et iOS sans reconstruire tout le système.
+    36→
+    37→La devise initiale est l’euro.
+    38→
+    39→La plateforme doit être intégralement disponible en :
+    40→
+    41→* Français ;
+    42→* Anglais.
+    43→
+    44→Le nom de la marque « Je mange Africain » ne doit jamais être traduit.
+    45→
+    46→# 2. MODÈLE ÉCONOMIQUE
+    47→
+    48→La plateforme appartient à une seule entreprise.
+    49→
+    50→Il ne s’agit pas d’une marketplace ouverte.
+    51→
+    52→Pour le lancement, il ne doit y avoir :
+    53→
+    54→* Aucun vendeur externe ;
+    55→* Aucun portail marchand ;
+    56→* Aucune commission ;
+    57→* Aucun partage de paiement ;
+    58→* Aucun portefeuille vendeur ;
+    59→* Aucun système d’escrow ;
+    60→* Aucune publication libre de produits ;
+    61→* Aucun produit cosmétique, vestimentaire ou sans rapport avec la cuisine.
+    62→
+    63→L’entreprise est l’unique vendeuse. Elle achète ou importe les produits, les stocke, les commercialise et organise leur livraison.
+    64→
+    65→Prévoir techniquement une évolution future vers la vente professionnelle, mais ne pas activer un espace vendeur externe.
+    66→
+    67→# 3. OBJECTIF PRINCIPAL
+    68→
+    69→Créer une grande épicerie africaine digitale permettant aux personnes vivant en France puis en Europe de retrouver facilement des produits africains authentiques.
+    70→
+    71→La plateforme doit aller beaucoup plus loin qu’un site e-commerce classique.
+    72→
+    73→Son principal avantage concurrentiel sera un moteur de recettes intelligentes permettant au client de :
+    74→
+    75→1. Choisir une sauce, un plat, une boisson ou un dessert ;
+    76→2. Indiquer le nombre de personnes ;
+    77→3. Personnaliser la recette ;
+    78→4. Obtenir automatiquement les ingrédients nécessaires ;
+    79→5. Voir les quantités exactes ;
+    80→6. Voir les conditionnements disponibles ;
+    81→7. Connaître le coût total ;
+    82→8. Connaître le coût par personne ;
+    83→9. Modifier librement le panier ;
+    84→10. Commander tous les ingrédients en une seule opération.
+    85→
+    86→La promesse centrale est :
+    87→
+    88→« Tous les produits authentiques de la cuisine africaine, livrés chez vous. »
+    89→
+    90→Version anglaise :
+    91→
+    92→« Authentic African cooking essentials, delivered to your door. »
+    93→
+    94→# 4. IDENTITÉ VISUELLE
+    95→
+    96→Utiliser le nouveau logo fourni « Je mange Africain ».
+    97→
+    98→Le logo représente :
+    99→
+   100→* Une marmite africaine ;
+   101→* Une carte de l’Afrique ;
+   102→* De la vapeur ;
+   103→* Une feuille ;
+   104→* Un piment ;
+   105→* Une identité culinaire moderne.
+   106→
+   107→Palette principale :
+   108→
+   109→* Terre cuite : #D65A32 ;
+   110→* Jaune doré : #F2A900 ;
+   111→* Vert forêt : #3F681C ;
+   112→* Noir charbon : #242424 ;
+   113→* Blanc crème : #FFF9F2 ;
+   114→* Gris clair : #F4F4F2.
+   115→
+   116→Le design doit être :
+   117→
+   118→* Premium ;
+   119→* Moderne ;
+   120→* Chaleureux ;
+   121→* Épuré ;
+   122→* Élégant ;
+   123→* Très professionnel ;
+   124→* Adapté à une marque européenne ;
+   125→* Visuellement africain sans être folklorique ;
+   126→* Facile à utiliser ;
+   127→* Riche en photographies culinaires ;
+   128→* Très fluide sur mobile.
+   129→
+   130→Ne pas surcharger l’interface avec trop de motifs, trop de couleurs ou trop de textes.
+   131→
+   132→Utiliser une typographie moderne, lisible et internationale pour l’interface. La typographie manuscrite du logo doit rester réservée au logo et aux éléments de marque.
+   133→
+   134→Prévoir :
+   135→
+   136→* Une version complète du logo ;
+   137→* Une icône d’application avec la marmite et l’Afrique ;
+   138→* Un favicon ;
+   139→* Une version adaptée aux fonds clairs ;
+   140→* Une version adaptée aux fonds foncés.
+   141→
+   142→# 5. LANGUES ET LOCALISATION
+   143→
+   144→L’intégralité de la plateforme doit être disponible en français et en anglais.
+   145→
+   146→Utiliser des routes localisées :
+   147→
+   148→* /fr ;
+   149→* /en ;
+   150→* /fr/produits ;
+   151→* /en/products ;
+   152→* /fr/recettes ;
+   153→* /en/recipes.
+   154→
+   155→Détecter automatiquement la langue du navigateur lors de la première visite, mais toujours permettre au client de changer de langue.
+   156→
+   157→Le choix de langue doit être conservé dans le compte ou dans le navigateur.
+   158→
+   159→Traduire :
+   160→
+   161→* La navigation ;
+   162→* Les catégories ;
+   163→* Les fiches produits ;
+   164→* Les recettes ;
+   165→* Les ingrédients ;
+   166→* Le panier ;
+   167→* Le paiement ;
+   168→* Le compte client ;
+   169→* Les notifications ;
+   170→* Les e-mails ;
+   171→* Les factures ;
+   172→* Les messages d’erreur ;
+   173→* Le centre d’aide ;
+   174→* Les pages légales ;
+   175→* Les contenus administratifs nécessaires.
+   176→
+   177→Dans l’administration, prévoir pour chaque contenu :
+   178→
+   179→* Titre français ;
+   180→* Titre anglais ;
+   181→* Description française ;
+   182→* Description anglaise ;
+   183→* Statut de validation de chaque traduction.
+   184→
+   185→Ne pas publier une fiche incomplète sans avertir l’administrateur.
+   186→
+   187→# 6. UTILISATEURS
+   188→
+   189→Utilisateurs externes :
+   190→
+   191→* Visiteur ;
+   192→* Client invité ;
+   193→* Client enregistré ;
+   194→* Client professionnel dans une phase future.
+   195→
+   196→Utilisateurs internes :
+   197→
+   198→* Super administrateur ;
+   199→* Direction ;
+   200→* Responsable catalogue ;
+   201→* Responsable des recettes ;
+   202→* Responsable des achats ;
+   203→* Responsable d’entrepôt ;
+   204→* Préparateur de commandes ;
+   205→* Responsable logistique ;
+   206→* Service client ;
+   207→* Responsable marketing ;
+   208→* Comptabilité.
+   209→
+   210→Mettre en place une gestion stricte des rôles et permissions.
+   211→
+   212→Chaque utilisateur interne ne doit voir que les modules nécessaires à sa fonction.
+   213→
+   214→Enregistrer dans un journal d’audit toutes les actions sensibles :
+   215→
+   216→* Modification d’un prix ;
+   217→* Modification d’un stock ;
+   218→* Annulation d’une commande ;
+   219→* Remboursement ;
+   220→* Suppression d’un produit ;
+   221→* Modification d’une recette ;
+   222→* Changement de permission ;
+   223→* Modification d’un lot.
+   224→
+   225→# 7. CATÉGORIES DE PRODUITS
+   226→
+   227→Le catalogue doit gérer tous les produits alimentaires africains entrant dans la cuisine.
+   228→
+   229→## Manioc et produits dérivés
+   230→
+   231→* Placali frais ;
+   232→* Placali surgelé ;
+   233→* Attiéké ;
+   234→* Attiéké déshydraté ;
+   235→* Gari blanc ;
+   236→* Gari jaune ;
+   237→* Tapioca ;
+   238→* Farine de manioc ;
+   239→* Amidon de manioc ;
+   240→* Fufu de manioc ;
+   241→* Chikwangue ;
+   242→* Bâton de manioc ;
+   243→* Pâte de manioc fermentée.
+   244→
+   245→## Farines et céréales
+   246→
+   247→* Farine de mil ;
+   248→* Mil en grains ;
+   249→* Couscous de mil ;
+   250→* Farine de maïs ;
+   251→* Semoule de maïs ;
+   252→* Farine de sorgho ;
+   253→* Farine de riz ;
+   254→* Farine de plantain ;
+   255→* Farine de patate douce ;
+   256→* Farine de niébé ;
+   257→* Fonio ;
+   258→* Préparation pour tô ;
+   259→* Préparation pour kabato ;
+   260→* Préparation pour dégué ;
+   261→* Préparations pour bouillies.
+   262→
+   263→## Viandes et produits traditionnels
+   264→
+   265→* Kplô frais ;
+   266→* Kplô fumé ;
+   267→* Kplô surgelé ;
+   268→* Tripes ;
+   269→* Pieds de bœuf ;
+   270→* Queue de bœuf ;
+   271→* Viande de bœuf ;
+   272→* Mouton ;
+   273→* Chèvre ;
+   274→* Poulet ;
+   275→* Poulet fumé ;
+   276→* Gésiers ;
+   277→* Pattes de poulet.
+   278→
+   279→## Poissons et produits de mer
+   280→
+   281→* Poissons frais ;
+   282→* Poissons surgelés ;
+   283→* Poissons fumés ;
+   284→* Poissons séchés ;
+   285→* Poissons salés ;
+   286→* Maquereau ;
+   287→* Tilapia ;
+   288→* Carpe ;
+   289→* Capitaine ;
+   290→* Thon ;
+   291→* Hareng ;
+   292→* Morue ;
+   293→* Crevettes séchées ;
+   294→* Crevettes fumées ;
+   295→* Crabes ;
+   296→* Poudre de poisson.
+   297→
+   298→## Légumes et feuilles
+   299→
+   300→* Gombo frais ;
+   301→* Gombo séché ;
+   302→* Gombo surgelé ;
+   303→* Aubergines africaines ;
+   304→* Piment ;
+   305→* Feuilles de manioc ;
+   306→* Feuilles de patate ;
+   307→* Feuilles de taro ;
+   308→* Feuilles de bissap ;
+   309→* Kplala ;
+   310→* Épinards africains ;
+   311→* Manioc ;
+   312→* Igname ;
+   313→* Taro ;
+   314→* Patate douce ;
+   315→* Banane plantain ;
+   316→* Gingembre.
+   317→
+   318→## Sauces, épices et condiments
+   319→
+   320→* Graine de palme ;
+   321→* Sauce graine prête à l’emploi ;
+   322→* Pâte d’arachide ;
+   323→* Arachides ;
+   324→* Djoumblé ;
+   325→* Soumbala ;
+   326→* Adjovan ;
+   327→* Akpi ;
+   328→* Djansang ;
+   329→* Égousi ;
+   330→* Concentré de tomate ;
+   331→* Piment en poudre ;
+   332→* Piment en pâte ;
+   333→* Huile rouge ;
+   334→* Huile de palme ;
+   335→* Huile d’arachide ;
+   336→* Bouillons ;
+   337→* Cubes d’assaisonnement ;
+   338→* Marinades ;
+   339→* Mélanges d’épices africaines.
+   340→
+   341→## Légumineuses et graines
+   342→
+   343→* Niébé ;
+   344→* Haricots rouges ;
+   345→* Haricots blancs ;
+   346→* Haricots noirs ;
+   347→* Pois de terre ;
+   348→* Arachides ;
+   349→* Graines de courge ;
+   350→* Graines de sésame ;
+   351→* Noix de cajou.
+   352→
+   353→## Boissons et desserts
+   354→
+   355→* Bissap ;
+   356→* Gingembre ;
+   357→* Tamarin ;
+   358→* Bouye ;
+   359→* Poudre de baobab ;
+   360→* Dégué ;
+   361→* Thiakry ;
+   362→* Lait en poudre ;
+   363→* Lait concentré ;
+   364→* Noix de coco ;
+   365→* Préparations pour bouillie.
+   366→
+   367→# 8. FICHES PRODUITS
+   368→
+   369→Chaque produit doit contenir :
+   370→
+   371→* Nom traditionnel ;
+   372→* Nom français ;
+   373→* Nom anglais ;
+   374→* Synonymes ;
+   375→* Variantes orthographiques ;
+   376→* Description française ;
+   377→* Description anglaise ;
+   378→* Catégorie ;
+   379→* Sous-catégorie ;
+   380→* Pays d’origine ;
+   381→* Marque ;
+   382→* Fournisseur interne ;
+   383→* Photos ;
+   384→* Code-barres ;
+   385→* SKU ;
+   386→* Poids net ;
+   387→* Volume ;
+   388→* Unité de vente ;
+   389→* Conditionnement ;
+   390→* Prix ;
+   391→* Prix au kilogramme ou au litre ;
+   392→* Prix promotionnel ;
+   393→* Ingrédients ;
+   394→* Allergènes ;
+   395→* Valeurs nutritionnelles ;
+   396→* Conseils de préparation ;
+   397→* Conditions de conservation ;
+   398→* Classe thermique ;
+   399→* Température de stockage ;
+   400→* Quantité disponible ;
+   401→* Seuil d’alerte ;
+   402→* Produits alternatifs ;
+   403→* Recettes associées ;
+   404→* Disponibilité par pays ;
+   405→* Statut publié ou brouillon.
+   406→
+   407→Classes thermiques :
+   408→
+   409→* Ambiant ;
+   410→* Réfrigéré ;
+   411→* Surgelé.
+   412→
+   413→Types de conservation :
+   414→
+   415→* Sec ;
+   416→* Frais ;
+   417→* Réfrigéré ;
+   418→* Surgelé ;
+   419→* Fumé ;
+   420→* Séché ;
+   421→* En conserve.
+   422→
+   423→# 9. MOTEUR DE RECHERCHE
+   424→
+   425→Créer un moteur de recherche rapide, intelligent et bilingue.
+   426→
+   427→Il doit reconnaître :
+   428→
+   429→* Les noms traditionnels ;
+   430→* Les noms français ;
+   431→* Les noms anglais ;
+   432→* Les accents ;
+   433→* Les fautes d’orthographe ;
+   434→* Les variantes régionales ;
+   435→* Les marques ;
+   436→* Les pays ;
+   437→* Les plats ;
+   438→* Les ingrédients.
+   439→
+   440→Exemples :
+   441→
+   442→* Kplô, Kplo, peau de bœuf, beef skin ;
+   443→* Placali, pâte de manioc fermentée, fermented cassava dough ;
+   444→* Djoumblé, poudre de gombo, dried okra powder ;
+   445→* Bouye, poudre de baobab, baobab powder ;
+   446→* Soumbala, netétou ;
+   447→* Fufu, foufou, foutou ;
+   448→* Farine de mil, millet flour.
+   449→
+   450→Ajouter :
+   451→
+   452→* Suggestions automatiques ;
+   453→* Correction des fautes ;
+   454→* Historique récent ;
+   455→* Recherches populaires ;
+   456→* Filtres ;
+   457→* Tri par prix, popularité, nouveautés et disponibilité.
+   458→
+   459→# 10. INTERFACE CLIENT
+   460→
+   461→## En-tête desktop
+   462→
+   463→* Logo ;
+   464→* Choix du pays ;
+   465→* Code postal ;
+   466→* Sélecteur FR/EN ;
+   467→* Barre de recherche ;
+   468→* Catégories ;
+   469→* Recettes ;
+   470→* Suivi de commande ;
+   471→* Compte ;
+   472→* Panier.
+   473→
+   474→## Navigation mobile
+   475→
+   476→Créer une barre inférieure fixe avec :
+   477→
+   478→* Accueil ;
+   479→* Catégories ;
+   480→* Recettes ;
+   481→* Panier ;
+   482→* Compte.
+   483→
+   484→## Page d’accueil
+   485→
+   486→Afficher :
+   487→
+   488→* Une bannière forte et élégante ;
+   489→* Une recherche intelligente ;
+   490→* Les catégories ;
+   491→* Les meilleures ventes ;
+   492→* Les nouveautés ;
+   493→* Les promotions ;
+   494→* Les produits par pays ;
+   495→* Les produits frais ;
+   496→* Les produits surgelés ;
+   497→* Les recettes populaires ;
+   498→* Les paniers prêts à cuisiner ;
+   499→* Les produits récemment consultés ;
+   500→* Les recommandations personnalisées ;
+   501→* Les engagements de l’entreprise ;
+   502→* Les informations de livraison.
+   503→
+   504→## Pages publiques
+   505→
+   506→Créer :
+   507→
+   508→* Accueil ;
+   509→* Catalogue ;
+   510→* Catégories ;
+   511→* Résultats de recherche ;
+   512→* Fiches produits ;
+   513→* Liste des recettes ;
+   514→* Fiche recette ;
+   515→* Configurateur de recette ;
+   516→* Favoris ;
+   517→* Panier ;
+   518→* Paiement ;
+   519→* Confirmation ;
+   520→* Suivi de commande ;
+   521→* Connexion ;
+   522→* Inscription ;
+   523→* Mot de passe oublié ;
+   524→* Compte client ;
+   525→* Centre d’aide ;
+   526→* Contact ;
+   527→* À propos ;
+   528→* Conditions générales ;
+   529→* Politique de confidentialité ;
+   530→* Politique de cookies ;
+   531→* Politique de livraison et de remboursement.
+   532→
+   533→# 11. MOTEUR DE RECETTES INTELLIGENTES
+   534→
+   535→Le moteur de recettes est le cœur stratégique de la plateforme.
+   536→
+   537→## Catégories de recettes
+   538→
+   539→* Sauces ;
+   540→* Plats complets ;
+   541→* Accompagnements ;
+   542→* Grillades ;
+   543→* Boissons ;
+   544→* Desserts ;
+   545→* Bouillies ;
+   546→* Menus par pays ;
+   547→* Menus familiaux ;
+   548→* Menus pour événements.
+   549→
+   550→## Exemples de recettes
+   551→
+   552→* Sauce graine ;
+   553→* Sauce gombo ;
+   554→* Sauce claire ;
+   555→* Sauce arachide ;
+   556→* Sauce feuille ;
+   557→* Sauce kplala ;
+   558→* Sauce djoumblé ;
+   559→* Sauce pistache ;
+   560→* Sauce égousi ;
+   561→* Placali sauce graine ;
+   562→* Placali sauce gombo ;
+   563→* Foutou sauce graine ;
+   564→* Foutou sauce claire ;
+   565→* Attiéké-poisson ;
+   566→* Garba ;
+   567→* Alloco-poulet ;
+   568→* Kedjenou ;
+   569→* Mafé ;
+   570→* Thiéboudienne ;
+   571→* Tô sauce gombo ;
+   572→* Kabato ;
+   573→* Ndolé ;
+   574→* Dégué ;
+   575→* Bouillie de mil.
+   576→
+   577→## Parcours du configurateur
+   578→
+   579→Le client choisit une recette ou écrit une demande en langage naturel.
+   580→
+   581→Exemples :
+   582→
+   583→« Je veux préparer du placali sauce graine pour 8 personnes. »
+   584→
+   585→« I want to prepare placali with palm nut sauce for 8 people. »
+   586→
+   587→La plateforme doit comprendre les deux demandes et proposer le même parcours.
+   588→
+   589→Demander ensuite :
+   590→
+   591→* Nombre de personnes ;
+   592→* Nombre d’adultes ;
+   593→* Nombre d’enfants ;
+   594→* Portion normale ou généreuse ;
+   595→* Type de viande ;
+   596→* Type de poisson ;
+   597→* Ajout ou non de kplô ;
+   598→* Niveau de piment ;
+   599→* Allergies ;
+   600→* Restrictions alimentaires ;
+   601→* Budget maximum ;
+   602→* Ingrédients déjà disponibles à la maison.
+   603→
+   604→## Calcul
+   605→
+   606→Pour chaque ingrédient :
+   607→
+   608→Quantité nécessaire = quantité de référence × nombre de personnes demandé ÷ nombre de portions de référence.
+   609→
+   610→Le système doit ensuite :
+   611→
+   612→* Convertir les unités ;
+   613→* Gérer grammes, kilogrammes, millilitres, litres et unités ;
+   614→* Identifier les variantes de produits disponibles ;
+   615→* Vérifier le stock ;
+   616→* Calculer le meilleur conditionnement ;
+   617→* Arrondir le nombre de paquets ;
+   618→* Limiter le gaspillage ;
+   619→* Calculer les restes ;
+   620→* Proposer les alternatives ;
+   621→* Consolider les ingrédients identiques de plusieurs recettes ;
+   622→* Retirer les ingrédients déjà possédés ;
+   623→* Calculer le coût réel d’achat ;
+   624→* Calculer le coût par personne.
+   625→
+   626→Afficher distinctement :
+   627→
+   628→* Quantité nécessaire ;
+   629→* Quantité réellement achetée ;
+   630→* Nombre de paquets ;
+   631→* Quantité restante après préparation ;
+   632→* Prix du produit ;
+   633→* Coût total ;
+   634→* Coût par personne.
+   635→
+   636→Exemple :
+   637→
+   638→* Quantité nécessaire : 600 g ;
+   639→* Format disponible : 400 g ;
+   640→* Quantité proposée : 2 boîtes ;
+   641→* Quantité achetée : 800 g ;
+   642→* Reste estimé : 200 g.
+   643→
+   644→## Panier modifiable
+   645→
+   646→Le client doit pouvoir :
+   647→
+   648→* Augmenter une quantité ;
+   649→* Réduire une quantité ;
+   650→* Supprimer un ingrédient ;
+   651→* Ajouter un ingrédient ;
+   652→* Changer de marque ;
+   653→* Changer de conditionnement ;
+   654→* Choisir une alternative moins chère ;
+   655→* Remplacer une viande par un poisson ;
+   656→* Ajouter ou supprimer le kplô ;
+   657→* Modifier le niveau de piment ;
+   658→* Indiquer qu’il possède déjà un produit ;
+   659→* Changer le nombre de personnes ;
+   660→* Revenir au panier initial ;
+   661→* Sauvegarder la recette ;
+   662→* Partager la recette.
+   663→
+   664→Chaque modification doit recalculer immédiatement :
+   665→
+   666→* Les quantités ;
+   667→* Le coût total ;
+   668→* Le coût par personne ;
+   669→* Les restes ;
+   670→* Le poids du panier ;
+   671→* Les frais de livraison ;
+   672→* La disponibilité.
+   673→
+   674→Conserver une indication permettant de savoir quelles lignes du panier proviennent d’une recette.
+   675→
+   676→Lorsqu’un client modifie manuellement un produit puis change le nombre de personnes, lui proposer :
+   677→
+   678→* Recalculer entièrement ;
+   679→* Recalculer en conservant ses choix manuels.
+   680→
+   681→## Formules budgétaires
+   682→
+   683→Pour les recettes compatibles, proposer :
+   684→
+   685→* Économique ;
+   686→* Standard ;
+   687→* Premium.
+   688→
+   689→Chaque formule peut varier selon :
+   690→
+   691→* La marque ;
+   692→* Le type de protéine ;
+   693→* Le conditionnement ;
+   694→* La quantité de viande ou de poisson ;
+   695→* Les ingrédients facultatifs.
+   696→
+   697→## Produits indisponibles
+   698→
+   699→Si un produit est indisponible :
+   700→
+   701→* Ne jamais l’ajouter silencieusement ;
+   702→* Afficher clairement l’indisponibilité ;
+   703→* Proposer une autre marque ;
+   704→* Proposer un autre format ;
+   705→* Proposer un ingrédient équivalent ;
+   706→* Proposer une autre protéine ;
+   707→* Proposer une recette alternative ;
+   708→* Permettre une alerte de retour en stock.
+   709→
+   710→# 12. ADMINISTRATION DES RECETTES
+   711→
+   712→Créer un éditeur avancé permettant de :
+   713→
+   714→* Créer une recette ;
+   715→* Ajouter le titre français ;
+   716→* Ajouter le titre anglais ;
+   717→* Ajouter les descriptions ;
+   718→* Ajouter les photos et vidéos ;
+   719→* Définir le pays d’origine ;
+   720→* Définir les catégories ;
+   721→* Ajouter les étapes de préparation ;
+   722→* Définir le temps ;
+   723→* Définir la difficulté ;
+   724→* Définir les portions de référence ;
+   725→* Ajouter les ingrédients obligatoires ;
+   726→* Ajouter les ingrédients facultatifs ;
+   727→* Définir les quantités ;
+   728→* Définir les unités ;
+   729→* Définir les pertes ou rendements ;
+   730→* Associer chaque ingrédient aux produits du catalogue ;
+   731→* Définir plusieurs produits compatibles ;
+   732→* Définir les alternatives ;
+   733→* Définir les choix de viandes ou poissons ;
+   734→* Définir les niveaux de piment ;
+   735→* Créer les formules économique, standard et premium ;
+   736→* Prévisualiser le panier ;
+   737→* Prévisualiser le coût ;
+   738→* Publier, planifier ou désactiver ;
+   739→* Consulter les ventes générées.
+   740→
+   741→# 13. PANIER
+   742→
+   743→Le panier doit accepter :
+   744→
+   745→* Produits ajoutés manuellement ;
+   746→* Produits ajoutés depuis une recette ;
+   747→* Produits provenant de plusieurs recettes ;
+   748→* Produits secs ;
+   749→* Produits frais ;
+   750→* Produits surgelés ;
+   751→* Produits vendus à l’unité ;
+   752→* Produits vendus au poids ;
+   753→* Coupons ;
+   754→* Cartes cadeaux ;
+   755→* Avoirs ;
+   756→* Points de fidélité.
+   757→
+   758→Regrouper visuellement les produits provenant d’une même recette.
+   759→
+   760→Calculer :
+   761→
+   762→* Sous-total ;
+   763→* Promotions ;
+   764→* TVA ;
+   765→* Poids ;
+   766→* Volume ;
+   767→* Nombre de colis ;
+   768→* Frais de livraison ;
+   769→* Total général ;
+   770→* Coût par personne pour les recettes.
+   771→
+   772→# 14. PAIEMENT
+   773→
+   774→Prévoir :
+   775→
+   776→* Carte bancaire ;
+   777→* Apple Pay ;
+   778→* Google Pay ;
+   779→* PayPal si compatible avec le prestataire choisi ;
+   780→* Carte cadeau ;
+   781→* Avoir client ;
+   782→* Code promotionnel.
+   783→
+   784→Mettre en place :
+   785→
+   786→* Authentification forte ;
+   787→* Vérification serveur ;
+   788→* Webhooks vérifiés ;
+   789→* Clés d’idempotence ;
+   790→* Protection contre le double paiement ;
+   791→* Détection des commandes anormales ;
+   792→* Mise en attente des commandes à risque ;
+   793→* Remboursements partiels ;
+   794→* Remboursements complets ;
+   795→* Journal des transactions.
+   796→
+   797→Ne jamais considérer un paiement comme réussi sur la seule base d’une réponse provenant du navigateur.
+   798→
+   799→Ne jamais stocker directement les numéros de carte bancaire.
+   800→
+   801→# 15. COMPTE CLIENT
+   802→
+   803→Le client peut :
+   804→
+   805→* Créer un compte ;
+   806→* Commander sans compte si cette option est activée ;
+   807→* Se connecter ;
+   808→* Réinitialiser son mot de passe ;
+   809→* Choisir sa langue ;
+   810→* Enregistrer plusieurs adresses ;
+   811→* Consulter ses commandes ;
+   812→* Suivre ses colis ;
+   813→* Télécharger ses factures ;
+   814→* Recommander en un clic ;
+   815→* Enregistrer ses favoris ;
+   816→* Enregistrer ses recettes favorites ;
+   817→* Créer des listes de courses ;
+   818→* Consulter ses points ;
+   819→* Gérer ses avoirs ;
+   820→* Utiliser ses cartes cadeaux ;
+   821→* Gérer ses notifications ;
+   822→* Ouvrir une réclamation ;
+   823→* Ajouter des photos ;
+   824→* Demander un remboursement ;
+   825→* Contacter le service client.
+   826→
+   827→# 16. COMMANDES
+   828→
+   829→Prévoir une véritable machine d’états.
+   830→
+   831→Statuts :
+   832→
+   833→* Panier créé ;
+   834→* Paiement en attente ;
+   835→* Paiement confirmé ;
+   836→* Vérification antifraude ;
+   837→* Commande validée ;
+   838→* Stock réservé ;
+   839→* Préparation en cours ;
+   840→* Remplacement demandé ;
+   841→* En attente de réponse client ;
+   842→* Contrôle terminé ;
+   843→* Emballée ;
+   844→* Expédiée ;
+   845→* En transit ;
+   846→* En cours de livraison ;
+   847→* Livrée ;
+   848→* Livraison échouée ;
+   849→* Partiellement remboursée ;
+   850→* Remboursée ;
+   851→* Annulée.
+   852→
+   853→Le stock doit être réservé pendant le paiement puis :
+   854→
+   855→* Confirmé après paiement réussi ;
+   856→* Libéré après échec ;
+   857→* Libéré après expiration du délai ;
+   858→* Réintégré correctement après annulation ou retour validé.
+   859→
+   860→# 17. STOCKS ET ENTREPÔTS
+   861→
+   862→Créer un système de gestion de stock avancé.
+   863→
+   864→Gérer :
+   865→
+   866→* Plusieurs entrepôts ;
+   867→* Plusieurs zones ;
+   868→* Stock ambiant ;
+   869→* Stock réfrigéré ;
+   870→* Stock surgelé ;
+   871→* Emplacements ;
+   872→* Rayons ;
+   873→* Étagères ;
+   874→* Codes-barres ;
+   875→* Numéros de lot ;
+   876→* Dates limites ;
+   877→* Quantités disponibles ;
+   878→* Quantités réservées ;
+   879→* Quantités bloquées ;
+   880→* Mouvements de stock ;
+   881→* Inventaires ;
+   882→* Transferts ;
+   883→* Pertes ;
+   884→* Produits endommagés ;
+   885→* Retraits ;
+   886→* Rappels ;
+   887→* Alertes de rupture ;
+   888→* Alertes de péremption.
+   889→
+   890→Appliquer la logique FEFO : les lots expirant le plus tôt doivent être utilisés en priorité.
+   891→
+   892→Toute modification manuelle du stock doit exiger :
+   893→
+   894→* Un motif ;
+   895→* L’identité de l’utilisateur ;
+   896→* La date ;
+   897→* La quantité avant ;
+   898→* La quantité après.
+   899→
+   900→# 18. APPROVISIONNEMENTS
+   901→
+   902→Créer un module interne permettant de gérer :
+   903→
+   904→* Fournisseurs ;
+   905→* Produits fournisseurs ;
+   906→* Commandes d’achat ;
+   907→* Prix d’achat ;
+   908→* Devise d’achat ;
+   909→* Quantités ;
+   910→* Transport ;
+   911→* Assurance ;
+   912→* Douane ;
+   913→* Taxes ;
+   914→* Date de départ ;
+   915→* Date d’arrivée prévue ;
+   916→* Réception ;
+   917→* Contrôle qualité ;
+   918→* Écarts ;
+   919→* Produits refusés ;
+   920→* Produits endommagés ;
+   921→* Coût de revient ;
+   922→* Marge réelle.
+   923→
+   924→Ne pas créer de portail fournisseur public pour le lancement.
+   925→
+   926→# 19. PRÉPARATION DES COMMANDES
+   927→
+   928→Créer une interface d’entrepôt optimisée pour mobile et terminaux de scan.
+   929→
+   930→Elle doit permettre :
+   931→
+   932→* D’afficher les commandes à préparer ;
+   933→* D’attribuer une commande ;
+   934→* De guider le préparateur ;
+   935→* De localiser les produits ;
+   936→* De scanner le code-barres ;
+   937→* De vérifier le lot ;
+   938→* De confirmer la quantité ;
+   939→* De signaler un manque ;
+   940→* De proposer un remplacement ;
+   941→* De séparer sec, frais et surgelé ;
+   942→* De contrôler la commande ;
+   943→* De peser le colis ;
+   944→* D’imprimer le bon ;
+   945→* De générer l’étiquette ;
+   946→* De clôturer la préparation.
+   947→
+   948→# 20. LOGISTIQUE
+   949→
+   950→L’entreprise gère la logistique de ses produits.
+   951→
+   952→Créer un module gérant :
+   953→
+   954→* Pays ;
+   955→* Régions ;
+   956→* Codes postaux ;
+   957→* Zones desservies ;
+   958→* Zones indisponibles ;
+   959→* Tarifs par poids ;
+   960→* Tarifs par volume ;
+   961→* Tarifs par classe thermique ;
+   962→* Livraison standard ;
+   963→* Livraison express ;
+   964→* Point relais ;
+   965→* Livraison par flotte interne ;
+   966→* Transporteurs externes ;
+   967→* Créneaux ;
+   968→* Plusieurs colis par commande ;
+   969→* Étiquettes ;
+   970→* Numéros de suivi ;
+   971→* Tournées ;
+   972→* Preuve de livraison ;
+   973→* Signature ;
+   974→* Photo ;
+   975→* Code de confirmation ;
+   976→* Échec de livraison ;
+   977→* Colis perdu ;
+   978→* Retour ;
+   979→* Coût réel ;
+   980→* Performance du transporteur.
+   981→
+   982→Une commande peut générer :
+   983→
+   984→* Un colis ambiant ;
+   985→* Un colis réfrigéré ;
+   986→* Un colis surgelé.
+   987→
+   988→Le système doit sélectionner la solution de transport la plus adaptée selon :
+   989→
+   990→* Pays ;
+   991→* Code postal ;
+   992→* Poids ;
+   993→* Volume ;
+   994→* Température ;
+   995→* Prix ;
+   996→* Délai ;
+   997→* Disponibilité du transporteur.
+   998→
+   999→# 21. NOTIFICATIONS
+  1000→
+  1001→Prévoir :
+  1002→
+  1003→* E-mail ;
+  1004→* SMS ;
+  1005→* Notifications web ;
+  1006→* WhatsApp si une intégration officielle est configurée.
+  1007→
+  1008→Notifications importantes :
+  1009→
+  1010→* Création de compte ;
+  1011→* Confirmation de commande ;
+  1012→* Confirmation de paiement ;
+  1013→* Début de préparation ;
+  1014→* Demande de remplacement ;
+  1015→* Expédition ;
+  1016→* Livraison imminente ;
+  1017→* Livraison effectuée ;
+  1018→* Échec de livraison ;
+  1019→* Remboursement ;
+  1020→* Retour en stock ;
+  1021→* Panier abandonné.
+  1022→
+  1023→Toutes les notifications doivent exister en français et en anglais.
+  1024→
+  1025→# 22. ADMINISTRATION CENTRALE
+  1026→
+  1027→Créer un tableau de bord très avancé avec une sidebar rétractable.
+  1028→
+  1029→La page principale doit afficher :
+  1030→
+  1031→* Chiffre d’affaires du jour ;
+  1032→* Chiffre d’affaires du mois ;
+  1033→* Nombre de commandes ;
+  1034→* Panier moyen ;
+  1035→* Marge ;
+  1036→* Coût logistique ;
+  1037→* Commandes à préparer ;
+  1038→* Commandes en retard ;
+  1039→* Commandes à risque ;
+  1040→* Produits en rupture ;
+  1041→* Produits bientôt périmés ;
+  1042→* Produits les plus vendus ;
+  1043→* Recettes les plus consultées ;
+  1044→* Recettes générant le plus de ventes ;
+  1045→* Taux de conversion ;
+  1046→* Pays les plus performants ;
+  1047→* Réclamations ;
+  1048→* Remboursements ;
+  1049→* Performance des transporteurs.
+  1050→
+  1051→Modules administratifs :
+  1052→
+  1053→* Tableau de bord ;
+  1054→* Produits ;
+  1055→* Catégories ;
+  1056→* Marques ;
+  1057→* Recettes ;
+  1058→* Ingrédients ;
+  1059→* Fournisseurs ;
+  1060→* Achats ;
+  1061→* Stocks ;
+  1062→* Entrepôts ;
+  1063→* Commandes ;
+  1064→* Préparations ;
+  1065→* Livraisons ;
+  1066→* Clients ;
+  1067→* Paiements ;
+  1068→* Remboursements ;
+  1069→* Réclamations ;
+  1070→* Promotions ;
+  1071→* Fidélité ;
+  1072→* Cartes cadeaux ;
+  1073→* Contenus ;
+  1074→* Traductions ;
+  1075→* Statistiques ;
+  1076→* Utilisateurs ;
+  1077→* Permissions ;
+  1078→* Journal d’audit ;
+  1079→* Paramètres.
+  1080→
+  1081→# 23. MARKETING
+  1082→
+  1083→Créer :
+  1084→
+  1085→* Codes promotionnels ;
+  1086→* Promotions programmées ;
+  1087→* Promotions par catégorie ;
+  1088→* Promotions par produit ;
+  1089→* Promotions par pays ;
+  1090→* Offres de bienvenue ;
+  1091→* Livraison gratuite ;
+  1092→* Parrainage ;
+  1093→* Fidélité ;
+  1094→* Cartes cadeaux ;
+  1095→* Box culinaires ;
+  1096→* Relance de panier abandonné ;
+  1097→* Campagnes e-mail ;
+  1098→* Campagnes SMS ;
+  1099→* Alertes de retour en stock ;
+  1100→* Promotions sur les produits proches de leur date limite.
+  1101→
+  1102→# 24. SERVICE CLIENT
+  1103→
+  1104→Créer un module de tickets permettant de :
+  1105→
+  1106→* Rechercher un client ;
+  1107→* Voir ses commandes ;
+  1108→* Voir ses paiements ;
+  1109→* Voir ses livraisons ;
+  1110→* Recevoir des photos ;
+  1111→* Gérer un produit manquant ;
+  1112→* Gérer un produit abîmé ;
+  1113→* Gérer une erreur de commande ;
+  1114→* Proposer un remboursement ;
+  1115→* Proposer un avoir ;
+  1116→* Enregistrer les échanges ;
+  1117→* Affecter le ticket ;
+  1118→* Définir une priorité ;
+  1119→* Suivre les délais de réponse.
+  1120→
+  1121→# 25. ARCHITECTURE TECHNIQUE
+  1122→
+  1123→Utiliser une architecture moderne, maintenable et documentée.
+  1124→
+  1125→Architecture recommandée :
+  1126→
+  1127→* Frontend : Next.js avec TypeScript ;
+  1128→* Interface : Tailwind CSS et composants accessibles ;
+  1129→* Backend : API modulaire robuste ;
+  1130→* Base de données : PostgreSQL ;
+  1131→* ORM avec migrations versionnées ;
+  1132→* Cache et sessions : Redis ou équivalent ;
+  1133→* Tâches asynchrones : file de traitement ;
+  1134→* Stockage : service objet compatible S3 ;
+  1135→* Recherche : moteur prenant en charge synonymes et tolérance aux fautes ;
+  1136→* Paiement : prestataire certifié européen ;
+  1137→* Notifications : adaptateurs e-mail, SMS et WhatsApp ;
+  1138→* Transporteurs : architecture par connecteurs ;
+  1139→* Déploiement : infrastructure sécurisée et évolutive.
+  1140→
+  1141→Utiliser les versions stables et maintenues au moment de l’implémentation.
+  1142→
+  1143→Organiser le code par domaines :
+  1144→
+  1145→* Authentification ;
+  1146→* Catalogue ;
+  1147→* Recettes ;
+  1148→* Panier ;
+  1149→* Paiement ;
+  1150→* Commandes ;
+  1151→* Stock ;
+  1152→* Achats ;
+  1153→* Entrepôt ;
+  1154→* Logistique ;
+  1155→* Clients ;
+  1156→* Marketing ;
+  1157→* Notifications ;
+  1158→* Administration.
+  1159→
+  1160→Préférer une architecture modulaire claire à une accumulation de fichiers difficile à maintenir.
+  1161→
+  1162→# 26. MODÈLE DE DONNÉES
+  1163→
+  1164→Créer au minimum les entités suivantes :
+  1165→
+  1166→* User ;
+  1167→* Role ;
+  1168→* Permission ;
+  1169→* Customer ;
+  1170→* Address ;
+  1171→* Product ;
+  1172→* ProductVariant ;
+  1173→* ProductTranslation ;
+  1174→* ProductAlias ;
+  1175→* Category ;
+  1176→* Brand ;
+  1177→* Supplier ;
+  1178→* Recipe ;
+  1179→* RecipeTranslation ;
+  1180→* Ingredient ;
+  1181→* RecipeIngredient ;
+  1182→* IngredientAlternative ;
+  1183→* Warehouse ;
+  1184→* WarehouseLocation ;
+  1185→* InventoryBatch ;
+  1186→* InventoryReservation ;
+  1187→* StockMovement ;
+  1188→* PurchaseOrder ;
+  1189→* PurchaseOrderItem ;
+  1190→* Cart ;
+  1191→* CartItem ;
+  1192→* RecipeCartGroup ;
+  1193→* Order ;
+  1194→* OrderItem ;
+  1195→* Payment ;
+  1196→* Refund ;
+  1197→* Shipment ;
+  1198→* ShipmentItem ;
+  1199→* Carrier ;
+  1200→* DeliveryZone ;
+  1201→* Promotion ;
+  1202→* Coupon ;
+  1203→* GiftCard ;
+  1204→* LoyaltyTransaction ;
+  1205→* SupportTicket ;
+  1206→* Notification ;
+  1207→* AuditLog.
+  1208→
+  1209→Prévoir des identifiants uniques, des dates de création et modification, ainsi que la suppression logique lorsque nécessaire.
+  1210→
+  1211→# 27. SÉCURITÉ
+  1212→
+  1213→Mettre en place :
+  1214→
+  1215→* Authentification sécurisée ;
+  1216→* Double authentification pour l’administration ;
+  1217→* Permissions strictes ;
+  1218→* Sessions sécurisées ;
+  1219→* Protection CSRF ;
+  1220→* Protection XSS ;
+  1221→* Validation des entrées ;
+  1222→* Limitation des requêtes ;
+  1223→* Protection des fichiers ;
+  1224→* Chiffrement des communications ;
+  1225→* Sauvegardes automatiques ;
+  1226→* Procédure de restauration ;
+  1227→* Rotation des secrets ;
+  1228→* Journalisation ;
+  1229→* Surveillance des erreurs ;
+  1230→* Alertes de sécurité.
+  1231→
+  1232→Ne jamais exposer :
+  1233→
+  1234→* Les secrets ;
+  1235→* Les clés privées ;
+  1236→* Les données bancaires ;
+  1237→* Les prix d’achat aux clients ;
+  1238→* Les informations internes des fournisseurs ;
+  1239→* Les données d’autres utilisateurs.
+  1240→
+  1241→# 28. CONFORMITÉ
+  1242→
+  1243→Prévoir une architecture compatible avec :
+  1244→
+  1245→* RGPD ;
+  1246→* Gestion du consentement ;
+  1247→* Export des données ;
+  1248→* Suppression des données ;
+  1249→* Durées de conservation ;
+  1250→* Informations alimentaires avant achat ;
+  1251→* Allergènes ;
+  1252→* Traçabilité des lots ;
+  1253→* Retraits et rappels ;
+  1254→* TVA selon le pays ;
+  1255→* OSS pour les ventes européennes ;
+  1256→* Règles relatives aux emballages ;
+  1257→* Chaîne du froid ;
+  1258→* Conditions générales ;
+  1259→* Politique de retour ;
+  1260→* Médiation de la consommation.
+  1261→
+  1262→Faire valider juridiquement les textes et les règles avant la mise en production commerciale.
+  1263→
+  1264→# 29. PERFORMANCE ET QUALITÉ
+  1265→
+  1266→La plateforme doit être :
+  1267→
+  1268→* Rapide ;
+  1269→* Responsive ;
+  1270→* Accessible ;
+  1271→* Optimisée pour les moteurs de recherche ;
+  1272→* Optimisée pour les images ;
+  1273→* Compatible avec les navigateurs modernes ;
+  1274→* Résistante aux connexions lentes ;
+  1275→* Adaptée aux petits écrans ;
+  1276→* Facile à maintenir.
+  1277→
+  1278→Mettre en place :
+  1279→
+  1280→* Chargement progressif ;
+  1281→* Mise en cache ;
+  1282→* Images responsives ;
+  1283→* États de chargement ;
+  1284→* États vides utiles ;
+  1285→* Messages d’erreur compréhensibles ;
+  1286→* Réessais contrôlés ;
+  1287→* Pagination ;
+  1288→* Recherche performante ;
+  1289→* Surveillance des performances.
+  1290→
+  1291→# 30. SEO
+  1292→
+  1293→Créer :
+  1294→
+  1295→* Métadonnées françaises et anglaises ;
+  1296→* URLs lisibles ;
+  1297→* Balises canoniques ;
+  1298→* Hreflang ;
+  1299→* Sitemap ;
+  1300→* Robots.txt ;
+  1301→* Données structurées Product ;
+  1302→* Données structurées Recipe ;
+  1303→* Données structurées Breadcrumb ;
+  1304→* Pages catégories optimisées ;
+  1305→* Pages recettes indexables ;
+  1306→* Pages produits partageables.
+  1307→
+  1308→# 31. TESTS
+  1309→
+  1310→Créer des tests pour :
+  1311→
+  1312→* Authentification ;
+  1313→* Permissions ;
+  1314→* Recherche bilingue ;
+  1315→* Calcul des recettes ;
+  1316→* Conversion des unités ;
+  1317→* Arrondi des conditionnements ;
+  1318→* Modification du panier ;
+  1319→* Réservation de stock ;
+  1320→* Paiement ;
+  1321→* Webhooks ;
+  1322→* Remboursements ;
+  1323→* Commandes ;
+  1324→* Lots ;
+  1325→* FEFO ;
+  1326→* Séparation des températures ;
+  1327→* Calcul de livraison ;
+  1328→* Traductions ;
+  1329→* Parcours client complet.
+  1330→
+  1331→Ajouter des tests end-to-end pour :
+  1332→
+  1333→1. Recherche d’un produit ;
+  1334→2. Ajout au panier ;
+  1335→3. Configuration d’une recette ;
+  1336→4. Modification du nombre de personnes ;
+  1337→5. Remplacement d’un ingrédient ;
+  1338→6. Paiement ;
+  1339→7. Préparation ;
+  1340→8. Expédition ;
+  1341→9. Livraison ;
+  1342→10. Réclamation et remboursement.
+  1343→
+  1344→# 32. DONNÉES DE DÉMONSTRATION
+  1345→
+  1346→Créer des données réalistes en français et en anglais :
+  1347→
+  1348→* Catégories ;
+  1349→* Produits ;
+  1350→* Marques ;
+  1351→* Entrepôt ;
+  1352→* Lots ;
+  1353→* Clients ;
+  1354→* Recettes ;
+  1355→* Ingrédients ;
+  1356→* Promotions ;
+  1357→* Commandes ;
+  1358→* Livraisons.
+  1359→
+  1360→Inclure notamment :
+  1361→
+  1362→* Placali ;
+  1363→* Kplô ;
+  1364→* Farine de mil ;
+  1365→* Attiéké ;
+  1366→* Graine de palme ;
+  1367→* Djoumblé ;
+  1368→* Akpi ;
+  1369→* Soumbala ;
+  1370→* Gombo ;
+  1371→* Banane plantain ;
+  1372→* Pâte d’arachide.
+  1373→
+  1374→Créer plusieurs recettes fonctionnelles avec de vrais liens vers les produits de démonstration.
+  1375→
+  1376→# 33. LIVRABLES ATTENDUS
+  1377→
+  1378→Livrer :
+  1379→
+  1380→* Code source complet ;
+  1381→* Interface client ;
+  1382→* Administration ;
+  1383→* Base de données ;
+  1384→* Migrations ;
+  1385→* Données de démonstration ;
+  1386→* Documentation d’installation ;
+  1387→* Documentation de déploiement ;
+  1388→* Documentation des variables d’environnement ;
+  1389→* Documentation des rôles ;
+  1390→* Documentation du moteur de recettes ;
+  1391→* Documentation des intégrations ;
+  1392→* Tests ;
+  1393→* Configuration de préproduction ;
+  1394→* Configuration de production ;
+  1395→* Système de sauvegarde ;
+  1396→* Journalisation ;
+  1397→* Surveillance des erreurs.
+  1398→
+  1399→Créer un fichier README complet.
+  1400→
+  1401→Créer un fichier d’exemple des variables d’environnement sans aucun secret réel.
+  1402→
+  1403→# 34. CRITÈRES DE VALIDATION
+  1404→
+  1405→Le projet n’est pas terminé tant que les points suivants ne fonctionnent pas réellement :
+  1406→
+  1407→* Le site est entièrement utilisable en français et en anglais ;
+  1408→* Le changement de langue conserve la page actuelle ;
+  1409→* Les produits ont des traductions complètes ;
+  1410→* « Kplô », « Kplo » et « beef skin » trouvent le même produit ;
+  1411→* Le client peut sélectionner une recette ;
+  1412→* Il peut saisir un nombre de personnes ;
+  1413→* Le système calcule les quantités ;
+  1414→* Le système choisit les conditionnements ;
+  1415→* Le système affiche les restes ;
+  1416→* Le système affiche le coût total ;
+  1417→* Le système affiche le coût par personne ;
+  1418→* Le client peut modifier le panier ;
+  1419→* Les prix se recalculent instantanément ;
+  1420→* Les produits indisponibles sont signalés ;
+  1421→* Les substitutions fonctionnent ;
+  1422→* Le paiement est vérifié côté serveur ;
+  1423→* Le stock est réservé correctement ;
+  1424→* L’entrepôt peut préparer par scan ;
+  1425→* Les lots sont traçables ;
+  1426→* Les commandes peuvent être séparées par température ;
+  1427→* Le client peut suivre ses colis ;
+  1428→* L’administration peut gérer toute l’activité ;
+  1429→* Toutes les actions sensibles sont auditées ;
+  1430→* Le site fonctionne parfaitement sur mobile et desktop ;
+  1431→* Aucun bouton essentiel n’est inactif ;
+  1432→* Aucun parcours critique n’est une simple simulation.
+  1433→
+  1434→# 35. CONSIGNE FINALE
+  1435→
+  1436→Construis cette plateforme comme un véritable produit commercial européen, et non comme une démonstration visuelle.
+  1437→
+  1438→Travaille de manière autonome. Lorsque des informations secondaires manquent, prends des décisions professionnelles cohérentes et documente-les. Ne réduis pas le périmètre sans justification.
+  1439→
+  1440→Commence par :
+  1441→
+  1442→1. Définir l’architecture ;
+  1443→2. Créer le modèle de données ;
+  1444→3. Mettre en place l’identité visuelle ;
+  1445→4. Construire l’interface client ;
+  1446→5. Construire le moteur de recettes ;
+  1447→6. Construire le panier et le paiement ;
+  1448→7. Construire l’administration ;
+  1449→8. Construire les stocks et la logistique ;
+  1450→9. Ajouter les traductions ;
+  1451→10. Ajouter les tests ;
+  1452→11. Vérifier tous les parcours ;
+  1453→12. Préparer le déploiement.
+  1454→
+  1455→Le résultat final doit être élégant, puissant, fiable, rapide, bilingue, parfaitement responsive et immédiatement exploitable par l’entreprise « Je mange Africain ».
+  1456→
