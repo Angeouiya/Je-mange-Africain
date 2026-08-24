@@ -14,7 +14,8 @@ const ProductInput = z.object({
   country: z.string().trim().min(2).max(80),
   packaging: z.string().trim().min(2).max(80),
   description: z.string().trim().min(10).max(1200),
-  price: z.coerce.number().positive().max(10000),
+  costPrice: z.coerce.number().positive().max(10000),
+  profitMargin: z.coerce.number().min(0).max(10000),
   promoPrice: z.union([z.coerce.number().positive().max(10000), z.literal(""), z.null()]).optional(),
   stockQty: z.coerce.number().int().min(0).max(100000),
   netWeightGrams: z.coerce.number().int().min(0).max(100000),
@@ -22,6 +23,48 @@ const ProductInput = z.object({
   storageType: z.enum(["SEC", "FRAIS", "REFRIGERE", "SURGELE", "FUME", "SECHE", "CONSERVE"]),
   aliases: z.array(z.string().trim().min(2).max(80)).max(12).default([]),
 });
+
+const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+export async function GET(request: NextRequest) {
+  const authorization = await authorizeAdminRequest(request);
+  if (!authorization.ok) return authorization.response;
+
+  const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
+  const products = await db.product.findMany({
+    orderBy: { updatedAt: "desc" },
+    include: { translations: true, batches: true },
+  });
+
+  return NextResponse.json({
+    total: products.length,
+    products: products.map((product) => {
+      const batchWeight = product.batches.reduce((sum, batch) => sum + Math.max(0, batch.quantity + batch.reserved), 0);
+      const estimatedCost = batchWeight > 0
+        ? product.batches.reduce((sum, batch) => sum + Number(batch.costPrice) * Math.max(0, batch.quantity + batch.reserved), 0) / batchWeight
+        : null;
+      const costPrice = product.costPrice === null ? estimatedCost : Number(product.costPrice);
+      return {
+        id: product.id,
+        name: product.translations.find((translation) => translation.locale === locale)?.name || product.traditionalName,
+        traditionalName: product.traditionalName,
+        sku: product.sku,
+        country: product.country,
+        costPrice,
+        profitMargin: product.profitMargin === null && costPrice !== null ? roundMoney(Number(product.price) - costPrice) : product.profitMargin === null ? null : Number(product.profitMargin),
+        costSource: product.costPrice === null ? "estimated" : "recorded",
+        price: Number(product.price),
+        promoPrice: product.promoPrice === null ? null : Number(product.promoPrice),
+        stockQty: product.stockQty,
+        alertThreshold: product.alertThreshold,
+        imageColor: product.imageColor,
+        imageEmoji: product.imageEmoji,
+        thermalClass: product.thermalClass,
+        status: product.status,
+      };
+    }),
+  });
+}
 
 export async function POST(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request);
@@ -38,7 +81,11 @@ export async function POST(request: NextRequest) {
   ]);
   if (!category) return NextResponse.json({ error: "Catégorie introuvable." }, { status: 400 });
   if (duplicate) return NextResponse.json({ error: "Ce SKU existe déjà." }, { status: 409 });
-  if (typeof input.promoPrice === "number" && input.promoPrice >= input.price) {
+  const price = roundMoney(input.costPrice + input.profitMargin);
+  if (price <= 0 || price > 10000) {
+    return NextResponse.json({ error: "Le prix de vente calculé doit être compris entre 0,01 € et 10 000 €." }, { status: 400 });
+  }
+  if (typeof input.promoPrice === "number" && input.promoPrice >= price) {
     return NextResponse.json({ error: "Le prix promotionnel doit être inférieur au prix normal." }, { status: 400 });
   }
 
@@ -50,9 +97,11 @@ export async function POST(request: NextRequest) {
       categoryId: input.categoryId,
       country: input.country,
       packaging: input.packaging,
-      price: input.price,
+      costPrice: input.costPrice,
+      profitMargin: input.profitMargin,
+      price,
       promoPrice: typeof input.promoPrice === "number" ? input.promoPrice : null,
-      pricePerKg: input.netWeightGrams > 0 ? input.price / (input.netWeightGrams / 1000) : null,
+      pricePerKg: input.netWeightGrams > 0 ? price / (input.netWeightGrams / 1000) : null,
       stockQty: input.stockQty,
       netWeightGrams: input.netWeightGrams,
       thermalClass: input.thermalClass,
@@ -76,7 +125,7 @@ export async function POST(request: NextRequest) {
       action: "product_create",
       entityType: "Product",
       entityId: product.id,
-      after: JSON.stringify({ sku: product.sku, name: input.name, price: input.price, stockQty: input.stockQty }),
+      after: JSON.stringify({ sku: product.sku, name: input.name, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty }),
       reason: `Création depuis la console par ${authorization.user.email}`,
     },
   });
@@ -86,7 +135,7 @@ export async function POST(request: NextRequest) {
     .map(({ dish, score }) => localizeDish(dish, "fr", score));
 
   return NextResponse.json({
-    product: { id: product.id, sku: product.sku, name: input.name },
+    product: { id: product.id, sku: product.sku, name: input.name, price },
     recommendations,
   }, { status: 201 });
 }

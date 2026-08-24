@@ -85,7 +85,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; items: NavItem[] }> 
     labelFr: "Contrôle",
     labelEn: "Control",
     items: [
-      { id: "finance", icon: CircleDollarSign, labelFr: "Finance", labelEn: "Finance", purposeFr: "Encaissements et rapprochement", purposeEn: "Payments and reconciliation" },
+      { id: "finance", icon: CircleDollarSign, labelFr: "Finance", labelEn: "Finance", purposeFr: "Rentabilité, marge et encaissements", purposeEn: "Profitability, margin and payments" },
       { id: "governance", icon: Settings2, labelFr: "Gouvernance", labelEn: "Governance", purposeFr: "Traçabilité et préférences", purposeEn: "Traceability and preferences" },
     ],
   },

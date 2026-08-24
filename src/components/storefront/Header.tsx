@@ -3,7 +3,13 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import {
+  CircleHelp,
+  ClipboardList,
+  Info,
   Menu,
+  MessageCircle,
+  ScrollText,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
@@ -21,13 +27,15 @@ const NotificationCenter = dynamic(
 export function Header() {
   const locale = useStore((s) => s.locale);
   const navigate = useStore((s) => s.navigate);
+  const customer = useStore((s) => s.customer);
   const t = dict[locale];
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navLinks: { key: string; view: any; label: string }[] = [
-    { key: "catalog", view: "catalog", label: t.nav.catalog },
-    { key: "recipes", view: "recipes", label: t.nav.recipes },
-    { key: "orders", view: "orders", label: t.nav.tracking },
+  const utilityLinks = [
+    ...(customer ? [{ key: "orders", view: "orders", params: undefined, label: t.nav.tracking, icon: ClipboardList }] : []),
+    { key: "about", view: "info", params: { infoPage: "about" }, label: t.nav.about, icon: Info },
+    { key: "help", view: "info", params: { infoPage: "help" }, label: t.nav.help, icon: CircleHelp },
+    { key: "contact", view: "info", params: { infoPage: "contact" }, label: t.nav.contact, icon: MessageCircle },
   ];
 
   const go = (view: any, params?: any) => {
@@ -46,32 +54,28 @@ export function Header() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 bg-cream p-0">
+          <SheetContent side="left" className="w-[min(21rem,calc(100vw-2rem))] bg-cream p-0">
             <SheetHeader className="border-b border-border p-4">
               <SheetTitle className="text-left">
                 <BrandLockup />
               </SheetTitle>
             </SheetHeader>
-            <nav className="flex flex-col p-2">
-              {navLinks.map((l) => (
-                <button key={l.key} onClick={() => go(l.view)} className="rounded-lg px-3 py-3 text-left text-sm font-medium text-charcoal hover:bg-muted">
-                  {l.label}
+            <nav className="flex flex-col p-3" aria-label={locale === "fr" ? "Assistance et informations" : "Help and information"}>
+              <p className="px-3 pb-2 text-[10px] font-extrabold uppercase text-muted-foreground">{locale === "fr" ? "À votre service" : "At your service"}</p>
+              {utilityLinks.map((link) => (
+                <button key={link.key} onClick={() => go(link.view, link.params)} className="flex min-h-12 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-charcoal hover:bg-muted">
+                  <span className="grid h-8 w-8 place-items-center rounded-md bg-white text-terre"><link.icon className="h-4 w-4" /></span>
+                  {link.label}
                 </button>
               ))}
-              <button onClick={() => go("info", { infoPage: "about" })} className="rounded-lg px-3 py-3 text-left text-sm font-medium text-charcoal hover:bg-muted">
-                {t.nav.about}
-              </button>
-              <button onClick={() => go("info", { infoPage: "help" })} className="rounded-lg px-3 py-3 text-left text-sm font-medium text-charcoal hover:bg-muted">
-                {t.nav.help}
-              </button>
-              <button onClick={() => go("info", { infoPage: "contact" })} className="rounded-lg px-3 py-3 text-left text-sm font-medium text-charcoal hover:bg-muted">
-                {t.nav.contact}
-              </button>
-              <div className="mt-2 border-t border-border pt-2">
-                <button onClick={() => go("info", { infoPage: "privacy" })} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground hover:bg-muted hover:text-charcoal">
+              <div className="mt-3 border-t border-border pt-3">
+                <p className="px-3 pb-2 text-[10px] font-extrabold uppercase text-muted-foreground">{locale === "fr" ? "Cadre de confiance" : "Trust centre"}</p>
+                <button onClick={() => go("info", { infoPage: "privacy" })} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-muted-foreground hover:bg-muted hover:text-charcoal">
+                  <ShieldCheck className="h-4 w-4" />
                   {locale === "fr" ? "Politique de confidentialité" : "Privacy policy"}
                 </button>
-                <button onClick={() => go("info", { infoPage: "cgv" })} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground hover:bg-muted hover:text-charcoal">
+                <button onClick={() => go("info", { infoPage: "cgv" })} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-muted-foreground hover:bg-muted hover:text-charcoal">
+                  <ScrollText className="h-4 w-4" />
                   {locale === "fr" ? "Conditions générales" : "Terms and conditions"}
                 </button>
               </div>

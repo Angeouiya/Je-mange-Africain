@@ -50,7 +50,7 @@ export interface ViewParams {
   category?: string;
   query?: string;
   recipeMode?: "recipes" | "library";
-  accountSection?: "profile" | "settings";
+  accountSection?: "profile" | "saved" | "settings";
   infoPage?: "about" | "help" | "contact" | "cgv" | "privacy" | "cookies" | "delivery";
 }
 

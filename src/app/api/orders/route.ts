@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { authorizeOrderAccess } from "@/lib/order-access";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const access = await authorizeOrderAccess(req);
+  if (!access) return NextResponse.json({ error: "Authentification requise." }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
-  const customerId = searchParams.get("customerId");
 
   const where: any = {};
-  if (customerId) where.customerId = customerId;
+  if (access.scope === "customer") {
+    if (!access.customerId) return NextResponse.json({ orders: [] });
+    where.customerId = access.customerId;
+  }
 
   const orders = await db.order.findMany({
     where,

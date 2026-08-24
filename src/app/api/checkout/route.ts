@@ -182,6 +182,15 @@ export async function POST(req: NextRequest) {
             beforeQty: b.quantity, afterQty: b.quantity - take,
           },
         });
+        await tx.orderBatchAllocation.create({
+          data: {
+            orderId: ord.id,
+            productId: it.productId,
+            batchId: b.id,
+            quantity: take,
+            unitCost: b.costPrice,
+          },
+        });
         remaining -= take;
       }
       // decrement product stockQty

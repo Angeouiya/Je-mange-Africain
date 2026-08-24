@@ -167,45 +167,48 @@ model Supplier {
 }
 
 model Product {
-  id                String               @id @default(cuid())
-  sku               String               @unique
+  id                String                 @id @default(cuid())
+  sku               String                 @unique
   barcode           String?
   traditionalName   String
   categoryId        String
-  category          Category             @relation(fields: [categoryId], references: [id])
+  category          Category               @relation(fields: [categoryId], references: [id])
   brandId           String?
-  brand             Brand?               @relation(fields: [brandId], references: [id])
+  brand             Brand?                 @relation(fields: [brandId], references: [id])
   supplierId        String?
-  supplier          Supplier?            @relation(fields: [supplierId], references: [id])
-  country           String               @default("Côte d'Ivoire")
-  thermalClass      String               @default("AMBIANT") // AMBIANT | REFRIGERATED | FROZEN
-  storageType       String               @default("SEC") // SEC | FRAIS | REFRIGERE | SURGELE | FUME | SECHE | CONSERVE
+  supplier          Supplier?              @relation(fields: [supplierId], references: [id])
+  country           String                 @default("Côte d'Ivoire")
+  thermalClass      String                 @default("AMBIANT") // AMBIANT | REFRIGERATED | FROZEN
+  storageType       String                 @default("SEC") // SEC | FRAIS | REFRIGERE | SURGELE | FUME | SECHE | CONSERVE
   storageTempC      String? // e.g. "-18°C"
-  netWeightGrams    Int                  @default(0)
-  volumeMl          Int                  @default(0)
-  unit              String               @default("piece") // piece | kg | g | L | ml
+  netWeightGrams    Int                    @default(0)
+  volumeMl          Int                    @default(0)
+  unit              String                 @default("piece") // piece | kg | g | L | ml
   packaging         String // "Boîte 400 g", "Sac 1 kg"
+  costPrice         Decimal?
+  profitMargin      Decimal?
   price             Decimal
   promoPrice        Decimal?
   pricePerKg        Decimal?
-  stockQty          Int                  @default(0)
-  reservedQty       Int                  @default(0)
-  alertThreshold    Int                  @default(5)
-  imageColor        String               @default("#D65A32")
-  imageEmoji        String               @default("🍲")
-  isBestseller      Boolean              @default(false)
-  isNew             Boolean              @default(false)
-  isOnSale          Boolean              @default(false)
-  status            String               @default("published") // draft | published | archived
+  stockQty          Int                    @default(0)
+  reservedQty       Int                    @default(0)
+  alertThreshold    Int                    @default(5)
+  imageColor        String                 @default("#D65A32")
+  imageEmoji        String                 @default("🍲")
+  isBestseller      Boolean                @default(false)
+  isNew             Boolean                @default(false)
+  isOnSale          Boolean                @default(false)
+  status            String                 @default("published") // draft | published | archived
   nutrition         String? // JSON string
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
   translations      ProductTranslation[]
   aliases           ProductAlias[]
   variants          ProductVariant[]
   batches           InventoryBatch[]
   recipeIngredients RecipeIngredient[]
   favorites         Favorite[]
+  orderAllocations  OrderBatchAllocation[]
 }
 
 model ProductTranslation {
@@ -337,21 +340,38 @@ model WarehouseLocation {
 }
 
 model InventoryBatch {
-  id          String          @id @default(cuid())
-  productId   String
-  product     Product         @relation(fields: [productId], references: [id])
-  warehouseId String
-  warehouse   Warehouse       @relation(fields: [warehouseId], references: [id])
-  locationId  String?
-  lotNumber   String
-  quantity    Int             @default(0)
-  reserved    Int             @default(0)
-  expiryDate  DateTime?
-  receiptDate DateTime        @default(now())
-  costPrice   Decimal         @default(0)
-  status      String          @default("active") // active | blocked | recalled | expired
-  createdAt   DateTime        @default(now())
-  movements   StockMovement[]
+  id               String                 @id @default(cuid())
+  productId        String
+  product          Product                @relation(fields: [productId], references: [id])
+  warehouseId      String
+  warehouse        Warehouse              @relation(fields: [warehouseId], references: [id])
+  locationId       String?
+  lotNumber        String
+  quantity         Int                    @default(0)
+  reserved         Int                    @default(0)
+  expiryDate       DateTime?
+  receiptDate      DateTime               @default(now())
+  costPrice        Decimal                @default(0)
+  status           String                 @default("active") // active | blocked | recalled | expired
+  createdAt        DateTime               @default(now())
+  movements        StockMovement[]
+  orderAllocations OrderBatchAllocation[]
+}
+
+model OrderBatchAllocation {
+  id        String         @id @default(cuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product        @relation(fields: [productId], references: [id])
+  batchId   String
+  batch     InventoryBatch @relation(fields: [batchId], references: [id])
+  quantity  Int
+  unitCost  Decimal
+  createdAt DateTime       @default(now())
+
+  @@index([orderId, productId])
+  @@index([batchId])
 }
 
 model StockMovement {
@@ -419,19 +439,19 @@ model PurchaseOrderItem {
  */
 
 model Order {
-  id                 String       @id @default(cuid())
-  number             String       @unique
+  id                 String                 @id @default(cuid())
+  number             String                 @unique
   customerId         String?
-  customer           Customer?    @relation(fields: [customerId], references: [id])
-  status             String       @default("cart") // see order state machine
-  subtotal           Decimal      @default(0)
-  promoDiscount      Decimal      @default(0)
-  vatAmount          Decimal      @default(0)
-  shippingCost       Decimal      @default(0)
-  total              Decimal      @default(0)
-  currency           String       @default("EUR")
-  weightGrams        Int          @default(0)
-  packageCount       Int          @default(1)
+  customer           Customer?              @relation(fields: [customerId], references: [id])
+  status             String                 @default("cart") // see order state machine
+  subtotal           Decimal                @default(0)
+  promoDiscount      Decimal                @default(0)
+  vatAmount          Decimal                @default(0)
+  shippingCost       Decimal                @default(0)
+  total              Decimal                @default(0)
+  currency           String                 @default("EUR")
+  weightGrams        Int                    @default(0)
+  packageCount       Int                    @default(1)
   deliveryName       String?
   deliveryAddress    String?
   deliveryCity       String?
@@ -440,15 +460,16 @@ model Order {
   deliverySlot       String?
   carrierId          String?
   paymentMethod      String?
-  fraudScore         Int          @default(0)
+  fraudScore         Int                    @default(0)
   notes              String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   items              OrderItem[]
   payments           Payment[]
   refunds            Refund[]
   shipments          Shipment[]
   timeline           OrderEvent[]
+  batchAllocations   OrderBatchAllocation[]
 }
 
 model OrderItem {

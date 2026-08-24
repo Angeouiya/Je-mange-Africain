@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { authorizeOrderAccess } from "@/lib/order-access";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const access = await authorizeOrderAccess(req);
+  if (!access) return NextResponse.json({ error: "Authentification requise." }, { status: 401 });
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
 
-  const order = await db.order.findUnique({
-    where: { id },
+  const order = await db.order.findFirst({
+    where: { id, ...(access.scope === "customer" ? { customerId: access.customerId || "__unassigned__" } : {}) },
     include: {
       items: true,
       shipments: { include: { carrier: true } },

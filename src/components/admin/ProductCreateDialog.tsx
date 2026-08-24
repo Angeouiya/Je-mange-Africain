@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, type ReactNode, useDeferredValue, useMemo, useState } from "react";
-import { BookOpen, ChefHat, LoaderCircle, PackagePlus, Sparkles } from "lucide-react";
+import { BookOpen, Calculator, ChefHat, LoaderCircle, PackagePlus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,7 +26,8 @@ type ProductDraft = {
   country: string;
   packaging: string;
   description: string;
-  price: string;
+  costPrice: string;
+  profitMargin: string;
   promoPrice: string;
   stockQty: string;
   netWeightGrams: string;
@@ -43,7 +44,8 @@ const initialDraft: ProductDraft = {
   country: "Côte d'Ivoire",
   packaging: "",
   description: "",
-  price: "",
+  costPrice: "",
+  profitMargin: "",
   promoPrice: "",
   stockQty: "0",
   netWeightGrams: "0",
@@ -64,9 +66,22 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
     : null;
   const { data: recommendationData, loading: recommendationsLoading } = useFetch(recommendationsUrl, [productSignal, locale]);
   const recommendations = recommendationData?.dishes || [];
+  const salePrice = Math.round((Number(draft.costPrice || 0) + Number(draft.profitMargin || 0) + Number.EPSILON) * 100) / 100;
+  const marginRate = salePrice > 0 ? (Number(draft.profitMargin || 0) / salePrice) * 100 : 0;
   const hasRequiredFields = useMemo(
-    () => Boolean(draft.name.trim() && draft.traditionalName.trim() && draft.sku.trim() && draft.categoryId && draft.packaging.trim() && draft.description.trim() && Number(draft.price) > 0),
-    [draft]
+    () => Boolean(
+      draft.name.trim()
+      && draft.traditionalName.trim()
+      && draft.sku.trim()
+      && draft.categoryId
+      && draft.packaging.trim()
+      && draft.description.trim()
+      && Number(draft.costPrice) > 0
+      && draft.profitMargin !== ""
+      && Number(draft.profitMargin) >= 0
+      && (!draft.promoPrice || (Number(draft.promoPrice) > 0 && Number(draft.promoPrice) < salePrice))
+    ),
+    [draft, salePrice]
   );
 
   const update = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
@@ -129,9 +144,24 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
                 <Textarea value={draft.description} onChange={(event) => update("description", event.target.value)} rows={4} placeholder={locale === "fr" ? "Origine, goût, texture, usage et conservation..." : "Origin, flavour, texture, use and storage..."} />
               </Field>
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <Field label={locale === "fr" ? "Prix (€)" : "Price (€)"} required><Input type="number" min="0.01" step="0.01" value={draft.price} onChange={(event) => update("price", event.target.value)} /></Field>
-                <Field label={locale === "fr" ? "Promo (€)" : "Promo (€)"}><Input type="number" min="0.01" step="0.01" value={draft.promoPrice} onChange={(event) => update("promoPrice", event.target.value)} /></Field>
+              <section className="overflow-hidden rounded-lg border border-terre/20 bg-terre/[0.035]">
+                <div className="flex items-start gap-3 border-b border-terre/15 px-4 py-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-terre text-white"><Calculator className="h-4 w-4" /></span>
+                  <div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Construction du prix" : "Price composition"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Ces données restent internes. Le client voit uniquement le prix de vente calculé." : "These values remain internal. Customers only see the calculated selling price."}</p></div>
+                </div>
+                <div className="grid gap-4 p-4 sm:grid-cols-[1fr_1fr_1.05fr]">
+                  <Field label={locale === "fr" ? "Coût brut d'achat (€)" : "Gross purchase cost (€)"} required><Input type="number" inputMode="decimal" min="0.01" max="10000" step="0.01" value={draft.costPrice} onChange={(event) => update("costPrice", event.target.value)} placeholder="1,80" /></Field>
+                  <Field label={locale === "fr" ? "Marge bénéficiaire (€)" : "Profit margin (€)"} required><Input type="number" inputMode="decimal" min="0" max="10000" step="0.01" value={draft.profitMargin} onChange={(event) => update("profitMargin", event.target.value)} placeholder="1,20" /></Field>
+                  <div className="rounded-md bg-charcoal px-4 py-3 text-white" aria-live="polite">
+                    <p className="text-[10px] font-bold uppercase text-white/60">{locale === "fr" ? "Prix affiché au client" : "Customer price"}</p>
+                    <p className="mt-1 text-2xl font-black text-gold">{salePrice.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
+                    <p className="mt-1 text-[10px] text-white/60">{locale === "fr" ? "Coût + marge" : "Cost + margin"} · {marginRate.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { maximumFractionDigits: 1 })}% {locale === "fr" ? "de marge" : "margin"}</p>
+                  </div>
+                </div>
+              </section>
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <Field label={locale === "fr" ? "Prix promotionnel (€)" : "Promotional price (€)"}><Input type="number" inputMode="decimal" min="0.01" max={salePrice || undefined} step="0.01" value={draft.promoPrice} onChange={(event) => update("promoPrice", event.target.value)} /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Doit rester inférieur au prix client." : "Must remain below the customer price."}</p></Field>
                 <Field label={locale === "fr" ? "Stock" : "Stock"}><Input type="number" min="0" value={draft.stockQty} onChange={(event) => update("stockQty", event.target.value)} /></Field>
                 <Field label={locale === "fr" ? "Poids (g)" : "Weight (g)"}><Input type="number" min="0" value={draft.netWeightGrams} onChange={(event) => update("netWeightGrams", event.target.value)} /></Field>
               </div>

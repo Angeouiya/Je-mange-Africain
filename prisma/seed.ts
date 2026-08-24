@@ -296,6 +296,8 @@ async function main() {
         supplierId: (suppliers as any)[supplierKey].id,
         country, thermalClass: thermal, storageType, storageTempC: storageTemp,
         netWeightGrams: weightG, volumeMl, unit, packaging,
+        costPrice: Math.round(Number(price) * 0.55 * 100) / 100,
+        profitMargin: Math.round(Number(price) * 0.45 * 100) / 100,
         price, promoPrice,
         pricePerKg: weightG > 0 ? (Number(price) / weightG * 1000) : (volumeMl > 0 ? Number(price) / volumeMl * 1000 : Number(price)),
         stockQty: Math.floor(20 + Math.random() * 80),
