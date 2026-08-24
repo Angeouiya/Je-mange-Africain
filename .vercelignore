@@ -1,0 +1,8 @@
+.next
+.playwright-cli
+output
+node_modules
+node_modules.partial-*
+*.log
+*.db
+db/*.db
