@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import {
-  User, Package, Heart, ChefHat, Star, Wallet, LogOut, Settings, ArrowLeft, MailCheck,
+  User, Package, Heart, ChefHat, Star, Wallet, LogOut, Settings, ArrowLeft, MailCheck, X, Eye, EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,21 @@ import { RecipeCard } from "@/components/shared/RecipeCard";
 import { formatPrice } from "@/lib/format";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { BrandLockup } from "@/components/shared/BrandLockup";
+import { Checkbox } from "@/components/ui/checkbox";
+import { LEGAL_PATHS } from "@/lib/legal";
 
 type AuthMode = "login" | "register" | "forgot";
 
-const emptyRegistration = { firstName: "", lastName: "", email: "", phone: "", password: "" };
+const emptyRegistration = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  password: "",
+  confirmPassword: "",
+  termsAccepted: false,
+  privacyAccepted: false,
+};
 
 export function AccountView() {
   const locale = useStore((s) => s.locale);
@@ -42,6 +53,20 @@ export function AccountView() {
   useEffect(() => {
     if (params.accountSection) setSection(params.accountSection);
   }, [params.accountSection]);
+
+  useEffect(() => {
+    if (customer) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && authStatus !== "busy") navigate("home");
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [authStatus, customer, navigate]);
 
   const changeAuthMode = (mode: AuthMode) => {
     setAuthMode(mode);
@@ -70,6 +95,11 @@ export function AccountView() {
 
   const submitRegistration = async (event: FormEvent) => {
     event.preventDefault();
+    if (registration.password !== registration.confirmPassword) {
+      setAuthStatus("error");
+      setAuthMessage(locale === "fr" ? "Les deux mots de passe doivent être identiques." : "Both passwords must match.");
+      return;
+    }
     setAuthStatus("busy");
     setAuthMessage("");
     const response = await fetch("/api/auth/customer/register", {
@@ -113,14 +143,19 @@ export function AccountView() {
 
   if (!customer) {
     return (
-      <div className="mx-auto w-full max-w-md px-4 py-8 sm:py-12">
-        <section className="rounded-lg bg-white sm:border sm:border-border sm:p-6 sm:shadow-sm">
+      <div role="dialog" aria-modal="true" aria-labelledby="customer-auth-title" className="fixed inset-0 z-[80] overflow-y-auto bg-cream">
+        <div className="african-kente-stripe sticky inset-x-0 top-0 z-10 h-1" />
+        <button type="button" onClick={() => navigate("home")} disabled={authStatus === "busy"} className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-border bg-white text-charcoal shadow-sm transition hover:border-terre hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={locale === "fr" ? "Fermer la connexion et revenir à l'accueil" : "Close sign-in and return home"}>
+          <X className="h-5 w-5" />
+        </button>
+        <div className="mx-auto flex min-h-full w-full max-w-md items-start px-4 py-16 sm:items-center sm:py-12">
+        <section className="w-full rounded-lg bg-white p-5 shadow-sm sm:border sm:border-border sm:p-7">
           <div className="mb-8 flex justify-center sm:justify-start">
             <BrandLockup size="large" />
           </div>
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-lg bg-terre/10"><User className="h-6 w-6 text-terre" /></div>
-            <div><h1 className="text-xl font-extrabold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</h1><p className="text-xs text-muted-foreground">{locale === "fr" ? "Un accès simple et sécurisé, sans code OTP." : "Simple, secure access without OTP codes."}</p></div>
+            <div><h1 id="customer-auth-title" className="text-xl font-extrabold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</h1><p className="text-xs text-muted-foreground">{locale === "fr" ? "Votre compte, simplement et en toute sécurité." : "Simple, secure access to your account."}</p></div>
           </div>
 
           {authMode !== "forgot" ? (
@@ -133,7 +168,7 @@ export function AccountView() {
           {authMode === "login" ? (
             <form onSubmit={submitLogin} className="mt-5 space-y-4">
               <div><Label htmlFor="customer-identifier" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "E-mail ou numéro de téléphone" : "Email or phone number"}</Label><Input id="customer-identifier" autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="vous@exemple.fr ou +33..." required /></div>
-              <div><Label htmlFor="customer-password" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Mot de passe" : "Password"}</Label><Input id="customer-password" type="password" autoComplete="current-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required /></div>
+              <PasswordInput id="customer-password" label={locale === "fr" ? "Mot de passe" : "Password"} autoComplete="current-password" value={password} onChange={setPassword} locale={locale} />
               <button type="button" onClick={() => changeAuthMode("forgot")} className="text-xs font-bold text-terre hover:underline">{locale === "fr" ? "Mot de passe oublié ?" : "Forgot password?"}</button>
               <AuthMessage status={authStatus} message={authMessage} />
               <Button type="submit" disabled={authStatus === "busy"} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Connexion..." : "Signing in...") : t.nav.login}</Button>
@@ -143,9 +178,29 @@ export function AccountView() {
               <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="register-first-name" className="mb-1 block text-xs font-semibold">{t.checkout.firstName}</Label><Input id="register-first-name" autoComplete="given-name" value={registration.firstName} onChange={(event) => setRegistration({ ...registration, firstName: event.target.value })} required /></div><div><Label htmlFor="register-last-name" className="mb-1 block text-xs font-semibold">{t.checkout.lastName}</Label><Input id="register-last-name" autoComplete="family-name" value={registration.lastName} onChange={(event) => setRegistration({ ...registration, lastName: event.target.value })} required /></div></div>
               <div><Label htmlFor="register-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="register-email" type="email" autoComplete="email" value={registration.email} onChange={(event) => setRegistration({ ...registration, email: event.target.value })} required /></div>
               <div><Label htmlFor="register-phone" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Numéro de téléphone" : "Phone number"}</Label><Input id="register-phone" type="tel" autoComplete="tel" value={registration.phone} onChange={(event) => setRegistration({ ...registration, phone: event.target.value })} placeholder="+33 6 00 00 00 00" required /></div>
-              <div><Label htmlFor="register-password" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Mot de passe (8 caractères minimum)" : "Password (8 characters minimum)"}</Label><Input id="register-password" type="password" autoComplete="new-password" minLength={8} value={registration.password} onChange={(event) => setRegistration({ ...registration, password: event.target.value })} required /></div>
+              <PasswordInput id="register-password" label={locale === "fr" ? "Mot de passe (8 caractères minimum)" : "Password (8 characters minimum)"} autoComplete="new-password" value={registration.password} onChange={(value) => setRegistration({ ...registration, password: value })} locale={locale} />
+              <PasswordInput id="register-confirm-password" label={locale === "fr" ? "Confirmer le mot de passe" : "Confirm password"} autoComplete="new-password" value={registration.confirmPassword} onChange={(value) => setRegistration({ ...registration, confirmPassword: value })} locale={locale} />
+              <div className="space-y-3 rounded-lg border border-border bg-muted/35 p-3">
+                <p className="text-[11px] font-bold text-charcoal">{locale === "fr" ? "Accords obligatoires" : "Required agreements"}</p>
+                <LegalCheckbox
+                  id="register-terms"
+                  checked={registration.termsAccepted}
+                  onCheckedChange={(checked) => setRegistration({ ...registration, termsAccepted: checked })}
+                  label={locale === "fr" ? "J'ai lu et j'accepte les conditions générales d'utilisation et de vente." : "I have read and accept the terms of use and sale."}
+                  linkLabel={locale === "fr" ? "Lire les CGU" : "Read the terms"}
+                  href={LEGAL_PATHS.terms}
+                />
+                <LegalCheckbox
+                  id="register-privacy"
+                  checked={registration.privacyAccepted}
+                  onCheckedChange={(checked) => setRegistration({ ...registration, privacyAccepted: checked })}
+                  label={locale === "fr" ? "J'ai lu et j'accepte la politique de confidentialité et le traitement nécessaire à la gestion de mon compte." : "I have read and accept the privacy policy and the processing required to manage my account."}
+                  linkLabel={locale === "fr" ? "Lire la politique" : "Read the policy"}
+                  href={LEGAL_PATHS.privacy}
+                />
+              </div>
               <AuthMessage status={authStatus} message={authMessage} />
-              <Button type="submit" disabled={authStatus === "busy"} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Création..." : "Creating...") : (locale === "fr" ? "Créer mon compte" : "Create my account")}</Button>
+              <Button type="submit" disabled={authStatus === "busy" || !registration.termsAccepted || !registration.privacyAccepted} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Création..." : "Creating...") : (locale === "fr" ? "Créer mon compte" : "Create my account")}</Button>
             </form>
           ) : (
             <form onSubmit={submitRecovery} className="mt-5 space-y-4">
@@ -156,7 +211,14 @@ export function AccountView() {
               <button type="button" onClick={() => changeAuthMode("login")} className="inline-flex items-center gap-1.5 text-xs font-bold text-charcoal hover:text-terre"><ArrowLeft className="h-3.5 w-3.5" /> {locale === "fr" ? "Retour à la connexion" : "Back to sign in"}</button>
             </form>
           )}
+          <p className="mt-6 text-center text-[10px] leading-5 text-muted-foreground">
+            {locale === "fr" ? "L'utilisation de Je mange Africain est régie par nos " : "Using Je mange Africain is governed by our "}
+            <a href={LEGAL_PATHS.terms} target="_blank" rel="noreferrer" className="font-semibold text-terre hover:underline">{locale === "fr" ? "conditions générales" : "terms"}</a>
+            {locale === "fr" ? " et notre " : " and "}
+            <a href={LEGAL_PATHS.privacy} target="_blank" rel="noreferrer" className="font-semibold text-terre hover:underline">{locale === "fr" ? "politique de confidentialité" : "privacy policy"}</a>.
+          </p>
         </section>
+        </div>
       </div>
     );
   }
@@ -256,6 +318,37 @@ export function AccountView() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function LegalCheckbox({ id, checked, onCheckedChange, label, linkLabel, href }: { id: string; checked: boolean; onCheckedChange: (checked: boolean) => void; label: string; linkLabel: string; href: string }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <Checkbox id={id} checked={checked} onCheckedChange={(value) => onCheckedChange(value === true)} className="mt-0.5" required />
+      <label htmlFor={id} className="min-w-0 text-[11px] leading-5 text-charcoal">
+        {label}{" "}
+        <a href={href} target="_blank" rel="noreferrer" className="font-bold text-terre hover:underline" onClick={(event) => event.stopPropagation()}>{linkLabel}</a>
+      </label>
+    </div>
+  );
+}
+
+function PasswordInput({ id, label, autoComplete, value, onChange, locale }: { id: string; label: string; autoComplete: "current-password" | "new-password"; value: string; onChange: (value: string) => void; locale: "fr" | "en" }) {
+  const [visible, setVisible] = useState(false);
+  const actionLabel = visible
+    ? (locale === "fr" ? "Masquer le mot de passe" : "Hide password")
+    : (locale === "fr" ? "Afficher le mot de passe" : "Show password");
+
+  return (
+    <div>
+      <Label htmlFor={id} className="mb-1 block text-xs font-semibold">{label}</Label>
+      <div className="relative">
+        <Input id={id} type={visible ? "text" : "password"} autoComplete={autoComplete} minLength={8} value={value} onChange={(event) => onChange(event.target.value)} className="pr-11" required />
+        <button type="button" onClick={() => setVisible((current) => !current)} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground transition hover:text-terre" aria-label={actionLabel} title={actionLabel}>
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import {
   Menu,
 } from "lucide-react";
@@ -10,8 +11,12 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { LanguageSwitch } from "@/components/shared/LanguageSwitch";
-import { NotificationCenter } from "@/components/storefront/NotificationCenter";
 import { BrandLockup } from "@/components/shared/BrandLockup";
+
+const NotificationCenter = dynamic(
+  () => import("@/components/storefront/NotificationCenter").then((module) => module.NotificationCenter),
+  { loading: () => <span className="h-10 w-10" aria-hidden="true" /> }
+);
 
 export function Header() {
   const locale = useStore((s) => s.locale);

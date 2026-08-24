@@ -2,26 +2,30 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
-import { CatalogView } from "@/components/storefront/views/CatalogView";
-import { ProductDetailView } from "@/components/storefront/views/ProductDetailView";
-import { RecipesView } from "@/components/storefront/views/RecipesView";
-import { RecipeConfiguratorView } from "@/components/storefront/views/RecipeConfiguratorView";
-import { CartView } from "@/components/storefront/views/CartView";
-import { CheckoutView } from "@/components/storefront/views/CheckoutView";
-import { OrderConfirmationView } from "@/components/storefront/views/OrderConfirmationView";
-import { OrdersView } from "@/components/storefront/views/OrdersView";
-import { OrderTrackingView } from "@/components/storefront/views/OrderTrackingView";
-import { AccountView } from "@/components/storefront/views/AccountView";
-import { InfoView } from "@/components/storefront/views/InfoView";
+
+const dynamicView = (loader: () => Promise<any>) => dynamic(loader, { loading: ViewLoading });
+const CatalogView = dynamicView(() => import("@/components/storefront/views/CatalogView").then((module) => module.CatalogView));
+const ProductDetailView = dynamicView(() => import("@/components/storefront/views/ProductDetailView").then((module) => module.ProductDetailView));
+const RecipesView = dynamicView(() => import("@/components/storefront/views/RecipesView").then((module) => module.RecipesView));
+const RecipeConfiguratorView = dynamicView(() => import("@/components/storefront/views/RecipeConfiguratorView").then((module) => module.RecipeConfiguratorView));
+const CartView = dynamicView(() => import("@/components/storefront/views/CartView").then((module) => module.CartView));
+const CheckoutView = dynamicView(() => import("@/components/storefront/views/CheckoutView").then((module) => module.CheckoutView));
+const OrderConfirmationView = dynamicView(() => import("@/components/storefront/views/OrderConfirmationView").then((module) => module.OrderConfirmationView));
+const OrdersView = dynamicView(() => import("@/components/storefront/views/OrdersView").then((module) => module.OrdersView));
+const OrderTrackingView = dynamicView(() => import("@/components/storefront/views/OrderTrackingView").then((module) => module.OrderTrackingView));
+const AccountView = dynamicView(() => import("@/components/storefront/views/AccountView").then((module) => module.AccountView));
+const InfoView = dynamicView(() => import("@/components/storefront/views/InfoView").then((module) => module.InfoView));
 
 export default function Page() {
   const view = useStore((s) => s.view);
   const navigate = useStore((s) => s.navigate);
+  const customer = useStore((s) => s.customer);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -54,12 +58,14 @@ export default function Page() {
     );
   }
 
+  const isPublicAuthGate = view === "account" && !customer;
+
   return (
     <div className="jma-shell min-h-screen">
-      <MobileNav />
-      <div className="flex min-h-screen flex-col md:pl-64">
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+      {isPublicAuthGate ? null : <MobileNav />}
+      <div className={`flex min-h-screen flex-col ${isPublicAuthGate ? "" : "md:pl-64"}`}>
+      {isPublicAuthGate ? null : <Header />}
+      <main className={isPublicAuthGate ? "flex-1" : "flex-1 pb-20 md:pb-0"}>
         <AnimatePresence mode="wait">
           <motion.div
             key={view + JSON.stringify(useStore.getState().params)}
@@ -93,4 +99,15 @@ function renderView(view: string) {
     case "info": return <InfoView />;
     default: return <HomeView />;
   }
+}
+
+function ViewLoading() {
+  return (
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-6" aria-label="Chargement de la vue">
+      <div className="h-7 w-48 animate-pulse rounded-md bg-muted" />
+      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-48 animate-pulse rounded-lg bg-muted" />)}
+      </div>
+    </div>
+  );
 }

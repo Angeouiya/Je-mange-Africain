@@ -75,13 +75,13 @@ export function HomeView() {
           {loading ? (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-xl" />)}</div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
+            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0 lg:grid-cols-8">
               {data?.categories?.map((c: any, i: number) => (
                 <motion.button
                   key={c.id}
                   initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.04 }}
                   onClick={() => navigate("catalog", { category: c.id })}
-                  className="group relative flex min-h-32 flex-col justify-end overflow-hidden rounded-xl border border-border bg-charcoal p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                  className="group relative flex min-h-32 w-32 shrink-0 snap-start flex-col justify-end overflow-hidden rounded-lg border border-border bg-charcoal p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md md:w-auto"
                 >
                   <Image src={getCategoryPhoto(c)} alt="" fill sizes="(max-width: 768px) 50vw, 160px" className="object-cover transition duration-500 group-hover:scale-105" />
                   <span className="absolute inset-0 bg-gradient-to-t from-charcoal/82 via-charcoal/30 to-transparent" />
@@ -96,18 +96,14 @@ export function HomeView() {
         {/* BESTSELLERS */}
         <Section title={t.home.bestsellers} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
           {loading ? <GridSkeleton /> : (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {data?.bestsellers?.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} />)}
-            </div>
+            <ProductRail products={data?.bestsellers || []} />
           )}
         </Section>
 
         {/* RECIPES */}
         <Section title={t.home.popularRecipes} actionLabel={t.viewAll} onAction={() => navigate("recipes")}>
           {loading ? <GridSkeleton /> : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {data?.popularRecipes?.map((r: any, i: number) => <RecipeCard key={r.id} recipe={r} index={i} />)}
-            </div>
+            <RecipeRail recipes={data?.popularRecipes || []} />
           )}
         </Section>
 
@@ -129,17 +125,13 @@ export function HomeView() {
         {/* ON SALE + NEW */}
         <Section title={t.home.onSale} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
           {loading ? <GridSkeleton /> : (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {data?.onSale?.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} />)}
-            </div>
+            <ProductRail products={data?.onSale || []} />
           )}
         </Section>
 
         <Section title={t.home.newProducts} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
           {loading ? <GridSkeleton /> : (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {data?.news?.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} />)}
-            </div>
+            <ProductRail products={data?.news || []} />
           )}
         </Section>
 
@@ -193,7 +185,7 @@ export function HomeView() {
 
 function Section({ title, actionLabel, onAction, children }: { title: string; actionLabel?: string; onAction?: () => void; children: React.ReactNode }) {
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 [contain-intrinsic-size:600px] [content-visibility:auto]">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-charcoal md:text-2xl">{title}</h2>
         {actionLabel && onAction && (
@@ -209,8 +201,32 @@ function Section({ title, actionLabel, onAction, children }: { title: string; ac
 
 function GridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-2xl" />)}
+    <div className="-mx-4 flex gap-3 overflow-hidden px-4 md:mx-0 md:grid md:grid-cols-3 md:px-0 lg:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-[72vw] max-w-72 shrink-0 rounded-lg md:w-auto" />)}
+    </div>
+  );
+}
+
+function ProductRail({ products }: { products: any[] }) {
+  return (
+    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:px-0 lg:grid-cols-4">
+      {products.map((product, index) => (
+        <div key={product.id} className="w-[72vw] max-w-72 shrink-0 snap-start md:w-auto md:max-w-none">
+          <ProductCard product={product} index={index} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RecipeRail({ recipes }: { recipes: any[] }) {
+  return (
+    <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 lg:grid-cols-3">
+      {recipes.map((recipe, index) => (
+        <div key={recipe.id} className="w-[84vw] max-w-sm shrink-0 snap-start sm:w-auto sm:max-w-none">
+          <RecipeCard recipe={recipe} index={index} />
+        </div>
+      ))}
     </div>
   );
 }

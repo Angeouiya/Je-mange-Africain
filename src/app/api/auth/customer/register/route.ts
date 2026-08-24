@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseCustomerConfig, normalizePhone, setCustomerCookies, toCustomerSession } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
+import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,12 @@ const Registration = z.object({
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
   phone: z.string().trim().transform(normalizePhone).pipe(z.string().regex(/^\+[1-9]\d{7,14}$/)),
   password: z.string().min(8).max(256),
+  confirmPassword: z.string().min(8).max(256),
+  termsAccepted: z.literal(true),
+  privacyAccepted: z.literal(true),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas.",
+  path: ["confirmPassword"],
 });
 
 export async function POST(request: Request) {
@@ -26,11 +33,16 @@ export async function POST(request: Request) {
   });
   if (existingDirectoryEntry) return NextResponse.json({ error: "Un compte utilise déjà cet e-mail ou ce numéro." }, { status: 409 });
 
+  const acceptedAt = new Date().toISOString();
+
   const metadata = {
     first_name: parsed.data.firstName,
     last_name: parsed.data.lastName,
     phone: parsed.data.phone,
     role: "customer",
+    terms_version: TERMS_VERSION,
+    privacy_version: PRIVACY_VERSION,
+    legal_accepted_at: acceptedAt,
   };
 
   try {
@@ -70,7 +82,7 @@ export async function POST(request: Request) {
       if (!signupPayload.user || (Array.isArray(signupPayload.user.identities) && signupPayload.user.identities.length === 0)) {
         return NextResponse.json({ error: "Un compte utilise déjà cet e-mail ou ce numéro." }, { status: 409 });
       }
-      await saveCustomerDirectory(parsed.data);
+      await saveCustomerDirectory(parsed.data, acceptedAt);
       if (signupPayload.access_token) {
         const customer = toCustomerSession(signupPayload.user);
         const response = NextResponse.json({ customer, requiresEmailConfirmation: false });
@@ -80,7 +92,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ customer: null, requiresEmailConfirmation: true });
     }
 
-    await saveCustomerDirectory(parsed.data);
+    await saveCustomerDirectory(parsed.data, acceptedAt);
 
     const tokenResponse = await fetch(`${url}/auth/v1/token?grant_type=password`, {
       method: "POST",
@@ -99,7 +111,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function saveCustomerDirectory(data: z.infer<typeof Registration>) {
+async function saveCustomerDirectory(data: z.infer<typeof Registration>, acceptedAt: string) {
   await db.user.create({
     data: {
       email: data.email,
@@ -108,6 +120,15 @@ async function saveCustomerDirectory(data: z.infer<typeof Registration>) {
       lastName: data.lastName,
       role: "customer",
       isActive: true,
+      legalConsents: {
+        create: {
+          termsVersion: TERMS_VERSION,
+          privacyVersion: PRIVACY_VERSION,
+          termsAcceptedAt: new Date(acceptedAt),
+          privacyAcceptedAt: new Date(acceptedAt),
+          source: "customer_registration",
+        },
+      },
     },
   });
 }

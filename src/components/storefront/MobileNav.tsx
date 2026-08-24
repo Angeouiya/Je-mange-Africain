@@ -15,15 +15,21 @@ export function MobileNav() {
   const t = dict[locale];
   const count = cartCount(cart);
 
-  const items: { id: ViewId; label: string; icon: any }[] = [
+  const publicItems: { id: ViewId; label: string; icon: any }[] = [
     { id: "home", label: t.mobileNav.home, icon: Home },
     { id: "catalog", label: t.mobileNav.categories, icon: LayoutGrid },
     { id: "recipes", label: t.mobileNav.recipes, icon: ChefHat },
     { id: "cart", label: t.mobileNav.cart, icon: ShoppingBag },
-    { id: "account", label: t.mobileNav.account, icon: User },
   ];
+  const accountItem = {
+    id: "account" as ViewId,
+    label: customer ? t.mobileNav.account : t.nav.login,
+    icon: customer ? User : LogIn,
+  };
+  const mobileItems = [...publicItems, accountItem];
+  const desktopItems = customer ? [...publicItems, accountItem] : publicItems;
 
-  const renderMobileItem = (it: (typeof items)[number]) => {
+  const renderMobileItem = (it: (typeof mobileItems)[number]) => {
         const active = view === it.id;
         const Icon = it.icon;
         return (
@@ -50,7 +56,7 @@ export function MobileNav() {
   return (
     <>
       <nav className="jma-safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-white/95 px-2 pt-1 shadow-[0_-18px_40px_-34px_rgba(36,36,36,0.8)] backdrop-blur-xl md:hidden">
-        <div className="mx-auto grid max-w-xl grid-cols-5">{items.map(renderMobileItem)}</div>
+        <div className="mx-auto grid max-w-xl grid-cols-5">{mobileItems.map(renderMobileItem)}</div>
       </nav>
 
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-white/10 bg-charcoal text-white md:flex">
@@ -60,7 +66,7 @@ export function MobileNav() {
         </button>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {items.map((item) => {
+          {desktopItems.map((item) => {
             const Icon = item.icon;
             const active = view === item.id;
             return (
