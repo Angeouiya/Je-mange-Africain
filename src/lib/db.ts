@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 
+process.env.DATABASE_URL ||= 'file:../db/custom.db'
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }

@@ -1,13 +1,15 @@
 {
   "name": "Je mange Africain",
-  "short_name": "Je mange Africain",
-  "description": "Tous les produits authentiques de la cuisine africaine, livrés chez vous.",
+  "short_name": "JMA",
+  "description": "Épicerie africaine mobile-first, recettes intelligentes et livraison suivie.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#FFF9F2",
   "theme_color": "#D65A32",
   "orientation": "portrait-primary",
   "icons": [
+    { "src": "/logo-jma.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any maskable" },
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ],
   "categories": ["food", "shopping", "lifestyle"]

@@ -21,6 +21,8 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://je-mange-africain.vercel.app"),
+  applicationName: "Je mange Africain",
   title: "Je mange Africain — Épicerie africaine authentique livrée chez vous",
   description:
     "Tous les produits authentiques de la cuisine africaine, livrés chez vous. Moteur de recettes intelligentes, placali, attiéké, graine de palme, gombo, kplô et plus.",
@@ -36,10 +38,15 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Je mange Africain" }],
   icons: {
-    icon: "/favicon.svg",
-    apple: "/icon.svg",
+    icon: "/logo-jma.png",
+    apple: "/logo-jma.png",
   },
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "JMA",
+  },
   openGraph: {
     title: "Je mange Africain",
     description: "Authentic African cooking essentials, delivered to your door.",
@@ -60,6 +67,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

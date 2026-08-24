@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Mail, Phone, MapPin, Facebook, Instagram, Youtube, Send } from "lucide-react";
 import { useStore, ViewId } from "@/lib/store";
 import { dict } from "@/lib/i18n";
@@ -45,7 +46,13 @@ export function Footer() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-2 lg:grid-cols-4 lg:px-6">
         {/* about */}
         <div className="space-y-3">
-          <img src="/logo-dark.svg" alt="Je mange Africain" className="h-10 w-auto" />
+          <div className="flex items-center gap-3">
+            <Image src="/logo-jma.png" alt="Je mange Africain" width={120} height={120} className="h-16 w-16 object-contain" />
+            <div>
+              <p className="text-base font-extrabold text-cream">Je mange Africain</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gold">Épicerie mobile</p>
+            </div>
+          </div>
           <p className="text-sm text-cream/70">{t.footer.aboutDesc}</p>
           <div className="flex gap-2 pt-2">
             <a href="#" onClick={(e) => e.preventDefault()} aria-label="Facebook" className="grid h-8 w-8 place-items-center rounded-full bg-cream/10 transition hover:bg-terre"><Facebook className="h-4 w-4" /></a>

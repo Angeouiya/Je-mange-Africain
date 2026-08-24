@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, Truck, Snowflake, ShieldCheck, Headphones, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,10 +36,10 @@ export function HomeView() {
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src="/hero.jpg" alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-charcoal/85 via-charcoal/60 to-transparent" />
+          <Image src="/hero.jpg" alt="" fill sizes="100vw" className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-r from-charcoal/88 via-charcoal/58 to-charcoal/10" />
         </div>
-        <div className="relative mx-auto flex max-w-7xl flex-col gap-6 px-4 py-16 md:py-24 lg:px-6">
+        <div className="relative mx-auto flex min-h-[62svh] max-w-7xl flex-col justify-center gap-6 px-4 py-12 md:min-h-[560px] md:py-20 lg:px-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Badge className="border-0 bg-terre/90 text-cream shadow-lg">
               <Sparkles className="mr-1 h-3 w-3" /> {t.home.heroBadge}
@@ -74,7 +75,7 @@ export function HomeView() {
             className="grid grid-cols-2 gap-4 pt-4 md:grid-cols-4"
           >
             {stats.map((s) => (
-              <div key={s.label} className="rounded-xl bg-cream/10 p-3 backdrop-blur">
+              <div key={s.label} className="rounded-xl border border-cream/15 bg-cream/12 p-3 backdrop-blur-md">
                 <div className="text-2xl font-bold text-gold md:text-3xl">{s.value}</div>
                 <div className="text-xs text-cream/80">{s.label}</div>
               </div>

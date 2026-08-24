@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ChefHat, Boxes, Truck, ShoppingCart, Users,
@@ -29,6 +30,13 @@ export function AdminView() {
   const t = dict[locale].admin;
   const [section, setSection] = useState<AdminSection>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const backToStore = () => {
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
+      window.location.assign("/");
+      return;
+    }
+    navigate("home");
+  };
 
   const nav: { id: AdminSection; icon: any; label: string }[] = [
     { id: "dashboard", icon: LayoutDashboard, label: t.dashboard },
@@ -43,12 +51,18 @@ export function AdminView() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-cream">
+    <div className="flex min-h-screen bg-[#F6F7F2]">
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-charcoal text-cream transition-transform md:relative md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="african-kente-stripe h-1.5" />
         <div className="flex items-center justify-between p-4">
-          <img src="/logo-dark.svg" alt="Je mange Africain" className="h-8 w-auto" />
+          <div className="flex items-center gap-3">
+            <Image src="/logo-jma.png" alt="Je mange Africain" width={96} height={96} className="h-14 w-14 object-contain" priority />
+            <div>
+              <p className="text-sm font-extrabold text-cream">JMA Admin</p>
+              <p className="text-[10px] uppercase tracking-wide text-cream/55">Opérations</p>
+            </div>
+          </div>
           <button onClick={() => setSidebarOpen(false)} className="md:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="flex-1 space-y-0.5 px-2 py-2">
@@ -65,7 +79,7 @@ export function AdminView() {
           ))}
         </nav>
         <div className="border-t border-cream/10 p-3">
-          <Button onClick={() => navigate("home")} variant="ghost" className="w-full justify-start text-cream/70 hover:bg-cream/10 hover:text-cream">
+          <Button onClick={backToStore} variant="ghost" className="w-full justify-start text-cream/70 hover:bg-cream/10 hover:text-cream">
             <Store className="mr-2 h-4 w-4" /> {t.backToStore}
           </Button>
           <div className="mt-3 rounded-lg bg-cream/5 p-2 text-[11px] text-cream/60">

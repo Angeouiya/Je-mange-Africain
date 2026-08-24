@@ -31,17 +31,13 @@ export function CatalogView() {
   const [filtersOpenMobile, setFiltersOpenMobile] = useState(false);
 
   // pick up search from SearchBar (window bridge)
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const s = (window as any).__jmaSearch as string | undefined;
     if (s) { setSearch(s); (window as any).__jmaSearch = undefined; }
   }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Sync category from navigation params + reset page on filter change.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setCat(params.category || null); }, [params.category]);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setPage(1); }, [search, cat, brand, country, thermal, maxPrice, sort]);
 
   const qs = new URLSearchParams({ locale, sort, page: String(page), pageSize: "12" });

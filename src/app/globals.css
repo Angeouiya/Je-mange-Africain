@@ -51,7 +51,7 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.5rem;
   /* Brand palette */
   --terre: #D65A32;
   --terre-dark: #B84A26;
@@ -60,9 +60,11 @@
   --forest-dark: #2F5014;
   --charcoal: #242424;
   --cream: #FFF9F2;
+  --mist: #F6F7F2;
+  --ink-soft: #343434;
   --light-grey: #F4F4F2;
 
-  --background: #FFF9F2;
+  --background: #F6F7F2;
   --foreground: #242424;
   --card: #FFFFFF;
   --card-foreground: #242424;
@@ -72,7 +74,7 @@
   --primary-foreground: #FFF9F2;
   --secondary: #3F681C;
   --secondary-foreground: #FFF9F2;
-  --muted: #F4F4F2;
+  --muted: #EEF1EA;
   --muted-foreground: #6B6357;
   --accent: #F2A900;
   --accent-foreground: #242424;
@@ -139,6 +141,10 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "ss01", "cv01";
+    min-height: 100svh;
+    overscroll-behavior-y: none;
+    background:
+      linear-gradient(180deg, #FFFFFF 0%, var(--mist) 34%, #F8F3EA 100%);
   }
   ::selection {
     background-color: color-mix(in srgb, var(--terre) 25%, transparent);
@@ -201,4 +207,32 @@
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 30%, transparent), transparent);
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite;
+}
+
+@layer utilities {
+  .jma-shell {
+    min-height: 100svh;
+    background:
+      radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--gold) 18%, transparent), transparent 24rem),
+      linear-gradient(180deg, #FFFFFF 0%, var(--mist) 42%, #F8F3EA 100%);
+  }
+  .jma-screen {
+    width: 100%;
+    max-width: 82rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  .jma-card {
+    border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+    background: color-mix(in srgb, #FFFFFF 94%, var(--mist));
+    box-shadow: 0 18px 44px -36px rgba(36, 36, 36, 0.45);
+  }
+  .jma-safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+  }
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl {
+    border-radius: 0.5rem;
+  }
 }

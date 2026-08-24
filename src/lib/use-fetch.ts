@@ -1,6 +1,4 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect -- data-fetching hook legitimately updates state in async callbacks */
-
 import { useEffect, useState, useCallback } from "react";
 
 interface FetchState<T> {

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useStore, cartSubtotal, cartWeightGrams, cartThermalSplit, CartItem } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
-import { useFetch, postJSON } from "@/lib/use-fetch";
+import { postJSON } from "@/lib/use-fetch";
 import { toast } from "sonner";
 
 export function CartView() {
@@ -30,25 +30,34 @@ export function CartView() {
   const subtotal = cartSubtotal(cart);
   const weight = cartWeightGrams(cart);
   const thermal = cartThermalSplit(cart);
+  const thermalKey = thermal.join("|");
 
-  const { data: shipping, refetch } = useFetch(subtotal > 0 ? null : null, []);
-  // fetch shipping quote
   const [shipQuote, setShipQuote] = useState<{ fee: number; carrier: string } | null>(null);
   const [shipLoading, setShipLoading] = useState(false);
 
-  const fetchShip = async () => {
-    if (cart.length === 0) return;
-    setShipLoading(true);
-    try {
-      const res = await postJSON<{ fee: number; carrier: string; packages: number }>("/api/shipping/quote", {
-        weightGrams: weight, thermalClasses: thermal, postalCode: "75011", country: "France",
-      });
-      setShipQuote(res);
-    } catch { setShipQuote(null); }
-    setShipLoading(false);
-  };
-  // recompute shipping when cart changes
-  useState(() => { fetchShip(); });
+  useEffect(() => {
+    const fetchShip = async () => {
+      if (cart.length === 0) {
+        setShipQuote(null);
+        return;
+      }
+      setShipLoading(true);
+      try {
+        const res = await postJSON<{ fee: number; carrier: string; packages: number }>("/api/shipping/quote", {
+          weightGrams: weight,
+          thermalClasses: thermalKey ? thermalKey.split("|") : [],
+          postalCode: "75011",
+          country: "France",
+        });
+        setShipQuote(res);
+      } catch {
+        setShipQuote(null);
+      } finally {
+        setShipLoading(false);
+      }
+    };
+    fetchShip();
+  }, [cart.length, weight, thermalKey]);
 
   const promoDiscount = couponApplied?.discount || 0;
   const freeShip = couponApplied?.freeShipping;
@@ -165,7 +174,7 @@ export function CartView() {
               {promoDiscount > 0 && <Row label={t.cart.promo} value={`-${formatPrice(promoDiscount, locale)}`} className="text-forest" />}
               <Row label={t.cart.totalWeight} value={formatWeight(weight, locale)} />
               <Row label={t.cart.vat} value={formatPrice(vat, locale)} className="text-muted-foreground" />
-              <Row label={t.cart.shipping} value={shipFee === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipFee, locale)} />
+              <Row label={t.cart.shipping} value={shipLoading ? t.loading : shipFee === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipFee, locale)} />
               <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
                 <Truck className="h-3.5 w-3.5" />
                 <span>{t.cart.thermalSplit.replace("{n}", String(thermal.length || 1))}</span>
@@ -195,7 +204,7 @@ function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string;
   const t = dict[locale as "fr" | "en"];
   return (
     <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-3 rounded-xl bg-background p-2">
-      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg text-2xl" style={{ background: (c.imageColor || "#D65A32") + "22" }}>🍲</span>
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg text-2xl" style={{ background: (c.imageColor || "#D65A32") + "22" }}>{c.imageEmoji || "🍲"}</span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-charcoal">{c.name}</p>
         <p className="text-[11px] text-muted-foreground">{c.unitLabel} · <span className={`inline-flex items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>

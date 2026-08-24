@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Menu, ShoppingBag, User, Package, LayoutDashboard, ChevronDown,
-  MapPin, X,
+  Menu, ShoppingBag, User, LayoutDashboard, ChevronDown,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useStore, cartCount } from "@/lib/store";
 import { dict } from "@/lib/i18n";
@@ -41,9 +41,13 @@ export function Header() {
     navigate(view, params);
     setMobileOpen(false);
   };
+  const openAdmin = () => {
+    setMobileOpen(false);
+    window.location.assign("/admin");
+  };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-cream/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-white/90 backdrop-blur-xl">
       {/* kente stripe */}
       <div className="african-kente-stripe h-1" />
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-3 md:px-6">
@@ -57,7 +61,7 @@ export function Header() {
           <SheetContent side="left" className="w-80 bg-cream p-0">
             <SheetHeader className="border-b border-border p-4">
               <SheetTitle className="text-left">
-                <img src={locale === "fr" ? "/logo.svg" : "/logo.svg"} alt="Je mange Africain" className="h-9 w-auto" />
+                <Image src="/logo-jma.png" alt="Je mange Africain" width={148} height={148} className="h-16 w-16 object-contain" priority />
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col p-2">
@@ -78,7 +82,7 @@ export function Header() {
               <button onClick={() => go("info", { infoPage: "contact" })} className="rounded-lg px-3 py-3 text-left text-sm font-medium text-charcoal hover:bg-muted">
                 {t.nav.contact}
               </button>
-              <button onClick={() => go("admin")} className="mt-2 flex items-center gap-2 rounded-lg bg-charcoal px-3 py-3 text-left text-sm font-medium text-cream hover:bg-charcoal/90">
+              <button onClick={openAdmin} className="mt-2 flex items-center gap-2 rounded-lg bg-charcoal px-3 py-3 text-left text-sm font-medium text-cream hover:bg-charcoal/90">
                 <LayoutDashboard className="h-4 w-4" /> {t.nav.admin}
               </button>
               <div className="mt-4 border-t border-border pt-3">
@@ -89,9 +93,13 @@ export function Header() {
         </Sheet>
 
         {/* logo */}
-        <button onClick={() => go("home")} className="flex items-center" aria-label="Accueil">
-          <img src="/logo.svg" alt="Je mange Africain" className="hidden h-9 w-auto sm:block" />
-          <img src="/icon.svg" alt="Je mange Africain" className="h-9 w-9 sm:hidden" />
+        <button onClick={() => go("home")} className="flex items-center gap-2" aria-label="Accueil">
+          <Image src="/logo-jma.png" alt="Je mange Africain" width={160} height={160} className="hidden h-12 w-12 object-contain sm:block" priority />
+          <Image src="/logo-jma.png" alt="Je mange Africain" width={96} height={96} className="h-10 w-10 object-contain sm:hidden" priority />
+          <span className="hidden leading-tight sm:block">
+            <span className="block text-sm font-extrabold text-charcoal">Je mange Africain</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-wide text-terre">Épicerie mobile</span>
+          </span>
         </button>
 
         {/* desktop nav */}
@@ -157,13 +165,13 @@ export function Header() {
         </Button>
 
         {/* admin (desktop) */}
-        <Button variant="outline" size="sm" onClick={() => go("admin")} className="hidden border-charcoal text-charcoal hover:bg-charcoal hover:text-cream md:inline-flex">
+        <Button variant="outline" size="sm" onClick={openAdmin} className="hidden border-charcoal text-charcoal hover:bg-charcoal hover:text-cream md:inline-flex">
           <LayoutDashboard className="mr-1 h-4 w-4" /> {t.nav.admin}
         </Button>
       </div>
 
       {/* mobile search row */}
-      <div className="border-t border-border px-3 pb-2 pt-2 lg:hidden">
+      <div className="border-t border-border/70 px-3 pb-2 pt-2 lg:hidden">
         <SearchBar />
       </div>
     </header>

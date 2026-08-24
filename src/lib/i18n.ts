@@ -87,9 +87,9 @@ export const dict = {
 
     // Home sections
     home: {
-      heroBadge: "Épicerie africaine authentique",
-      heroTitle: "Cuisinez l'Afrique,\ncomme à la maison.",
-      heroSubtitle: "Produits authentiques, recettes intelligentes, livraison chez vous en France puis en Europe.",
+      heroBadge: "Application d'épicerie africaine authentique",
+      heroTitle: "Je mange Africain\nà votre table.",
+      heroSubtitle: "Produits sourcés, recettes intelligentes, panier calculé et livraison suivie en France puis en Europe.",
       heroCtaCatalog: "Explorer le catalogue",
       heroCtaRecipes: "Configurer une recette",
       statProducts: "Produits authentiques",
@@ -396,7 +396,7 @@ export const dict = {
       subscribe: "S'inscrire",
       emailPlaceholder: "Votre e-mail",
       rights: "Tous droits réservés.",
-      cgv: "Conditions générales",
+      cgv: "CGU & CGV",
       privacy: "Confidentialité",
       cookies: "Cookies",
       delivery: "Livraison & remboursement",
@@ -539,9 +539,9 @@ export const dict = {
     },
 
     home: {
-      heroBadge: "Authentic African grocery",
-      heroTitle: "Cook Africa,\nlike at home.",
-      heroSubtitle: "Authentic products, smart recipes, delivery to your door across France and soon Europe.",
+      heroBadge: "Authentic African grocery app",
+      heroTitle: "Je mange Africain\nat your table.",
+      heroSubtitle: "Sourced products, smart recipes, calculated baskets and tracked delivery across France and soon Europe.",
       heroCtaCatalog: "Browse the catalog",
       heroCtaRecipes: "Configure a recipe",
       statProducts: "Authentic products",
@@ -839,7 +839,7 @@ export const dict = {
       subscribe: "Subscribe",
       emailPlaceholder: "Your email",
       rights: "All rights reserved.",
-      cgv: "Terms of sale",
+      cgv: "Terms",
       privacy: "Privacy",
       cookies: "Cookies",
       delivery: "Delivery & refunds",

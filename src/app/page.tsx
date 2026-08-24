@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { Header } from "@/components/storefront/Header";
@@ -31,7 +32,7 @@ export default function Page() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
         <div className="flex flex-col items-center gap-3">
-          <img src="/logo.svg" alt="Je mange Africain" className="h-10 w-auto animate-pulse" />
+          <Image src="/logo-jma.png" alt="Je mange Africain" width={180} height={180} className="h-24 w-24 animate-pulse object-contain" priority />
           <div className="h-1 w-24 overflow-hidden rounded-full bg-muted">
             <div className="shimmer h-full w-full" />
           </div>
@@ -47,7 +48,7 @@ export default function Page() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="jma-shell flex min-h-screen flex-col">
       <Header />
       <main className="flex-1 pb-16 md:pb-0">
         <AnimatePresence mode="wait">

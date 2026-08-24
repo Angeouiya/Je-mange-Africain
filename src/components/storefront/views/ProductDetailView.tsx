@@ -32,14 +32,12 @@ export function ProductDetailView() {
   const [qty, setQty] = useState(1);
 
   // Initialize default variant + track recently viewed when product loads.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (product) {
       setVariantId(product.variants?.find((v: any) => v.isDefault)?.id || product.variants?.[0]?.id || null);
       pushRecentlyViewed(product.id);
     }
   }, [product?.id, pushRecentlyViewed]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (loading) return <div className="mx-auto max-w-7xl px-4 py-10"><Skeleton className="h-96 rounded-2xl" /></div>;
   if (!product) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Produit introuvable.</div>;
@@ -61,6 +59,9 @@ export function ProductDetailView() {
       unitLabel: variant?.label || product.packaging,
       packWeightGrams: variant?.weightGrams || product.netWeightGrams || 0,
       thermalClass: product.thermalClass,
+      imageColor: product.imageColor,
+      imageEmoji: product.imageEmoji,
+      qty,
       maxStock: product.stockQty,
     });
     toast.success(t.product.addedToCart);

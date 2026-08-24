@@ -59,6 +59,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
       packWeightGrams: defaultVariant?.weightGrams || 0,
       thermalClass: product.thermalClass as any,
       imageColor: product.imageColor,
+      imageEmoji: product.imageEmoji,
       maxStock: product.stockQty,
     });
     toast.success(t.product.addedToCart, { description: product.name });

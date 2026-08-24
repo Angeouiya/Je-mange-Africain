@@ -21,7 +21,8 @@ export function MobileNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-border bg-cream/95 backdrop-blur-md md:hidden">
+    <nav className="jma-safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-white/95 px-2 pt-1 shadow-[0_-18px_40px_-34px_rgba(36,36,36,0.8)] backdrop-blur-xl md:hidden">
+      <div className="grid grid-cols-5">
       {items.map((it) => {
         const active = view === it.id;
         const Icon = it.icon;
@@ -29,8 +30,8 @@ export function MobileNav() {
           <button
             key={it.id}
             onClick={() => navigate(it.id)}
-            className={`relative flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition ${
-              active ? "text-terre" : "text-muted-foreground"
+            className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-semibold transition ${
+              active ? "bg-terre/10 text-terre" : "text-muted-foreground"
             }`}
             aria-label={it.label}
           >
@@ -41,10 +42,11 @@ export function MobileNav() {
                 {count}
               </span>
             )}
-            {active && <span className="absolute bottom-0 h-0.5 w-8 rounded-full bg-terre" />}
+            {active && <span className="absolute bottom-1 h-0.5 w-8 rounded-full bg-terre" />}
           </button>
         );
       })}
+      </div>
     </nav>
   );
 }
