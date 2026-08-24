@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: projectRoot,
   },
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./db/custom.db"],
+  },
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
