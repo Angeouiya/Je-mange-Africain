@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ProductImage } from "./ProductImage";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
-import { formatPrice, thermalColor, thermalLabel } from "@/lib/format";
+import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
+import { getDiscountPercent, getProductCommercialLine, getProductPhoto } from "@/lib/market-media";
 import { toast } from "sonner";
 
 export interface ProductListItem {
@@ -20,6 +21,13 @@ export interface ProductListItem {
   pricePerKg?: number | null;
   stockQty: number;
   alertThreshold?: number;
+  country?: string;
+  brandName?: string | null;
+  category?: { id?: string; slug?: string; name?: string; color?: string | null } | null;
+  categorySlug?: string | null;
+  categoryName?: string | null;
+  description?: string;
+  photoUrl?: string | null;
   imageColor: string;
   imageEmoji: string;
   isBestseller?: boolean;
@@ -40,6 +48,10 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
   const t = dict[locale];
   const isFav = favorites.includes(product.id);
   const price = product.promoPrice ?? product.price;
+  const discountPercent = getDiscountPercent(product.price, product.promoPrice);
+  const saving = product.promoPrice ? product.price - product.promoPrice : 0;
+  const photoUrl = product.photoUrl || getProductPhoto(product);
+  const commercialLine = getProductCommercialLine(product, locale);
   const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
   const outOfStock = product.stockQty <= 0;
 
@@ -76,17 +88,28 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
       onClick={() => navigate("product", { productId: product.id })}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-lg hover:-translate-y-0.5"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl"
     >
       <div className="relative">
-        <div className="flex aspect-square w-full items-center justify-center p-4">
-          <ProductImage emoji={product.imageEmoji} color={product.imageColor} size="lg" className="w-full h-full" />
+        <div className="flex aspect-[4/3] w-full items-center justify-center bg-muted/40">
+          <ProductImage
+            src={photoUrl}
+            alt={product.name}
+            emoji={product.imageEmoji}
+            color={product.imageColor}
+            size="lg"
+            className="h-full w-full"
+          />
         </div>
-        {/* badges */}
-        <div className="absolute left-2 top-2 flex flex-col gap-1">
+        <div className="absolute left-2 top-2 flex max-w-[74%] flex-col gap-1">
+          {discountPercent > 0 && (
+            <span className="w-fit rounded-md bg-destructive px-2 py-1 text-[11px] font-extrabold leading-none text-white shadow-md">
+              -{discountPercent}%
+            </span>
+          )}
           {product.isBestseller && <Badge className="bg-forest text-cream border-0 shadow-sm">{t.bestseller}</Badge>}
           {product.isNew && <Badge className="bg-gold text-charcoal border-0 shadow-sm">{t.new}</Badge>}
-          {product.isOnSale && <Badge className="bg-destructive text-white border-0 shadow-sm">{t.promo}</Badge>}
+          {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0 shadow-sm">{t.promo}</Badge>}
         </div>
         <button
           onClick={handleFav}
@@ -97,22 +120,33 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-3">
+      <div className="flex flex-1 flex-col gap-2.5 p-3">
         <div className="flex items-center gap-1.5">
           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${thermalColor(product.thermalClass)}`}>
             {thermalLabel(product.thermalClass, locale)}
           </span>
-          {lowStock && <span className="text-[10px] font-medium text-gold">{t.lowStock}</span>}
-          {outOfStock && <span className="text-[10px] font-medium text-destructive">{t.outOfStock}</span>}
+          {lowStock && <span className="text-[10px] font-semibold text-gold">{t.lowStock}</span>}
+          {outOfStock && <span className="text-[10px] font-semibold text-destructive">{t.outOfStock}</span>}
         </div>
-        <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-charcoal">{product.name}</h3>
-        <p className="text-[11px] text-muted-foreground">{product.traditionalName}</p>
-        <div className="mt-auto flex items-end justify-between pt-1">
-          <div>
+        <div>
+          <h3 className="line-clamp-2 text-sm font-bold leading-tight text-charcoal">{product.name}</h3>
+          <p className="mt-0.5 line-clamp-1 text-[11px] font-medium text-terre">{product.traditionalName}</p>
+        </div>
+        <p className="line-clamp-2 min-h-[2.2rem] text-[11px] leading-relaxed text-muted-foreground">{commercialLine}</p>
+        <div className="mt-auto flex items-end justify-between gap-2 pt-1">
+          <div className="min-w-0">
             {product.promoPrice && (
-              <span className="mr-1 text-xs text-muted-foreground line-through">{formatPrice(product.price, locale)}</span>
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="text-xs text-muted-foreground line-through">{formatPrice(product.price, locale)}</span>
+                {saving > 0 && (
+                  <span className="text-[10px] font-semibold text-forest">
+                    {locale === "fr" ? "éco." : "save"} {formatPrice(saving, locale)}
+                  </span>
+                )}
+              </div>
             )}
-            <span className="text-base font-bold text-terre">{formatPrice(price, locale)}</span>
+            <span className="text-base font-extrabold text-terre">{formatPrice(price, locale)}</span>
+            {product.pricePerKg && <span className="ml-1 text-[10px] text-muted-foreground">/ {formatUnitPrice(product.pricePerKg, locale)} kg</span>}
           </div>
           <Button
             size="sm"

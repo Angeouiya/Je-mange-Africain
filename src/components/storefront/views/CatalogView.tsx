@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { SlidersHorizontal, X, Search as SearchIcon, PackageSearch } from "lucide-react";
+import { PackageSearch, Percent, Search as SearchIcon, ShieldCheck, SlidersHorizontal, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,7 @@ export function CatalogView() {
 
   const filters = data?.filters;
   const clearAll = () => { setCat(null); setBrand(null); setCountry(null); setThermal(null); setMaxPrice(null); setSearch(""); };
+  const activeFilterCount = [cat, brand, country, thermal, maxPrice].filter(Boolean).length;
 
   const FilterPanel = (
     <div className="space-y-5">
@@ -104,6 +105,23 @@ export function CatalogView() {
     <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
       <div className="mb-4 flex flex-col gap-3">
         <h1 className="text-2xl font-bold text-charcoal md:text-3xl">{t.catalog.title}</h1>
+        <div className="grid gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm md:grid-cols-3">
+          <CatalogSignal
+            icon={Percent}
+            label={locale === "fr" ? "Remises lisibles" : "Clear discounts"}
+            value={locale === "fr" ? "Pourcentage visible dès la carte" : "Percentage visible on cards"}
+          />
+          <CatalogSignal
+            icon={ShieldCheck}
+            label={locale === "fr" ? "Sélection maîtrisée" : "Controlled selection"}
+            value={locale === "fr" ? "Origine, format et conservation vérifiés" : "Origin, pack and storage verified"}
+          />
+          <CatalogSignal
+            icon={Truck}
+            label={locale === "fr" ? "Panier livrable" : "Deliverable basket"}
+            value={locale === "fr" ? "Ambiant, frais et surgelé organisés" : "Ambient, chilled and frozen organized"}
+          />
+        </div>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -147,6 +165,7 @@ export function CatalogView() {
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">{t.catalog.results.replace("{count}", String(data?.total ?? 0))}</p>
+            {activeFilterCount > 0 && <span className="text-xs font-semibold text-terre">{activeFilterCount} {locale === "fr" ? "filtre(s) actif(s)" : "active filter(s)"}</span>}
             {(cat || brand || country || thermal || maxPrice) && (
               <div className="hidden flex-wrap gap-1 sm:flex">
                 {cat && <ActiveFilter onClear={() => setCat(null)}>{filters?.categories?.find((c:any)=>c.id===cat)?.name}</ActiveFilter>}
@@ -213,5 +232,19 @@ function ActiveFilter({ onClear, children }: { onClear: () => void; children: Re
       {children}
       <button onClick={onClear} aria-label="Retirer"><X className="h-3 w-3" /></button>
     </Badge>
+  );
+}
+
+function CatalogSignal({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+  return (
+    <div className="flex min-h-16 items-center gap-3 rounded-lg bg-muted/35 px-3 py-2">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-terre/10">
+        <Icon className="h-4 w-4 text-terre" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-xs font-extrabold leading-tight text-charcoal">{label}</span>
+        <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{value}</span>
+      </span>
+    </div>
   );
 }

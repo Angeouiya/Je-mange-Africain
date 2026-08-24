@@ -13,7 +13,8 @@ import { RecipeCard } from "@/components/shared/RecipeCard";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
-import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
+import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
+import { getDiscountPercent, getProductCommercialLine, getProductGallery, getProductObjective } from "@/lib/market-media";
 import { toast } from "sonner";
 
 export function ProductDetailView() {
@@ -26,15 +27,18 @@ export function ProductDetailView() {
   const pushRecentlyViewed = useStore((s) => s.pushRecentlyViewed);
   const t = dict[locale];
 
-  const { data: product, loading } = useFetch(`/api/products/${params.productId}?locale=${locale}`, [params.productId, locale]);
+  const productId = params.productId;
+  const { data: product, loading } = useFetch(productId ? `/api/products/${productId}?locale=${locale}` : null, [productId, locale]);
 
   const [variantId, setVariantId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   // Initialize default variant + track recently viewed when product loads.
   useEffect(() => {
     if (product) {
       setVariantId(product.variants?.find((v: any) => v.isDefault)?.id || product.variants?.[0]?.id || null);
+      setSelectedPhoto(null);
       pushRecentlyViewed(product.id);
     }
   }, [product?.id, pushRecentlyViewed]);
@@ -47,6 +51,12 @@ export function ProductDetailView() {
   const isFav = favorites.includes(product.id);
   const outOfStock = product.stockQty <= 0;
   const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
+  const discountPercent = getDiscountPercent(product.price, product.promoPrice);
+  const saving = product.promoPrice ? product.price - product.promoPrice : 0;
+  const gallery = getProductGallery(product);
+  const heroPhoto = selectedPhoto || gallery[0];
+  const objective = getProductObjective(product, locale);
+  const commercialLine = getProductCommercialLine(product, locale);
 
   const handleAdd = () => {
     addToCart({
@@ -73,11 +83,38 @@ export function ProductDetailView() {
         <ChevronLeft className="h-4 w-4" /> {t.back}
       </button>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         {/* visual */}
         <div className="space-y-3">
-          <div className="flex aspect-square items-center justify-center rounded-2xl border border-border bg-card p-8">
-            <ProductImage emoji={product.imageEmoji} color={product.imageColor} size="xl" className="w-full h-full" />
+          <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-border bg-card">
+            <ProductImage
+              src={heroPhoto}
+              alt={product.name}
+              emoji={product.imageEmoji}
+              color={product.imageColor}
+              size="xl"
+              priority
+              className="h-full w-full"
+            />
+            {discountPercent > 0 && (
+              <span className="absolute left-4 top-4 rounded-md bg-destructive px-3 py-2 text-sm font-extrabold text-white shadow-lg">
+                -{discountPercent}%
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {gallery.map((photo, index) => (
+              <button
+                key={photo}
+                onClick={() => setSelectedPhoto(photo)}
+                className={`relative aspect-[4/3] overflow-hidden rounded-lg border transition ${
+                  heroPhoto === photo ? "border-terre shadow-sm" : "border-border hover:border-terre/50"
+                }`}
+                aria-label={`${locale === "fr" ? "Voir la photo" : "View photo"} ${index + 1}`}
+              >
+                <ProductImage src={photo} alt="" emoji={product.imageEmoji} color={product.imageColor} size="md" className="h-full w-full" />
+              </button>
+            ))}
           </div>
           <div className="flex flex-wrap gap-2">
             {product.variants?.map((v: any) => (
@@ -100,13 +137,15 @@ export function ProductDetailView() {
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${thermalColor(product.thermalClass)}`}>
               <Snowflake className="mr-1 h-3 w-3" /> {thermalLabel(product.thermalClass, locale)}
             </span>
+            {discountPercent > 0 && <Badge className="bg-destructive text-white border-0">-{discountPercent}%</Badge>}
             {product.isBestseller && <Badge className="bg-forest text-cream border-0">{t.bestseller}</Badge>}
             {product.isNew && <Badge className="bg-gold text-charcoal border-0">{t.new}</Badge>}
-            {product.isOnSale && <Badge className="bg-destructive text-white border-0">{t.promo}</Badge>}
+            {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0">{t.promo}</Badge>}
           </div>
           <div>
             <h1 className="text-2xl font-bold text-charcoal md:text-3xl">{product.name}</h1>
             <p className="text-sm text-muted-foreground">{product.traditionalName} · {product.country}</p>
+            <p className="mt-2 text-sm font-medium leading-relaxed text-terre">{commercialLine}</p>
             <div className="mt-1 flex items-center gap-1 text-xs">
               {[1,2,3,4,5].map((s) => <Star key={s} className="h-3.5 w-3.5 fill-gold text-gold" />)}
               <span className="ml-1 text-muted-foreground">(4.8 · 124 {locale === "fr" ? "avis" : "reviews"})</span>
@@ -117,8 +156,13 @@ export function ProductDetailView() {
           <div className="flex items-end gap-3">
             {product.promoPrice && <span className="text-lg text-muted-foreground line-through">{formatPrice(product.price, locale)}</span>}
             <span className="text-3xl font-extrabold text-terre">{formatPrice(price, locale)}</span>
-            {product.pricePerKg && <span className="pb-1 text-xs text-muted-foreground">≈ {formatPrice(Number(product.pricePerKg), locale)}{t.perKg}</span>}
+            {product.pricePerKg && <span className="pb-1 text-xs text-muted-foreground">≈ {formatUnitPrice(Number(product.pricePerKg), locale)}{t.perKg}</span>}
           </div>
+          {saving > 0 && (
+            <p className="w-fit rounded-md bg-forest/10 px-3 py-1 text-xs font-semibold text-forest">
+              {locale === "fr" ? "Économie immédiate" : "Instant saving"} : {formatPrice(saving, locale)}
+            </p>
+          )}
 
           {/* stock */}
           <div className="flex items-center gap-2 text-sm">
@@ -162,6 +206,21 @@ export function ProductDetailView() {
             </div>
             <div className="flex flex-col items-center gap-1 text-[11px] text-muted-foreground">
               <ShieldCheck className="h-4 w-4 text-gold" /> {locale === "fr" ? "Authentique" : "Authentic"}
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                {locale === "fr" ? "Objectif clé de la fiche" : "Product page objective"}
+              </p>
+              <h2 className="mt-1 text-base font-extrabold text-charcoal">{objective.title}</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{objective.body}</p>
+            </div>
+            <div className="grid gap-2 text-xs">
+              <InfoPill label={locale === "fr" ? "Modèle JMA" : "JMA model"} value={locale === "fr" ? "Sélection, stock et livraison maîtrisés" : "Curated stock and managed fulfilment"} />
+              <InfoPill label={locale === "fr" ? "Origine" : "Origin"} value={product.country || "—"} />
+              <InfoPill label={locale === "fr" ? "Format" : "Pack"} value={variant?.label || product.packaging || "—"} />
             </div>
           </div>
 
@@ -220,6 +279,15 @@ export function ProductDetailView() {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/35 px-3 py-2">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-0.5 font-semibold leading-snug text-charcoal">{value}</p>
     </div>
   );
 }

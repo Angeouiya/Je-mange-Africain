@@ -55,8 +55,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     id: p.id, sku: p.sku, traditionalName: p.traditionalName,
     name: p.translations?.find((x: any) => x.locale === locale)?.name || p.traditionalName,
     price: Number(p.price), promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
+    pricePerKg: p.pricePerKg ? Number(p.pricePerKg) : null,
     imageColor: p.imageColor, imageEmoji: p.imageEmoji, stockQty: p.stockQty,
+    alertThreshold: p.alertThreshold,
+    country: p.country,
     thermalClass: p.thermalClass, packaging: p.packaging,
+    isBestseller: p.isBestseller,
+    isNew: p.isNew,
+    isOnSale: p.isOnSale,
+    brandName: p.brand?.[`name${locale === "en" ? "En" : "Fr"}`] || p.brand?.nameFr || null,
+    category: p.category ? { id: p.category.id, slug: p.category.slug, name: p.category[`name${locale === "en" ? "En" : "Fr"}`], color: p.category.color } : null,
+    variants: p.variants?.map((v: any) => ({ id: v.id, label: v.label, weightGrams: v.weightGrams, volumeMl: v.volumeMl, price: Number(v.price), pricePerKg: v.pricePerKg ? Number(v.pricePerKg) : null, isDefault: v.isDefault })) || [],
   });
 
   let nutrition: any = null;

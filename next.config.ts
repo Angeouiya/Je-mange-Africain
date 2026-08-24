@@ -12,8 +12,17 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: projectRoot,
   },
+  allowedDevOrigins: ["127.0.0.1"],
   outputFileTracingIncludes: {
     "/api/**/*": ["./db/custom.db"],
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
   },
   /* config options here */
   typescript: {

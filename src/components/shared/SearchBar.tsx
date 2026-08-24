@@ -6,6 +6,8 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice } from "@/lib/format";
+import { getDiscountPercent, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
+import { ProductImage } from "./ProductImage";
 
 export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   const locale = useStore((s) => s.locale);
@@ -72,15 +74,26 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
                   onClick={() => { navigate("product", { productId: r.id }); setOpen(false); setQ(""); }}
                   className="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-muted"
                 >
-                  <span className="grid h-9 w-9 place-items-center rounded-lg text-xl" style={{ background: r.color + "22" }}>
-                    {r.emoji}
-                  </span>
+                  <ProductImage
+                    src={getProductPhoto({ ...r, imageEmoji: r.emoji, imageColor: r.color })}
+                    alt=""
+                    emoji={r.emoji}
+                    color={r.color}
+                    size="sm"
+                    className="h-10 w-10 shrink-0"
+                    rounded="rounded-lg"
+                  />
                   <span className="flex-1">
                     <span className="block text-sm font-medium text-charcoal">{r.name}</span>
                     {r.matchedAlias && <span className="block text-[11px] text-gold">↳ {r.matchedAlias}</span>}
-                    <span className="block text-[11px] text-muted-foreground">{r.category}</span>
+                    <span className="block text-[11px] text-muted-foreground">{r.category?.name || r.category}</span>
                   </span>
-                  <span className="text-sm font-bold text-terre">{formatPrice(r.price, locale)}</span>
+                  <span className="text-right">
+                    {getDiscountPercent(r.price, r.promoPrice) > 0 && (
+                      <span className="mb-0.5 block rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white">-{getDiscountPercent(r.price, r.promoPrice)}%</span>
+                    )}
+                    <span className="block text-sm font-bold text-terre">{formatPrice(r.promoPrice ?? r.price, locale)}</span>
+                  </span>
                 </button>
               ))}
               {data.recipes?.map((r: any) => (
@@ -89,9 +102,15 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
                   onClick={() => { navigate("recipe-config", { recipeId: r.id }); setOpen(false); setQ(""); }}
                   className="flex w-full items-center gap-3 border-t border-border px-3 py-2 text-left transition hover:bg-muted"
                 >
-                  <span className="grid h-9 w-9 place-items-center rounded-lg text-xl" style={{ background: r.color + "22" }}>
-                    {r.emoji}
-                  </span>
+                  <ProductImage
+                    src={getRecipePhoto({ ...r, title: r.name, imageEmoji: r.emoji, imageColor: r.color })}
+                    alt=""
+                    emoji={r.emoji}
+                    color={r.color}
+                    size="sm"
+                    className="h-10 w-10 shrink-0"
+                    rounded="rounded-lg"
+                  />
                   <span className="flex-1">
                     <span className="block text-sm font-medium text-charcoal">{r.name}</span>
                     <span className="inline-flex items-center gap-1 text-[11px] text-forest"><TrendingUp className="h-3 w-3" /> Recette</span>

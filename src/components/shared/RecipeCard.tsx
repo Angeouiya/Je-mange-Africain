@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ProductImage } from "./ProductImage";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
+import { getRecipePhoto } from "@/lib/market-media";
 
 export interface RecipeListItem {
   id: string;
@@ -30,6 +31,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
   const t = dict[locale];
 
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
+  const photoUrl = getRecipePhoto(recipe);
 
   return (
     <motion.div
@@ -38,8 +40,16 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
       className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-lg hover:-translate-y-0.5"
     >
-      <div className="relative flex aspect-[4/3] items-center justify-center p-6">
-        <ProductImage emoji={recipe.imageEmoji} color={recipe.imageColor} size="lg" className="w-full h-full" rounded="rounded-2xl" />
+      <div className="relative flex aspect-[4/3] items-center justify-center bg-muted/40">
+        <ProductImage
+          src={photoUrl}
+          alt={recipe.title}
+          emoji={recipe.imageEmoji}
+          color={recipe.imageColor}
+          size="lg"
+          className="h-full w-full"
+          rounded="rounded-2xl"
+        />
         {recipe.isPopular && (
           <Badge className="absolute left-3 top-3 bg-terre text-cream border-0 shadow-sm">★ {t.recipes.popular}</Badge>
         )}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { normalize } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -7,9 +8,43 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
   const category = searchParams.get("category");
+  const q = searchParams.get("q")?.trim();
 
   const where: any = { status: "published" };
   if (category) where.category = category;
+  if (q) {
+    const norm = normalize(q);
+    where.OR = [
+      { country: { contains: q } },
+      { category: { contains: q } },
+      { translations: { some: { OR: [{ title: { contains: q } }, { description: { contains: q } }] } } },
+      {
+        ingredients: {
+          some: {
+            product: {
+              OR: [
+                { traditionalName: { contains: q } },
+                { aliases: { some: { alias: { contains: q } } } },
+                { translations: { some: { OR: [{ name: { contains: q } }, { description: { contains: q } }] } } },
+              ],
+            },
+          },
+        },
+      },
+    ];
+    if (norm.includes("rapide") || norm.includes("quick") || norm.includes("diner") || norm.includes("dinner")) {
+      where.OR.push({ timeMinutes: { lte: 40 } });
+    }
+    if (norm.includes("poisson") || norm.includes("fish")) {
+      where.OR.push({ ingredients: { some: { product: { category: { slug: "poissons" } } } } });
+    }
+    if (norm.includes("viande") || norm.includes("meat") || norm.includes("poulet") || norm.includes("chicken")) {
+      where.OR.push({ ingredients: { some: { product: { category: { slug: "viandes" } } } } });
+    }
+    if (norm.includes("plantain") || norm.includes("alloco")) {
+      where.OR.push({ translations: { some: { title: { contains: "Alloco" } } } });
+    }
+  }
 
   const recipes = await db.recipe.findMany({
     where,

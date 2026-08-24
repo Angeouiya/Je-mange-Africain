@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ChevronLeft, Users, Clock, Flame, Minus, Plus, ShoppingCart, RotateCcw,
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
@@ -9,13 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Slider } from "@/components/ui/slider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ProductImage } from "@/components/shared/ProductImage";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch, postJSON } from "@/lib/use-fetch";
 import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
 import { formatQty } from "@/lib/recipe-engine";
+import { getRecipePhoto } from "@/lib/market-media";
 import { toast } from "sonner";
 
 interface CalcResult {
@@ -39,7 +40,8 @@ export function RecipeConfiguratorView() {
   const toggleSavedRecipe = useStore((s) => s.toggleSavedRecipe);
   const t = dict[locale];
 
-  const { data: recipe, loading } = useFetch(`/api/recipes/${params.recipeId}?locale=${locale}`, [params.recipeId, locale]);
+  const recipeId = params.recipeId;
+  const { data: recipe, loading } = useFetch(recipeId ? `/api/recipes/${recipeId}?locale=${locale}` : null, [recipeId, locale]);
 
   // config state
   const [servings, setServings] = useState(4);
@@ -55,7 +57,7 @@ export function RecipeConfiguratorView() {
   const [calc, setCalc] = useState<CalcResult | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
 
-  const isSaved = savedRecipes.includes(params.recipeId || "");
+  const isSaved = savedRecipes.includes(recipeId || "");
 
   // init defaults from recipe
   useEffect(() => {
@@ -144,6 +146,8 @@ export function RecipeConfiguratorView() {
   if (!recipe) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Recette introuvable.</div>;
 
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
+  const recipePhoto = getRecipePhoto(recipe);
+  const preparationSteps = calc?.steps?.[locale as "fr" | "en"] || recipe.steps || [];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
@@ -152,18 +156,26 @@ export function RecipeConfiguratorView() {
       </button>
 
       {/* recipe header */}
-      <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl text-5xl" style={{ background: recipe.imageColor + "22" }}>
-          {recipe.imageEmoji}
+      <div className="mb-5 grid overflow-hidden rounded-2xl border border-border bg-card shadow-sm md:grid-cols-[240px_1fr]">
+        <div className="relative aspect-[4/3] md:aspect-auto">
+          <ProductImage
+            src={recipePhoto}
+            alt={recipe.title}
+            emoji={recipe.imageEmoji}
+            color={recipe.imageColor}
+            size="xl"
+            priority
+            className="h-full w-full"
+          />
         </div>
-        <div className="flex-1">
-          <Badge variant="outline" className="mb-1">{recipe.country}</Badge>
-          <h1 className="text-2xl font-bold text-charcoal md:text-3xl">{recipe.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{recipe.description}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {recipe.baseServings} {t.config.peopleUnit}</span>
-            <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {recipe.timeMinutes} min</span>
-            <span className="inline-flex items-center gap-1"><Flame className="h-3.5 w-3.5" /> {diff}</span>
+        <div className="p-5 md:p-6">
+          <Badge variant="outline" className="mb-2">{recipe.country}</Badge>
+          <h1 className="text-2xl font-extrabold text-charcoal md:text-3xl">{recipe.title}</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{recipe.description}</p>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center sm:max-w-md">
+            <RecipeMetric icon={Users} label={t.config.peopleUnit} value={String(recipe.baseServings)} />
+            <RecipeMetric icon={Clock} label="min" value={String(recipe.timeMinutes)} />
+            <RecipeMetric icon={Flame} label={locale === "fr" ? "niveau" : "level"} value={diff} />
           </div>
         </div>
       </div>
@@ -264,18 +276,18 @@ export function RecipeConfiguratorView() {
         {/* RIGHT: results */}
         <div className="min-w-0 space-y-5">
           {/* steps accordion */}
-          {recipe.steps?.length > 0 && (
-            <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-2">
+          {preparationSteps.length > 0 && (
+            <Accordion type="single" collapsible defaultValue="steps" className="rounded-2xl border border-border bg-card px-2">
               <AccordionItem value="steps" className="border-0">
                 <AccordionTrigger className="px-3 text-sm font-bold text-charcoal">
-                  <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-gold" /> {locale === "fr" ? "Étapes de préparation" : "Preparation steps"}</span>
+                  <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-gold" /> {locale === "fr" ? "Étapes de préparation" : "Preparation steps"} · {preparationSteps.length}</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pb-3">
-                  <ol className="space-y-2">
-                    {recipe.steps.map((s: string, i: number) => (
-                      <li key={i} className="flex gap-3 text-sm text-charcoal">
-                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-terre/10 text-xs font-bold text-terre">{i + 1}</span>
-                        <span className="pt-0.5">{s}</span>
+                  <ol className="grid gap-2 md:grid-cols-2">
+                    {preparationSteps.map((s: string, i: number) => (
+                      <li key={i} className="flex gap-3 rounded-lg border border-border bg-muted/25 p-3 text-sm text-charcoal">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-terre text-xs font-bold text-cream">{i + 1}</span>
+                        <span className="pt-0.5 leading-relaxed">{s}</span>
                       </li>
                     ))}
                   </ol>
@@ -359,6 +371,16 @@ export function RecipeConfiguratorView() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function RecipeMetric({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/35 px-3 py-2">
+      <Icon className="mx-auto h-4 w-4 text-terre" />
+      <p className="mt-1 truncate text-sm font-extrabold text-charcoal">{value}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
   );
 }

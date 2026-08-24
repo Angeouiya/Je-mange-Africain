@@ -11,6 +11,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getCategoryPhoto } from "@/lib/market-media";
 
 export function HomeView() {
   const locale = useStore((s) => s.locale);
@@ -96,10 +97,12 @@ export function HomeView() {
                   key={c.id}
                   initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.04 }}
                   onClick={() => navigate("catalog", { category: c.id })}
-                  className="group flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-3 transition hover:-translate-y-0.5 hover:shadow-md"
+                  className="group relative flex min-h-32 flex-col justify-end overflow-hidden rounded-xl border border-border bg-charcoal p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-full text-2xl" style={{ background: c.color + "22" }}>{c.icon}</span>
-                  <span className="text-center text-xs font-medium leading-tight text-charcoal">{c.name}</span>
+                  <Image src={getCategoryPhoto(c)} alt="" fill sizes="(max-width: 768px) 50vw, 160px" className="object-cover transition duration-500 group-hover:scale-105" />
+                  <span className="absolute inset-0 bg-gradient-to-t from-charcoal/82 via-charcoal/30 to-transparent" />
+                  <span className="relative grid h-9 w-9 place-items-center rounded-full bg-white/90 text-xl shadow-sm">{c.icon}</span>
+                  <span className="relative mt-2 text-xs font-bold leading-tight text-cream">{c.name}</span>
                 </motion.button>
               ))}
             </div>

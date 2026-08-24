@@ -63,7 +63,15 @@ export async function GET(req: NextRequest) {
         emoji: a.product.imageEmoji,
         color: a.product.imageColor,
         price: Number(a.product.price),
-        category: a.product.category ? a.product.category[`name${locale === "en" ? "En" : "Fr"}`] : null,
+        promoPrice: a.product.promoPrice ? Number(a.product.promoPrice) : null,
+        country: a.product.country,
+        thermalClass: a.product.thermalClass,
+        category: a.product.category ? {
+          id: a.product.category.id,
+          slug: a.product.category.slug,
+          name: a.product.category[`name${locale === "en" ? "En" : "Fr"}`],
+          color: a.product.category.color,
+        } : null,
         matchedAlias: a.alias,
       });
     }
@@ -80,7 +88,15 @@ export async function GET(req: NextRequest) {
         emoji: p.imageEmoji,
         color: p.imageColor,
         price: Number(p.price),
-        category: p.category ? p.category[`name${locale === "en" ? "En" : "Fr"}`] : null,
+        promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
+        country: p.country,
+        thermalClass: p.thermalClass,
+        category: p.category ? {
+          id: p.category.id,
+          slug: p.category.slug,
+          name: p.category[`name${locale === "en" ? "En" : "Fr"}`],
+          color: p.category.color,
+        } : null,
         matchedAlias: null,
       });
     }
@@ -93,6 +109,11 @@ export async function GET(req: NextRequest) {
     name: r.translations.find((t) => t.locale === locale)?.title || r.translations[0]?.title,
     emoji: r.imageEmoji,
     color: r.imageColor,
+    country: r.country,
+    category: r.category,
+    difficulty: r.difficulty,
+    timeMinutes: r.timeMinutes,
+    baseServings: r.baseServings,
   }));
 
   return NextResponse.json({ results: results.slice(0, limit), recipes });

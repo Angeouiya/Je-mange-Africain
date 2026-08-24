@@ -9,6 +9,12 @@ export function formatPrice(amount: number, locale: Locale = "fr"): string {
   return n.toFixed(2).replace(".", ",") + " €";
 }
 
+export function formatUnitPrice(amount: number | null | undefined, locale: Locale = "fr"): string {
+  if (!amount || !Number.isFinite(Number(amount))) return "";
+  const normalized = Number(amount) > 300 ? Number(amount) / 1000 : Number(amount);
+  return formatPrice(normalized, locale);
+}
+
 /** Format a weight in grams → "1,2 kg" / "350 g" */
 export function formatWeight(grams: number, locale: Locale = "fr"): string {
   if (!grams || grams <= 0) return "—";
