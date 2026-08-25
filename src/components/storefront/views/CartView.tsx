@@ -16,6 +16,7 @@ import {
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PageBackButton } from "@/components/shared/PageBackButton";
+import { ProductImage } from "@/components/shared/ProductImage";
 
 export function CartView() {
   const locale = useStore((s) => s.locale);
@@ -89,7 +90,7 @@ export function CartView() {
       const res = await postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean; code?: string; error?: string }>("/api/promotions/validate", { code: couponInput, subtotal });
       if (res.valid) {
         setCouponApplied({ code: res.code!, discount: res.discount!, freeShipping: res.freeShipping });
-        setCoupon(res.code);
+        setCoupon(res.code || null);
       } else {
         setCouponError(res.error || "Code invalide");
       }
@@ -210,7 +211,7 @@ function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string;
   const t = dict[locale as "fr" | "en"];
   return (
     <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 rounded-lg bg-background p-2 sm:flex sm:gap-3">
-      <span className="row-span-2 grid h-12 w-12 shrink-0 place-items-center rounded-lg text-2xl sm:row-auto" style={{ background: (c.imageColor || "#D65A32") + "22" }}>{c.imageEmoji || "🍲"}</span>
+      <ProductImage src={c.imageUrl} alt={c.name} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="row-span-2 h-12 w-12 shrink-0 sm:row-auto" rounded="rounded-lg" />
       <div className="min-w-0 sm:flex-1">
         <p className="truncate text-sm font-medium text-charcoal">{c.name}</p>
         <p className="text-[11px] text-muted-foreground">{c.unitLabel} · <span className={`inline-flex items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>

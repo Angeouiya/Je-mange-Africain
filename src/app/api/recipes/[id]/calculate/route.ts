@@ -33,8 +33,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const url = new URL(req.url);
   const locale = (url.searchParams.get("locale") as "fr" | "en") || "fr";
 
-  const recipe = await db.recipe.findUnique({
-    where: { id },
+  const recipe = await db.recipe.findFirst({
+    where: { id, status: "published" },
     include: {
       translations: true,
       ingredients: {
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       id: ri.product.id,
       traditionalName: ri.product.traditionalName,
       imageEmoji: ri.product.imageEmoji,
+      imageUrl: ri.product.imageUrl,
       imageColor: ri.product.imageColor,
       thermalClass: ri.product.thermalClass,
       stockQty: ri.product.stockQty,
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     steps,
     rawIngredients,
     allProductsForSubstitute: allProducts.map((p) => ({
-      id: p.id, traditionalName: p.traditionalName, imageEmoji: p.imageEmoji, imageColor: p.imageColor,
+      id: p.id, traditionalName: p.traditionalName, imageEmoji: p.imageEmoji, imageUrl: p.imageUrl, imageColor: p.imageColor,
       stockQty: p.stockQty, reservedQty: p.reservedQty, thermalClass: p.thermalClass, categoryId: p.categoryId, categorySlug: p.category.slug,
       translations: p.translations.map((t) => ({ locale: t.locale, name: t.name })),
       variants: p.variants.map((v) => ({

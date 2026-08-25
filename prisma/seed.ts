@@ -129,7 +129,7 @@ async function main() {
   // Each product: [slug, sku, traditional, catSlug, brandKey, supplierKey, country, thermal, storageType, storageTemp, weightG, volumeMl, unit, packaging, price, promoPrice, imageColor, imageEmoji, bestseller, isNew, isOnSale, frName, frDesc, enName, enDesc, frPrep, enPrep, frStorage, enStorage, frIngredients, enIngredients, frAllergens, enAllergens, nutrition, aliases[], variants[]]
   type ProductDef = [
     string, string, string, string, string, string, string, string, string, string|null, number, number, string, string, number, number|null, string, string, boolean, boolean, boolean,
-    string, string, string, string, string|null, string|null, string|null, string|null, string|null, string|null, string|null, string|null, string|null, string, string[]
+    string, string, string, string, string|null, string|null, string|null, string|null, string|null, string|null, string|null, string|null, string|null, string[], string[]
   ];
 
   const products: ProductDef[] = [
@@ -285,7 +285,7 @@ async function main() {
   const productIds: Record<string, string> = {};
   for (const p of products) {
     const [slug, sku, traditional, catSlug, brandKey, supplierKey, country, thermal, storageType, storageTemp, weightG, volumeMl, unit, packaging, price, promoPrice, imageColor, imageEmoji, bestseller, isNew, isOnSale,
-      frName, frDesc, enName, enDesc, frPrep, enPrep, frStorage, enStorage, frIng, enIng, frAllerg, enAllerg, nutrition, aliases] = p;
+      frName, frDesc, enName, enDesc, frPrep, enPrep, frStorage, enStorage, frIng, enIng, frAllerg, enAllerg, nutrition, aliases, variantSeeds] = p;
 
     const prod = await db.product.create({
       data: {
@@ -316,7 +316,7 @@ async function main() {
     });
 
     // Variants
-    const variantDefs = (p[35] as string[]).map((v) => v.split("|"));
+    const variantDefs = variantSeeds.map((v) => v.split("|"));
     for (let i = 0; i < variantDefs.length; i++) {
       const [label, w, vol, pr, isDef] = variantDefs[i];
       await db.productVariant.create({
@@ -467,7 +467,21 @@ async function main() {
     { pSlug: "attieke", qty: 2, recipe: null },
   ];
   let subtotal = 0;
-  const lines = [];
+  const lines: Array<{
+    productId: string;
+    nameFr: string;
+    nameEn: string;
+    sku: string;
+    unitPrice: number;
+    qty: number;
+    lineTotal: number;
+    thermalClass: string;
+    recipeId: string | null;
+    recipeNameFr: string | null;
+    recipeNameEn: string | null;
+    packWeightGrams: number;
+    imageUrl: string | null;
+  }> = [];
   for (const li of orderItemsSeed) {
     const pid = productIds[li.pSlug];
     const prod = await db.product.findUnique({ where: { id: pid }, include: { translations: true } });
@@ -475,7 +489,7 @@ async function main() {
     const variant = await db.productVariant.findFirst({ where: { productId: pid, isDefault: true } });
     const price = Number(prod.promoPrice ?? prod.price);
     subtotal += price * li.qty;
-    lines.push({ productId: pid, nameFr: prod.traditionalName, nameEn: prod.traditionalName, sku: prod.sku, unitPrice: price, qty: li.qty, lineTotal: price * li.qty, thermalClass: prod.thermalClass, recipeId: li.recipe ? recipeIds[li.recipe] : null, recipeNameFr: li.recipe, recipeNameEn: li.recipe, packWeightGrams: variant?.weightGrams ?? prod.netWeightGrams });
+    lines.push({ productId: pid, nameFr: prod.traditionalName, nameEn: prod.traditionalName, sku: prod.sku, unitPrice: price, qty: li.qty, lineTotal: price * li.qty, thermalClass: prod.thermalClass, recipeId: li.recipe ? recipeIds[li.recipe] : null, recipeNameFr: li.recipe, recipeNameEn: li.recipe, packWeightGrams: variant?.weightGrams ?? prod.netWeightGrams, imageUrl: prod.imageUrl });
   }
   const vat = subtotal * 0.2 / 1.2;
   const shipping = 6.9;

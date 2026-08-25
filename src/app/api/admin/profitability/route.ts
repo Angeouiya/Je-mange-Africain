@@ -52,7 +52,7 @@ function serialize(row: Accumulator) {
 }
 
 export async function GET(request: NextRequest) {
-  const authorization = await authorizeAdminRequest(request);
+  const authorization = await authorizeAdminRequest(request, { module: "finance", action: "read" });
   if (!authorization.ok) return authorization.response;
 
   const searchParams = new URL(request.url).searchParams;

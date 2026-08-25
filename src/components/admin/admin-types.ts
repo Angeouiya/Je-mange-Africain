@@ -6,8 +6,10 @@ export type AdminSectionId =
   | "inventory"
   | "customers"
   | "campaigns"
+  | "advertising"
   | "finance"
-  | "governance";
+  | "governance"
+  | "team";
 
 export type DashboardPayload = {
   kpis: {
@@ -51,6 +53,7 @@ export type AdminOrder = {
     qty: number;
     lineTotal: number;
     thermalClass: string;
+    imageUrl?: string | null;
   }>;
   shipments: Array<{
     id: string;

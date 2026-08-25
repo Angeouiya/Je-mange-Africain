@@ -26,7 +26,7 @@ export function InfoView() {
           <p>{locale === "fr" ? "« Je mange Africain » est une épicerie africaine digitale installée en France. Notre mission : permettre à toutes les personnes vivant en France puis en Europe de retrouver les produits authentiques de la cuisine africaine, livrés chez elles." : "« Je mange Africain » is a digital African grocery based in France. Our mission: to enable everyone living in France and then Europe to find authentic African cooking products, delivered to their door."}</p>
           <p>{locale === "fr" ? "L'entreprise est l'unique vendeuse : elle sélectionne, importe, stocke, commercialise et livre elle-même ses produits. Aucun vendeur externe, aucune marketplace." : "The company is the sole seller: it selects, imports, stores, markets and delivers its products itself. No external sellers, no marketplace."}</p>
           <p>{locale === "fr" ? "Notre avantage concurrentiel : un moteur de recettes intelligentes qui calcule pour vous les quantités, les conditionnements, le coût total et le coût par personne, puis commande tous les ingrédients en une seule opération." : "Our competitive edge: a smart recipe engine that computes quantities, packaging, total cost and cost per person for you, then orders all ingredients in a single operation."}</p>
-          <p className="font-semibold text-terre">{t.home.promise}</p>
+          <p className="font-semibold text-terre">{t.promise}</p>
         </div>
       ),
     },

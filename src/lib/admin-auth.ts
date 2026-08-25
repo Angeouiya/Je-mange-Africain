@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { type AdminAction, type AdminModule, hasAdminPermission, permissionsForRole } from "@/lib/admin-permissions";
 
 export const ADMIN_ROLES = new Set([
   "super_admin",
@@ -19,10 +20,11 @@ export const ADMIN_REFRESH_COOKIE = "jma-admin-refresh";
 export function getSupabaseAdminConfig() {
   const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.replace(/\/$/, "");
   const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  return { url, key };
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return { url, key, serviceRoleKey };
 }
 
-export async function authorizeAdminRequest(request: NextRequest) {
+export async function authorizeAdminRequest(request: NextRequest, permission?: { module: AdminModule; action?: AdminAction }) {
   const { url: supabaseUrl, key: publishableKey } = getSupabaseAdminConfig();
   const headerAuthorization = request.headers.get("authorization");
   const cookieToken = request.cookies.get(ADMIN_ACCESS_COOKIE)?.value;
@@ -52,10 +54,17 @@ export async function authorizeAdminRequest(request: NextRequest) {
   }
 
   const user = await response.json();
-  const role = user.app_metadata?.role || user.user_metadata?.role || "";
+  const role = user.app_metadata?.role || "";
   if (!ADMIN_ROLES.has(role)) {
     return { ok: false as const, response: NextResponse.json({ error: "Rôle administrateur insuffisant." }, { status: 403 }) };
   }
+  if (permission && !hasAdminPermission(role, permission.module, permission.action || "read")) {
+    return { ok: false as const, response: NextResponse.json({ error: "Votre rôle ne permet pas cette action." }, { status: 403 }) };
+  }
 
-  return { ok: true as const, user: { id: user.id as string, email: user.email as string, role: role as string } };
+  return {
+    ok: true as const,
+    accessToken: authorization.slice("Bearer ".length),
+    user: { id: user.id as string, email: user.email as string, role: role as string, permissions: permissionsForRole(role) },
+  };
 }

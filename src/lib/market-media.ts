@@ -16,6 +16,9 @@ type MarketSubject = {
   categorySlug?: string | null;
   categoryName?: string | null;
   imageEmoji?: string | null;
+  imageUrl?: string | null;
+  photoUrl?: string | null;
+  galleryUrls?: string[] | string | null;
   price?: number | null;
   promoPrice?: number | null;
 };
@@ -71,7 +74,8 @@ function categorySlug(subject: MarketSubject | CategoryLike | string) {
     if (typeof subject.category === "string") return norm(subject.category);
     return norm(subject.category.slug || subject.category.name);
   }
-  return norm(subject.slug || subject.categorySlug || subject.categoryName || subject.name);
+  const value = subject as MarketSubject & CategoryLike;
+  return norm(value.slug || value.categorySlug || value.categoryName || value.name);
 }
 
 export function getCategoryPhoto(category: MarketSubject | CategoryLike | string) {
@@ -80,6 +84,7 @@ export function getCategoryPhoto(category: MarketSubject | CategoryLike | string
 }
 
 export function getProductPhoto(product: MarketSubject) {
+  if (product.imageUrl || product.photoUrl) return product.imageUrl || product.photoUrl || MARKET_PHOTOS.africanMarket;
   const haystack = norm([
     product.name,
     product.traditionalName,
@@ -104,8 +109,14 @@ export function getRecipePhoto(recipe: MarketSubject & { title?: string | null; 
 }
 
 export function getProductGallery(product: MarketSubject) {
+  let gallery: string[] = [];
+  if (Array.isArray(product.galleryUrls)) gallery = product.galleryUrls;
+  else if (product.galleryUrls) {
+    try { gallery = JSON.parse(product.galleryUrls); } catch { gallery = []; }
+  }
   return Array.from(new Set([
     getProductPhoto(product),
+    ...gallery,
     getCategoryPhoto(product),
     MARKET_PHOTOS.africanMarket,
   ]));

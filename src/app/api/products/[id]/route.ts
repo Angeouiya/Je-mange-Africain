@@ -8,8 +8,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { searchParams } = new URL(req.url);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
 
-  const product = await db.product.findUnique({
-    where: { id },
+  const product = await db.product.findFirst({
+    where: { id, status: "published" },
     include: {
       translations: true,
       brand: true,
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // Recipes using this product
   const recipeRows = await db.recipeIngredient.findMany({
-    where: { productId: id },
+    where: { productId: id, recipe: { status: "published" } },
     include: { recipe: { include: { translations: true } } },
     take: 6,
     distinct: ["recipeId"],
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const relatedRecipes = recipeRows.map((r) => ({
     id: r.recipe.id, slug: r.recipe.slug, country: r.recipe.country, category: r.recipe.category,
     difficulty: r.recipe.difficulty, timeMinutes: r.recipe.timeMinutes, baseServings: r.recipe.baseServings,
-    imageColor: r.recipe.imageColor, imageEmoji: r.recipe.imageEmoji,
+    imageColor: r.recipe.imageColor, imageEmoji: r.recipe.imageEmoji, imageUrl: r.recipe.imageUrl,
     title: r.recipe.translations.find((t) => t.locale === locale)?.title || r.recipe.translations[0]?.title,
   }));
 
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     name: p.translations?.find((x: any) => x.locale === locale)?.name || p.traditionalName,
     price: Number(p.price), promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
     pricePerKg: p.pricePerKg ? Number(p.pricePerKg) : null,
-    imageColor: p.imageColor, imageEmoji: p.imageEmoji, stockQty: p.stockQty,
+    imageColor: p.imageColor, imageEmoji: p.imageEmoji, imageUrl: p.imageUrl, stockQty: p.stockQty,
     alertThreshold: p.alertThreshold,
     country: p.country,
     thermalClass: p.thermalClass, packaging: p.packaging,
@@ -99,8 +99,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     alertThreshold: product.alertThreshold,
     imageColor: product.imageColor,
     imageEmoji: product.imageEmoji,
+    imageUrl: product.imageUrl,
+    galleryUrls: (() => { try { return product.galleryUrls ? JSON.parse(product.galleryUrls) : []; } catch { return []; } })(),
     isBestseller: product.isBestseller,
     isNew: product.isNew,
+    isRecommended: product.isRecommended,
     isOnSale: product.isOnSale,
     brand: product.brand ? { id: product.brand.id, name: product.brand[`name${locale === "en" ? "En" : "Fr"}`] } : null,
     category: product.category ? { id: product.category.id, slug: product.category.slug, name: product.category[`name${locale === "en" ? "En" : "Fr"}`] } : null,

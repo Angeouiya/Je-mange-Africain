@@ -46,6 +46,9 @@ export interface Product {
   alertThreshold: number;
   imageColor: string;
   imageEmoji: string;
+  imageUrl?: string | null;
+  galleryUrls?: string[];
+  isRecommended?: boolean;
   nutrition: string | null;
   variants: ProductVariant[];
   defaultVariantId: string | null;
@@ -65,7 +68,10 @@ export interface RecipeSummary {
   baseServings: number;
   imageColor: string;
   imageEmoji: string;
+  imageUrl?: string | null;
   isPopular: boolean;
+  isNew?: boolean;
+  isRecommended?: boolean;
   title: string;
   description: string;
   ingredientsCount?: number;
@@ -78,6 +84,7 @@ export interface RecipeIngredient {
   productName: string;
   traditionalName: string;
   emoji: string;
+  imageUrl?: string | null;
   color: string;
   categoryId: string;
   categorySlug: string | null;
@@ -113,7 +120,11 @@ export interface RecipeDetail {
   baseServings: number;
   imageColor: string;
   imageEmoji: string;
+  imageUrl?: string | null;
+  galleryUrls?: string[];
   isPopular: boolean;
+  isNew?: boolean;
+  isRecommended?: boolean;
   title: string;
   description: string;
   steps: string[];
@@ -287,6 +298,7 @@ export interface SearchMatch {
   name: string;
   traditionalName: string;
   emoji: string;
+  imageUrl?: string | null;
   color: string;
   price: number;
   packaging: string;

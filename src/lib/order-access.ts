@@ -8,7 +8,7 @@ export type OrderAccess =
   | { scope: "customer"; customerId: string | null };
 
 export async function authorizeOrderAccess(request: NextRequest): Promise<OrderAccess | null> {
-  const admin = await authorizeAdminRequest(request);
+  const admin = await authorizeAdminRequest(request, { module: "orders", action: "read" });
   if (admin.ok) return { scope: "admin" };
 
   const customer = await authorizeCustomerRequest(request);

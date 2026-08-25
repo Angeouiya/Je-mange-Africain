@@ -12,6 +12,7 @@ import { dict } from "@/lib/i18n";
 import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
 import { postJSON } from "@/lib/use-fetch";
 import { PageBackButton } from "@/components/shared/PageBackButton";
+import { ProductImage } from "@/components/shared/ProductImage";
 
 export function CheckoutView() {
   const locale = useStore((s) => s.locale);
@@ -168,8 +169,9 @@ export function CheckoutView() {
             </div>
             <div className="space-y-1.5">
               {cart.map((c) => (
-                <div key={c.id} className="flex items-center justify-between text-sm">
-                  <span className="truncate pr-2 text-charcoal">{c.name} × {c.qty}</span>
+                <div key={c.id} className="flex items-center gap-2 text-sm">
+                  <ProductImage src={c.imageUrl} alt={c.name} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" />
+                  <span className="min-w-0 flex-1 truncate pr-2 text-charcoal">{c.name} × {c.qty}</span>
                   <span className="font-medium">{formatPrice(c.unitPrice * c.qty, locale)}</span>
                 </div>
               ))}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeOrderAccess } from "@/lib/order-access";
+import { getProductPhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,9 @@ export async function GET(req: NextRequest) {
       payments: true,
     },
   });
+  const productIds = Array.from(new Set(orders.flatMap((order) => order.items.map((item) => item.productId))));
+  const orderProducts = productIds.length ? await db.product.findMany({ where: { id: { in: productIds } }, include: { category: true, translations: true } }) : [];
+  const productsById = new Map(orderProducts.map((product) => [product.id, product]));
 
   return NextResponse.json({
     orders: orders.map((o) => ({
@@ -51,6 +55,10 @@ export async function GET(req: NextRequest) {
         id: it.id, productId: it.productId, nameFr: it.nameFr, nameEn: it.nameEn, sku: it.sku,
         unitPrice: Number(it.unitPrice), qty: it.qty, lineTotal: Number(it.lineTotal),
         thermalClass: it.thermalClass, recipeId: it.recipeId, recipeNameFr: it.recipeNameFr, recipeNameEn: it.recipeNameEn,
+        imageUrl: it.imageUrl || (() => {
+          const product = productsById.get(it.productId);
+          return getProductPhoto({ name: it.nameFr, traditionalName: product?.traditionalName, imageUrl: product?.imageUrl, imageEmoji: product?.imageEmoji, country: product?.country, category: product?.category });
+        })(),
       })),
       shipments: o.shipments.map((s) => ({
         id: s.id, trackingNumber: s.trackingNumber, thermalClass: s.thermalClass, status: s.status,

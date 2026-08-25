@@ -19,6 +19,8 @@ export function HomeView() {
   const navigate = useStore((s) => s.navigate);
   const t = dict[locale];
   const { data, loading } = useFetch(`/api/catalog?section=home&locale=${locale}`);
+  const { data: advertisingData } = useFetch(`/api/advertisements?placement=home&locale=${locale}`, [locale]);
+  const homeAdvertisement = advertisingData?.advertisements?.[0];
 
   const commitments = [
     { icon: ShieldCheck, title: t.home.commitment1Title, desc: t.home.commitment1Desc, color: "#3F681C" },
@@ -108,16 +110,17 @@ export function HomeView() {
         </Section>
 
         {/* PROMO BANNER */}
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-forest to-forest-dark p-6 md:p-10">
-          <div className="african-dots absolute inset-0 opacity-20" />
-          <div className="relative flex flex-col items-start gap-4 text-cream md:flex-row md:items-center md:justify-between">
+        <section className="relative min-h-64 overflow-hidden rounded-lg">
+          <Image src={homeAdvertisement?.imageUrl || "/hero-feast-v2.webp"} alt={homeAdvertisement?.imageAlt || ""} fill sizes="(max-width: 768px) 100vw, 1200px" className="object-cover" />
+          <div className="absolute inset-0 bg-charcoal/68" />
+          <div className="relative flex min-h-64 flex-col items-start justify-end gap-4 p-6 text-cream md:flex-row md:items-end md:justify-between md:p-10">
             <div>
               <Badge className="mb-2 bg-gold text-charcoal border-0">{t.promo}</Badge>
-              <h2 className="text-2xl font-bold md:text-3xl">{locale === "fr" ? "Configurateur de recettes intelligentes" : "Smart recipe configurator"}</h2>
-              <p className="mt-1 max-w-lg text-cream/80">{t.recipes.subtitle}</p>
+              <h2 className="text-2xl font-bold md:text-3xl">{homeAdvertisement?.title || (locale === "fr" ? "Configurateur de recettes intelligentes" : "Smart recipe configurator")}</h2>
+              <p className="mt-1 max-w-lg text-cream/80">{homeAdvertisement?.body || t.recipes.subtitle}</p>
             </div>
-            <Button size="lg" onClick={() => navigate("recipes")} className="bg-terre text-cream hover:bg-terre-dark shadow-lg">
-              {t.home.heroCtaRecipes} <ChevronRight className="ml-1 h-4 w-4" />
+            <Button size="lg" onClick={() => homeAdvertisement?.linkUrl ? window.location.assign(homeAdvertisement.linkUrl) : navigate("recipes")} className="bg-terre text-cream hover:bg-terre-dark shadow-lg">
+              {homeAdvertisement ? (locale === "fr" ? "Découvrir" : "Discover") : t.home.heroCtaRecipes} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         </section>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeOrderAccess } from "@/lib/order-access";
+import { getProductPhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     },
   });
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const products = await db.product.findMany({ where: { id: { in: Array.from(new Set(order.items.map((item) => item.productId))) } }, include: { category: true, translations: true } });
+  const productsById = new Map(products.map((product) => [product.id, product]));
 
   return NextResponse.json({
     id: order.id,
@@ -47,6 +50,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       nameFr: it.nameFr, nameEn: it.nameEn, sku: it.sku,
       unitPrice: Number(it.unitPrice), qty: it.qty, lineTotal: Number(it.lineTotal),
       thermalClass: it.thermalClass, recipeId: it.recipeId,
+      imageUrl: it.imageUrl || (() => {
+        const product = productsById.get(it.productId);
+        return getProductPhoto({ name: it.nameFr, traditionalName: product?.traditionalName, imageUrl: product?.imageUrl, imageEmoji: product?.imageEmoji, country: product?.country, category: product?.category });
+      })(),
       recipeName: locale === "en" ? it.recipeNameEn : it.recipeNameFr,
     })),
     shipments: order.shipments.map((s) => ({

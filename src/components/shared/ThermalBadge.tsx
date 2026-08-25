@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Snowflake, Refrigerator, Flame } from "lucide-react";
 import { useStore } from "@/lib/store";
+import type { ReactNode } from "react";
 
 interface ThermalBadgeProps {
   thermalClass: string;
@@ -11,7 +12,7 @@ interface ThermalBadgeProps {
   showLabel?: boolean;
 }
 
-const icon: Record<string, JSX.Element> = {
+const icon: Record<string, ReactNode> = {
   FROZEN: <Snowflake className="size-3" />,
   REFRIGERATED: <Refrigerator className="size-3" />,
   AMBIANT: <Flame className="size-3" />,

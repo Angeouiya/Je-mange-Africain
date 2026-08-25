@@ -195,8 +195,11 @@ model Product {
   alertThreshold    Int                    @default(5)
   imageColor        String                 @default("#D65A32")
   imageEmoji        String                 @default("🍲")
+  imageUrl          String?
+  galleryUrls       String? // JSON array of public image URLs
   isBestseller      Boolean                @default(false)
   isNew             Boolean                @default(false)
+  isRecommended     Boolean                @default(false)
   isOnSale          Boolean                @default(false)
   status            String                 @default("published") // draft | published | archived
   nutrition         String? // JSON string
@@ -261,22 +264,26 @@ model ProductVariant {
  */
 
 model Recipe {
-  id           String              @id @default(cuid())
-  slug         String              @unique
-  country      String
-  category     String // sauces | mains | sides | grill | drinks | desserts | porridge | country | family | events
-  difficulty   String              @default("medium") // easy | medium | hard
-  timeMinutes  Int                 @default(45)
-  baseServings Int                 @default(4)
-  imageColor   String              @default("#3F681C")
-  imageEmoji   String              @default("🍽️")
-  isPopular    Boolean             @default(false)
-  status       String              @default("published") // draft | published | archived
-  videoUrl     String?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  translations RecipeTranslation[]
-  ingredients  RecipeIngredient[]
+  id            String              @id @default(cuid())
+  slug          String              @unique
+  country       String
+  category      String // sauces | mains | sides | grill | drinks | desserts | porridge | country | family | events
+  difficulty    String              @default("medium") // easy | medium | hard
+  timeMinutes   Int                 @default(45)
+  baseServings  Int                 @default(4)
+  imageColor    String              @default("#3F681C")
+  imageEmoji    String              @default("🍽️")
+  imageUrl      String?
+  galleryUrls   String? // JSON array of public image URLs
+  isPopular     Boolean             @default(false)
+  isNew         Boolean             @default(false)
+  isRecommended Boolean             @default(false)
+  status        String              @default("published") // draft | published | archived
+  videoUrl      String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  translations  RecipeTranslation[]
+  ingredients   RecipeIngredient[]
 }
 
 model RecipeTranslation {
@@ -484,10 +491,81 @@ model OrderItem {
   qty             Int
   lineTotal       Decimal
   thermalClass    String
+  imageUrl        String?
   recipeId        String?
   recipeNameFr    String?
   recipeNameEn    String?
   packWeightGrams Int     @default(0)
+}
+
+/**
+ * -----------------------------------------------------------------
+ */
+/**
+ * Media, advertising & administration team
+ */
+/**
+ * -----------------------------------------------------------------
+ */
+
+model MediaAsset {
+  id         String   @id @default(cuid())
+  kind       String // product | recipe | advertisement | brand
+  ownerType  String?
+  ownerId    String?
+  fileName   String
+  objectPath String   @unique
+  publicUrl  String
+  mimeType   String
+  sizeBytes  Int
+  altFr      String?
+  altEn      String?
+  status     String   @default("active") // active | archived
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([kind, status])
+  @@index([ownerType, ownerId])
+}
+
+model Advertisement {
+  id         String    @id @default(cuid())
+  placement  String    @default("home") // home | catalog | recipes | checkout
+  titleFr    String
+  titleEn    String
+  bodyFr     String?
+  bodyEn     String?
+  imageUrl   String
+  imageAltFr String
+  imageAltEn String
+  linkUrl    String    @default("/")
+  status     String    @default("draft") // draft | published | archived
+  priority   Int       @default(0)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([placement, status, priority])
+}
+
+model AdminMembership {
+  id          String    @id @default(cuid())
+  authUserId  String?   @unique
+  email       String    @unique
+  firstName   String?
+  lastName    String?
+  role        String
+  permissions String    @default("{}") // per-user JSON overrides
+  status      String    @default("invited") // invited | active | suspended
+  invitedBy   String
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([role, status])
 }
 
 model OrderEvent {

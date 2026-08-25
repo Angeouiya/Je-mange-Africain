@@ -37,6 +37,7 @@ export interface CartItem {
   thermalClass: ThermalClass;
   imageColor?: string; // tailwind gradient seed
   imageEmoji?: string; // emoji snapshot for cart display
+  imageUrl?: string; // real product photo snapshot for cart and reorder display
   qty: number;
   recipeId?: string; // if part of a recipe basket
   recipeName?: string;

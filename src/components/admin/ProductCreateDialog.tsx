@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useFetch } from "@/lib/use-fetch";
+import { MediaUploadField } from "@/components/admin/MediaUploadField";
 
 type ProductDraft = {
   name: string;
@@ -34,6 +35,10 @@ type ProductDraft = {
   thermalClass: "AMBIANT" | "REFRIGERATED" | "FROZEN";
   storageType: "SEC" | "FRAIS" | "REFRIGERE" | "SURGELE" | "FUME" | "SECHE" | "CONSERVE";
   aliases: string;
+  imageUrl: string;
+  isNew: boolean;
+  isRecommended: boolean;
+  isBestseller: boolean;
 };
 
 const initialDraft: ProductDraft = {
@@ -52,6 +57,10 @@ const initialDraft: ProductDraft = {
   thermalClass: "AMBIANT",
   storageType: "SEC",
   aliases: "",
+  imageUrl: "",
+  isNew: true,
+  isRecommended: false,
+  isBestseller: false,
 };
 
 export function ProductCreateDialog({ locale, onCreated }: { locale: string; onCreated: () => void }) {
@@ -76,6 +85,7 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
       && draft.categoryId
       && draft.packaging.trim()
       && draft.description.trim()
+      && draft.imageUrl
       && Number(draft.costPrice) > 0
       && draft.profitMargin !== ""
       && Number(draft.profitMargin) >= 0
@@ -117,7 +127,7 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
       <DialogTrigger asChild>
         <Button size="sm" className="bg-terre text-cream hover:bg-terre-dark"><PackagePlus className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Nouveau produit" : "New product"}</Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[94vh] max-w-5xl overflow-y-auto p-0">
+      <DialogContent className="max-h-[94vh] overflow-y-auto p-0 sm:max-w-5xl">
         <form onSubmit={submit}>
           <DialogHeader className="border-b border-border px-5 py-5 sm:px-7">
             <DialogTitle className="flex items-center gap-2 text-xl text-charcoal"><PackagePlus className="h-5 w-5 text-terre" /> {locale === "fr" ? "Enregistrer un produit" : "Register a product"}</DialogTitle>
@@ -181,7 +191,16 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
               <Field label={locale === "fr" ? "Alias de recherche" : "Search aliases"}><Input value={draft.aliases} onChange={(event) => update("aliases", event.target.value)} placeholder="atchéké, couscous de manioc" /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Séparez les variantes par une virgule." : "Separate variants with commas."}</p></Field>
             </div>
 
-            <aside className="h-fit rounded-lg border border-forest/20 bg-forest/[0.04] p-4 lg:sticky lg:top-4">
+            <aside className="h-fit space-y-5 lg:sticky lg:top-4">
+              <section className="border-y border-terre/20 bg-white px-4 py-4">
+                <MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="product" locale={locale} label={locale === "fr" ? "Photo principale du produit" : "Main product photo"} required />
+                <div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                  <EditorialFlag checked={draft.isNew} onChange={(isNew) => update("isNew", isNew)} label={locale === "fr" ? "Nouveauté" : "New"} />
+                  <EditorialFlag checked={draft.isRecommended} onChange={(isRecommended) => update("isRecommended", isRecommended)} label={locale === "fr" ? "Recommandé" : "Recommended"} />
+                  <EditorialFlag checked={draft.isBestseller} onChange={(isBestseller) => update("isBestseller", isBestseller)} label={locale === "fr" ? "Populaire" : "Popular"} />
+                </div>
+              </section>
+              <section className="rounded-lg border border-forest/20 bg-forest/[0.04] p-4">
               <div className="flex items-start gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-forest text-white"><Sparkles className="h-4 w-4" /></span>
                 <div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Plats proposés" : "Suggested dishes"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les correspondances évoluent à mesure que la fiche est renseignée." : "Matches update as the product record is completed."}</p></div>
@@ -198,6 +217,7 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
                   </div>
                 ))}
               </div>
+              </section>
             </aside>
           </div>
 
@@ -214,4 +234,8 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
 
 function Field({ label, required = false, children }: { label: string; required?: boolean; children: ReactNode }) {
   return <div className="space-y-1.5"><Label>{label}{required ? <span className="ml-1 text-terre">*</span> : null}</Label>{children}</div>;
+}
+
+function EditorialFlag({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
+  return <label className="flex min-h-9 cursor-pointer items-center gap-2 text-[11px] font-bold text-charcoal"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-terre" />{label}</label>;
 }

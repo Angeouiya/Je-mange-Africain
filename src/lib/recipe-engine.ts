@@ -27,6 +27,7 @@ export interface IngredientReplacementOption {
   nameFr: string;
   nameEn: string;
   emoji: string;
+  imageUrl?: string | null;
   availableStock: number;
   packLabel: string;
   unitPrice: number;
@@ -40,6 +41,7 @@ export interface EngineIngredient {
   nameEn: string;
   traditionalName: string;
   emoji: string;
+  imageUrl?: string | null;
   color: string;
   role: string;
   optional: boolean;
@@ -142,6 +144,7 @@ interface RawIngredient {
     id: string;
     traditionalName: string;
     imageEmoji: string;
+    imageUrl?: string | null;
     imageColor: string;
     thermalClass: string;
     stockQty: number;
@@ -164,6 +167,7 @@ interface SubstituteProduct {
   id: string;
   traditionalName: string;
   imageEmoji: string;
+  imageUrl?: string | null;
   imageColor: string;
   thermalClass: string;
   stockQty: number;
@@ -247,6 +251,7 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
             id: kploSub.id,
             traditionalName: kploSub.traditionalName,
             imageEmoji: kploSub.imageEmoji,
+            imageUrl: kploSub.imageUrl,
             imageColor: kploSub.imageColor,
             thermalClass: kploSub.thermalClass,
             stockQty: kploSub.stockQty,
@@ -267,7 +272,7 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
       working.push({
         ri: { id: "injected-chili", quantityPerBase: 15, unit: "g", role: "spice", optional: true, alternatives: null, note: "Piment frais ajouté" },
         product: {
-          id: chiliSub.id, traditionalName: chiliSub.traditionalName, imageEmoji: chiliSub.imageEmoji, imageColor: chiliSub.imageColor,
+          id: chiliSub.id, traditionalName: chiliSub.traditionalName, imageEmoji: chiliSub.imageEmoji, imageUrl: chiliSub.imageUrl, imageColor: chiliSub.imageColor,
           thermalClass: chiliSub.thermalClass, stockQty: chiliSub.stockQty, reservedQty: chiliSub.reservedQty, categoryId: chiliSub.categoryId, categorySlug: chiliSub.categorySlug,
           translations: chiliSub.translations,
         },
@@ -358,6 +363,7 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
         nameFr: candidateNames.fr,
         nameEn: candidateNames.en,
         emoji: candidate.imageEmoji,
+        imageUrl: candidate.imageUrl,
         availableStock: availableStock(candidate),
         packLabel: candidateVariant?.label || "",
         unitPrice: candidateVariant?.price || 0,
@@ -372,6 +378,7 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
       nameEn: names.en,
       traditionalName: product.traditionalName,
       emoji: product.imageEmoji,
+      imageUrl: product.imageUrl,
       color: product.imageColor,
       role: ri.role,
       optional: ri.optional,

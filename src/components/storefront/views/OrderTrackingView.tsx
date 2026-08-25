@@ -10,6 +10,7 @@ import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatDate, formatDateTime, orderStatusColor, thermalColor, thermalLabel } from "@/lib/format";
 import { PageBackButton } from "@/components/shared/PageBackButton";
+import { ProductImage } from "@/components/shared/ProductImage";
 
 export function OrderTrackingView() {
   const locale = useStore((s) => s.locale);
@@ -104,8 +105,9 @@ export function OrderTrackingView() {
         <h2 className="mb-2 text-sm font-bold text-charcoal">{t.orders.items}</h2>
         <div className="space-y-1.5">
           {order.items.map((it: any) => (
-            <div key={it.id} className="flex items-center justify-between text-sm">
-              <span className="truncate pr-2 text-charcoal">{it.name} × {it.qty}{it.recipeName && <span className="ml-1 text-[10px] text-forest">· {t.config.recipeGroup}</span>}</span>
+            <div key={it.id} className="flex items-center gap-2 text-sm">
+              <ProductImage src={it.imageUrl} alt={it.name} emoji="🍲" color="#D65A32" size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" />
+              <span className="min-w-0 flex-1 truncate pr-2 text-charcoal">{it.name} × {it.qty}{it.recipeName && <span className="ml-1 text-[10px] text-forest">· {t.config.recipeGroup}</span>}</span>
               <span className="font-medium">{formatPrice(it.lineTotal, locale)}</span>
             </div>
           ))}

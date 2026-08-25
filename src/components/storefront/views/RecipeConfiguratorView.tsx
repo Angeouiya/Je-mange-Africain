@@ -196,6 +196,7 @@ export function RecipeConfiguratorView() {
         maxStock: i.stockQty || 99,
         imageColor: i.color,
         imageEmoji: i.emoji,
+        imageUrl: i.imageUrl,
       }));
     addManyToCart(items);
     navigate("cart");
@@ -316,7 +317,7 @@ export function RecipeConfiguratorView() {
                 {recipe.ingredients?.map((ri: any) => (
                   <label key={ri.recipeIngredientId} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-xs text-charcoal hover:bg-muted">
                     <input type="checkbox" checked={haveAtHome.includes(ri.recipeIngredientId)} onChange={() => toggleHave(ri.recipeIngredientId)} className="accent-terre" />
-                    <span className="text-base">{ri.product.emoji}</span>
+                    <ProductImage src={ri.product.imageUrl} alt="" emoji={ri.product.emoji} color={ri.product.color} size="sm" className="h-7 w-7 shrink-0" rounded="rounded-md" />
                     <span className="flex-1 truncate">{locale === "en" ? ri.product.nameEn : ri.product.nameFr}</span>
                   </label>
                 ))}
@@ -509,7 +510,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
   return (
     <div className={`space-y-3 p-4 transition ${ing.removed ? "bg-muted/20" : ""}`}>
       <div className="flex items-start gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-xl" style={{ background: ing.color + "22" }}>{ing.emoji}</span>
+        <ProductImage src={ing.imageUrl} alt={localizedName} emoji={ing.emoji} color={ing.color} size="sm" className="h-11 w-11 shrink-0" rounded="rounded-lg" />
         <div className="min-w-0 flex-1">
           <p className={`truncate text-sm font-semibold ${ing.removed ? "text-muted-foreground line-through" : "text-charcoal"}`}>{localizedName}</p>
           <div className="flex flex-wrap items-center gap-1">

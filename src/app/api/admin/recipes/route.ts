@@ -27,8 +27,11 @@ const RecipeInput = z.object({
   timeMinutes: z.coerce.number().int().min(5).max(720),
   baseServings: z.coerce.number().int().min(1).max(50),
   imageEmoji: z.string().trim().min(1).max(12),
+  imageUrl: z.string().url().max(1000),
   imageColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   isPopular: z.boolean().default(false),
+  isNew: z.boolean().default(false),
+  isRecommended: z.boolean().default(false),
   status: z.enum(["draft", "published"]),
   stepsFr: z.array(z.string().trim().min(5).max(500)).min(2).max(30),
   stepsEn: z.array(z.string().trim().min(5).max(500)).min(2).max(30),
@@ -45,7 +48,7 @@ const recipeSlug = (title: string) => normalize(title)
   .slice(0, 80);
 
 export async function GET(request: NextRequest) {
-  const authorization = await authorizeAdminRequest(request);
+  const authorization = await authorizeAdminRequest(request, { module: "recipes", action: "read" });
   if (!authorization.ok) return authorization.response;
 
   const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
@@ -65,7 +68,11 @@ export async function GET(request: NextRequest) {
       baseServings: recipe.baseServings,
       imageColor: recipe.imageColor,
       imageEmoji: recipe.imageEmoji,
+      imageUrl: recipe.imageUrl,
+      galleryUrls: (() => { try { return recipe.galleryUrls ? JSON.parse(recipe.galleryUrls) : []; } catch { return []; } })(),
       isPopular: recipe.isPopular,
+      isNew: recipe.isNew,
+      isRecommended: recipe.isRecommended,
       status: recipe.status,
       ingredientCount: recipe.ingredients.length,
       title: recipe.translations.find((translation) => translation.locale === locale)?.title || recipe.translations[0]?.title,
@@ -75,7 +82,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authorization = await authorizeAdminRequest(request);
+  const authorization = await authorizeAdminRequest(request, { module: "recipes", action: "create" });
   if (!authorization.ok) return authorization.response;
 
   const parsed = RecipeInput.safeParse(await request.json().catch(() => null));
@@ -115,7 +122,10 @@ export async function POST(request: NextRequest) {
         baseServings: input.baseServings,
         imageColor: input.imageColor,
         imageEmoji: input.imageEmoji,
+        imageUrl: input.imageUrl,
         isPopular: input.isPopular,
+        isNew: input.isNew,
+        isRecommended: input.isRecommended,
         status: input.status,
         translations: {
           create: [
@@ -142,7 +152,7 @@ export async function POST(request: NextRequest) {
         action: "recipe_create",
         entityType: "Recipe",
         entityId: created.id,
-        after: JSON.stringify({ slug, titleFr: input.titleFr, status: input.status, ingredientCount: input.ingredients.length, stepCount: input.stepsFr.length }),
+        after: JSON.stringify({ slug, titleFr: input.titleFr, status: input.status, imageUrl: input.imageUrl, isNew: input.isNew, isRecommended: input.isRecommended, isPopular: input.isPopular, ingredientCount: input.ingredients.length, stepCount: input.stepsFr.length }),
         reason: `Création depuis le studio recettes par ${authorization.user.email}`,
       },
     });

@@ -27,6 +27,7 @@ export interface ProductListItem {
   categoryName?: string | null;
   description?: string;
   photoUrl?: string | null;
+  imageUrl?: string | null;
   imageColor: string;
   imageEmoji: string;
   isBestseller?: boolean;
@@ -49,7 +50,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
   const price = product.promoPrice ?? product.price;
   const discountPercent = getDiscountPercent(product.price, product.promoPrice);
   const saving = product.promoPrice ? product.price - product.promoPrice : 0;
-  const photoUrl = product.photoUrl || getProductPhoto(product);
+  const photoUrl = product.imageUrl || product.photoUrl || getProductPhoto(product);
   const commercialLine = getProductCommercialLine(product, locale);
   const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
   const outOfStock = product.stockQty <= 0;
@@ -71,6 +72,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
       thermalClass: product.thermalClass as any,
       imageColor: product.imageColor,
       imageEmoji: product.imageEmoji,
+      imageUrl: photoUrl,
       maxStock: product.stockQty,
     });
   };

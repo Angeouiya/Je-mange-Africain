@@ -19,6 +19,7 @@ export interface RecipeListItem {
   baseServings: number;
   imageColor: string;
   imageEmoji: string;
+  imageUrl?: string | null;
   isPopular?: boolean;
   title: string;
   description?: string;
@@ -31,7 +32,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
   const t = dict[locale];
 
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
-  const photoUrl = getRecipePhoto(recipe);
+  const photoUrl = recipe.imageUrl || getRecipePhoto(recipe);
 
   return (
     <motion.div

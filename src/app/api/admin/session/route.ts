@@ -7,6 +7,7 @@ import {
   authorizeAdminRequest,
   getSupabaseAdminConfig,
 } from "@/lib/admin-auth";
+import { permissionsForRole } from "@/lib/admin-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: payload.error_description || payload.msg || "Identifiants invalides." }, { status: 401 });
   }
 
-  const role = payload.user?.app_metadata?.role || payload.user?.user_metadata?.role || "";
+  const role = payload.user?.app_metadata?.role || "";
   if (!ADMIN_ROLES.has(role)) {
     await fetch(`${url}/auth/v1/logout`, {
       method: "POST",
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
 
   const expiresIn = Math.max(60, Math.min(Number(payload.expires_in || 3600), 86400));
   const response = NextResponse.json({
-    user: { id: payload.user.id, email: payload.user.email, role },
+    user: { id: payload.user.id, email: payload.user.email, role, permissions: permissionsForRole(role) },
   });
   response.cookies.set(ADMIN_ACCESS_COOKIE, payload.access_token, cookieOptions(expiresIn));
   if (payload.refresh_token) response.cookies.set(ADMIN_REFRESH_COOKIE, payload.refresh_token, cookieOptions(60 * 60 * 24 * 7));

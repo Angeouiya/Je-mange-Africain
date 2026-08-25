@@ -68,6 +68,7 @@ export function ProductDetailView() {
       thermalClass: product.thermalClass,
       imageColor: product.imageColor,
       imageEmoji: product.imageEmoji,
+      imageUrl: heroPhoto,
       qty,
       maxStock: product.stockQty,
     });

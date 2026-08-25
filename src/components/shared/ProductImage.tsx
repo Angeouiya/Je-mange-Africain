@@ -68,9 +68,6 @@ export function ProductImage({
             onError={() => setFailed(true)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-charcoal/35 via-transparent to-white/10" />
-          <span className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-lg shadow-sm backdrop-blur">
-            {emoji}
-          </span>
         </>
       )}
       <div

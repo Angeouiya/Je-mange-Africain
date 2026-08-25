@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useFetch } from "@/lib/use-fetch";
+import { MediaUploadField } from "@/components/admin/MediaUploadField";
+import { ProductImage } from "@/components/shared/ProductImage";
 
 type ProductOption = {
   id: string;
@@ -25,6 +27,7 @@ type ProductOption = {
   stockQty: number;
   imageEmoji: string;
   imageColor: string;
+  imageUrl?: string | null;
 };
 
 type IngredientDraft = {
@@ -46,8 +49,11 @@ type RecipeDraft = {
   timeMinutes: string;
   baseServings: string;
   imageEmoji: string;
+  imageUrl: string;
   imageColor: string;
   isPopular: boolean;
+  isNew: boolean;
+  isRecommended: boolean;
   status: "draft" | "published";
   stepsFr: string[];
   stepsEn: string[];
@@ -66,8 +72,11 @@ const initialDraft = (): RecipeDraft => ({
   timeMinutes: "45",
   baseServings: "4",
   imageEmoji: "🍲",
+  imageUrl: "",
   imageColor: "#3F681C",
   isPopular: false,
+  isNew: true,
+  isRecommended: false,
   status: "draft",
   stepsFr: ["", ""],
   stepsEn: ["", ""],
@@ -91,6 +100,7 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
     && draft.titleEn.trim().length >= 2
     && draft.descriptionFr.trim().length >= 20
     && draft.descriptionEn.trim().length >= 20
+    && draft.imageUrl
     && Number(draft.timeMinutes) >= 5
     && Number(draft.baseServings) >= 1
     && completeSteps
@@ -165,6 +175,7 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
               </div>
 
               <div className="space-y-4">
+                <MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="recipe" locale={locale} label={isFr ? "Photo principale de la recette" : "Main recipe photo"} aspect="landscape" required />
                 <SectionTitle number="02" title={isFr ? "Cadre de service" : "Serving framework"} />
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                   <Field label={isFr ? "Durée" : "Duration"} required><div className="relative"><Clock3 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type="number" min="5" max="720" value={draft.timeMinutes} onChange={(event) => update("timeMinutes", event.target.value)} className="pl-9" /></div></Field>
@@ -174,7 +185,11 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
                   <Field label={isFr ? "Couleur" : "Colour"}><div className="flex gap-2"><input type="color" value={draft.imageColor} onChange={(event) => update("imageColor", event.target.value)} className="h-9 w-11 rounded-md border border-input bg-white p-1" aria-label={isFr ? "Couleur de la recette" : "Recipe colour"} /><Input value={draft.imageColor} onChange={(event) => update("imageColor", event.target.value)} className="min-w-0 font-mono text-xs" /></div></Field>
                   <Field label={isFr ? "Publication" : "Publishing"}><select value={draft.status} onChange={(event) => update("status", event.target.value as RecipeDraft["status"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="draft">{isFr ? "Brouillon" : "Draft"}</option><option value="published">{isFr ? "Publier" : "Publish"}</option></select></Field>
                 </div>
-                <label className="flex min-h-11 cursor-pointer items-center gap-3 border-y border-border py-3 text-sm"><input type="checkbox" checked={draft.isPopular} onChange={(event) => update("isPopular", event.target.checked)} className="h-4 w-4 accent-terre" /><span><strong className="block text-xs text-charcoal">{isFr ? "Mettre en avant" : "Feature recipe"}</strong><span className="mt-0.5 block text-[10px] text-muted-foreground">{isFr ? "La recette pourra apparaître dans les sélections populaires." : "The recipe may appear in popular selections."}</span></span></label>
+                <div className="grid gap-2 border-y border-border py-3 sm:grid-cols-3">
+                  <RecipeFlag checked={draft.isNew} onChange={(isNew) => update("isNew", isNew)} label={isFr ? "Nouveauté" : "New"} />
+                  <RecipeFlag checked={draft.isRecommended} onChange={(isRecommended) => update("isRecommended", isRecommended)} label={isFr ? "Recommandée" : "Recommended"} />
+                  <RecipeFlag checked={draft.isPopular} onChange={(isPopular) => update("isPopular", isPopular)} label={isFr ? "Populaire" : "Popular"} />
+                </div>
               </div>
             </section>
 
@@ -190,7 +205,7 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
                 {draft.ingredients.map((ingredient, index) => {
                   const product = productsById.get(ingredient.productId);
                   return <div key={index} className="grid gap-3 border-y border-border bg-white px-3 py-3 lg:grid-cols-[minmax(12rem,1.5fr)_7rem_7rem_8rem_auto] lg:items-end">
-                    <Field label={`${isFr ? "Produit" : "Product"} ${index + 1}`} required><div className="relative"><PackageSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select value={ingredient.productId} onChange={(event) => updateIngredient(index, "productId", event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 text-sm"><option value="">{isFr ? "Sélectionner dans le catalogue" : "Select from catalogue"}</option>{products.map((option) => <option key={option.id} value={option.id}>{option.imageEmoji} {option.name} · {option.stockQty} dispo.</option>)}</select></div>{product ? <p className={`mt-1 text-[10px] font-semibold ${product.stockQty > 0 ? "text-forest" : "text-destructive"}`}>{product.traditionalName} · {product.sku} · {product.stockQty > 0 ? `${product.stockQty} ${isFr ? "en stock" : "in stock"}` : (isFr ? "rupture" : "out of stock")}</p> : null}</Field>
+                    <Field label={`${isFr ? "Produit" : "Product"} ${index + 1}`} required><div className="relative"><PackageSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select value={ingredient.productId} onChange={(event) => updateIngredient(index, "productId", event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 text-sm"><option value="">{isFr ? "Sélectionner dans le catalogue" : "Select from catalogue"}</option>{products.map((option) => <option key={option.id} value={option.id}>{option.name} · {option.stockQty} dispo.</option>)}</select></div>{product ? <div className="mt-2 flex items-center gap-2"><ProductImage src={product.imageUrl} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-8 w-8 shrink-0" rounded="rounded-md" /><p className={`min-w-0 truncate text-[10px] font-semibold ${product.stockQty > 0 ? "text-forest" : "text-destructive"}`}>{product.traditionalName} · {product.sku} · {product.stockQty > 0 ? `${product.stockQty} ${isFr ? "en stock" : "in stock"}` : (isFr ? "rupture" : "out of stock")}</p></div> : null}</Field>
                     <Field label={isFr ? "Quantité" : "Quantity"} required><Input type="number" inputMode="decimal" min="0.01" step="0.01" value={ingredient.quantityPerBase} onChange={(event) => updateIngredient(index, "quantityPerBase", event.target.value)} /></Field>
                     <Field label={isFr ? "Unité" : "Unit"}><select value={ingredient.unit} onChange={(event) => updateIngredient(index, "unit", event.target.value as IngredientDraft["unit"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option><option value="piece">{isFr ? "pièce" : "piece"}</option><option value="tbsp">c. à soupe</option><option value="tsp">c. à café</option></select></Field>
                     <Field label={isFr ? "Rôle" : "Role"}><select value={ingredient.role} onChange={(event) => updateIngredient(index, "role", event.target.value as IngredientDraft["role"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="base">Base</option><option value="protein">{isFr ? "Protéine" : "Protein"}</option><option value="aromatic">{isFr ? "Aromate" : "Aromatic"}</option><option value="spice">{isFr ? "Épice" : "Spice"}</option><option value="fat">{isFr ? "Matière grasse" : "Fat"}</option><option value="side">{isFr ? "Accompagnement" : "Side"}</option><option value="optional">Option</option></select></Field>
@@ -218,6 +233,10 @@ function SectionTitle({ id, number, title, description }: { id?: string; number:
 
 function Field({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return <div className="space-y-1.5"><Label>{label}{required ? <span className="ml-1 text-terre">*</span> : null}</Label>{children}</div>;
+}
+
+function RecipeFlag({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
+  return <label className="flex min-h-9 cursor-pointer items-center gap-2 text-[11px] font-bold text-charcoal"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-terre" />{label}</label>;
 }
 
 function PreparationSteps({ stepsFr, stepsEn, onChangeFr, onChangeEn, onAdd, onRemove, isFr }: { stepsFr: string[]; stepsEn: string[]; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onAdd: () => void; onRemove: (index: number) => void; isFr: boolean }) {

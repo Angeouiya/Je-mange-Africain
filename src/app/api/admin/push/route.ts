@@ -17,7 +17,7 @@ const Campaign = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const authorization = await authorizeAdminRequest(request);
+  const authorization = await authorizeAdminRequest(request, { module: "marketing", action: "read" });
   if (!authorization.ok) return authorization.response;
   const [activeSubscriptions, recent] = await Promise.all([
     db.pushSubscription.count({ where: { enabled: true } }),
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authorization = await authorizeAdminRequest(request);
+  const authorization = await authorizeAdminRequest(request, { module: "marketing", action: "create" });
   if (!authorization.ok) return authorization.response;
   if (!CAMPAIGN_ROLES.has(authorization.user.role)) {
     return NextResponse.json({ error: "Votre rôle ne permet pas d'envoyer une campagne." }, { status: 403 });

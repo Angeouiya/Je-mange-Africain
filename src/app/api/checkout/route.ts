@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       qty: it.qty,
       lineTotal: price * it.qty,
       thermalClass: p.thermalClass,
+      imageUrl: p.imageUrl,
       recipeId: it.recipeId || null,
       recipeNameFr: it.recipeNameFr || null,
       recipeNameEn: it.recipeNameEn || null,

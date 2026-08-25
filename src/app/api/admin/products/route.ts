@@ -22,12 +22,16 @@ const ProductInput = z.object({
   thermalClass: z.enum(["AMBIANT", "REFRIGERATED", "FROZEN"]),
   storageType: z.enum(["SEC", "FRAIS", "REFRIGERE", "SURGELE", "FUME", "SECHE", "CONSERVE"]),
   aliases: z.array(z.string().trim().min(2).max(80)).max(12).default([]),
+  imageUrl: z.string().url().max(1000),
+  isNew: z.boolean().default(false),
+  isRecommended: z.boolean().default(false),
+  isBestseller: z.boolean().default(false),
 });
 
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export async function GET(request: NextRequest) {
-  const authorization = await authorizeAdminRequest(request);
+  const authorization = await authorizeAdminRequest(request, { module: "catalog", action: "read" });
   if (!authorization.ok) return authorization.response;
 
   const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
@@ -59,6 +63,11 @@ export async function GET(request: NextRequest) {
         alertThreshold: product.alertThreshold,
         imageColor: product.imageColor,
         imageEmoji: product.imageEmoji,
+        imageUrl: product.imageUrl,
+        galleryUrls: (() => { try { return product.galleryUrls ? JSON.parse(product.galleryUrls) : []; } catch { return []; } })(),
+        isNew: product.isNew,
+        isRecommended: product.isRecommended,
+        isBestseller: product.isBestseller,
         thermalClass: product.thermalClass,
         status: product.status,
       };
@@ -67,7 +76,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authorization = await authorizeAdminRequest(request);
+  const authorization = await authorizeAdminRequest(request, { module: "catalog", action: "create" });
   if (!authorization.ok) return authorization.response;
 
   const parsed = ProductInput.safeParse(await request.json().catch(() => null));
@@ -106,7 +115,10 @@ export async function POST(request: NextRequest) {
       netWeightGrams: input.netWeightGrams,
       thermalClass: input.thermalClass,
       storageType: input.storageType,
-      isNew: true,
+      imageUrl: input.imageUrl,
+      isNew: input.isNew,
+      isRecommended: input.isRecommended,
+      isBestseller: input.isBestseller,
       isOnSale: typeof input.promoPrice === "number",
       status: "published",
       translations: {
@@ -125,7 +137,7 @@ export async function POST(request: NextRequest) {
       action: "product_create",
       entityType: "Product",
       entityId: product.id,
-      after: JSON.stringify({ sku: product.sku, name: input.name, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty }),
+      after: JSON.stringify({ sku: product.sku, name: input.name, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty, imageUrl: input.imageUrl, isNew: input.isNew, isRecommended: input.isRecommended, isBestseller: input.isBestseller }),
       reason: `Création depuis la console par ${authorization.user.email}`,
     },
   });
