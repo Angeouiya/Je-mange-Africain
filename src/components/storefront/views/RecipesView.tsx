@@ -10,7 +10,6 @@ import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { DishDetailsDialog, DishLibraryCard, type DishLibraryItem } from "@/components/shared/DishLibraryCard";
-import { MARKET_PHOTOS } from "@/lib/market-media";
 
 export function RecipesView() {
   const locale = useStore((s) => s.locale);
@@ -39,8 +38,8 @@ export function RecipesView() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
       {/* hero */}
-      <section className="relative mb-6 overflow-hidden rounded-2xl bg-charcoal p-6 text-cream md:p-10">
-        <Image src={MARKET_PHOTOS.africanMarket} alt="" fill sizes="100vw" className="object-cover" priority />
+      <section className="relative mb-6 overflow-hidden rounded-lg bg-charcoal p-6 text-cream md:p-10">
+        <Image src="/recipe-library-hero.webp" alt="" fill sizes="100vw" className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-r from-charcoal/88 via-charcoal/62 to-charcoal/12" />
         <div className="relative max-w-3xl">
           <span className="inline-flex items-center gap-1 rounded-full bg-gold/90 px-3 py-1 text-xs font-semibold text-charcoal">
@@ -49,8 +48,8 @@ export function RecipesView() {
           <h1 className="mt-3 text-2xl font-extrabold md:text-4xl">{t.recipes.title}</h1>
           <p className="mt-1 max-w-2xl text-cream/85">{t.recipes.subtitle}</p>
           <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-gold"><BookOpen className="h-3.5 w-3.5" /> {locale === "fr" ? "20 plats africains documentés, dont 10 spécialités ivoiriennes" : "20 documented African dishes, including 10 Ivorian specialties"}</p>
-          <div className="mt-5 max-w-2xl rounded-xl border border-cream/15 bg-cream/12 p-2 backdrop-blur">
-            <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-charcoal">
+          <div className="mt-5 max-w-2xl rounded-lg border border-cream/15 bg-cream/12 p-2 backdrop-blur">
+            <div className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-charcoal">
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
                 value={search}

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
-import { formatPrice, formatDate, orderStatusColor } from "@/lib/format";
+import { formatPrice, formatDate, orderStatusColor, orderStatusKey } from "@/lib/format";
 import { downloadOrderInvoice } from "@/lib/client-actions";
 import { ProductImage } from "@/components/shared/ProductImage";
 
@@ -56,7 +56,7 @@ export function OrdersView() {
                   <p className="text-sm font-bold text-terre">{o.number}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(o.createdAt, locale)} · {o.items.length} {t.orders.items}</p>
                 </div>
-                <Badge className={`border ${orderStatusColor(o.status)}`}>{t.orders.statuses[o.status as keyof typeof t.orders.statuses] || o.status}</Badge>
+                <Badge className={`border ${orderStatusColor(o.status)}`}>{t.orders.statuses[orderStatusKey(o.status) as keyof typeof t.orders.statuses] || o.status}</Badge>
               </div>
               <div className="flex gap-2 overflow-x-auto border-b border-border py-3" aria-label={locale === "fr" ? "Produits de la commande" : "Order products"}>
                 {o.items.map((item: any) => <div key={item.id} className="flex min-w-0 shrink-0 items-center gap-2 rounded-md border border-border bg-background pr-3"><ProductImage src={item.imageUrl} alt={locale === "en" ? item.nameEn : item.nameFr} emoji="🍲" color="#D65A32" size="sm" className="h-10 w-10" rounded="rounded-l-md rounded-r-none" /><div className="max-w-32 min-w-0"><p className="truncate text-[11px] font-bold text-charcoal">{locale === "en" ? item.nameEn : item.nameFr}</p><p className="text-[9px] text-muted-foreground">{item.qty} × {formatPrice(item.unitPrice, locale)}</p></div></div>)}

@@ -3,13 +3,18 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import {
+  ChefHat,
   CircleHelp,
   ClipboardList,
   Info,
+  LogIn,
+  LogOut,
   Menu,
   MessageCircle,
   ScrollText,
   ShieldCheck,
+  Store,
+  UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
@@ -18,6 +23,7 @@ import { dict } from "@/lib/i18n";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { LanguageSwitch } from "@/components/shared/LanguageSwitch";
 import { BrandLockup } from "@/components/shared/BrandLockup";
+import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 
 const NotificationCenter = dynamic(
   () => import("@/components/storefront/NotificationCenter").then((module) => module.NotificationCenter),
@@ -26,10 +32,16 @@ const NotificationCenter = dynamic(
 
 export function Header() {
   const locale = useStore((s) => s.locale);
+  const view = useStore((s) => s.view);
   const navigate = useStore((s) => s.navigate);
   const customer = useStore((s) => s.customer);
   const t = dict[locale];
   const [mobileOpen, setMobileOpen] = useState(false);
+  const searchContext = view === "catalog"
+    ? { icon: Store, label: locale === "fr" ? "Catalogue" : "Catalogue", detail: locale === "fr" ? "Produits et ingrédients" : "Products and ingredients" }
+    : view === "recipes"
+      ? { icon: ChefHat, label: locale === "fr" ? "Cuisine" : "Cooking", detail: locale === "fr" ? "Recettes et bibliothèque" : "Recipes and dish library" }
+      : null;
 
   const utilityLinks = [
     ...(customer ? [{ key: "orders", view: "orders", params: undefined, label: t.nav.tracking, icon: ClipboardList }] : []),
@@ -61,9 +73,36 @@ export function Header() {
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col p-3" aria-label={locale === "fr" ? "Assistance et informations" : "Help and information"}>
+              <p className="px-3 pb-2 text-[10px] font-extrabold uppercase text-muted-foreground">{locale === "fr" ? "Mon espace" : "My space"}</p>
+              <button
+                type="button"
+                onClick={() => go("account", customer ? { accountSection: "profile" } : undefined)}
+                className="flex min-h-12 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-charcoal hover:bg-muted"
+                aria-label={customer ? (locale === "fr" ? "Ouvrir mon espace" : "Open my account") : t.nav.login}
+              >
+                <span className="grid h-8 w-8 place-items-center rounded-md bg-terre text-white">
+                  {customer ? <UserRound className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate">{customer ? (locale === "fr" ? "Mon espace" : "My account") : t.nav.login}</span>
+                  <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">
+                    {customer
+                      ? (locale === "fr" ? "Profil, préférences et commandes" : "Profile, preferences and orders")
+                      : (locale === "fr" ? "Retrouver vos services personnels" : "Access your personal services")}
+                  </span>
+                </span>
+              </button>
+              {customer ? (
+                <LogoutConfirmDialog>
+                  <button type="button" className="flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-destructive hover:bg-red-50">
+                    <LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}
+                  </button>
+                </LogoutConfirmDialog>
+              ) : null}
+              <div className="my-3 border-t border-border" />
               <p className="px-3 pb-2 text-[10px] font-extrabold uppercase text-muted-foreground">{locale === "fr" ? "À votre service" : "At your service"}</p>
               {utilityLinks.map((link) => (
-                <button key={link.key} onClick={() => go(link.view, link.params)} className="flex min-h-12 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-charcoal hover:bg-muted">
+                <button key={link.key} onClick={() => go(link.view, link.params)} aria-label={link.label} className="flex min-h-12 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-charcoal hover:bg-muted">
                   <span className="grid h-8 w-8 place-items-center rounded-md bg-white text-terre"><link.icon className="h-4 w-4" /></span>
                   {link.label}
                 </button>
@@ -91,7 +130,14 @@ export function Header() {
           <BrandLockup compact responsive />
         </button>
 
-        <div className="hidden min-w-0 flex-1 md:block"><div className="max-w-2xl"><SearchBar /></div></div>
+        <div className="hidden min-w-0 flex-1 md:block">
+          {searchContext ? (
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-md bg-terre/10 text-terre"><searchContext.icon className="h-4 w-4" /></span>
+              <div className="min-w-0"><p className="text-xs font-black text-charcoal">{searchContext.label}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{searchContext.detail}</p></div>
+            </div>
+          ) : <div className="max-w-2xl"><SearchBar /></div>}
+        </div>
         <div className="ml-auto md:hidden" />
         <LanguageSwitch compact />
 
@@ -99,9 +145,11 @@ export function Header() {
       </div>
 
       {/* mobile search row */}
-      <div className="border-t border-border/70 px-3 pb-2 pt-2 md:hidden">
-        <div className="mx-auto max-w-2xl"><SearchBar /></div>
-      </div>
+      {!searchContext ? (
+        <div className="border-t border-border/70 px-3 pb-2 pt-2 md:hidden">
+          <div className="mx-auto max-w-2xl"><SearchBar /></div>
+        </div>
+      ) : null}
     </header>
   );
 }

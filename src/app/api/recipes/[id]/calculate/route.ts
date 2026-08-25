@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { computeRecipe, type RecipeConfigInput } from "@/lib/recipe-engine";
+import { getProductPhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       id: ri.product.id,
       traditionalName: ri.product.traditionalName,
       imageEmoji: ri.product.imageEmoji,
-      imageUrl: ri.product.imageUrl,
+      imageUrl: getProductPhoto({
+        traditionalName: ri.product.traditionalName,
+        imageUrl: ri.product.imageUrl,
+        category: ri.product.category,
+      }),
       imageColor: ri.product.imageColor,
       thermalClass: ri.product.thermalClass,
       stockQty: ri.product.stockQty,
@@ -97,7 +102,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     steps,
     rawIngredients,
     allProductsForSubstitute: allProducts.map((p) => ({
-      id: p.id, traditionalName: p.traditionalName, imageEmoji: p.imageEmoji, imageUrl: p.imageUrl, imageColor: p.imageColor,
+      id: p.id, traditionalName: p.traditionalName, imageEmoji: p.imageEmoji, imageUrl: getProductPhoto({ traditionalName: p.traditionalName, imageUrl: p.imageUrl, category: p.category }), imageColor: p.imageColor,
       stockQty: p.stockQty, reservedQty: p.reservedQty, thermalClass: p.thermalClass, categoryId: p.categoryId, categorySlug: p.category.slug,
       translations: p.translations.map((t) => ({ locale: t.locale, name: t.name })),
       variants: p.variants.map((v) => ({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getProductPhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         id: ri.product.id,
         traditionalName: ri.product.traditionalName,
         emoji: ri.product.imageEmoji,
-        imageUrl: ri.product.imageUrl,
+        imageUrl: getProductPhoto({
+          traditionalName: ri.product.traditionalName,
+          imageUrl: ri.product.imageUrl,
+          category: ri.product.category,
+        }),
         color: ri.product.imageColor,
         thermalClass: ri.product.thermalClass,
         stockQty: ri.product.stockQty,

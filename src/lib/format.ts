@@ -112,3 +112,8 @@ export function orderStatusColor(status: string): string {
     return "bg-amber-100 text-amber-800 border-amber-200";
   return "bg-gray-100 text-gray-800 border-gray-200";
 }
+
+/** Convert persisted snake_case workflow states to their translation keys. */
+export function orderStatusKey(status: string): string {
+  return status.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+}

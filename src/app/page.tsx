@@ -49,7 +49,7 @@ export default function Page() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/brand/app-icon-192.png" alt="Je mange Africain" width={96} height={96} className="h-20 w-20 animate-pulse rounded-lg object-contain" />
+          <Image src="/brand/app-icon-192.png" alt="Je mange Africain" width={96} height={96} loading="eager" fetchPriority="high" className="h-20 w-20 animate-pulse rounded-lg object-contain" />
           <div className="h-1 w-24 overflow-hidden rounded-full bg-muted">
             <div className="shimmer h-full w-full" />
           </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, CreditCard, Truck, ShieldCheck, Loader2, Lock, LogIn } from "lucide-react";
+import { Check, CreditCard, Gift, Truck, ShieldCheck, Loader2, Lock, LogIn, Smartphone, WalletCards, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,15 +41,64 @@ export function CheckoutView() {
   const [slot, setSlot] = useState("standard");
   const [method, setMethod] = useState("card");
   const [card, setCard] = useState({ number: "", expiry: "", cvc: "" });
+  const [shipQuote, setShipQuote] = useState<{ fee: number; carrier: string; packages: number } | null>(null);
+  const [shipLoading, setShipLoading] = useState(false);
+  const [promotion, setPromotion] = useState<{ discount: number; freeShipping?: boolean } | null>(null);
+  const [promotionLoading, setPromotionLoading] = useState(false);
 
   const subtotal = cartSubtotal(cart);
   const weight = cartWeightGrams(cart);
   const thermal = cartThermalSplit(cart);
-  const shipFee = subtotal >= 50 ? 0 : 6.9;
-  const total = subtotal + shipFee;
+  const thermalKey = thermal.join("|");
+  const promoDiscount = promotion?.discount || 0;
+  const quotedFee = shipQuote?.fee ?? (subtotal >= 50 ? 0 : 4.9 + 0.6 * (weight / 1000) + (thermal.includes("FROZEN") ? 2.5 : 0));
+  const shipFee = promotion?.freeShipping ? 0 : quotedFee;
+  const taxable = Math.max(0, subtotal - promoDiscount);
+  const total = taxable + shipFee;
+
+  useEffect(() => {
+    let cancelled = false;
+    setShipLoading(true);
+    postJSON<{ fee: number; carrier: string; packages: number }>("/api/shipping/quote", {
+      weightGrams: weight,
+      thermalClasses: thermalKey ? thermalKey.split("|") : [],
+      postalCode: form.postalCode,
+      country: form.country,
+    }).then((quote) => {
+      if (!cancelled) setShipQuote(quote);
+    }).catch(() => {
+      if (!cancelled) setShipQuote(null);
+    }).finally(() => {
+      if (!cancelled) setShipLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [form.country, form.postalCode, thermalKey, weight]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!coupon) {
+      setPromotion(null);
+      return;
+    }
+    setPromotionLoading(true);
+    postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean }>("/api/promotions/validate", { code: coupon, subtotal })
+      .then((result) => {
+        if (!cancelled) setPromotion(result.valid ? { discount: result.discount || 0, freeShipping: result.freeShipping } : null);
+      })
+      .catch(() => {
+        if (!cancelled) setPromotion(null);
+      })
+      .finally(() => {
+        if (!cancelled) setPromotionLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [coupon, subtotal]);
 
   const canNext0 = form.firstName && form.street && form.postalCode && form.city && form.email;
-  const canPay = method === "card" ? card.number && card.expiry && card.cvc : true;
+  const cardDigits = card.number.replace(/\D/g, "");
+  const canPay = method === "card"
+    ? cardDigits.length === 16 && /^(0[1-9]|1[0-2])\/\d{2}$/.test(card.expiry) && /^\d{3,4}$/.test(card.cvc)
+    : true;
 
   const pay = async () => {
     setProcessing(true);
@@ -61,7 +110,7 @@ export function CheckoutView() {
           sku: c.productId, unitPrice: c.unitPrice, qty: c.qty, thermalClass: c.thermalClass,
           recipeId: c.recipeId, recipeNameFr: c.recipeName, recipeNameEn: c.recipeName, packWeightGrams: c.packWeightGrams,
         })),
-        address: form, deliverySlot: slot, paymentMethod: method, subtotal, shipping: shipFee, coupon, customerEmail: form.email || customer?.email,
+        address: form, deliverySlot: slot, paymentMethod: method, subtotal, shipping: shipFee, coupon,
         locale,
         pushSubscriptionId: localStorage.getItem("jma-push-subscription-v1") || undefined,
       });
@@ -102,6 +151,13 @@ export function CheckoutView() {
   }
 
   const steps = [t.checkout.delivery, t.checkout.payment, t.checkout.review];
+  const paymentMethods: Array<{ value: string; label: string; Icon: LucideIcon }> = [
+    { value: "card", label: t.checkout.card, Icon: CreditCard },
+    { value: "applePay", label: t.checkout.applePay, Icon: Smartphone },
+    { value: "googlePay", label: t.checkout.googlePay, Icon: Smartphone },
+    { value: "paypal", label: t.checkout.paypal, Icon: WalletCards },
+    { value: "giftCardPay", label: t.checkout.giftCardPay, Icon: Gift },
+  ];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 lg:px-6">
@@ -121,7 +177,7 @@ export function CheckoutView() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-card p-5">
         {step === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -154,21 +210,23 @@ export function CheckoutView() {
             <div>
               <Label className="mb-2 block text-xs font-semibold text-charcoal">{t.checkout.paymentMethod}</Label>
               <RadioGroup value={method} onValueChange={setMethod} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {[["card", t.checkout.card, "💳"], ["applePay", t.checkout.applePay, ""], ["googlePay", t.checkout.googlePay, ""], ["paypal", t.checkout.paypal, "🅿️"], ["giftCardPay", t.checkout.giftCardPay, "🎁"]].map(([v, l, ic]) => (
-                  <label key={v} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 text-sm has-[:checked]:border-terre has-[:checked]:bg-terre/5">
-                    <RadioGroupItem value={v} /> <span>{ic}</span> {l}
+                {paymentMethods.map(({ value, label, Icon }) => (
+                  <label key={value} className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-border p-3 text-sm has-[:checked]:border-terre has-[:checked]:bg-terre/5">
+                    <RadioGroupItem value={value} />
+                    <Icon className="h-4 w-4 shrink-0 text-terre" />
+                    <span className="min-w-0 leading-tight">{label}</span>
                   </label>
                 ))}
               </RadioGroup>
             </div>
             {method === "card" && (
-              <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
-                <Field label={t.checkout.cardNumber} value={card.number} onChange={(v) => setCard({ ...card, number: v.replace(/[^\d ]/g, "").slice(0, 19) })} placeholder="4242 4242 4242 4242" />
+              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                <Field id="checkout-card-number" label={t.checkout.cardNumber} value={card.number} onChange={(v) => setCard({ ...card, number: formatCardNumber(v) })} placeholder="4242 4242 4242 4242" inputMode="numeric" autoComplete="cc-number" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={t.checkout.expiry} value={card.expiry} onChange={(v) => setCard({ ...card, expiry: v })} placeholder="12/26" />
-                  <Field label={t.checkout.cvc} value={card.cvc} onChange={(v) => setCard({ ...card, cvc: v.replace(/\D/g, "").slice(0, 4) })} placeholder="123" />
+                  <Field id="checkout-card-expiry" label={t.checkout.expiry} value={card.expiry} onChange={(v) => setCard({ ...card, expiry: formatExpiry(v) })} placeholder="12/26" inputMode="numeric" autoComplete="cc-exp" />
+                  <Field id="checkout-card-cvc" label={t.checkout.cvc} value={card.cvc} onChange={(v) => setCard({ ...card, cvc: v.replace(/\D/g, "").slice(0, 4) })} placeholder="123" inputMode="numeric" autoComplete="cc-csc" />
                 </div>
-                <p className="flex items-center gap-1 text-[11px] text-muted-foreground"><Lock className="h-3 w-3" /> {locale === "fr" ? "Démonstration — aucune carte réelle n'est débitée." : "Demo — no real card is charged."}</p>
+                <p className="flex items-center gap-1 text-[11px] text-muted-foreground"><Lock className="h-3 w-3 shrink-0" /> {locale === "fr" ? "Vos données bancaires ne sont pas enregistrées par Je mange Africain." : "Your banking details are not stored by Je mange Africain."}</p>
               </div>
             )}
             <div className="flex gap-2">
@@ -196,9 +254,11 @@ export function CheckoutView() {
             </div>
             <div className="space-y-1 border-t border-border pt-2 text-sm">
               <div className="flex justify-between"><span>{t.cart.subtotal}</span><span>{formatPrice(subtotal, locale)}</span></div>
-              <div className="flex justify-between"><span>{t.cart.shipping}</span><span>{shipFee === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipFee, locale)}</span></div>
+              {promoDiscount > 0 ? <div className="flex justify-between text-forest"><span>{t.cart.promo}</span><span>-{formatPrice(promoDiscount, locale)}</span></div> : null}
+              <div className="flex justify-between"><span>{t.cart.shipping}</span><span>{shipLoading ? t.loading : shipFee === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipFee, locale)}</span></div>
+              {shipQuote?.carrier ? <div className="flex justify-between text-muted-foreground"><span>{locale === "fr" ? "Transporteur estimé" : "Estimated carrier"}</span><span>{shipQuote.carrier}</span></div> : null}
               <div className="flex justify-between"><span>{t.cart.totalWeight}</span><span>{formatWeight(weight, locale)}</span></div>
-              <div className="flex justify-between"><span>{t.cart.packages}</span><span>{thermal.length || 1} · {thermal.map((tc) => thermalLabel(tc, locale)).join(", ")}</span></div>
+              <div className="flex justify-between"><span>{t.cart.packages}</span><span>{shipQuote?.packages || thermal.length || 1} · {thermal.map((tc) => thermalLabel(tc, locale)).join(", ")}</span></div>
               <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                 <span className="font-bold text-charcoal">{t.cart.total}</span>
                 <span className="text-xl font-extrabold text-terre">{formatPrice(total, locale)}</span>
@@ -210,7 +270,7 @@ export function CheckoutView() {
             {paymentError ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">{paymentError}</p> : null}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep(1)} className="flex-1">{t.previous}</Button>
-              <Button onClick={pay} disabled={processing} className="flex-1 bg-terre text-cream hover:bg-terre-dark">
+              <Button onClick={pay} disabled={processing || shipLoading || promotionLoading} className="flex-1 bg-terre text-cream hover:bg-terre-dark">
                 {processing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t.checkout.processing}</> : <><CreditCard className="mr-2 h-4 w-4" /> {t.checkout.placeOrder.replace("{amount}", total.toFixed(2))}</>}
               </Button>
             </div>
@@ -221,11 +281,20 @@ export function CheckoutView() {
   );
 }
 
-function Field({ label, value, onChange, type = "text", placeholder, className = "" }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; className?: string }) {
+function Field({ id, label, value, onChange, type = "text", placeholder, className = "", inputMode, autoComplete }: { id?: string; label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; className?: string; inputMode?: "text" | "numeric" | "email" | "tel" | "search" | "url" | "decimal" | "none"; autoComplete?: string }) {
   return (
     <div className={className}>
-      <Label className="mb-1 block text-xs font-semibold text-charcoal">{label}</Label>
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="bg-background" />
+      <Label htmlFor={id} className="mb-1 block text-xs font-semibold text-charcoal">{label}</Label>
+      <Input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} inputMode={inputMode} autoComplete={autoComplete} className="bg-background" />
     </div>
   );
+}
+
+function formatCardNumber(value: string) {
+  return value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+}
+
+function formatExpiry(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
 }

@@ -129,7 +129,7 @@ export function RecipeConfiguratorView() {
   useEffect(() => {
     const id = setTimeout(doCalc, 200);
     return () => clearTimeout(id);
-  }, [calcKey]);
+  }, [calcKey, doCalc]);
 
   const toggleHave = (ingredientId: string) => {
     const adding = !haveAtHome.includes(ingredientId);

@@ -36,7 +36,7 @@ export function HomeView() {
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <Image src="/hero-feast-v2.webp" alt="" fill sizes="100vw" className="object-cover object-[63%_center] md:object-center" priority />
+          <Image src="/hero-feast-v2.webp" alt="" fill sizes="100vw" loading="eager" fetchPriority="high" className="object-cover object-[63%_center] md:object-center" />
           <div className="absolute inset-0 bg-charcoal/55 md:bg-gradient-to-r md:from-charcoal/88 md:via-charcoal/58 md:to-charcoal/10" />
         </div>
         <div className="relative mx-auto flex min-h-[48svh] max-w-4xl flex-col justify-center gap-5 px-4 py-10 md:min-h-[500px] md:py-16">
@@ -113,7 +113,7 @@ export function HomeView() {
 
         {/* PROMO BANNER */}
         <section className="relative min-h-64 overflow-hidden rounded-lg">
-          <Image src={homeAdvertisement?.imageUrl || "/hero-feast-v2.webp"} alt={homeAdvertisement?.imageAlt || ""} fill sizes="(max-width: 768px) 100vw, 1200px" className="object-cover" />
+          <Image src={homeAdvertisement?.imageUrl || "/hero.jpg"} alt={homeAdvertisement?.imageAlt || ""} fill sizes="(max-width: 768px) 100vw, 1200px" className="object-cover" />
           <div className="absolute inset-0 bg-charcoal/68" />
           <div className="relative flex min-h-64 flex-col items-start justify-end gap-4 p-6 text-cream md:flex-row md:items-end md:justify-between md:p-10">
             <div>

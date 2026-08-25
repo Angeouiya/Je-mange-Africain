@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendPushToSubscriptionId } from "@/lib/push-server";
+import { calculateShippingQuote } from "@/lib/shipping";
+import { authorizeCustomerRequest } from "@/lib/customer-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,6 @@ interface CheckoutBody {
   shipping: number;
   coupon?: string | null;
   giftCardCode?: string | null;
-  customerEmail?: string;
   locale?: "fr" | "en";
   pushSubscriptionId?: string;
 }
@@ -41,6 +42,9 @@ const ORDER_STATUS_FLOW = [
 ];
 
 export async function POST(req: NextRequest) {
+  const session = await authorizeCustomerRequest(req);
+  if (!session) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+
   const body = (await req.json()) as CheckoutBody;
 
   // Basic server-side validation (never trust the client amount)
@@ -88,12 +92,13 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Shipping quote (recomputed server-side)
-  const zone = await db.deliveryZone.findFirst({ where: { country: body.address.country }, orderBy: { baseFee: "asc" } });
-  const baseFee = zone ? Number(zone.baseFee) : 4.9;
-  const perKg = zone ? Number(zone.perKgFee) : 0.6;
-  const frozenSurcharge = thermalSet.has("FROZEN") ? (zone ? Number(zone.frozenSurcharge) : 2.5) : 0;
-  const shipping = baseFee + perKg * (weightGrams / 1000) + frozenSurcharge;
+  // Shipping quote (same source of truth as cart and checkout review)
+  const shippingQuote = await calculateShippingQuote({
+    country: body.address.country,
+    weightGrams,
+    thermalClasses: Array.from(thermalSet),
+  });
+  let shipping = shippingQuote.fee;
 
   // Coupon
   let promoDiscount = 0;
@@ -102,10 +107,7 @@ export async function POST(req: NextRequest) {
     if (promo && promo.active && subtotal >= Number(promo.minOrder)) {
       if (promo.type === "percent") promoDiscount = (subtotal * Number(promo.value)) / 100;
       else if (promo.type === "fixed") promoDiscount = Number(promo.value);
-      // free_shipping handled in shipping above? apply 0 shipping
-      if (promo.type === "free_shipping") {
-        // shipping becomes 0
-      }
+      if (promo.type === "free_shipping") shipping = 0;
     }
   }
 
@@ -113,15 +115,13 @@ export async function POST(req: NextRequest) {
   const vat = Math.round((taxable / 1.2) * 0.2 * 100) / 100; // VAT 20% included
   const total = Math.round((taxable + shipping) * 100) / 100;
 
-  // Find or create a demo customer from email
-  let customer = null as any;
-  if (body.customerEmail) {
-    const user = await db.user.findUnique({ where: { email: body.customerEmail } });
-    if (user) customer = await db.customer.findUnique({ where: { userId: user.id } });
-    if (!customer && user) {
-      customer = await db.customer.create({ data: { userId: user.id, preferredLang: "fr" } });
-    }
+  // Bind the order to the authenticated directory entry, never to client-supplied identity data.
+  const user = await db.user.findUnique({ where: { email: session.email.toLowerCase() } });
+  if (!user || user.role !== "customer" || !user.isActive) {
+    return NextResponse.json({ error: "Compte client introuvable ou inactif." }, { status: 403 });
   }
+  let customer = await db.customer.findUnique({ where: { userId: user.id } });
+  if (!customer) customer = await db.customer.create({ data: { userId: user.id, preferredLang: body.locale || "fr" } });
 
   // Pick a carrier (cheapest for the country)
   const carrier = await db.carrier.findFirst({ orderBy: { rating: "desc" } });

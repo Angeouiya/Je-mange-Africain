@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
-import { formatPrice, formatDate, formatDateTime, orderStatusColor, thermalColor, thermalLabel } from "@/lib/format";
+import { formatPrice, formatDate, formatDateTime, orderStatusColor, orderStatusKey, thermalColor, thermalLabel } from "@/lib/format";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
 
@@ -44,7 +44,7 @@ export function OrderTrackingView() {
           <h1 className="text-2xl font-bold text-charcoal">{order.number}</h1>
           <p className="text-xs text-muted-foreground">{formatDate(order.createdAt, locale)}</p>
         </div>
-        <Badge className={`border ${orderStatusColor(order.status)}`}>{t.orders.statuses[order.status as keyof typeof t.orders.statuses] || order.status}</Badge>
+        <Badge className={`border ${orderStatusColor(order.status)}`}>{t.orders.statuses[orderStatusKey(order.status) as keyof typeof t.orders.statuses] || order.status}</Badge>
       </div>
 
       <section className="mb-5 overflow-hidden rounded-lg border border-border bg-white px-3 py-4" aria-label={locale === "fr" ? "Progression de la livraison" : "Delivery progress"}>
@@ -82,7 +82,7 @@ export function OrderTrackingView() {
                     <span className="text-xs font-semibold text-charcoal">{s.trackingNumber}</span>
                     <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] ${thermalColor(s.thermalClass)}`}>{thermalLabel(s.thermalClass, locale)}</span>
                   </div>
-                  <p className="mt-1 text-[11px] text-muted-foreground">{s.carrier} · <span className="capitalize">{s.status}</span></p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{s.carrier} · <span>{t.orders.statuses[orderStatusKey(s.status) as keyof typeof t.orders.statuses] || s.status}</span></p>
                   <p className="text-[11px] text-muted-foreground">{t.orders.estimatedDelivery} : {s.estimatedDelivery ? formatDate(s.estimatedDelivery, locale) : "—"}</p>
                   {s.confirmCode && <p className="mt-0.5 text-[11px] font-medium text-forest">Code : {s.confirmCode}</p>}
                 </div>
