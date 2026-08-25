@@ -28,6 +28,7 @@ export function CartView() {
   const setCoupon = useStore((s) => s.setCoupon);
   const navigate = useStore((s) => s.navigate);
   const t = dict[locale];
+  const promoCodes = ["BIENVENUE10", "FRAIS5", "LIVRAISONOFFERTE"];
 
   const [couponInput, setCouponInput] = useState("");
   const [couponApplied, setCouponApplied] = useState<{ code: string; discount: number; freeShipping?: boolean } | null>(null);
@@ -173,7 +174,19 @@ export function CartView() {
               </div>
               {couponApplied && <p className="text-xs text-forest"><Check className="inline h-3 w-3" /> {couponApplied.code} (-{formatPrice(couponApplied.discount, locale)})</p>}
               {couponError && <p className="text-xs text-destructive">{couponError}</p>}
-              <p className="text-[10px] text-muted-foreground">BIENVENUE10 · FRAIS5 · LIVRAISONOFFERTE</p>
+              <div className="flex flex-wrap gap-1.5" aria-label={locale === "fr" ? "Codes promotionnels disponibles" : "Available promotion codes"}>
+                {promoCodes.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setCouponInput(code)}
+                    aria-pressed={couponInput === code}
+                    className={`rounded-md border px-2 py-1 text-[9px] font-bold transition-colors ${couponInput === code ? "border-terre bg-terre/8 text-terre" : "border-border bg-background text-muted-foreground hover:border-terre/35 hover:text-charcoal"}`}
+                  >
+                    {code}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-1.5 border-t border-border pt-3 text-sm">
@@ -210,11 +223,11 @@ export function CartView() {
 function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string; onQty: (q: number) => void; onRemove: () => void }) {
   const t = dict[locale as "fr" | "en"];
   return (
-    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 rounded-lg bg-background p-2 sm:flex sm:gap-3">
-      <ProductImage src={c.imageUrl} alt={c.name} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="row-span-2 h-12 w-12 shrink-0 sm:row-auto" rounded="rounded-lg" />
+    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg bg-background p-2.5 sm:flex sm:gap-3">
+      <ProductImage src={c.imageUrl} alt={c.name} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="row-span-2 h-14 w-14 shrink-0 sm:row-auto" rounded="rounded-md" />
       <div className="min-w-0 sm:flex-1">
-        <p className="truncate text-sm font-medium text-charcoal">{c.name}</p>
-        <p className="text-[11px] text-muted-foreground">{c.unitLabel} · <span className={`inline-flex items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>
+        <p className="truncate text-sm font-bold text-charcoal">{c.name}</p>
+        <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground"><span className="truncate">{c.unitLabel}</span><span aria-hidden="true">·</span><span className={`inline-flex shrink-0 items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>
       </div>
       <div className="col-start-2 row-start-2 inline-flex w-fit items-center rounded-full border border-border sm:col-auto sm:row-auto">
         <button onClick={() => onQty(c.qty - 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label="-"><span className="text-xs">−</span></button>

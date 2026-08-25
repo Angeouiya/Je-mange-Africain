@@ -7,6 +7,7 @@ type CategoryLike = {
 };
 
 type MarketSubject = {
+  slug?: string | null;
   name?: string | null;
   traditionalName?: string | null;
   description?: string | null;
@@ -49,6 +50,35 @@ const CATEGORY_PHOTOS: Record<string, string> = {
   boissons: MARKET_PHOTOS.spiceVendor,
 };
 
+const RECIPE_PHOTOS: Record<string, string> = {
+  "sauce-graine": "/recipes/sauce-graine.webp",
+  "sauce-gombo": "/recipes/sauce-gombo.webp",
+  "attieke-poisson": "/recipes/attieke-poisson.webp",
+  "placali-sauce-graine": "/recipes/placali-sauce-graine.webp",
+  "alloco-poulet": "/recipes/alloco-poulet.webp",
+  mafe: "/recipes/mafe.webp",
+};
+
+const PRODUCT_PHOTOS: Record<string, string> = {
+  "placali-frais": "/products/placali-frais.webp",
+  placali: "/products/placali-frais.webp",
+  attieke: "/products/attieke.webp",
+  "farine-mil": "/products/farine-mil.webp",
+  "farine-de-mil": "/products/farine-mil.webp",
+  "kplo-fume": "/products/kplo-fume.webp",
+  "poulet-fermier": "/products/poulet-fermier.webp",
+  "maquereau-fume": "/products/maquereau-fume.webp",
+  "gombo-frais": "/products/gombo-frais.webp",
+  "feuilles-manioc": "/products/feuilles-manioc.webp",
+  "feuilles-de-manioc": "/products/feuilles-manioc.webp",
+  "graine-palme": "/products/graine-palme.webp",
+  "graine-de-palme": "/products/graine-palme.webp",
+  chikwangue: "/products/chikwangue.webp",
+  fonio: "/products/fonio.webp",
+  "poudre-baobab": "/products/poudre-baobab.webp",
+  "poudre-de-baobab": "/products/poudre-baobab.webp",
+};
+
 const KEYWORD_PHOTOS: Array<{ terms: string[]; photo: string }> = [
   { terms: ["attieke", "garba", "jollof", "thieboudienne", "waakye", "riz gras"], photo: MARKET_PHOTOS.riceCooked },
   { terms: ["placali", "gari", "garri", "fufu", "foufou", "chikwangue", "kwanga", "manioc", "cassava"], photo: MARKET_PHOTOS.africanMarket },
@@ -68,6 +98,9 @@ const norm = (value?: string | null) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
+const mediaKey = (value?: string | null) =>
+  norm(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 function categorySlug(subject: MarketSubject | CategoryLike | string) {
   if (typeof subject === "string") return norm(subject);
   if ("category" in subject && subject.category) {
@@ -85,6 +118,10 @@ export function getCategoryPhoto(category: MarketSubject | CategoryLike | string
 
 export function getProductPhoto(product: MarketSubject) {
   if (product.imageUrl || product.photoUrl) return product.imageUrl || product.photoUrl || MARKET_PHOTOS.africanMarket;
+  const productPhoto = PRODUCT_PHOTOS[mediaKey(product.slug)]
+    || PRODUCT_PHOTOS[mediaKey(product.traditionalName)]
+    || PRODUCT_PHOTOS[mediaKey(product.name)];
+  if (productPhoto) return productPhoto;
   const haystack = norm([
     product.name,
     product.traditionalName,
@@ -101,6 +138,9 @@ export function getProductPhoto(product: MarketSubject) {
 }
 
 export function getRecipePhoto(recipe: MarketSubject & { title?: string | null; category?: string | CategoryLike | null }) {
+  if (recipe.imageUrl || recipe.photoUrl) return recipe.imageUrl || recipe.photoUrl || MARKET_PHOTOS.africanMarket;
+  const recipeKey = mediaKey(recipe.slug || recipe.title || recipe.name);
+  if (RECIPE_PHOTOS[recipeKey]) return RECIPE_PHOTOS[recipeKey];
   return getProductPhoto({
     ...recipe,
     name: recipe.title || recipe.name,

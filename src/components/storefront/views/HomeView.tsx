@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, Truck, Snowflake, ShieldCheck, Headphones, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowRight, Truck, Snowflake, ShieldCheck, Headphones, ChevronRight, Sparkles, BadgePercent, PackageOpen, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
@@ -11,8 +11,10 @@ import { useFetch } from "@/lib/use-fetch";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCategoryPhoto } from "@/lib/market-media";
+import { getCategoryPhoto, getDiscountPercent, getProductPhoto } from "@/lib/market-media";
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
+import { ProductImage } from "@/components/shared/ProductImage";
+import { formatPrice } from "@/lib/format";
 
 export function HomeView() {
   const locale = useStore((s) => s.locale);
@@ -125,18 +127,8 @@ export function HomeView() {
           </div>
         </section>
 
-        {/* ON SALE + NEW */}
-        <Section title={t.home.onSale} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
-          {loading ? <GridSkeleton /> : (
-            <ProductRail products={data?.onSale || []} />
-          )}
-        </Section>
-
-        <Section title={t.home.newProducts} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
-          {loading ? <GridSkeleton /> : (
-            <ProductRail products={data?.news || []} />
-          )}
-        </Section>
+        {/* COMMERCIAL PULSE */}
+        {loading ? <GridSkeleton /> : <MarketPulse deals={data?.onSale || []} news={data?.news || []} locale={locale} />}
 
         {/* COMMITMENTS */}
         <section className="space-y-4">
@@ -231,5 +223,56 @@ function RecipeRail({ recipes }: { recipes: any[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function MarketPulse({ deals, news, locale }: { deals: any[]; news: any[]; locale: "fr" | "en" }) {
+  const navigate = useStore((s) => s.navigate);
+  const deal = deals[0];
+  const arrivals = news.filter((product) => product.id !== deal?.id).slice(0, 3);
+  if (!deal && !arrivals.length) return null;
+
+  const dealPrice = deal ? deal.promoPrice ?? deal.price : 0;
+  const discount = deal ? getDiscountPercent(deal.price, deal.promoPrice) : 0;
+
+  return (
+    <section className="space-y-4 [contain-intrinsic-size:520px] [content-visibility:auto]">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase text-terre">{locale === "fr" ? "Sélection commerciale" : "Commercial selection"}</p>
+          <h2 className="mt-1 text-xl font-bold text-charcoal md:text-2xl">{locale === "fr" ? "L'actualité du marché" : "Market now"}</h2>
+        </div>
+        <button onClick={() => navigate("catalog")} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-terre hover:underline">
+          {locale === "fr" ? "Tout explorer" : "Explore all"} <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="grid overflow-hidden rounded-lg border border-black/8 bg-white lg:grid-cols-[1.1fr_0.9fr]">
+        {deal ? (
+          <button type="button" onClick={() => navigate("product", { productId: deal.id })} className="group relative min-h-64 overflow-hidden text-left sm:min-h-72">
+            <ProductImage src={getProductPhoto(deal)} alt={deal.name} emoji={deal.imageEmoji} color={deal.imageColor} size="lg" className="h-full w-full transition duration-500 group-hover:scale-[1.025]" rounded="rounded-none" />
+            <span className="absolute inset-0 bg-gradient-to-t from-charcoal/92 via-charcoal/42 to-transparent" />
+            <span className="absolute left-4 top-4 inline-flex items-center rounded-md bg-destructive px-2.5 py-1.5 text-xs font-black text-white shadow-lg"><BadgePercent className="mr-1.5 h-4 w-4" />-{discount}%</span>
+            <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 text-white sm:p-6">
+              <span className="min-w-0"><span className="block text-[10px] font-bold uppercase text-gold">{locale === "fr" ? "Prix du moment" : "Current deal"}</span><span className="mt-1 block truncate text-xl font-black">{deal.name}</span><span className="mt-1 flex items-baseline gap-2"><strong className="text-2xl font-black">{formatPrice(dealPrice, locale)}</strong>{deal.promoPrice ? <span className="text-xs text-white/55 line-through">{formatPrice(deal.price, locale)}</span> : null}</span></span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-white text-charcoal transition-transform group-hover:translate-x-0.5"><ArrowUpRight className="h-5 w-5" /></span>
+            </span>
+          </button>
+        ) : null}
+
+        <div className="flex flex-col border-t border-black/8 lg:border-l lg:border-t-0">
+          <div className="flex items-center gap-3 border-b border-black/8 px-4 py-4 sm:px-5"><span className="grid h-9 w-9 place-items-center rounded-md bg-gold/18 text-amber-800"><PackageOpen className="h-4 w-4" /></span><div><h3 className="text-sm font-black text-charcoal">{locale === "fr" ? "Arrivages récents" : "Recent arrivals"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Nouveaux formats et produits à découvrir" : "New products and pack sizes to discover"}</p></div></div>
+          <div className="flex-1 divide-y divide-border">
+            {arrivals.map((product) => (
+              <button key={product.id} type="button" onClick={() => navigate("product", { productId: product.id })} className="group grid w-full grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/45 sm:px-5">
+                <ProductImage src={getProductPhoto(product)} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-16 w-16" rounded="rounded-md" />
+                <span className="min-w-0"><span className="block truncate text-xs font-black text-charcoal">{product.name}</span><span className="mt-1 block truncate text-[10px] text-muted-foreground">{product.country || (locale === "fr" ? "Sélection africaine" : "African selection")}</span><strong className="mt-1 block text-sm text-terre">{formatPrice(product.promoPrice ?? product.price, locale)}</strong></span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-terre" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

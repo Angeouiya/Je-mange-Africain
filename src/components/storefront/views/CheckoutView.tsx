@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, CreditCard, Truck, ShieldCheck, Loader2, Lock } from "lucide-react";
+import { Check, CreditCard, Truck, ShieldCheck, Loader2, Lock, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,6 +79,24 @@ export function CheckoutView() {
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
         <p className="text-muted-foreground">{t.cart.empty}</p>
         <Button onClick={() => navigate("catalog")} className="mt-4 bg-terre text-cream">{t.cart.emptyCta}</Button>
+      </div>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <div className="mx-auto min-h-[68dvh] max-w-xl px-4 py-6 lg:px-6">
+        <PageBackButton fallbackView="cart" />
+        <div className="flex min-h-[55dvh] flex-col items-center justify-center text-center">
+          <span className="grid h-14 w-14 place-items-center rounded-md bg-terre/10 text-terre"><Lock className="h-6 w-6" /></span>
+          <p className="mt-5 text-[10px] font-black uppercase text-terre">{locale === "fr" ? "Paiement protégé" : "Protected checkout"}</p>
+          <h1 className="mt-2 text-2xl font-black text-charcoal">{locale === "fr" ? "Connectez-vous avant de finaliser" : "Sign in before checkout"}</h1>
+          <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">{locale === "fr" ? "Votre panier reste intact. La connexion permet d'associer l'adresse, le paiement et le suivi de livraison au bon compte." : "Your basket remains intact. Signing in links the address, payment and delivery tracking to the correct account."}</p>
+          <div className="mt-6 flex w-full max-w-sm flex-col gap-2 sm:flex-row">
+            <Button onClick={() => navigate("account", { returnView: "checkout" })} className="flex-1 bg-terre text-white hover:bg-terre-dark"><LogIn className="mr-2 h-4 w-4" />{t.nav.login}</Button>
+            <Button variant="outline" onClick={() => navigate("cart")} className="flex-1">{locale === "fr" ? "Revoir le panier" : "Review basket"}</Button>
+          </div>
+        </div>
       </div>
     );
   }

@@ -52,6 +52,7 @@ export interface ViewParams {
   query?: string;
   recipeMode?: "recipes" | "library";
   accountSection?: "profile" | "saved" | "settings";
+  returnView?: ViewId;
   infoPage?: "about" | "help" | "contact" | "cgv" | "privacy" | "cookies" | "delivery";
 }
 

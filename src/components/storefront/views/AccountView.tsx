@@ -83,7 +83,7 @@ export function AccountView() {
     if (customer) return;
     const previousOverflow = document.body.style.overflow;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && authStatus !== "busy") navigate("home");
+      if (event.key === "Escape" && authStatus !== "busy") navigate(params.returnView === "checkout" ? "cart" : "home");
     };
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", closeOnEscape);
@@ -91,7 +91,7 @@ export function AccountView() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, [authStatus, customer, navigate]);
+  }, [authStatus, customer, navigate, params.returnView]);
 
   const changeAuthMode = (mode: AuthMode) => {
     setAuthMode(mode);
@@ -116,6 +116,7 @@ export function AccountView() {
     }
     setCustomer(payload.customer);
     setAuthStatus("idle");
+    if (params.returnView) navigate(params.returnView);
   };
 
   const submitRegistration = async (event: FormEvent) => {
@@ -141,6 +142,7 @@ export function AccountView() {
     if (payload.customer) {
       setCustomer(payload.customer);
       setAuthStatus("idle");
+      if (params.returnView) navigate(params.returnView);
       return;
     }
     setAuthStatus("success");
@@ -170,7 +172,7 @@ export function AccountView() {
     return (
       <div role="dialog" aria-modal="true" aria-labelledby="customer-auth-title" className="fixed inset-0 z-[80] overflow-y-auto bg-cream">
         <div className="african-kente-stripe sticky inset-x-0 top-0 z-10 h-1" />
-        <button type="button" onClick={() => navigate("home")} disabled={authStatus === "busy"} className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-border bg-white text-charcoal shadow-sm transition hover:border-terre hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={locale === "fr" ? "Fermer la connexion et revenir à l'accueil" : "Close sign-in and return home"}>
+        <button type="button" onClick={() => navigate(params.returnView === "checkout" ? "cart" : "home")} disabled={authStatus === "busy"} className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-border bg-white text-charcoal shadow-sm transition hover:border-terre hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={locale === "fr" ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
           <X className="h-5 w-5" />
         </button>
         <div className="mx-auto flex min-h-full w-full max-w-md items-start px-4 py-16 sm:items-center sm:py-12">
