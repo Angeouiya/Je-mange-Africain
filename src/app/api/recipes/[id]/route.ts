@@ -8,8 +8,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { searchParams } = new URL(req.url);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
 
-  const recipe = await db.recipe.findUnique({
-    where: { id },
+  const recipe = await db.recipe.findFirst({
+    where: { id, status: "published" },
     include: {
       translations: true,
       ingredients: {

@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { BookOpen, ChefHat, Clock3, Package, Search, Sparkles } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { ProductCreateDialog } from "@/components/admin/ProductCreateDialog";
+import { RecipeCreateDialog } from "@/components/admin/RecipeCreateDialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,19 +13,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, normalize, thermalColor, thermalLabel } from "@/lib/format";
 
-type OfferTab = "products" | "recipes";
 type Product = { id: string; name: string; traditionalName: string; sku: string; costPrice?: number | null; profitMargin?: number | null; costSource?: "recorded" | "estimated"; price: number; promoPrice?: number | null; stockQty: number; alertThreshold?: number; imageColor: string; imageEmoji: string; thermalClass: string; country: string };
-type Recipe = { id: string; title: string; description?: string; country: string; category: string; difficulty: string; timeMinutes: number; baseServings: number; imageColor: string; imageEmoji: string; isPopular: boolean; ingredientCount: number };
+type Recipe = { id: string; title: string; description?: string; country: string; category: string; difficulty: string; timeMinutes: number; baseServings: number; imageColor: string; imageEmoji: string; isPopular: boolean; status?: string; ingredientCount: number };
 type RecipeDetails = Recipe & { steps: string[]; ingredients: Array<{ recipeIngredientId: string; quantityPerBase: number; unit: string; optional: boolean; product: { id: string; traditionalName: string; emoji: string; nameFr: string; nameEn: string; stockQty: number } }> };
 
-export default function OfferSection({ locale }: { locale: "fr" | "en" }) {
+export default function OfferSection({ locale, workspace }: { locale: "fr" | "en"; workspace: "products" | "recipes" }) {
   const isFr = locale === "fr";
-  const [tab, setTab] = useState<OfferTab>("products");
   const [query, setQuery] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const productsRequest = useFetch<{ products: Product[]; total: number }>(`/api/admin/products?locale=${locale}`, [locale]);
-  const recipesRequest = useFetch<{ recipes: Recipe[] }>(`/api/recipes?locale=${locale}`, [locale]);
-  const recipeDetailsRequest = useFetch<RecipeDetails>(selectedRecipe ? `/api/recipes/${selectedRecipe.id}?locale=${locale}` : null, [selectedRecipe?.id, locale]);
+  const productsRequest = useFetch<{ products: Product[]; total: number }>(workspace === "products" ? `/api/admin/products?locale=${locale}` : null, [locale, workspace]);
+  const recipesRequest = useFetch<{ recipes: Recipe[] }>(workspace === "recipes" ? `/api/admin/recipes?locale=${locale}` : null, [locale, workspace]);
+  const recipeDetailsRequest = useFetch<RecipeDetails>(selectedRecipe ? `/api/admin/recipes/${selectedRecipe.id}?locale=${locale}` : null, [selectedRecipe?.id, locale]);
 
   const products = productsRequest.data?.products || [];
   const recipes = recipesRequest.data?.recipes || [];
@@ -32,31 +31,28 @@ export default function OfferSection({ locale }: { locale: "fr" | "en" }) {
   const filteredProducts = useMemo(() => products.filter((product) => normalize(`${product.name} ${product.traditionalName} ${product.sku} ${product.country}`).includes(normalizedQuery)), [products, normalizedQuery]);
   const filteredRecipes = useMemo(() => recipes.filter((recipe) => normalize(`${recipe.title} ${recipe.country} ${recipe.category}`).includes(normalizedQuery)), [recipes, normalizedQuery]);
 
-  const activeRequest = tab === "products" ? productsRequest : recipesRequest;
+  const activeRequest = workspace === "products" ? productsRequest : recipesRequest;
   if (activeRequest.loading && !activeRequest.data) return <AdminSectionLoading label={isFr ? "Ouverture de l'offre" : "Opening offer workspace"} />;
   if (activeRequest.error && !activeRequest.data) return <AdminErrorState message={activeRequest.error} onRetry={activeRequest.refetch} />;
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow={isFr ? "Catalogue culinaire" : "Culinary catalogue"}
-        title={isFr ? "Une offre, deux bibliothèques" : "One offer, two libraries"}
-        description={isFr ? "Les produits définissent ce qui est vendu. Les recettes organisent la manière dont ces produits sont découverts et cuisinés." : "Products define what is sold. Recipes organise how those products are discovered and cooked."}
-        action={tab === "products" ? <ProductCreateDialog locale={locale} onCreated={productsRequest.refetch} /> : undefined}
+        eyebrow={workspace === "products" ? (isFr ? "Référentiel marchand" : "Commerce master data") : (isFr ? "Atelier culinaire" : "Culinary workshop")}
+        title={workspace === "products" ? (isFr ? "Ce qui est réellement vendu" : "What is actually sold") : (isFr ? "Construire des recettes achetables" : "Build shoppable recipes")}
+        description={workspace === "products" ? (isFr ? "Gérez chaque produit publié, son prix calculé, sa marge interne et sa disponibilité sans mélanger la logique éditoriale des recettes." : "Manage every published product, calculated price, internal margin and availability without mixing in recipe editorial work.") : (isFr ? "Ordonnez la préparation, reliez chaque ingrédient à un produit disponible et définissez précisément les portions proposées au client." : "Sequence preparation, link every ingredient to available stock and define the exact servings offered to customers.")}
+        action={workspace === "products" ? <ProductCreateDialog locale={locale} onCreated={productsRequest.refetch} /> : <RecipeCreateDialog locale={locale} onCreated={recipesRequest.refetch} />}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SectionTabs value={tab} onChange={(next) => { setTab(next); setQuery(""); }} label={isFr ? "Bibliothèques de l'offre" : "Offer libraries"} items={[
-          { value: "products", label: isFr ? "Produits" : "Products", count: products.length },
-          { value: "recipes", label: isFr ? "Recettes" : "Recipes", count: recipes.length },
-        ]} />
+      <div className="flex flex-col gap-2 border-y border-black/8 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <div><p className="text-[10px] font-extrabold uppercase text-muted-foreground">{workspace === "products" ? (isFr ? "Catalogue actif" : "Active catalogue") : (isFr ? "Recettes publiées" : "Published recipes")}</p><p className="mt-0.5 text-lg font-black tabular-nums text-charcoal">{workspace === "products" ? products.length : recipes.length}</p></div>
         <label className="relative block w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 bg-white pl-9" placeholder={tab === "products" ? (isFr ? "Rechercher un produit ou un SKU" : "Search product or SKU") : (isFr ? "Rechercher une recette ou un pays" : "Search recipe or country")} />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 bg-[#F7F7F4] pl-9" placeholder={workspace === "products" ? (isFr ? "Rechercher un produit ou un SKU" : "Search product or SKU") : (isFr ? "Rechercher une recette ou un pays" : "Search recipe or country")} />
         </label>
       </div>
 
-      {tab === "products" ? (
+      {workspace === "products" ? (
         filteredProducts.length ? (
           <div className="overflow-hidden rounded-lg border border-black/8 bg-white">
             <div className="hidden overflow-x-auto sm:block">
@@ -84,7 +80,7 @@ export default function OfferSection({ locale }: { locale: "fr" | "en" }) {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filteredRecipes.map((recipe) => (
               <button key={recipe.id} type="button" onClick={() => setSelectedRecipe(recipe)} className="group overflow-hidden rounded-lg border border-black/8 bg-white text-left transition [contain-intrinsic-size:320px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
-                <div className="relative grid aspect-[16/7] place-items-center overflow-hidden" style={{ backgroundColor: `${recipe.imageColor}18` }}><span className="text-5xl transition-transform duration-300 group-hover:scale-110">{recipe.imageEmoji}</span>{recipe.isPopular ? <Badge className="absolute right-3 top-3 border-0 bg-charcoal text-white"><Sparkles className="mr-1 h-3 w-3" /> {isFr ? "Populaire" : "Popular"}</Badge> : null}</div>
+                <div className="relative grid aspect-[16/7] place-items-center overflow-hidden" style={{ backgroundColor: `${recipe.imageColor}18` }}><span className="text-5xl transition-transform duration-300 group-hover:scale-110">{recipe.imageEmoji}</span><div className="absolute right-3 top-3 flex gap-1">{recipe.status === "draft" ? <Badge variant="outline" className="border-charcoal/15 bg-white text-charcoal">{isFr ? "Brouillon" : "Draft"}</Badge> : null}{recipe.isPopular ? <Badge className="border-0 bg-charcoal text-white"><Sparkles className="mr-1 h-3 w-3" /> {isFr ? "Populaire" : "Popular"}</Badge> : null}</div></div>
                 <div className="p-4"><p className="text-[10px] font-extrabold uppercase text-terre">{recipe.country} · {recipe.category}</p><h3 className="mt-1.5 truncate text-sm font-black text-charcoal">{recipe.title}</h3><p className="mt-2 line-clamp-2 min-h-10 text-[11px] leading-5 text-muted-foreground">{recipe.description}</p><div className="mt-3 flex items-center gap-3 border-t border-black/8 pt-3 text-[10px] font-bold text-muted-foreground"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" /> {recipe.timeMinutes} min</span><span className="flex items-center gap-1"><ChefHat className="h-3.5 w-3.5" /> {recipe.ingredientCount} {isFr ? "ingr." : "ingr."}</span></div></div>
               </button>
             ))}

@@ -1,0 +1,225 @@
+"use client";
+
+import { FormEvent, useMemo, useState } from "react";
+import { ChefHat, Clock3, GripVertical, LoaderCircle, PackageSearch, Plus, Trash2, UsersRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useFetch } from "@/lib/use-fetch";
+
+type ProductOption = {
+  id: string;
+  name: string;
+  traditionalName: string;
+  sku: string;
+  stockQty: number;
+  imageEmoji: string;
+  imageColor: string;
+};
+
+type IngredientDraft = {
+  productId: string;
+  quantityPerBase: string;
+  unit: "g" | "kg" | "ml" | "L" | "piece" | "tbsp" | "tsp";
+  role: "protein" | "base" | "aromatic" | "spice" | "fat" | "side" | "optional";
+  optional: boolean;
+};
+
+type RecipeDraft = {
+  titleFr: string;
+  titleEn: string;
+  descriptionFr: string;
+  descriptionEn: string;
+  country: string;
+  category: "sauces" | "mains" | "sides" | "grill" | "drinks" | "desserts" | "porridge" | "family" | "events";
+  difficulty: "easy" | "medium" | "hard";
+  timeMinutes: string;
+  baseServings: string;
+  imageEmoji: string;
+  imageColor: string;
+  isPopular: boolean;
+  status: "draft" | "published";
+  stepsFr: string[];
+  stepsEn: string[];
+  ingredients: IngredientDraft[];
+};
+
+const emptyIngredient = (): IngredientDraft => ({ productId: "", quantityPerBase: "", unit: "g", role: "base", optional: false });
+const initialDraft = (): RecipeDraft => ({
+  titleFr: "",
+  titleEn: "",
+  descriptionFr: "",
+  descriptionEn: "",
+  country: "Côte d'Ivoire",
+  category: "mains",
+  difficulty: "medium",
+  timeMinutes: "45",
+  baseServings: "4",
+  imageEmoji: "🍲",
+  imageColor: "#3F681C",
+  isPopular: false,
+  status: "draft",
+  stepsFr: ["", ""],
+  stepsEn: ["", ""],
+  ingredients: [emptyIngredient()],
+});
+
+export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en"; onCreated: () => void }) {
+  const isFr = locale === "fr";
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<RecipeDraft>(initialDraft);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const { data: productData, loading: productsLoading } = useFetch<{ products: ProductOption[] }>(open ? `/api/admin/products?locale=${locale}` : null, [open, locale]);
+  const products = productData?.products || [];
+  const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+
+  const completeSteps = draft.stepsFr.every((step) => step.trim().length >= 5) && draft.stepsEn.every((step) => step.trim().length >= 5);
+  const completeIngredients = draft.ingredients.length > 0 && draft.ingredients.every((ingredient) => ingredient.productId && Number(ingredient.quantityPerBase) > 0);
+  const isValid = Boolean(
+    draft.titleFr.trim().length >= 2
+    && draft.titleEn.trim().length >= 2
+    && draft.descriptionFr.trim().length >= 20
+    && draft.descriptionEn.trim().length >= 20
+    && Number(draft.timeMinutes) >= 5
+    && Number(draft.baseServings) >= 1
+    && completeSteps
+    && completeIngredients
+  );
+
+  const update = <K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
+  const updateStep = (language: "stepsFr" | "stepsEn", index: number, value: string) => update(language, draft[language].map((step, stepIndex) => stepIndex === index ? value : step));
+  const addStep = () => setDraft((current) => ({ ...current, stepsFr: [...current.stepsFr, ""], stepsEn: [...current.stepsEn, ""] }));
+  const removeStep = (index: number) => {
+    if (draft.stepsFr.length <= 2) return;
+    setDraft((current) => ({ ...current, stepsFr: current.stepsFr.filter((_, stepIndex) => stepIndex !== index), stepsEn: current.stepsEn.filter((_, stepIndex) => stepIndex !== index) }));
+  };
+  const updateIngredient = <K extends keyof IngredientDraft>(index: number, key: K, value: IngredientDraft[K]) => update("ingredients", draft.ingredients.map((ingredient, ingredientIndex) => ingredientIndex === index ? { ...ingredient, [key]: value } : ingredient));
+
+  const handleOpen = (nextOpen: boolean) => {
+    if (submitting) return;
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setDraft(initialDraft());
+      setSubmitError("");
+    }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!isValid) return;
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const response = await fetch("/api/admin/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || (isFr ? "Enregistrement impossible." : "Unable to save recipe."));
+      setDraft(initialDraft());
+      setOpen(false);
+      onCreated();
+    } catch (cause) {
+      setSubmitError(cause instanceof Error ? cause.message : (isFr ? "Enregistrement impossible." : "Unable to save recipe."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="bg-forest text-white hover:bg-forest-dark"><ChefHat className="mr-1.5 h-4 w-4" /> {isFr ? "Nouvelle recette" : "New recipe"}</Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[94dvh] overflow-hidden p-0 sm:max-w-6xl">
+        <form onSubmit={submit} className="flex max-h-[94dvh] min-h-0 flex-col">
+          <DialogHeader className="shrink-0 border-b border-border px-5 py-5 sm:px-7">
+            <DialogTitle className="flex items-center gap-2 pr-8 text-xl font-black text-charcoal"><ChefHat className="h-5 w-5 text-forest" /> {isFr ? "Composer une recette achetable" : "Compose a shoppable recipe"}</DialogTitle>
+            <DialogDescription>{isFr ? "Les deux langues, les étapes et chaque produit lié sont contrôlés avant publication." : "Both languages, preparation steps and every linked product are validated before publishing."}</DialogDescription>
+          </DialogHeader>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <section className="grid gap-5 px-5 py-6 sm:px-7 lg:grid-cols-[1fr_1fr]" aria-labelledby="recipe-identity-title">
+              <div className="space-y-4">
+                <SectionTitle id="recipe-identity-title" number="01" title={isFr ? "Identité culinaire" : "Culinary identity"} />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Titre français" required><Input value={draft.titleFr} onChange={(event) => update("titleFr", event.target.value)} placeholder="Sauce graine au poisson" /></Field>
+                  <Field label="English title" required><Input value={draft.titleEn} onChange={(event) => update("titleEn", event.target.value)} placeholder="Palm nut sauce with fish" /></Field>
+                  <Field label={isFr ? "Pays d'origine" : "Country of origin"} required><Input value={draft.country} onChange={(event) => update("country", event.target.value)} /></Field>
+                  <Field label={isFr ? "Famille" : "Category"} required><select value={draft.category} onChange={(event) => update("category", event.target.value as RecipeDraft["category"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="mains">{isFr ? "Plat complet" : "Main dish"}</option><option value="sauces">Sauce</option><option value="sides">{isFr ? "Accompagnement" : "Side"}</option><option value="grill">{isFr ? "Grillade" : "Grill"}</option><option value="porridge">{isFr ? "Bouillie" : "Porridge"}</option><option value="drinks">{isFr ? "Boisson" : "Drink"}</option><option value="desserts">Dessert</option><option value="family">{isFr ? "Repas familial" : "Family meal"}</option><option value="events">{isFr ? "Événement" : "Event"}</option></select></Field>
+                </div>
+                <Field label="Description française" required><Textarea value={draft.descriptionFr} onChange={(event) => update("descriptionFr", event.target.value)} rows={3} /></Field>
+                <Field label="English description" required><Textarea value={draft.descriptionEn} onChange={(event) => update("descriptionEn", event.target.value)} rows={3} /></Field>
+              </div>
+
+              <div className="space-y-4">
+                <SectionTitle number="02" title={isFr ? "Cadre de service" : "Serving framework"} />
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  <Field label={isFr ? "Durée" : "Duration"} required><div className="relative"><Clock3 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type="number" min="5" max="720" value={draft.timeMinutes} onChange={(event) => update("timeMinutes", event.target.value)} className="pl-9" /></div></Field>
+                  <Field label={isFr ? "Portions" : "Servings"} required><div className="relative"><UsersRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type="number" min="1" max="50" value={draft.baseServings} onChange={(event) => update("baseServings", event.target.value)} className="pl-9" /></div></Field>
+                  <Field label={isFr ? "Difficulté" : "Difficulty"} required><select value={draft.difficulty} onChange={(event) => update("difficulty", event.target.value as RecipeDraft["difficulty"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="easy">{isFr ? "Facile" : "Easy"}</option><option value="medium">{isFr ? "Intermédiaire" : "Medium"}</option><option value="hard">{isFr ? "Avancée" : "Advanced"}</option></select></Field>
+                  <Field label={isFr ? "Repère visuel" : "Visual marker"}><Input value={draft.imageEmoji} onChange={(event) => update("imageEmoji", event.target.value)} maxLength={12} /></Field>
+                  <Field label={isFr ? "Couleur" : "Colour"}><div className="flex gap-2"><input type="color" value={draft.imageColor} onChange={(event) => update("imageColor", event.target.value)} className="h-9 w-11 rounded-md border border-input bg-white p-1" aria-label={isFr ? "Couleur de la recette" : "Recipe colour"} /><Input value={draft.imageColor} onChange={(event) => update("imageColor", event.target.value)} className="min-w-0 font-mono text-xs" /></div></Field>
+                  <Field label={isFr ? "Publication" : "Publishing"}><select value={draft.status} onChange={(event) => update("status", event.target.value as RecipeDraft["status"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="draft">{isFr ? "Brouillon" : "Draft"}</option><option value="published">{isFr ? "Publier" : "Publish"}</option></select></Field>
+                </div>
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 border-y border-border py-3 text-sm"><input type="checkbox" checked={draft.isPopular} onChange={(event) => update("isPopular", event.target.checked)} className="h-4 w-4 accent-terre" /><span><strong className="block text-xs text-charcoal">{isFr ? "Mettre en avant" : "Feature recipe"}</strong><span className="mt-0.5 block text-[10px] text-muted-foreground">{isFr ? "La recette pourra apparaître dans les sélections populaires." : "The recipe may appear in popular selections."}</span></span></label>
+              </div>
+            </section>
+
+            <section className="border-y border-border bg-[#F7F7F4] px-5 py-6 sm:px-7" aria-labelledby="recipe-steps-title">
+              <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation ordonnée" : "Ordered preparation"} description={isFr ? "Chaque étape possède sa version française et anglaise. L'ordre affiché ici sera celui du client." : "Every step has a French and English version. This order is shown to customers."} />
+              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onAdd={addStep} onRemove={removeStep} isFr={isFr} />
+            </section>
+
+            <section className="px-5 py-6 sm:px-7" aria-labelledby="recipe-ingredients-title">
+              <div className="flex flex-wrap items-end justify-between gap-3"><SectionTitle id="recipe-ingredients-title" number="04" title={isFr ? "Ingrédients reliés au stock" : "Stock-linked ingredients"} description={isFr ? "Les quantités sont définies pour le nombre de portions indiqué plus haut." : "Quantities are defined for the serving count above."} /><Button type="button" variant="outline" size="sm" onClick={() => update("ingredients", [...draft.ingredients, emptyIngredient()])}><Plus className="mr-1.5 h-4 w-4" /> {isFr ? "Ajouter un ingrédient" : "Add ingredient"}</Button></div>
+              <div className="mt-5 space-y-3">
+                {productsLoading ? <div className="flex items-center gap-2 py-8 text-xs text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> {isFr ? "Lecture du catalogue..." : "Loading catalogue..."}</div> : null}
+                {draft.ingredients.map((ingredient, index) => {
+                  const product = productsById.get(ingredient.productId);
+                  return <div key={index} className="grid gap-3 border-y border-border bg-white px-3 py-3 lg:grid-cols-[minmax(12rem,1.5fr)_7rem_7rem_8rem_auto] lg:items-end">
+                    <Field label={`${isFr ? "Produit" : "Product"} ${index + 1}`} required><div className="relative"><PackageSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select value={ingredient.productId} onChange={(event) => updateIngredient(index, "productId", event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 text-sm"><option value="">{isFr ? "Sélectionner dans le catalogue" : "Select from catalogue"}</option>{products.map((option) => <option key={option.id} value={option.id}>{option.imageEmoji} {option.name} · {option.stockQty} dispo.</option>)}</select></div>{product ? <p className={`mt-1 text-[10px] font-semibold ${product.stockQty > 0 ? "text-forest" : "text-destructive"}`}>{product.traditionalName} · {product.sku} · {product.stockQty > 0 ? `${product.stockQty} ${isFr ? "en stock" : "in stock"}` : (isFr ? "rupture" : "out of stock")}</p> : null}</Field>
+                    <Field label={isFr ? "Quantité" : "Quantity"} required><Input type="number" inputMode="decimal" min="0.01" step="0.01" value={ingredient.quantityPerBase} onChange={(event) => updateIngredient(index, "quantityPerBase", event.target.value)} /></Field>
+                    <Field label={isFr ? "Unité" : "Unit"}><select value={ingredient.unit} onChange={(event) => updateIngredient(index, "unit", event.target.value as IngredientDraft["unit"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option><option value="piece">{isFr ? "pièce" : "piece"}</option><option value="tbsp">c. à soupe</option><option value="tsp">c. à café</option></select></Field>
+                    <Field label={isFr ? "Rôle" : "Role"}><select value={ingredient.role} onChange={(event) => updateIngredient(index, "role", event.target.value as IngredientDraft["role"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="base">Base</option><option value="protein">{isFr ? "Protéine" : "Protein"}</option><option value="aromatic">{isFr ? "Aromate" : "Aromatic"}</option><option value="spice">{isFr ? "Épice" : "Spice"}</option><option value="fat">{isFr ? "Matière grasse" : "Fat"}</option><option value="side">{isFr ? "Accompagnement" : "Side"}</option><option value="optional">Option</option></select></Field>
+                    <div className="flex items-center justify-between gap-2 sm:pb-0.5"><label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><input type="checkbox" checked={ingredient.optional} onChange={(event) => updateIngredient(index, "optional", event.target.checked)} className="h-4 w-4 accent-terre" /> {isFr ? "Optionnel" : "Optional"}</label><Button type="button" variant="ghost" size="icon" disabled={draft.ingredients.length === 1} onClick={() => update("ingredients", draft.ingredients.filter((_, ingredientIndex) => ingredientIndex !== index))} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'ingrédient ${index + 1}` : `Remove ingredient ${index + 1}`}><Trash2 className="h-4 w-4" /></Button></div>
+                  </div>;
+                })}
+              </div>
+            </section>
+          </div>
+
+          <DialogFooter className="shrink-0 border-t border-border bg-white px-5 py-4 sm:px-7">
+            {submitError ? <p role="alert" className="mr-auto max-w-xl self-center text-xs leading-5 text-destructive">{submitError}</p> : <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{isFr ? "Les champs marqués sont obligatoires." : "Marked fields are required."}</p>}
+            <Button type="button" variant="outline" onClick={() => handleOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>
+            <Button type="submit" disabled={!isValid || submitting} className="bg-forest text-white hover:bg-forest-dark">{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <ChefHat className="mr-2 h-4 w-4" />}{submitting ? (isFr ? "Enregistrement..." : "Saving...") : draft.status === "published" ? (isFr ? "Publier la recette" : "Publish recipe") : (isFr ? "Enregistrer le brouillon" : "Save draft")}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SectionTitle({ id, number, title, description }: { id?: string; number: string; title: string; description?: string }) {
+  return <div><div className="flex items-center gap-2"><span className="text-[10px] font-black text-terre">{number}</span><h3 id={id} className="text-sm font-black text-charcoal">{title}</h3></div>{description ? <p className="mt-1 max-w-2xl text-[11px] leading-5 text-muted-foreground">{description}</p> : null}</div>;
+}
+
+function Field({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return <div className="space-y-1.5"><Label>{label}{required ? <span className="ml-1 text-terre">*</span> : null}</Label>{children}</div>;
+}
+
+function PreparationSteps({ stepsFr, stepsEn, onChangeFr, onChangeEn, onAdd, onRemove, isFr }: { stepsFr: string[]; stepsEn: string[]; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onAdd: () => void; onRemove: (index: number) => void; isFr: boolean }) {
+  return <div className="mt-5"><div className="hidden grid-cols-[2rem_2rem_1fr_1fr_2.5rem] gap-2 px-1 pb-2 text-[10px] font-black uppercase text-muted-foreground lg:grid"><span /><span /><span>Français</span><span>English</span><span /></div><ol className="space-y-3">{stepsFr.map((step, index) => <li key={index} className="grid gap-2 border-y border-border bg-white px-2 py-3 lg:grid-cols-[2rem_2rem_1fr_1fr_2.5rem] lg:items-start"><span className="hidden pt-3 text-muted-foreground lg:block"><GripVertical className="h-4 w-4" /></span><span className="grid h-8 w-8 place-items-center rounded-md bg-charcoal text-[10px] font-black text-white">{index + 1}</span><div><Label className="mb-1.5 block lg:hidden">Français</Label><Textarea value={step} onChange={(event) => onChangeFr(index, event.target.value)} rows={2} className="min-h-16 resize-y" placeholder={`Étape ${index + 1}`} /></div><div><Label className="mb-1.5 block lg:hidden">English</Label><Textarea value={stepsEn[index] || ""} onChange={(event) => onChangeEn(index, event.target.value)} rows={2} className="min-h-16 resize-y" placeholder={`Step ${index + 1}`} /></div><Button type="button" variant="ghost" size="icon" disabled={stepsFr.length <= 2} onClick={() => onRemove(index)} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'étape ${index + 1}` : `Remove step ${index + 1}`}><Trash2 className="h-4 w-4" /></Button></li>)}</ol><Button type="button" variant="outline" size="sm" onClick={onAdd} className="mt-3"><Plus className="mr-1.5 h-4 w-4" /> {isFr ? "Ajouter une étape bilingue" : "Add bilingual step"}</Button></div>;
+}

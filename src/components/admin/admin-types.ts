@@ -1,6 +1,7 @@
 export type AdminSectionId =
   | "overview"
-  | "offer"
+  | "catalog"
+  | "recipes"
   | "orders"
   | "inventory"
   | "customers"

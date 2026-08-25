@@ -5,15 +5,16 @@ import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
+  BadgeDollarSign,
   BellRing,
-  BookOpenCheck,
   Boxes,
+  ChefHat,
   ChevronRight,
-  CircleDollarSign,
   ClipboardList,
+  Fingerprint,
   LogOut,
   Menu,
-  Settings2,
+  PackageSearch,
   ShieldCheck,
   Store,
   UsersRound,
@@ -58,35 +59,42 @@ type NavItem = {
 
 const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; items: NavItem[] }> = [
   {
-    labelFr: "Pilotage",
-    labelEn: "Control",
+    labelFr: "Direction",
+    labelEn: "Direction",
     items: [
-      { id: "overview", icon: BarChart3, labelFr: "Cockpit", labelEn: "Overview", purposeFr: "Priorités et santé de l'activité", purposeEn: "Priorities and business health" },
+      { id: "overview", icon: BarChart3, labelFr: "Cockpit du jour", labelEn: "Daily cockpit", purposeFr: "Décisions et alertes immédiates", purposeEn: "Immediate decisions and alerts" },
     ],
   },
   {
-    labelFr: "Opérations",
-    labelEn: "Operations",
+    labelFr: "Offre commerciale",
+    labelEn: "Commercial offer",
     items: [
-      { id: "offer", icon: BookOpenCheck, labelFr: "Offre", labelEn: "Offer", purposeFr: "Produits et recettes publiés", purposeEn: "Published products and recipes" },
-      { id: "orders", icon: ClipboardList, labelFr: "Commandes", labelEn: "Orders", purposeFr: "Validation, préparation et livraison", purposeEn: "Validation, packing and delivery" },
-      { id: "inventory", icon: Boxes, labelFr: "Inventaire", labelEn: "Inventory", purposeFr: "Lots, disponibilité et péremption", purposeEn: "Batches, availability and expiry" },
+      { id: "catalog", icon: PackageSearch, labelFr: "Catalogue", labelEn: "Catalogue", purposeFr: "Produits, prix et publication", purposeEn: "Products, pricing and publishing" },
+      { id: "recipes", icon: ChefHat, labelFr: "Studio recettes", labelEn: "Recipe studio", purposeFr: "Étapes, ingrédients et portions", purposeEn: "Steps, ingredients and servings" },
     ],
   },
   {
-    labelFr: "Développement",
-    labelEn: "Growth",
+    labelFr: "Exécution",
+    labelEn: "Fulfilment",
     items: [
-      { id: "customers", icon: UsersRound, labelFr: "Clients", labelEn: "Customers", purposeFr: "Portefeuille, fidélité et valeur", purposeEn: "Portfolio, loyalty and value" },
-      { id: "campaigns", icon: BellRing, labelFr: "Campagnes", labelEn: "Campaigns", purposeFr: "Messages push et engagement", purposeEn: "Push messages and engagement" },
+      { id: "orders", icon: ClipboardList, labelFr: "Flux commandes", labelEn: "Order flow", purposeFr: "Paiement, préparation et livraison", purposeEn: "Payment, packing and delivery" },
+      { id: "inventory", icon: Boxes, labelFr: "Stocks & lots", labelEn: "Stock & batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
     ],
   },
   {
-    labelFr: "Contrôle",
-    labelEn: "Control",
+    labelFr: "Relation client",
+    labelEn: "Customer growth",
     items: [
-      { id: "finance", icon: CircleDollarSign, labelFr: "Finance", labelEn: "Finance", purposeFr: "Rentabilité, marge et encaissements", purposeEn: "Profitability, margin and payments" },
-      { id: "governance", icon: Settings2, labelFr: "Gouvernance", labelEn: "Governance", purposeFr: "Traçabilité et préférences", purposeEn: "Traceability and preferences" },
+      { id: "customers", icon: UsersRound, labelFr: "Portefeuille clients", labelEn: "Customer portfolio", purposeFr: "Profils, fidélité et valeur", purposeEn: "Profiles, loyalty and value" },
+      { id: "campaigns", icon: BellRing, labelFr: "Studio campagnes", labelEn: "Campaign studio", purposeFr: "Ciblage, message et diffusion", purposeEn: "Audience, message and delivery" },
+    ],
+  },
+  {
+    labelFr: "Contrôle & sécurité",
+    labelEn: "Assurance",
+    items: [
+      { id: "finance", icon: BadgeDollarSign, labelFr: "Finance & marge", labelEn: "Finance & margin", purposeFr: "Rentabilité et encaissements", purposeEn: "Profitability and payments" },
+      { id: "governance", icon: Fingerprint, labelFr: "Sécurité & audit", labelEn: "Security & audit", purposeFr: "Traçabilité, rôles et référentiels", purposeEn: "Traceability, roles and reference data" },
     ],
   },
 ];
@@ -110,7 +118,8 @@ export function AdminView({
 
   useEffect(() => {
     const syncSectionFromHash = () => {
-      const sectionFromHash = window.location.hash.replace("#", "") as AdminSectionId;
+      const rawSection = window.location.hash.replace("#", "");
+      const sectionFromHash = (rawSection === "offer" ? "catalog" : rawSection) as AdminSectionId;
       if (ALL_ITEMS.some((item) => item.id === sectionFromHash)) setSection(sectionFromHash);
     };
     syncSectionFromHash();
@@ -240,7 +249,8 @@ export function AdminView({
           <AnimatePresence mode="wait">
             <motion.div key={section} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={{ duration: 0.18 }}>
               {section === "overview" ? <OverviewSection locale={locale} onNavigate={selectSection} /> : null}
-              {section === "offer" ? <OfferSection locale={locale} /> : null}
+              {section === "catalog" ? <OfferSection locale={locale} workspace="products" /> : null}
+              {section === "recipes" ? <OfferSection locale={locale} workspace="recipes" /> : null}
               {section === "orders" ? <OrdersSection locale={locale} /> : null}
               {section === "inventory" ? <InventorySection locale={locale} /> : null}
               {section === "customers" ? <CustomersSection locale={locale} /> : null}
