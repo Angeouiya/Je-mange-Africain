@@ -41,6 +41,9 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
   return (
     <div className="space-y-6">
       <AdminPageHeader
+        variant="workspace"
+        accent={workspace === "products" ? "#2F6B4F" : "#D39B24"}
+        icon={workspace === "products" ? <Package className="h-5 w-5" /> : <ChefHat className="h-5 w-5" />}
         eyebrow={workspace === "products" ? (isFr ? "Référentiel marchand" : "Commerce master data") : (isFr ? "Atelier culinaire" : "Culinary workshop")}
         title={workspace === "products" ? (isFr ? "Ce qui est réellement vendu" : "What is actually sold") : (isFr ? "Construire des recettes achetables" : "Build shoppable recipes")}
         description={workspace === "products" ? (isFr ? "Gérez chaque produit publié, son prix calculé, sa marge interne et sa disponibilité sans mélanger la logique éditoriale des recettes." : "Manage every published product, calculated price, internal margin and availability without mixing in recipe editorial work.") : (isFr ? "Ordonnez la préparation, reliez chaque ingrédient à un produit disponible et définissez précisément les portions proposées au client." : "Sequence preparation, link every ingredient to available stock and define the exact servings offered to customers.")}

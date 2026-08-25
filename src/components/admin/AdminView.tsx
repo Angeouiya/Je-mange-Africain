@@ -58,51 +58,65 @@ type NavItem = {
   icon: LucideIcon;
   labelFr: string;
   labelEn: string;
+  mobileFr: string;
+  mobileEn: string;
   purposeFr: string;
   purposeEn: string;
   module: AdminModule;
+  accent: string;
+  marker: string;
 };
 
-const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; items: NavItem[] }> = [
+const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verbEn: string; items: NavItem[] }> = [
   {
     labelFr: "Direction",
     labelEn: "Direction",
+    verbFr: "Décider",
+    verbEn: "Decide",
     items: [
-      { id: "overview", module: "dashboard", icon: BarChart3, labelFr: "Cockpit du jour", labelEn: "Daily cockpit", purposeFr: "Décisions et alertes immédiates", purposeEn: "Immediate decisions and alerts" },
+      { id: "overview", module: "dashboard", icon: BarChart3, marker: "01", accent: "#D65A32", labelFr: "Décider aujourd'hui", labelEn: "Decide today", mobileFr: "Cockpit", mobileEn: "Cockpit", purposeFr: "Alertes, arbitrages et prochaines actions", purposeEn: "Alerts, decisions and next actions" },
     ],
   },
   {
     labelFr: "Offre commerciale",
     labelEn: "Commercial offer",
+    verbFr: "Construire",
+    verbEn: "Build",
     items: [
-      { id: "catalog", module: "catalog", icon: PackageSearch, labelFr: "Catalogue", labelEn: "Catalogue", purposeFr: "Produits, prix et publication", purposeEn: "Products, pricing and publishing" },
-      { id: "recipes", module: "recipes", icon: ChefHat, labelFr: "Studio recettes", labelEn: "Recipe studio", purposeFr: "Étapes, ingrédients et portions", purposeEn: "Steps, ingredients and servings" },
+      { id: "catalog", module: "catalog", icon: PackageSearch, marker: "02", accent: "#2F6B4F", labelFr: "Produits vendus", labelEn: "Products for sale", mobileFr: "Produits", mobileEn: "Products", purposeFr: "Images, prix public, marge et statut", purposeEn: "Images, public price, margin and status" },
+      { id: "recipes", module: "recipes", icon: ChefHat, marker: "03", accent: "#D39B24", labelFr: "Recettes achetables", labelEn: "Shoppable recipes", mobileFr: "Recettes", mobileEn: "Recipes", purposeFr: "Composition, substitutions et préparation", purposeEn: "Composition, substitutions and method" },
     ],
   },
   {
     labelFr: "Exécution",
     labelEn: "Fulfilment",
+    verbFr: "Opérer",
+    verbEn: "Operate",
     items: [
-      { id: "orders", module: "orders", icon: ClipboardList, labelFr: "Flux commandes", labelEn: "Order flow", purposeFr: "Paiement, préparation et livraison", purposeEn: "Payment, packing and delivery" },
-      { id: "inventory", module: "stock", icon: Boxes, labelFr: "Stocks & lots", labelEn: "Stock & batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
+      { id: "orders", module: "orders", icon: ClipboardList, marker: "04", accent: "#326B8A", labelFr: "Orchestrer les commandes", labelEn: "Orchestrate orders", mobileFr: "Commandes", mobileEn: "Orders", purposeFr: "Valider, préparer et remettre au transporteur", purposeEn: "Validate, pack and hand over to carrier" },
+      { id: "inventory", module: "stock", icon: Boxes, marker: "05", accent: "#39756A", labelFr: "Tracer les lots", labelEn: "Trace batches", mobileFr: "Lots", mobileEn: "Batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
     ],
   },
   {
     labelFr: "Relation client",
     labelEn: "Customer growth",
+    verbFr: "Engager",
+    verbEn: "Engage",
     items: [
-      { id: "customers", module: "customers", icon: UsersRound, labelFr: "Portefeuille clients", labelEn: "Customer portfolio", purposeFr: "Profils, fidélité et valeur", purposeEn: "Profiles, loyalty and value" },
-      { id: "campaigns", module: "marketing", icon: BellRing, labelFr: "Campagnes push", labelEn: "Push campaigns", purposeFr: "Message mobile et diffusion", purposeEn: "Mobile message and delivery" },
-      { id: "advertising", module: "marketing", icon: Megaphone, labelFr: "Régie publicitaire", labelEn: "Advertising desk", purposeFr: "Affiches, emplacements et calendrier", purposeEn: "Artwork, placements and schedule" },
+      { id: "customers", module: "customers", icon: UsersRound, marker: "06", accent: "#9A4E63", labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
+      { id: "campaigns", module: "marketing", icon: BellRing, marker: "07", accent: "#B16A25", labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
+      { id: "advertising", module: "marketing", icon: Megaphone, marker: "08", accent: "#C54F36", labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
     ],
   },
   {
     labelFr: "Contrôle & sécurité",
     labelEn: "Assurance",
+    verbFr: "Contrôler",
+    verbEn: "Control",
     items: [
-      { id: "finance", module: "finance", icon: BadgeDollarSign, labelFr: "Finance & marge", labelEn: "Finance & margin", purposeFr: "Rentabilité et encaissements", purposeEn: "Profitability and payments" },
-      { id: "governance", module: "audit", icon: Fingerprint, labelFr: "Sécurité & audit", labelEn: "Security & audit", purposeFr: "Traçabilité, rôles et référentiels", purposeEn: "Traceability, roles and reference data" },
-      { id: "team", module: "team", icon: UserRoundCog, labelFr: "Équipe & accès", labelEn: "Team & access", purposeFr: "Invitations, rôles et suspension", purposeEn: "Invitations, roles and suspension" },
+      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "09", accent: "#3F681C", labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
+      { id: "governance", module: "audit", icon: Fingerprint, marker: "10", accent: "#55524A", labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
+      { id: "team", module: "team", icon: UserRoundCog, marker: "11", accent: "#6C5D7B", labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
     ],
   },
 ];
@@ -160,6 +174,7 @@ export function AdminView({
   }, []);
 
   const current = useMemo(() => availableItems.find((item) => item.id === section) || availableItems[0] || ALL_ITEMS[0], [availableItems, section]);
+  const currentGroup = useMemo(() => availableGroups.find((group) => group.items.some((item) => item.id === current.id)) || availableGroups[0], [availableGroups, current.id]);
   const isFr = locale === "fr";
 
   const selectSection = (next: AdminSectionId) => {
@@ -191,9 +206,13 @@ export function AdminView({
         </div>
 
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label={isFr ? "Navigation professionnelle" : "Professional navigation"}>
-          {availableGroups.map((group) => (
+          {availableGroups.map((group, groupIndex) => (
             <div key={group.labelFr} className="mt-4 first:mt-1">
-              <p className="px-3 text-[10px] font-extrabold uppercase text-cream/35">{isFr ? group.labelFr : group.labelEn}</p>
+              <div className="flex items-center gap-2 px-3">
+                <span className="text-[9px] font-black tabular-nums text-gold/65">{String(groupIndex + 1).padStart(2, "0")}</span>
+                <p className="text-[9px] font-extrabold uppercase text-cream/42">{isFr ? group.labelFr : group.labelEn}</p>
+                <span className="ml-auto text-[8px] font-bold uppercase text-cream/22">{isFr ? group.verbFr : group.verbEn}</span>
+              </div>
               <div className="mt-1.5 space-y-1">
                 {group.items.map((item) => {
                   const active = section === item.id;
@@ -204,16 +223,17 @@ export function AdminView({
                       type="button"
                       onClick={() => selectSection(item.id)}
                       aria-current={active ? "page" : undefined}
-                      className={`group flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors ${active ? "bg-white text-charcoal" : "text-cream/72 hover:bg-white/7 hover:text-white"}`}
+                      className={`group relative flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-left transition-all ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-cream/72 hover:bg-white/7 hover:text-white"}`}
+                      style={active ? { borderLeftColor: item.accent } : undefined}
                     >
-                      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${active ? "bg-terre text-white" : "bg-white/6 text-cream/62 group-hover:bg-white/10"}`}>
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white transition-colors" style={{ backgroundColor: active ? item.accent : `${item.accent}2B` }}>
                         <item.icon className="h-[18px] w-[18px]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
-                        <span className={`mt-0.5 block truncate text-[10px] ${active ? "text-charcoal/55" : "text-cream/38"}`}>{isFr ? item.purposeFr : item.purposeEn}</span>
+                        <span className={`mt-0.5 block line-clamp-2 text-[9px] leading-4 ${active ? "text-charcoal/55" : "text-cream/38"}`}>{isFr ? item.purposeFr : item.purposeEn}</span>
                       </span>
-                      {count > 0 ? <span className={`grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums ${active ? "bg-terre/10 text-terre" : "bg-gold/15 text-gold"}`}>{count}</span> : <ChevronRight className={`h-4 w-4 ${active ? "text-charcoal/35" : "text-cream/20"}`} />}
+                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: active ? item.accent : "#F2A900" }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: item.accent }}>{item.marker}</span> : <ChevronRight className="h-4 w-4 text-cream/20" />}
                     </button>
                   );
                 })}
@@ -256,13 +276,15 @@ export function AdminView({
       {sidebarOpen ? <button type="button" className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} aria-label={isFr ? "Fermer la navigation" : "Close navigation"} /> : null}
 
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
-        <header className="sticky top-0 z-30 flex h-16 items-center border-b border-black/8 bg-[#F4F5F1]/92 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b-2 bg-[#F4F5F1]/94 px-4 backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
           <button type="button" onClick={() => setSidebarOpen(true)} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-border bg-white md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><Menu className="h-5 w-5" /></button>
-          <div className="min-w-0">
+          <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><current.icon className="h-[18px] w-[18px]" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{current.marker} · {isFr ? currentGroup?.labelFr : currentGroup?.labelEn}</p>
             <h1 className="truncate text-sm font-black text-charcoal">{isFr ? current.labelFr : current.labelEn}</h1>
-            <p className="hidden truncate text-[10px] text-muted-foreground sm:block">{isFr ? current.purposeFr : current.purposeEn}</p>
+            <p className="hidden truncate text-[9px] text-muted-foreground lg:block">{isFr ? current.purposeFr : current.purposeEn}</p>
           </div>
-          <Badge variant="outline" className="ml-auto h-8 shrink-0 border-forest/25 bg-forest/[0.04] text-[10px] font-bold text-forest"><ShieldCheck className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Session sécurisée" : "Secure session"}</Badge>
+          <Badge variant="outline" className="ml-3 h-8 shrink-0 border-forest/25 bg-white/70 px-2 text-[9px] font-bold text-forest sm:px-3"><ShieldCheck className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>
         </header>
 
         <main className="mx-auto w-full max-w-[100rem] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
@@ -286,7 +308,7 @@ export function AdminView({
 
       <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[4.4rem] border-t border-black/10 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ gridTemplateColumns: `repeat(${quickItems.length + 1}, minmax(0, 1fr))` }} aria-label={isFr ? "Navigation rapide" : "Quick navigation"}>
         {quickItems.map((item) => (
-          <button key={item.id} type="button" onClick={() => selectSection(item.id)} className={`flex min-w-0 flex-col items-center justify-center gap-1 text-[9px] font-bold ${section === item.id ? "text-terre" : "text-muted-foreground"}`} aria-current={section === item.id ? "page" : undefined}><item.icon className="h-5 w-5" /><span className="max-w-full truncate px-1">{isFr ? item.labelFr : item.labelEn}</span></button>
+          <button key={item.id} type="button" onClick={() => selectSection(item.id)} className="relative flex min-w-0 flex-col items-center justify-center gap-1 text-[9px] font-bold text-muted-foreground" style={section === item.id ? { color: item.accent } : undefined} aria-current={section === item.id ? "page" : undefined}>{section === item.id ? <span className="absolute inset-x-3 top-0 h-0.5" style={{ backgroundColor: item.accent }} /> : null}<item.icon className="h-5 w-5" /><span className="max-w-full truncate px-1">{isFr ? item.mobileFr : item.mobileEn}</span></button>
         ))}
         <button type="button" onClick={() => setSidebarOpen(true)} className="flex min-w-0 flex-col items-center justify-center gap-1 text-[9px] font-bold text-muted-foreground"><Menu className="h-5 w-5" /><span>{isFr ? "Plus" : "More"}</span></button>
       </nav>

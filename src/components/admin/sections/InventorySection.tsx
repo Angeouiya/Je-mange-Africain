@@ -39,6 +39,9 @@ export default function InventorySection({ locale }: { locale: "fr" | "en" }) {
   return (
     <div className="space-y-6">
       <AdminPageHeader
+        variant="control"
+        accent="#39756A"
+        icon={<Warehouse className="h-5 w-5" />}
         eyebrow={isFr ? "Disponibilité et traçabilité" : "Availability and traceability"}
         title={isFr ? "Inventaire piloté par les lots" : "Batch-led inventory"}
         description={isFr ? "Les priorités sont calculées selon la quantité disponible, le statut du lot et la date de péremption. Les lots les plus proches de l'échéance passent en premier." : "Priorities are calculated from available quantity, batch status and expiry date. Earliest-expiring batches come first."}

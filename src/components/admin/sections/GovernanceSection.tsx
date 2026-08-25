@@ -32,6 +32,9 @@ export default function GovernanceSection({ locale, adminEmail, adminRole }: { l
   return (
     <div className="space-y-6">
       <AdminPageHeader
+        variant="control"
+        accent="#55524A"
+        icon={<Fingerprint className="h-5 w-5" />}
         eyebrow={isFr ? "Conformité et référentiels" : "Compliance and reference data"}
         title={isFr ? "Gouverner sans ambiguïté" : "Govern without ambiguity"}
         description={isFr ? "Le journal explique qui a fait quoi. L'espace de travail expose uniquement les référentiels et préférences réellement disponibles." : "The log explains who did what. Workspace settings expose only reference data and preferences that are actually available."}

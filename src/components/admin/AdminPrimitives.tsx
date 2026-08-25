@@ -9,18 +9,65 @@ export function AdminPageHeader({
   title,
   description,
   action,
+  icon,
+  variant = "workspace",
+  accent = "#D65A32",
 }: {
   eyebrow: string;
   title: string;
   description: string;
   action?: ReactNode;
+  icon?: ReactNode;
+  variant?: "command" | "workspace" | "flow" | "control";
+  accent?: string;
 }) {
+  if (variant === "command") {
+    return (
+      <div className="-mx-4 border-y border-white/8 bg-charcoal px-4 py-6 text-white sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex max-w-3xl items-start gap-4">
+            {icon ? <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: accent }}>{icon}</span> : null}
+            <div><p className="text-[10px] font-extrabold uppercase text-gold">{eyebrow}</p><h2 className="mt-1.5 text-2xl font-black sm:text-[30px]">{title}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/58">{description}</p></div>
+          </div>
+          {action ? <div className="shrink-0">{action}</div> : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "flow") {
+    return (
+      <div className="-mx-4 flex flex-col gap-4 border-y border-black/8 bg-white px-4 py-5 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="flex max-w-3xl items-center gap-4">
+          {icon ? <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: accent }}>{icon}</span> : null}
+          <div><p className="text-[10px] font-extrabold uppercase" style={{ color: accent }}>{eyebrow}</p><h2 className="mt-1 text-xl font-black text-charcoal sm:text-2xl">{title}</h2><p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">{description}</p></div>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+    );
+  }
+
+  if (variant === "control") {
+    return (
+      <div className="flex flex-col gap-4 border-l-4 bg-white/55 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5" style={{ borderLeftColor: accent }}>
+        <div className="flex max-w-3xl items-start gap-3">
+          {icon ? <span className="mt-0.5 shrink-0" style={{ color: accent }}>{icon}</span> : null}
+          <div><p className="text-[9px] font-extrabold uppercase text-muted-foreground">{eyebrow}</p><h2 className="mt-1 text-xl font-black text-charcoal sm:text-2xl">{title}</h2><p className="mt-1.5 max-w-2xl text-xs leading-5 text-muted-foreground">{description}</p></div>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 border-b border-black/8 pb-5 sm:flex-row sm:items-end sm:justify-between">
-      <div className="max-w-3xl">
-        <p className="text-[11px] font-extrabold uppercase text-terre">{eyebrow}</p>
-        <h2 className="mt-1.5 text-2xl font-black text-charcoal sm:text-[28px]">{title}</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+      <div className="flex max-w-3xl items-start gap-4">
+        {icon ? <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: accent }}>{icon}</span> : null}
+        <div>
+          <p className="text-[11px] font-extrabold uppercase" style={{ color: accent }}>{eyebrow}</p>
+          <h2 className="mt-1.5 text-2xl font-black text-charcoal sm:text-[28px]">{title}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

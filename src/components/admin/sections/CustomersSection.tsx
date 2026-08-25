@@ -40,6 +40,9 @@ export default function CustomersSection({ locale }: { locale: "fr" | "en" }) {
   return (
     <div className="space-y-6">
       <AdminPageHeader
+        variant="workspace"
+        accent="#9A4E63"
+        icon={<UsersRound className="h-5 w-5" />}
         eyebrow={isFr ? "Relation client" : "Customer relationship"}
         title={isFr ? "Comprendre chaque relation" : "Understand every relationship"}
         description={isFr ? "Le portefeuille est segmenté selon l'activité réelle et la fidélité, sans confondre profils clients et commandes." : "The portfolio is segmented by real activity and loyalty, keeping customer profiles distinct from orders."}

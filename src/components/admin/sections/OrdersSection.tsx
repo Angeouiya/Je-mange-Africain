@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Box, CheckCircle2, Clock3, MapPin, PackageCheck, Search, Truck, UserRound } from "lucide-react";
+import { Box, CheckCircle2, ClipboardList, Clock3, MapPin, PackageCheck, Search, Truck, UserRound } from "lucide-react";
 import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import type { AdminOrder } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,9 @@ export default function OrdersSection({ locale }: { locale: "fr" | "en" }) {
   return (
     <div className="space-y-6">
       <AdminPageHeader
+        variant="flow"
+        accent="#326B8A"
+        icon={<ClipboardList className="h-5 w-5" />}
         eyebrow={isFr ? "Exécution des commandes" : "Order execution"}
         title={isFr ? "Du paiement jusqu'à la porte" : "From payment to the doorstep"}
         description={isFr ? "Chaque commande avance dans un flux explicite. Ouvrez une fiche pour contrôler ses articles, son paiement, ses colis et sa chronologie." : "Every order moves through an explicit workflow. Open a record to inspect items, payment, parcels and timeline."}

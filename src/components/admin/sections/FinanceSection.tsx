@@ -37,6 +37,9 @@ export default function FinanceSection({ locale }: { locale: "fr" | "en" }) {
   return (
     <div className="space-y-6">
       <AdminPageHeader
+        variant="control"
+        accent="#3F681C"
+        icon={<CircleDollarSign className="h-5 w-5" />}
         eyebrow={isFr ? "Pilotage financier" : "Financial steering"}
         title={isFr ? "Rentabilité et encaissements" : "Profitability and payments"}
         description={isFr ? "Analysez le coût brut, la marge et les meilleures ventes, puis rapprochez chaque paiement dans un registre distinct." : "Analyse gross cost, margin and top sellers, then reconcile every payment in a separate ledger."}

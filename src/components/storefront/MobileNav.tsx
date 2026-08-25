@@ -16,25 +16,30 @@ export function MobileNav() {
   const t = dict[locale];
   const count = cartCount(cart);
 
-  const publicItems: { id: ViewId; label: string; icon: LucideIcon }[] = [
-    { id: "home", label: t.mobileNav.home, icon: Home },
-    { id: "catalog", label: t.mobileNav.categories, icon: LayoutGrid },
-    { id: "recipes", label: t.mobileNav.recipes, icon: ChefHat },
-    { id: "cart", label: t.mobileNav.cart, icon: ShoppingBag },
+  type ClientNavItem = { id: ViewId; label: string; desktopLabel: string; purpose: string; icon: LucideIcon; accent: string };
+  const publicItems: ClientNavItem[] = [
+    { id: "home", label: t.mobileNav.home, desktopLabel: locale === "fr" ? "Découvrir" : "Discover", purpose: locale === "fr" ? "Sélections et nouveautés" : "Selections and new arrivals", icon: Home, accent: "#D65A32" },
+    { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: LayoutGrid, accent: "#2F6B4F" },
+    { id: "recipes", label: t.mobileNav.recipes, desktopLabel: locale === "fr" ? "Cuisiner une recette" : "Cook a recipe", purpose: locale === "fr" ? "Personnaliser puis composer le panier" : "Customise and build the basket", icon: ChefHat, accent: "#D39B24" },
+    { id: "cart", label: t.mobileNav.cart, desktopLabel: locale === "fr" ? "Finaliser le panier" : "Complete basket", purpose: locale === "fr" ? "Quantités, livraison et total" : "Quantities, delivery and total", icon: ShoppingBag, accent: "#326B8A" },
   ];
   const accountItem = {
     id: "account" as ViewId,
     label: customer ? t.mobileNav.account : t.nav.login,
+    desktopLabel: customer ? (locale === "fr" ? "Mon espace" : "My account") : t.nav.login,
+    purpose: customer ? (locale === "fr" ? "Profil et préférences" : "Profile and preferences") : (locale === "fr" ? "Accéder à vos services" : "Access your services"),
     icon: customer ? User : LogIn,
+    accent: "#9A4E63",
   };
   const mobileItems = [...publicItems, accountItem];
-  const desktopGroups: Array<{ label: string; items: Array<{ id: ViewId; label: string; icon: LucideIcon }> }> = [
-    { label: locale === "fr" ? "Explorer" : "Explore", items: publicItems.filter((item) => item.id !== "cart") },
+  const desktopGroups: Array<{ label: string; intent: string; items: ClientNavItem[] }> = [
+    { label: locale === "fr" ? "Explorer" : "Explore", intent: locale === "fr" ? "Choisir" : "Choose", items: publicItems.filter((item) => item.id !== "cart") },
     {
       label: locale === "fr" ? "Mes achats" : "My shopping",
+      intent: locale === "fr" ? "Finaliser" : "Complete",
       items: [
         publicItems.find((item) => item.id === "cart")!,
-        ...(customer ? [{ id: "orders" as ViewId, label: t.orders.title, icon: ClipboardList }] : []),
+        ...(customer ? [{ id: "orders" as ViewId, label: t.orders.title, desktopLabel: locale === "fr" ? "Suivre mes commandes" : "Track my orders", purpose: locale === "fr" ? "Statut, colis et livraison" : "Status, parcels and delivery", icon: ClipboardList, accent: "#39756A" }] : []),
       ],
     },
   ];
@@ -82,15 +87,15 @@ export function MobileNav() {
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           {desktopGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? "mt-5" : ""}>
-            <p className="px-3 pb-1.5 text-[10px] font-extrabold uppercase text-white/35">{group.label}</p>
+            <div className="flex items-center px-3 pb-1.5"><p className="text-[9px] font-extrabold uppercase text-white/38">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-white/20">{group.intent}</span></div>
             <div className="space-y-1">{group.items.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.id);
               return (
-                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} className={`flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-semibold transition ${active ? "bg-terre text-white" : "text-white/75 hover:bg-white/8 hover:text-white"}`}>
-                  <Icon className="h-4.5 w-4.5 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                  {item.id === "cart" && count > 0 ? <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[10px] font-extrabold ${active ? "bg-white text-terre" : "bg-gold text-charcoal"}`}>{count}</span> : null}
+                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} className={`flex min-h-14 w-full items-center gap-3 rounded-md border-l-2 px-3 text-left transition ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-white/75 hover:bg-white/8 hover:text-white"}`} style={active ? { borderLeftColor: item.accent } : undefined}>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: active ? item.accent : `${item.accent}30` }}><Icon className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold">{item.desktopLabel}</span><span className={`mt-0.5 block truncate text-[9px] ${active ? "text-charcoal/52" : "text-white/35"}`}>{item.purpose}</span></span>
+                  {item.id === "cart" && count > 0 ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-extrabold text-charcoal">{count}</span> : null}
                 </button>
               );
             })}</div>

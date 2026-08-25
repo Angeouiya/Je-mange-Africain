@@ -37,6 +37,9 @@ export function ProfitabilityPanel({ locale }: { locale: "fr" | "en" }) {
   if (loading && !data) return <AdminSectionLoading label={isFr ? "Calcul de la rentabilité réelle" : "Calculating actual profitability"} />;
   if (error && !data) return <AdminErrorState message={error} onRetry={refetch} />;
   if (!data) return null;
+  if (!data.general || !Array.isArray(data.categories) || !Array.isArray(data.lots) || !Array.isArray(data.topProducts)) {
+    return <AdminErrorState message={isFr ? "Les données de rentabilité reçues sont incomplètes." : "The profitability data received is incomplete."} onRetry={refetch} />;
+  }
 
   const metrics = data.general;
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, Boxes, CircleDollarSign, ClipboardCheck, ShoppingBag, UsersRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, BarChart3, Boxes, CircleDollarSign, ClipboardCheck, ShoppingBag, UsersRound } from "lucide-react";
 import { AdminErrorState, AdminPageHeader, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import type { AdminSectionId, DashboardPayload } from "@/components/admin/admin-types";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,9 @@ export default function OverviewSection({ locale, onNavigate }: { locale: "fr" |
   return (
     <div className="space-y-7">
       <AdminPageHeader
+        variant="command"
+        accent="#D65A32"
+        icon={<BarChart3 className="h-5 w-5" />}
         eyebrow={isFr ? "Centre d'opérations" : "Operations centre"}
         title={isFr ? "Ce qui demande votre attention" : "What needs your attention"}
         description={isFr ? "Une lecture directe de l'activité réelle pour savoir quoi traiter maintenant, sans indicateurs décoratifs." : "A direct view of live activity so you know what to handle now, without decorative metrics."}

@@ -68,6 +68,9 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
   return (
     <div className="space-y-6">
       <AdminPageHeader
+        variant="flow"
+        accent="#B16A25"
+        icon={<BellRing className="h-5 w-5" />}
         eyebrow={locale === "fr" ? "Engagement mobile" : "Mobile engagement"}
         title={locale === "fr" ? "Composer, vérifier, diffuser" : "Compose, verify, deliver"}
         description={locale === "fr" ? "Préparez un message bilingue, contrôlez son rendu mobile et confirmez explicitement la diffusion vers les appareils abonnés." : "Prepare a bilingual message, review its mobile rendering and explicitly confirm delivery to subscribed devices."}
