@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSupabaseCustomerConfig, normalizePhone, setCustomerCookies, toCustomerSession } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ const Registration = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit(request, "register");
+  if (limited) return limited;
+
   const parsed = Registration.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Veuillez vérifier toutes les informations saisies." }, { status: 400 });
 

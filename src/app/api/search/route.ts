@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
 import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
 /** Bilingual, accent-insensitive search across translations + aliases + traditional names. */
 export async function GET(req: NextRequest) {
+  const limited = await enforceRateLimit(req, "search");
+  if (limited) return limited;
+
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";

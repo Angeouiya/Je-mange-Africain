@@ -45,7 +45,7 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
-  ignores: ["node_modules/**", "node_modules.partial-*/**", ".next/**", ".vercel/**", ".playwright-cli/**", "output/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
+  ignores: ["node_modules/**", "node_modules.partial-*/**", ".next/**", ".vercel/**", ".playwright-cli/**", "src/generated/**", "test-results/**", "playwright-report/**", "coverage/**", "output/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
 }];
 
 export default eslintConfig;

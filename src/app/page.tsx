@@ -65,7 +65,7 @@ export default function Page() {
       {isPublicAuthGate ? null : <MobileNav />}
       <div className={`flex min-h-screen flex-col ${isPublicAuthGate ? "" : "md:pl-64"}`}>
       {isPublicAuthGate ? null : <Header />}
-      <main className={isPublicAuthGate ? "flex-1" : "flex-1 pb-20 md:pb-0"}>
+      <main id="main-content" tabIndex={-1} className={isPublicAuthGate ? "flex-1" : "flex-1 pb-20 md:pb-0"}>
         <AnimatePresence mode="wait">
           <motion.div
             key={view + JSON.stringify(useStore.getState().params)}
@@ -103,7 +103,7 @@ function renderView(view: string) {
 
 function ViewLoading() {
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-6" aria-label="Chargement de la vue">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-6" role="status" aria-live="polite" aria-label="Chargement de la vue">
       <div className="h-7 w-48 animate-pulse rounded-md bg-muted" />
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-48 animate-pulse rounded-lg bg-muted" />)}

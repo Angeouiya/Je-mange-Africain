@@ -3,6 +3,7 @@ import { Poppins, Caveat } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/lib/store-provider";
+import { StructuredData } from "@/components/shared/StructuredData";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -63,10 +64,15 @@ export const metadata: Metadata = {
     title: "Je mange Africain",
     description: "Authentic African cooking essentials, delivered to your door.",
   },
+  alternates: {
+    canonical: "/",
+    languages: { "fr-FR": "/", "en-GB": "/?lang=en", "x-default": "/" },
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#D65A32",
+  themeColor: "#B84A26",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -81,6 +87,8 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${caveat.variable} antialiased bg-background text-foreground min-h-screen`}
       >
+        <a href="#main-content" className="jma-skip-link">Aller au contenu principal</a>
+        <StructuredData />
         <StoreProvider>
           <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         </StoreProvider>

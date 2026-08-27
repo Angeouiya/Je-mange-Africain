@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaClient as PostgresPrismaClient } from '@/generated/prisma-postgres'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -24,14 +25,16 @@ function configureDatabaseUrl() {
 
 configureDatabaseUrl()
 
+const usesPostgres = /^postgres(?:ql)?:\/\//i.test(process.env.DATABASE_URL || '')
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
 export const db =
   globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ['query'],
-  })
+  (usesPostgres
+    ? new PostgresPrismaClient({ log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'] }) as unknown as PrismaClient
+    : new PrismaClient({ log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'] }))
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db

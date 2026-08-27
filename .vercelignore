@@ -4,6 +4,11 @@ output
 node_modules
 node_modules.partial-*
 *.log
+AGENTS.md
+CLAUDE.md
+test-results
+playwright-report
+coverage
 .env
 .env.local
 .env.*.local

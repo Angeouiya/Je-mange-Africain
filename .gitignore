@@ -15,6 +15,10 @@ output/
 
 # testing
 /coverage
+/src/generated/prisma-postgres/
+/test-results/
+/playwright-report/
+/coverage/
 
 # next.js
 /.next/

@@ -10,6 +10,7 @@ import {
   toCustomerSession,
 } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(request, "auth");
+  if (limited) return limited;
+
   const parsed = Credentials.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Identifiant ou mot de passe invalide." }, { status: 400 });
 

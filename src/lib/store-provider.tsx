@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useStore } from "./store";
 
 /**
@@ -9,7 +10,9 @@ import { useStore } from "./store";
  * provider just warms the store reference so SSR + client stay in sync.
  */
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  // Access the store to ensure it's initialized on the client.
-  useStore((s) => s.locale);
+  const locale = useStore((state) => state.locale);
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
   return <>{children}</>;
 }

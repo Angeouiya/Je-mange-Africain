@@ -12,7 +12,7 @@ interface LoadingGridProps {
 export function LoadingGrid({ count = 8, className, variant = "card" }: LoadingGridProps) {
   if (variant === "line") {
     return (
-      <div className={cn("space-y-2", className)}>
+      <div className={cn("space-y-2", className)} role="status" aria-live="polite" aria-label="Chargement">
         {Array.from({ length: count }).map((_, i) => (
           <Skeleton key={i} className="h-12 w-full" />
         ))}
@@ -21,6 +21,9 @@ export function LoadingGrid({ count = 8, className, variant = "card" }: LoadingG
   }
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-label="Chargement"
       className={cn(
         "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4",
         className
