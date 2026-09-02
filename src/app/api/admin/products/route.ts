@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
-import { productAdminInput, roundMoney } from "@/lib/admin-product-schema";
+import { productAdminInput, roundMoney, wholesaleProductData } from "@/lib/admin-product-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +43,15 @@ export async function GET(request: NextRequest) {
         costSource: product.costPrice === null ? "estimated" : "recorded",
         price: Number(product.price),
         promoPrice: product.promoPrice === null ? null : Number(product.promoPrice),
+        isWholesale: product.isWholesale,
+        wholesalePackLabel: product.wholesalePackLabel,
+        wholesaleUnitsPerPack: product.wholesaleUnitsPerPack,
+        wholesaleMinPacks: product.wholesaleMinPacks,
+        wholesalePrice: product.wholesalePrice === null ? null : Number(product.wholesalePrice),
+        wholesaleTier2MinPacks: product.wholesaleTier2MinPacks,
+        wholesaleTier2Price: product.wholesaleTier2Price === null ? null : Number(product.wholesaleTier2Price),
+        wholesaleTier3MinPacks: product.wholesaleTier3MinPacks,
+        wholesaleTier3Price: product.wholesaleTier3Price === null ? null : Number(product.wholesaleTier3Price),
         stockQty: product.stockQty,
         alertThreshold: product.alertThreshold,
         netWeightGrams: product.netWeightGrams,
@@ -97,6 +106,7 @@ export async function POST(request: NextRequest) {
       profitMargin: input.profitMargin,
       price,
       promoPrice: typeof input.promoPrice === "number" ? input.promoPrice : null,
+      ...wholesaleProductData(input),
       pricePerKg: input.netWeightGrams > 0 ? price / (input.netWeightGrams / 1000) : null,
       stockQty: input.stockQty,
       netWeightGrams: input.netWeightGrams,
@@ -124,7 +134,7 @@ export async function POST(request: NextRequest) {
       action: "product_create",
       entityType: "Product",
       entityId: product.id,
-      after: JSON.stringify({ sku: product.sku, nameFr: input.nameFr, nameEn: input.nameEn, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty, imageUrl: input.imageUrl, status: input.status, isNew: input.isNew, isRecommended: input.isRecommended, isBestseller: input.isBestseller }),
+      after: JSON.stringify({ sku: product.sku, nameFr: input.nameFr, nameEn: input.nameEn, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty, imageUrl: input.imageUrl, status: input.status, isNew: input.isNew, isRecommended: input.isRecommended, isBestseller: input.isBestseller, wholesale: wholesaleProductData(input) }),
       reason: `Création depuis la console par ${authorization.user.email}`,
     },
   });

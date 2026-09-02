@@ -16,6 +16,7 @@ const IntentRequest = z.object({
     recipeId: z.string().optional(),
     recipeNameFr: z.string().max(160).optional(),
     recipeNameEn: z.string().max(160).optional(),
+    salesChannel: z.enum(["retail", "wholesale"]).optional(),
   })).min(1).max(80),
   address: z.object({
     firstName: z.string().trim().min(1).max(80),
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       coupon: parsed.data.coupon,
       locale: parsed.data.locale,
     });
-    const itemCount = pricing.validatedItems.reduce((sum, item) => sum + item.qty, 0);
+    const itemCount = pricing.validatedItems.reduce((sum, item) => sum + item.qty * item.unitsPerPack, 0);
     const recentAttempts = await paymentVelocity(customer.id);
     const risk = assessCheckoutRisk({
       total: pricing.total,

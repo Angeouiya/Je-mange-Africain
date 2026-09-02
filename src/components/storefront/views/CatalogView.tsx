@@ -12,6 +12,7 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { ProductCard } from "@/components/shared/ProductCard";
+import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch";
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
 
 const THERMALS = ["AMBIANT", "REFRIGERATED", "FROZEN"];
@@ -107,9 +108,9 @@ export function CatalogView() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
-      <div className="mb-6 flex flex-col gap-4 border-b border-charcoal/10 pb-6">
-        <div><p className="jma-eyebrow">{locale === "fr" ? "Catalogue vivant" : "Live catalogue"}</p><h1 className="jma-section-title mt-1">{t.catalog.title}</h1></div>
+    <div className="mx-auto max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
+      <div className="mb-5 flex flex-col gap-3 border-b border-charcoal/10 pb-5 md:mb-6 md:gap-4 md:pb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="jma-eyebrow">{locale === "fr" ? "Catalogue vivant" : "Live catalogue"}</p><h1 className="jma-section-title mt-1">{t.catalog.title}</h1></div><MarketChannelSwitch channel="retail" /></div>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
           <div className="relative col-span-2 flex-1 sm:col-span-1">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -171,8 +172,8 @@ export function CatalogView() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-lg" />)}
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-md" />)}
             </div>
           ) : data?.products?.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
@@ -182,8 +183,8 @@ export function CatalogView() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-                {data?.products?.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} />)}
+              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3 xl:grid-cols-4" data-testid="catalog-product-grid">
+                {data?.products?.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} compact />)}
               </div>
               {data?.pages > 1 && (
                 <div className="mt-6 flex items-center justify-center gap-2">

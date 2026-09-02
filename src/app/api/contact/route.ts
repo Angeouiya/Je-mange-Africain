@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,8 @@ const ContactRequest = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit(request, "account");
+  if (limited) return limited;
   const parsed = ContactRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Veuillez compléter correctement tous les champs." }, { status: 400 });
   const saved = await db.contactMessage.create({ data: parsed.data });

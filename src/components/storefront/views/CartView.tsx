@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check } from "lucide-react";
+import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -227,10 +227,10 @@ function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string;
       <ProductImage src={c.imageUrl} alt={c.name} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="row-span-2 h-14 w-14 shrink-0 sm:row-auto" rounded="rounded-md" />
       <div className="min-w-0 sm:flex-1">
         <p className="truncate text-sm font-bold text-charcoal">{c.name}</p>
-        <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground"><span className="truncate">{c.unitLabel}</span><span aria-hidden="true">·</span><span className={`inline-flex shrink-0 items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>
+        <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground">{c.salesChannel === "wholesale" ? <span className="inline-flex shrink-0 items-center gap-0.5 font-bold text-forest"><Boxes className="h-3 w-3" />{locale === "fr" ? "Gros" : "Wholesale"}</span> : null}<span className="truncate">{c.unitLabel}</span><span aria-hidden="true">·</span><span className={`inline-flex shrink-0 items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>
       </div>
       <div className="col-start-2 row-start-2 inline-flex w-fit items-center rounded-full border border-border sm:col-auto sm:row-auto">
-        <button type="button" onClick={() => onQty(c.qty - 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label={locale === "fr" ? `Diminuer la quantité de ${c.name}` : `Decrease ${c.name} quantity`}><span className="text-xs">−</span></button>
+        <button type="button" onClick={() => onQty(c.qty - 1)} disabled={c.salesChannel === "wholesale" && c.qty <= (c.minimumQty || 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted disabled:cursor-not-allowed disabled:opacity-35" aria-label={locale === "fr" ? `Diminuer la quantité de ${c.name}` : `Decrease ${c.name} quantity`}><span className="text-xs">−</span></button>
         <span className="min-w-7 text-center text-sm font-semibold">{c.qty}</span>
         <button type="button" onClick={() => onQty(Math.min(c.maxStock || 99, c.qty + 1))} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label={locale === "fr" ? `Augmenter la quantité de ${c.name}` : `Increase ${c.name} quantity`}><span className="text-xs">+</span></button>
       </div>

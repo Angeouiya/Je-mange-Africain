@@ -50,4 +50,36 @@ describe("admin product pricing contract", () => {
     expect(roundMoney(2.675)).toBe(2.68);
     expect(roundMoney(0.1 + 0.2)).toBe(0.3);
   });
+
+  it("accepts profitable wholesale tiers with decreasing case prices", () => {
+    const result = productAdminInput.safeParse({
+      ...validProduct,
+      isWholesale: true,
+      wholesalePackLabel: "Carton de 6 sachets",
+      wholesaleUnitsPerPack: 6,
+      wholesaleMinPacks: 1,
+      wholesalePrice: 28,
+      wholesaleTier2MinPacks: 5,
+      wholesaleTier2Price: 27,
+      wholesaleTier3MinPacks: 10,
+      wholesaleTier3Price: 26,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a wholesale price below gross case cost", () => {
+    const result = productAdminInput.safeParse({
+      ...validProduct,
+      isWholesale: true,
+      wholesalePackLabel: "Carton de 6 sachets",
+      wholesaleUnitsPerPack: 6,
+      wholesaleMinPacks: 1,
+      wholesalePrice: 18,
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.flatten().fieldErrors.wholesalePrice).toBeDefined();
+  });
 });

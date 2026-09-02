@@ -255,7 +255,7 @@ export function ProductDetailView() {
         <section className="mt-10">
           <h2 className="jma-section-title mb-4">{t.product.alternatives}</h2>
           <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6 [&>*]:min-w-0">
-            {product.related.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} />)}
+            {product.related.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} compact />)}
           </div>
         </section>
       )}
@@ -264,7 +264,7 @@ export function ProductDetailView() {
           <h2 className="jma-section-title mb-4">{t.product.relatedRecipes}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {product.relatedRecipes.map((r: any, i: number) => (
-              <RecipeCard key={r.id} recipe={r} index={i} />
+              <RecipeCard key={r.id} recipe={r} index={i} compact />
             ))}
           </div>
         </section>

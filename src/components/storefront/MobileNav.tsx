@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, LayoutGrid, ChefHat, ShoppingBag, User, Settings, LifeBuoy, LogIn, LogOut, ClipboardList } from "lucide-react";
+import { Home, LayoutGrid, Boxes, ChefHat, ShoppingBag, User, Settings, LifeBuoy, LogIn, LogOut, ClipboardList } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore, ViewId, cartCount } from "@/lib/store";
 import { dict } from "@/lib/i18n";
@@ -20,6 +20,7 @@ export function MobileNav() {
   const publicItems: ClientNavItem[] = [
     { id: "home", label: t.mobileNav.home, desktopLabel: locale === "fr" ? "Découvrir" : "Discover", purpose: locale === "fr" ? "Sélections et nouveautés" : "Selections and new arrivals", icon: Home, accent: "#B74325" },
     { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: LayoutGrid, accent: "#2F6B4F" },
+    { id: "wholesale", label: locale === "fr" ? "Gros" : "Wholesale", desktopLabel: locale === "fr" ? "Marché de gros" : "Wholesale market", purpose: locale === "fr" ? "Cartons, lots et prix dégressifs" : "Cases, lots and tiered prices", icon: Boxes, accent: "#8A5A24" },
     { id: "recipes", label: t.mobileNav.recipes, desktopLabel: locale === "fr" ? "Cuisiner une recette" : "Cook a recipe", purpose: locale === "fr" ? "Personnaliser puis composer le panier" : "Customise and build the basket", icon: ChefHat, accent: "#805C00" },
     { id: "cart", label: t.mobileNav.cart, desktopLabel: locale === "fr" ? "Finaliser le panier" : "Complete basket", purpose: locale === "fr" ? "Quantités, livraison et total" : "Quantities, delivery and total", icon: ShoppingBag, accent: "#326B8A" },
   ];
@@ -31,7 +32,7 @@ export function MobileNav() {
     icon: customer ? User : LogIn,
     accent: "#9A4E63",
   };
-  const mobileItems = [...publicItems, accountItem];
+  const mobileItems = [...publicItems.filter((item) => item.id !== "wholesale"), accountItem];
   const desktopGroups: Array<{ label: string; intent: string; items: ClientNavItem[] }> = [
     { label: locale === "fr" ? "Explorer" : "Explore", intent: locale === "fr" ? "Choisir" : "Choose", items: publicItems.filter((item) => item.id !== "cart") },
     {
@@ -45,7 +46,7 @@ export function MobileNav() {
   ];
 
   const isActive = (id: ViewId) => view === id
-    || (id === "catalog" && view === "product")
+    || (id === "catalog" && (view === "product" || view === "wholesale"))
     || (id === "recipes" && view === "recipe-config")
     || (id === "orders" && view === "order-tracking");
 
@@ -56,12 +57,12 @@ export function MobileNav() {
           <button
             key={it.id}
             onClick={() => navigate(it.id)}
-            className={`relative flex min-h-[3.75rem] flex-col items-center justify-center gap-1 text-[9px] font-bold transition-colors ${
+            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[9px] font-bold transition-colors ${
               active ? "text-terre" : "text-muted-foreground hover:text-charcoal"
             }`}
             aria-label={it.label}
           >
-            <Icon className={`h-[1.15rem] w-[1.15rem] ${active ? "stroke-[2.4]" : ""} transition`} />
+            <Icon className={`h-[1.1rem] w-[1.1rem] ${active ? "stroke-[2.4]" : ""} transition`} />
             <span className="leading-none">{it.label}</span>
             {it.id === "cart" && count > 0 && (
               <span className="absolute right-1/2 top-1 grid h-4 min-w-4 translate-x-3 place-items-center rounded-full bg-terre px-1 text-[9px] font-bold text-cream">
@@ -75,7 +76,7 @@ export function MobileNav() {
 
   return (
     <>
-      <nav className="jma-safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t border-charcoal/10 bg-white/96 px-1 shadow-[0_-16px_36px_-30px_rgba(24,26,24,0.75)] backdrop-blur-xl md:hidden">
+      <nav className="jma-safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t border-charcoal/10 bg-white/96 px-1 shadow-[0_-10px_28px_-26px_rgba(24,26,24,0.65)] backdrop-blur-xl md:hidden">
         <div className="mx-auto grid max-w-xl grid-cols-5">{mobileItems.map(renderMobileItem)}</div>
       </nav>
 

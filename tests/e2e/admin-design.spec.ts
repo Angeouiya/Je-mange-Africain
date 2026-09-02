@@ -198,6 +198,10 @@ test("the product workspace edits bilingual content and calculates the customer 
   await dialog.getByLabel("Coût brut d'achat (€)").fill("3.20");
   await dialog.getByLabel("Marge bénéficiaire (€)").fill("1.80");
   await expect(dialog.getByText("5,00 €", { exact: true })).toBeVisible();
+  await dialog.getByRole("switch", { name: "Activer la vente en gros" }).click();
+  await expect(dialog.getByLabel("Conditionnement de gros")).toBeVisible();
+  await dialog.getByLabel("Conditionnement de gros").fill("Carton de 6 sachets");
+  await expect(dialog.getByLabel("Prix par colis (€)")).toHaveValue("27");
 
   const dialogOverflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(dialogOverflow).toBeLessThanOrEqual(1);

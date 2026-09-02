@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, type ReactNode, useDeferredValue, useMemo, useState } from "react";
-import { BookOpen, Calculator, ChefHat, LoaderCircle, PackagePlus, PencilLine, Sparkles } from "lucide-react";
+import { BookOpen, Boxes, Calculator, ChefHat, LoaderCircle, PackagePlus, PencilLine, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useFetch } from "@/lib/use-fetch";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 
@@ -31,6 +32,15 @@ type ProductDraft = {
   costPrice: string;
   profitMargin: string;
   promoPrice: string;
+  isWholesale: boolean;
+  wholesalePackLabel: string;
+  wholesaleUnitsPerPack: string;
+  wholesaleMinPacks: string;
+  wholesalePrice: string;
+  wholesaleTier2MinPacks: string;
+  wholesaleTier2Price: string;
+  wholesaleTier3MinPacks: string;
+  wholesaleTier3Price: string;
   stockQty: string;
   netWeightGrams: string;
   thermalClass: "AMBIANT" | "REFRIGERATED" | "FROZEN";
@@ -57,6 +67,15 @@ export type EditableProduct = {
   costPrice?: number | null;
   profitMargin?: number | null;
   promoPrice?: number | null;
+  isWholesale?: boolean;
+  wholesalePackLabel?: string | null;
+  wholesaleUnitsPerPack?: number;
+  wholesaleMinPacks?: number;
+  wholesalePrice?: number | null;
+  wholesaleTier2MinPacks?: number | null;
+  wholesaleTier2Price?: number | null;
+  wholesaleTier3MinPacks?: number | null;
+  wholesaleTier3Price?: number | null;
   stockQty: number;
   netWeightGrams: number;
   thermalClass: ProductDraft["thermalClass"];
@@ -82,6 +101,15 @@ const draftFor = (product?: EditableProduct): ProductDraft => ({
   costPrice: product?.costPrice === null || product?.costPrice === undefined ? "" : String(product.costPrice),
   profitMargin: product?.profitMargin === null || product?.profitMargin === undefined ? "" : String(product.profitMargin),
   promoPrice: product?.promoPrice === null || product?.promoPrice === undefined ? "" : String(product.promoPrice),
+  isWholesale: Boolean(product?.isWholesale),
+  wholesalePackLabel: product?.wholesalePackLabel || "",
+  wholesaleUnitsPerPack: String(product?.wholesaleUnitsPerPack || 6),
+  wholesaleMinPacks: String(product?.wholesaleMinPacks || 1),
+  wholesalePrice: product?.wholesalePrice === null || product?.wholesalePrice === undefined ? "" : String(product.wholesalePrice),
+  wholesaleTier2MinPacks: product?.wholesaleTier2MinPacks === null || product?.wholesaleTier2MinPacks === undefined ? "" : String(product.wholesaleTier2MinPacks),
+  wholesaleTier2Price: product?.wholesaleTier2Price === null || product?.wholesaleTier2Price === undefined ? "" : String(product.wholesaleTier2Price),
+  wholesaleTier3MinPacks: product?.wholesaleTier3MinPacks === null || product?.wholesaleTier3MinPacks === undefined ? "" : String(product.wholesaleTier3MinPacks),
+  wholesaleTier3Price: product?.wholesaleTier3Price === null || product?.wholesaleTier3Price === undefined ? "" : String(product.wholesaleTier3Price),
   stockQty: String(product?.stockQty ?? 0),
   netWeightGrams: String(product?.netWeightGrams ?? 0),
   thermalClass: product?.thermalClass || "AMBIANT",
@@ -109,6 +137,18 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
   const recommendations = recommendationData?.dishes || [];
   const salePrice = Math.round((Number(draft.costPrice || 0) + Number(draft.profitMargin || 0) + Number.EPSILON) * 100) / 100;
   const marginRate = salePrice > 0 ? (Number(draft.profitMargin || 0) / salePrice) * 100 : 0;
+  const wholesalePackCost = Number(draft.costPrice || 0) * Number(draft.wholesaleUnitsPerPack || 1);
+  const wholesalePackPrice = Number(draft.wholesalePrice || 0);
+  const wholesaleMargin = wholesalePackPrice - wholesalePackCost;
+  const wholesaleValid = !draft.isWholesale || Boolean(
+    draft.wholesalePackLabel.trim().length >= 2
+    && Number(draft.wholesaleUnitsPerPack) >= 1
+    && Number(draft.wholesaleMinPacks) >= 1
+    && wholesalePackPrice >= wholesalePackCost
+    && wholesalePackPrice < salePrice * Number(draft.wholesaleUnitsPerPack)
+    && tierIsValid(draft.wholesaleTier2MinPacks, draft.wholesaleTier2Price, draft.wholesaleMinPacks, draft.wholesalePrice, wholesalePackCost)
+    && tierIsValid(draft.wholesaleTier3MinPacks, draft.wholesaleTier3Price, draft.wholesaleTier2MinPacks || draft.wholesaleMinPacks, draft.wholesaleTier2Price || draft.wholesalePrice, wholesalePackCost)
+  );
   const hasRequiredFields = useMemo(
     () => Boolean(
       draft.nameFr.trim()
@@ -124,8 +164,9 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
       && draft.profitMargin !== ""
       && Number(draft.profitMargin) >= 0
       && (!draft.promoPrice || (Number(draft.promoPrice) > 0 && Number(draft.promoPrice) < salePrice))
+      && wholesaleValid
     ),
-    [draft, salePrice]
+    [draft, salePrice, wholesaleValid]
   );
 
   const update = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
@@ -215,6 +256,50 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
                 </div>
               </section>
 
+              <section className="overflow-hidden rounded-lg border border-forest/20 bg-forest/[0.035]">
+                <div className="flex items-center gap-3 border-b border-forest/15 px-4 py-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-forest text-white"><Boxes className="h-4 w-4" /></span>
+                  <div className="min-w-0 flex-1"><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Marché de gros" : "Wholesale market"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Publiez un conditionnement professionnel et des prix dégressifs protégés au paiement." : "Publish professional packaging and tiered prices protected at checkout."}</p></div>
+                  <Switch
+                    checked={draft.isWholesale}
+                    onCheckedChange={(checked) => setDraft((current) => ({
+                      ...current,
+                      isWholesale: checked,
+                      wholesalePrice: checked && !current.wholesalePrice
+                        ? String(Math.round(salePrice * Number(current.wholesaleUnitsPerPack || 6) * 0.9 * 100) / 100)
+                        : current.wholesalePrice,
+                    }))}
+                    aria-label={locale === "fr" ? "Activer la vente en gros" : "Enable wholesale sales"}
+                  />
+                </div>
+                {draft.isWholesale ? (
+                  <div className="space-y-4 p-4">
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <Field label={locale === "fr" ? "Conditionnement de gros" : "Wholesale packaging"} required><Input value={draft.wholesalePackLabel} onChange={(event) => update("wholesalePackLabel", event.target.value)} placeholder={locale === "fr" ? "Carton de 6 sachets" : "Case of 6 packs"} /></Field>
+                      <Field label={locale === "fr" ? "Unités par colis" : "Units per case"} required><Input type="number" min="1" max="10000" value={draft.wholesaleUnitsPerPack} onChange={(event) => update("wholesaleUnitsPerPack", event.target.value)} /></Field>
+                      <Field label={locale === "fr" ? "Minimum de colis" : "Minimum cases"} required><Input type="number" min="1" max="99" value={draft.wholesaleMinPacks} onChange={(event) => update("wholesaleMinPacks", event.target.value)} /></Field>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-[1fr_1fr_1.05fr]">
+                      <Field label={locale === "fr" ? "Prix par colis (€)" : "Price per case (€)"} required><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesalePrice} onChange={(event) => update("wholesalePrice", event.target.value)} /></Field>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Field label={locale === "fr" ? "Palier 2" : "Tier 2"}><Input type="number" min="2" placeholder={locale === "fr" ? "Colis" : "Cases"} value={draft.wholesaleTier2MinPacks} onChange={(event) => update("wholesaleTier2MinPacks", event.target.value)} /></Field>
+                        <Field label={locale === "fr" ? "Prix (€)" : "Price (€)"}><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesaleTier2Price} onChange={(event) => update("wholesaleTier2Price", event.target.value)} /></Field>
+                      </div>
+                      <div className="rounded-md bg-charcoal px-4 py-3 text-white" aria-live="polite">
+                        <p className="text-[10px] font-bold uppercase text-white/60">{locale === "fr" ? "Marge par colis" : "Margin per case"}</p>
+                        <p className={`mt-1 text-xl font-black ${wholesaleMargin >= 0 ? "text-gold" : "text-red-300"}`}>{wholesaleMargin.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
+                        <p className="mt-1 text-[10px] text-white/60">{locale === "fr" ? "Coût brut du colis" : "Gross case cost"} · {wholesalePackCost.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:max-w-md">
+                      <Field label={locale === "fr" ? "Palier 3 (colis)" : "Tier 3 (cases)"}><Input type="number" min="3" value={draft.wholesaleTier3MinPacks} onChange={(event) => update("wholesaleTier3MinPacks", event.target.value)} /></Field>
+                      <Field label={locale === "fr" ? "Prix palier 3 (€)" : "Tier 3 price (€)"}><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesaleTier3Price} onChange={(event) => update("wholesaleTier3Price", event.target.value)} /></Field>
+                    </div>
+                    {!wholesaleValid ? <p role="alert" className="text-[11px] font-semibold leading-5 text-destructive">{locale === "fr" ? "Le prix doit couvrir le coût brut, rester inférieur au détail équivalent et diminuer à chaque palier complet." : "Prices must cover gross cost, stay below equivalent retail and decrease at every complete tier."}</p> : null}
+                  </div>
+                ) : null}
+              </section>
+
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Field label={locale === "fr" ? "Prix promotionnel (€)" : "Promotional price (€)"}><Input type="number" inputMode="decimal" min="0.01" max={salePrice || undefined} step="0.01" value={draft.promoPrice} onChange={(event) => update("promoPrice", event.target.value)} /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Doit rester inférieur au prix client." : "Must remain below the customer price."}</p></Field>
                 <Field label={locale === "fr" ? "Stock" : "Stock"}><Input type="number" min="0" value={draft.stockQty} onChange={(event) => update("stockQty", event.target.value)} /></Field>
@@ -288,4 +373,9 @@ function Field({ label, required = false, children }: { label: string; required?
 
 function EditorialFlag({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
   return <label className="flex min-h-9 cursor-pointer items-center gap-2 text-[11px] font-bold text-charcoal"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-terre" />{label}</label>;
+}
+
+function tierIsValid(quantity: string, price: string, previousQuantity: string, previousPrice: string, packCost: number) {
+  if (!quantity && !price) return true;
+  return Boolean(quantity && price && Number(quantity) > Number(previousQuantity) && Number(price) < Number(previousPrice) && Number(price) >= packCost);
 }

@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Locale } from "./i18n";
 import { reconcileSavedLibrary } from "./saved-library";
+import { wholesalePriceForQuantity, type WholesaleTier } from "./wholesale";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -12,6 +13,7 @@ import { reconcileSavedLibrary } from "./saved-library";
 export type ViewId =
   | "home"
   | "catalog"
+  | "wholesale"
   | "product"
   | "recipes"
   | "recipe-config"
@@ -43,6 +45,10 @@ export interface CartItem {
   recipeId?: string; // if part of a recipe basket
   recipeName?: string;
   maxStock: number; // available stock snapshot
+  salesChannel?: "retail" | "wholesale";
+  minimumQty?: number;
+  unitsPerPack?: number;
+  wholesaleTiers?: WholesaleTier[];
 }
 
 export interface ViewParams {
@@ -198,11 +204,16 @@ export const useStore = create<AppState>()(
             (c) =>
               c.productId === item.productId &&
               c.variantId === item.variantId &&
+              (c.salesChannel || "retail") === (item.salesChannel || "retail") &&
               c.recipeId === item.recipeId
           );
           if (idx >= 0) {
             const next = [...s.cart];
-            next[idx] = { ...next[idx], qty: Math.min(next[idx].qty + qty, next[idx].maxStock || 99) };
+            const mergedQty = Math.min(next[idx].qty + qty, next[idx].maxStock || 99);
+            const unitPrice = next[idx].salesChannel === "wholesale" && next[idx].wholesaleTiers?.length
+              ? wholesalePriceForQuantity(next[idx].wholesaleTiers!, mergedQty)
+              : next[idx].unitPrice;
+            next[idx] = { ...next[idx], qty: mergedQty, unitPrice };
             return { cart: next };
           }
           return { cart: [...s.cart, { ...item, id: uid(), qty }] };
@@ -216,10 +227,15 @@ export const useStore = create<AppState>()(
               (c) =>
                 c.productId === it.productId &&
                 c.variantId === it.variantId &&
+                (c.salesChannel || "retail") === (it.salesChannel || "retail") &&
                 c.recipeId === it.recipeId
             );
             if (idx >= 0) {
-              cart[idx] = { ...cart[idx], qty: Math.min(cart[idx].qty + qty, cart[idx].maxStock || 99) };
+              const mergedQty = Math.min(cart[idx].qty + qty, cart[idx].maxStock || 99);
+              const unitPrice = cart[idx].salesChannel === "wholesale" && cart[idx].wholesaleTiers?.length
+                ? wholesalePriceForQuantity(cart[idx].wholesaleTiers!, mergedQty)
+                : cart[idx].unitPrice;
+              cart[idx] = { ...cart[idx], qty: mergedQty, unitPrice };
             } else {
               cart = [...cart, { ...it, id: uid(), qty }];
             }
@@ -229,7 +245,14 @@ export const useStore = create<AppState>()(
       updateQty: (lineId, qty) =>
         set((s) => ({
           cart: s.cart
-            .map((c) => (c.id === lineId ? { ...c, qty: Math.max(0, qty) } : c))
+            .map((c) => {
+              if (c.id !== lineId) return c;
+              const nextQty = c.salesChannel === "wholesale" ? Math.max(c.minimumQty || 1, qty) : Math.max(0, qty);
+              const unitPrice = c.salesChannel === "wholesale" && c.wholesaleTiers?.length
+                ? wholesalePriceForQuantity(c.wholesaleTiers, nextQty)
+                : c.unitPrice;
+              return { ...c, qty: nextQty, unitPrice };
+            })
             .filter((c) => c.qty > 0),
         })),
       removeLine: (lineId) => set((s) => ({ cart: s.cart.filter((c) => c.id !== lineId) })),

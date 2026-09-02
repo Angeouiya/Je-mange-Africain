@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import {
   ChefHat,
+  Boxes,
   CircleHelp,
   ClipboardList,
   Info,
@@ -39,6 +40,8 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const searchContext = view === "catalog"
     ? { icon: Store, label: locale === "fr" ? "Catalogue" : "Catalogue", detail: locale === "fr" ? "Produits et ingrédients" : "Products and ingredients" }
+    : view === "wholesale"
+      ? { icon: Boxes, label: locale === "fr" ? "Marché de gros" : "Wholesale market", detail: locale === "fr" ? "Cartons, lots et volumes" : "Cases, lots and volume" }
     : view === "recipes"
       ? { icon: ChefHat, label: locale === "fr" ? "Cuisine" : "Cooking", detail: locale === "fr" ? "Recettes et bibliothèque" : "Recipes and dish library" }
       : null;
@@ -56,8 +59,8 @@ export function Header() {
   };
   return (
     <header className="sticky top-0 z-40 w-full border-b border-charcoal/10 bg-white/94 backdrop-blur-xl">
-      <div className="african-kente-stripe h-[3px]" />
-      <div className="mx-auto flex h-16 max-w-[90rem] items-center gap-2 px-3 md:h-[4.25rem] md:gap-4 md:px-7">
+      <div className="african-kente-stripe h-0.5 md:h-[3px]" />
+      <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-1.5 px-2.5 md:h-[4.25rem] md:gap-4 md:px-7">
         {/* mobile menu */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
@@ -145,7 +148,7 @@ export function Header() {
 
       {/* mobile search row */}
       {!searchContext ? (
-        <div className="border-t border-charcoal/8 px-3 pb-2 pt-1.5 md:hidden">
+        <div className="border-t border-charcoal/8 px-3 pb-2 pt-1 md:hidden">
           <div className="mx-auto max-w-2xl"><SearchBar compact /></div>
         </div>
       ) : null}

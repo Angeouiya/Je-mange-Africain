@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeOrderAccess } from "@/lib/order-access";
 import { getProductPhoto } from "@/lib/market-media";
+import { wholesaleAvailablePacks, wholesalePriceForQuantity, wholesaleTiers } from "@/lib/wholesale";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +51,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     customerPhone: order.deliveryPhone || order.customer?.user.phone || null,
     items: order.items.map((it) => {
       const product = productsById.get(it.productId);
-      const maxStock = product?.status === "published" ? Math.max(0, product.stockQty - product.reservedQty) : 0;
-      const currentUnitPrice = product ? Number(product.isOnSale && product.promoPrice ? product.promoPrice : product.price) : Number(it.unitPrice);
+      const salesChannel = it.salesChannel === "wholesale" ? "wholesale" : "retail";
+      const tiers = product && salesChannel === "wholesale" ? wholesaleTiers({ wholesaleMinPacks: product.wholesaleMinPacks, wholesalePrice: product.wholesalePrice === null ? null : Number(product.wholesalePrice), wholesaleTier2MinPacks: product.wholesaleTier2MinPacks, wholesaleTier2Price: product.wholesaleTier2Price === null ? null : Number(product.wholesaleTier2Price), wholesaleTier3MinPacks: product.wholesaleTier3MinPacks, wholesaleTier3Price: product.wholesaleTier3Price === null ? null : Number(product.wholesaleTier3Price) }) : [];
+      const maxStock = product?.status === "published" ? (salesChannel === "wholesale" ? wholesaleAvailablePacks(product.stockQty, product.reservedQty, it.unitsPerPack) : Math.max(0, product.stockQty - product.reservedQty)) : 0;
+      const currentUnitPrice = product ? (salesChannel === "wholesale" && product.isWholesale && tiers.length ? wholesalePriceForQuantity(tiers, it.qty) : Number(product.isOnSale && product.promoPrice ? product.promoPrice : product.price)) : Number(it.unitPrice);
       return {
         id: it.id, productId: it.productId,
         name: locale === "en" ? it.nameEn : it.nameFr,
@@ -59,9 +62,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         unitPrice: Number(it.unitPrice), currentUnitPrice, qty: it.qty, lineTotal: Number(it.lineTotal),
         thermalClass: it.thermalClass, recipeId: it.recipeId,
         packWeightGrams: it.packWeightGrams || product?.netWeightGrams || 0,
-        unitLabel: product?.packaging || "",
+        unitLabel: salesChannel === "wholesale" ? product?.wholesalePackLabel || "" : product?.packaging || "",
+        salesChannel,
+        unitsPerPack: it.unitsPerPack,
+        minimumQty: salesChannel === "wholesale" ? product?.wholesaleMinPacks || 1 : 1,
+        wholesaleTiers: tiers,
         maxStock,
-        purchasable: maxStock > 0,
+        purchasable: salesChannel === "wholesale" ? Boolean(product?.isWholesale && maxStock >= (product.wholesaleMinPacks || 1) && tiers.length) : maxStock > 0,
         imageUrl: it.imageUrl || getProductPhoto({ name: it.nameFr, traditionalName: product?.traditionalName, imageUrl: product?.imageUrl, imageEmoji: product?.imageEmoji, country: product?.country, category: product?.category }),
         recipeName: locale === "en" ? it.recipeNameEn : it.recipeNameFr,
       };

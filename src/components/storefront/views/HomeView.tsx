@@ -11,7 +11,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCategoryPhoto, getDiscountPercent, getProductPhoto } from "@/lib/market-media";
+import { getDiscountPercent, getProductPhoto } from "@/lib/market-media";
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { formatPrice } from "@/lib/format";
@@ -34,12 +34,12 @@ export function HomeView() {
   return (
     <div className="pb-16">
       {/* HERO */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden" data-testid="home-hero">
         <div className="absolute inset-0">
           <Image src="/hero-feast-v2.webp" alt="" fill sizes="100vw" loading="eager" fetchPriority="high" className="object-cover object-[63%_center] md:object-center" />
           <div className="absolute inset-0 bg-charcoal/58 md:bg-gradient-to-r md:from-charcoal/92 md:via-charcoal/60 md:to-charcoal/10" />
         </div>
-        <div className="relative mx-auto flex min-h-[28rem] max-w-7xl flex-col justify-center gap-4 px-5 py-8 md:min-h-[34rem] md:gap-5 md:px-10 md:py-20 lg:px-12">
+        <div className="relative mx-auto flex min-h-64 max-w-7xl flex-col justify-end gap-2.5 px-4 py-5 sm:min-h-72 sm:px-6 md:min-h-[30rem] md:justify-center md:gap-5 md:px-10 md:py-16 lg:px-12">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Badge className="border-0 bg-transparent p-0 text-[10px] font-extrabold uppercase text-gold shadow-none">
               <Sparkles className="mr-1 h-3 w-3" /> {t.home.heroBadge}
@@ -47,7 +47,7 @@ export function HomeView() {
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="max-w-3xl font-display text-[2rem] font-semibold leading-[1.05] text-white sm:text-5xl sm:leading-[1.02] lg:text-[4rem]"
+            className="max-w-3xl font-display text-[1.7rem] font-semibold leading-[1.05] text-white sm:text-4xl sm:leading-[1.02] lg:text-[3.5rem]"
           >
             {t.home.heroTitle.split("\n").map((line, i) => (
               <span key={i} className="sm:block">{i > 0 ? " " : null}{i === 1 ? <span className="text-gold">{line}</span> : line}</span>
@@ -55,42 +55,40 @@ export function HomeView() {
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-xl text-sm leading-6 text-white/82 sm:text-base sm:leading-7"
+            className="max-w-xl text-xs leading-5 text-white/85 sm:text-sm sm:leading-6 md:text-base md:leading-7"
           >
             {t.home.heroSubtitle}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-            className="grid gap-2 sm:flex sm:flex-wrap sm:gap-3"
+            className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3"
           >
-            <Button size="lg" onClick={() => navigate("catalog")} className="h-11 bg-terre px-5 text-white shadow-lg hover:bg-terre-dark sm:h-12">
+            <Button size="lg" onClick={() => navigate("catalog")} className="h-9 px-3 text-xs bg-terre text-white shadow-lg hover:bg-terre-dark sm:h-11 sm:px-5 sm:text-sm md:h-12">
               {t.home.heroCtaCatalog} <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("recipes")} className="h-11 border-white/35 bg-white/8 px-5 text-white backdrop-blur hover:bg-white/16 hover:text-white sm:h-12">
+            <Button size="lg" variant="outline" onClick={() => navigate("recipes")} className="h-9 px-3 text-xs border-white/35 bg-white/8 text-white backdrop-blur hover:bg-white/16 hover:text-white sm:h-11 sm:px-5 sm:text-sm md:h-12">
               {t.home.heroCtaRecipes}
             </Button>
           </motion.div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl space-y-14 px-4 pt-8 md:space-y-20 md:px-7 md:pt-16 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-9 px-4 pt-6 md:space-y-16 md:px-7 md:pt-12 lg:px-8">
         {/* CATEGORIES */}
         <Section title={t.home.shopByCategory} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
           {loading ? (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-xl" />)}</div>
+            <div className="grid grid-cols-5 gap-2 md:grid-cols-8">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-md" />)}</div>
           ) : (
-            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0 lg:grid-cols-8">
+            <div className="-mx-4 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-8 md:gap-2 md:px-0">
               {data?.categories?.map((c: any, i: number) => (
                 <motion.button
                   key={c.id}
                   initial={{ scale: 0.96 }} animate={{ scale: 1 }} transition={{ delay: i * 0.04 }}
                   onClick={() => navigate("catalog", { category: c.id })}
-                  className="group relative flex min-h-40 w-36 shrink-0 snap-start flex-col justify-end overflow-hidden rounded-lg border border-charcoal/10 bg-charcoal p-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-lg md:w-auto"
+                  className="group flex min-h-20 w-[4.55rem] shrink-0 snap-start flex-col items-center justify-start gap-2 rounded-md px-1 py-1.5 text-center transition hover:bg-muted md:w-auto"
                 >
-                  <Image src={getCategoryPhoto(c)} alt="" fill sizes="(max-width: 768px) 50vw, 160px" className="object-cover transition duration-500 group-hover:scale-105" />
-                  <span className="absolute inset-0 bg-gradient-to-t from-charcoal/92 via-charcoal/28 to-transparent" />
-                  <CategoryIcon slug={c.slug} color={c.color} className="relative h-9 w-9 border-white/25 bg-white/92" />
-                  <span className="relative mt-2 line-clamp-2 min-h-8 text-xs font-extrabold leading-4 text-white">{c.name}</span>
+                  <CategoryIcon slug={c.slug} color={c.color} className="h-11 w-11 border-black/5 bg-white shadow-sm transition group-hover:-translate-y-0.5" />
+                  <span className="line-clamp-2 min-h-7 text-[9px] font-extrabold leading-3.5 text-charcoal sm:text-[10px]">{c.name}</span>
                 </motion.button>
               ))}
             </div>
@@ -107,18 +105,18 @@ export function HomeView() {
         {/* RECIPES */}
         <Section title={t.home.popularRecipes} actionLabel={t.viewAll} onAction={() => navigate("recipes")}>
           {loading ? <GridSkeleton /> : (
-            <RecipeRail recipes={data?.popularRecipes || []} />
+          <RecipeRail recipes={data?.popularRecipes || []} />
           )}
         </Section>
 
         {/* PROMO BANNER */}
-        <section className="relative min-h-72 overflow-hidden rounded-lg border border-charcoal/8">
+        <section className="relative min-h-60 overflow-hidden rounded-lg border border-charcoal/8 md:min-h-72">
           <Image src={homeAdvertisement?.imageUrl || "/hero.jpg"} alt={homeAdvertisement?.imageAlt || ""} fill sizes="(max-width: 768px) 100vw, 1200px" className="object-cover" />
           <div className="absolute inset-0 bg-charcoal/68" />
-          <div className="relative flex min-h-72 flex-col items-start justify-end gap-5 p-6 text-white md:flex-row md:items-end md:justify-between md:p-10">
+          <div className="relative flex min-h-60 flex-col items-start justify-end gap-4 p-5 text-white md:min-h-72 md:flex-row md:items-end md:justify-between md:p-10">
             <div>
               <Badge className="mb-2 bg-gold text-charcoal border-0">{t.promo}</Badge>
-              <h2 className="max-w-2xl font-display text-3xl font-semibold leading-tight md:text-4xl">{homeAdvertisement?.title || (locale === "fr" ? "Configurateur de recettes intelligentes" : "Smart recipe configurator")}</h2>
+              <h2 className="max-w-2xl font-display text-2xl font-semibold leading-tight md:text-4xl">{homeAdvertisement?.title || (locale === "fr" ? "Configurateur de recettes intelligentes" : "Smart recipe configurator")}</h2>
               <p className="mt-2 max-w-lg text-sm leading-6 text-white/72">{homeAdvertisement?.body || t.recipes.subtitle}</p>
             </div>
             <Button size="lg" onClick={() => homeAdvertisement?.linkUrl ? window.location.assign(homeAdvertisement.linkUrl) : navigate("recipes")} className="bg-terre text-cream hover:bg-terre-dark shadow-lg">
@@ -180,11 +178,11 @@ export function HomeView() {
 
 function Section({ title, actionLabel, onAction, children }: { title: string; actionLabel?: string; onAction?: () => void; children: React.ReactNode }) {
   return (
-    <section className="space-y-5">
-      <div className="flex items-end justify-between gap-4 border-b border-charcoal/10 pb-3">
-        <h2 className="jma-section-title">{title}</h2>
+    <section className="space-y-3.5 md:space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-black leading-tight text-charcoal md:font-display md:text-3xl md:font-semibold">{title}</h2>
         {actionLabel && onAction && (
-          <button onClick={onAction} className="inline-flex min-h-9 shrink-0 items-center gap-1 text-xs font-extrabold text-terre hover:underline">
+          <button onClick={onAction} className="inline-flex min-h-9 shrink-0 items-center gap-1 text-[11px] font-extrabold text-terre hover:underline md:text-xs">
             {actionLabel} <ArrowRight className="h-3.5 w-3.5" />
           </button>
         )}
@@ -204,9 +202,9 @@ function GridSkeleton() {
 
 function ProductRail({ products }: { products: any[] }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3 lg:grid-cols-5" data-testid="home-bestseller-grid">
       {products.map((product, index) => (
-        <div key={product.id} className="w-[58vw] max-w-52 shrink-0 snap-start md:w-auto md:max-w-none">
+        <div key={product.id} className={index >= 4 ? "hidden md:block" : "min-w-0"}>
           <ProductCard product={product} index={index} compact />
         </div>
       ))}
@@ -216,10 +214,10 @@ function ProductRail({ products }: { products: any[] }) {
 
 function RecipeRail({ recipes }: { recipes: any[] }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 lg:grid-cols-3">
+    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 lg:grid-cols-3">
       {recipes.map((recipe, index) => (
-        <div key={recipe.id} className="w-[84vw] max-w-sm shrink-0 snap-start sm:w-auto sm:max-w-none">
-          <RecipeCard recipe={recipe} index={index} />
+        <div key={recipe.id} className="w-[74vw] max-w-[18rem] shrink-0 snap-start sm:w-auto sm:max-w-none">
+          <RecipeCard recipe={recipe} index={index} compact />
         </div>
       ))}
     </div>

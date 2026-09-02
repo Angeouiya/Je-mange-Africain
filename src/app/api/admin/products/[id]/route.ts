@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
-import { productAdminInput, roundMoney, type ProductAdminInput } from "@/lib/admin-product-schema";
+import { productAdminInput, roundMoney, wholesaleProductData, type ProductAdminInput } from "@/lib/admin-product-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +64,7 @@ async function updateFullProduct(id: string, input: ProductAdminInput, adminEmai
         profitMargin: input.profitMargin,
         price,
         promoPrice: typeof input.promoPrice === "number" ? input.promoPrice : null,
+        ...wholesaleProductData(input),
         pricePerKg: input.netWeightGrams > 0 ? price / (input.netWeightGrams / 1000) : null,
         stockQty: input.stockQty,
         netWeightGrams: input.netWeightGrams,
@@ -96,7 +97,7 @@ async function updateFullProduct(id: string, input: ProductAdminInput, adminEmai
         entityType: "Product",
         entityId: id,
         before: JSON.stringify({ sku: before.sku, price: Number(before.price), stockQty: before.stockQty, status: before.status, translations: before.translations, aliases: before.aliases }),
-        after: JSON.stringify({ sku: updated.sku, nameFr: input.nameFr, nameEn: input.nameEn, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty, status: input.status, aliases }),
+        after: JSON.stringify({ sku: updated.sku, nameFr: input.nameFr, nameEn: input.nameEn, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty, status: input.status, aliases, wholesale: wholesaleProductData(input) }),
         reason: `Modification complète par ${adminEmail}`,
       },
     });

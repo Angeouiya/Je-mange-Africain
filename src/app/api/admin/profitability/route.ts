@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     const itemGroups = new Map<string, { quantity: number; revenue: number; name: string }>();
     for (const item of order.items) {
       const current = itemGroups.get(item.productId) || { quantity: 0, revenue: 0, name: locale === "fr" ? item.nameFr : item.nameEn };
-      current.quantity += item.qty;
+      current.quantity += item.qty * Math.max(1, item.unitsPerPack);
       current.revenue += Number(item.lineTotal) * discountRatio;
       itemGroups.set(item.productId, current);
     }

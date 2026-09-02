@@ -11,6 +11,7 @@ import { HomeView } from "@/components/storefront/views/HomeView";
 
 const dynamicView = (loader: () => Promise<any>) => dynamic(loader, { loading: ViewLoading });
 const CatalogView = dynamicView(() => import("@/components/storefront/views/CatalogView").then((module) => module.CatalogView));
+const WholesaleView = dynamicView(() => import("@/components/storefront/views/WholesaleView").then((module) => module.WholesaleView));
 const ProductDetailView = dynamicView(() => import("@/components/storefront/views/ProductDetailView").then((module) => module.ProductDetailView));
 const RecipesView = dynamicView(() => import("@/components/storefront/views/RecipesView").then((module) => module.RecipesView));
 const RecipeConfiguratorView = dynamicView(() => import("@/components/storefront/views/RecipeConfiguratorView").then((module) => module.RecipeConfiguratorView));
@@ -39,8 +40,8 @@ export default function Page() {
     if (requestedView === "order-tracking" && searchParams.get("orderId")) {
       navigate("order-tracking", { orderId: searchParams.get("orderId") || undefined });
     }
-    if (["catalog", "recipes", "orders", "account"].includes(requestedView || "")) {
-      navigate(requestedView as "catalog" | "recipes" | "orders" | "account");
+    if (["catalog", "wholesale", "recipes", "orders", "account"].includes(requestedView || "")) {
+      navigate(requestedView as "catalog" | "wholesale" | "recipes" | "orders" | "account");
     }
     fetch("/api/auth/customer/session", { cache: "no-store" })
       .then(async (response) => {
@@ -111,6 +112,7 @@ function renderView(view: string) {
   switch (view) {
     case "home": return <HomeView />;
     case "catalog": return <CatalogView />;
+    case "wholesale": return <WholesaleView />;
     case "product": return <ProductDetailView />;
     case "recipes": return <RecipesView />;
     case "recipe-config": return <RecipeConfiguratorView />;

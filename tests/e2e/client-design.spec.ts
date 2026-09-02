@@ -22,12 +22,32 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(categoryHeading).toBeVisible();
   const categoryBox = await categoryHeading.boundingBox();
   expect(categoryBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(page.viewportSize()?.height || 0);
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  const heroBox = await page.getByTestId("home-hero").boundingBox();
+  if (isMobile) expect(heroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(300);
+  else expect(heroBox?.height || 0).toBeGreaterThanOrEqual(440);
+  const bestsellerGrid = page.getByTestId("home-bestseller-grid");
+  await expect(bestsellerGrid).toBeVisible();
+  const visibleProducts = await bestsellerGrid.locator(":scope > div:visible").count();
+  expect(visibleProducts).toBeGreaterThanOrEqual(isMobile ? 4 : 5);
+  const columnCount = await bestsellerGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(columnCount).toBe(isMobile ? 2 : 5);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/home-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
 
   await page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first().click();
   await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
   await expect(page.getByLabel(/rechercher dans le catalogue|search the catalogue/i)).toBeVisible();
   await expect(page.getByLabel(/trier les produits|sort products/i)).toBeVisible();
   await expect(page.locator("main img").first()).toBeVisible();
+  const catalogueGrid = page.getByTestId("catalog-product-grid");
+  await expect(catalogueGrid).toBeVisible();
+  const catalogueColumns = await catalogueGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(catalogueColumns).toBe(isMobile ? 2 : 4);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/catalog-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
 
@@ -40,6 +60,62 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
   await expect(page.getByText(/votre panier est vide|your cart is empty/i)).toBeVisible();
   await expectNoHorizontalOverflow(page);
+});
+
+test("the wholesale market applies volume pricing and preserves case quantities in the basket", async ({ page }) => {
+  const wholesaleProduct = {
+    id: "wholesale-attieke",
+    sku: "JMA-WHO-ATT",
+    name: "Attiéké professionnel",
+    traditionalName: "Attiéké",
+    description: "Semoule de manioc fraîche pour restaurants et traiteurs.",
+    country: "Côte d'Ivoire",
+    price: 6,
+    packaging: "Sachet 500 g",
+    netWeightGrams: 500,
+    thermalClass: "REFRIGERATED",
+    imageUrl: "/products/attieke.webp",
+    imageColor: "#F2F5F1",
+    imageEmoji: "",
+    isWholesale: true,
+    wholesalePackLabel: "Carton de 6 sachets",
+    wholesaleUnitsPerPack: 6,
+    wholesaleMinPacks: 1,
+    wholesalePrice: 32,
+    wholesaleAvailablePacks: 12,
+    wholesaleDiscountPercent: 11,
+    wholesaleTiers: [{ minPacks: 1, price: 32 }, { minPacks: 5, price: 30 }, { minPacks: 10, price: 28 }],
+    category: { id: "staples", name: "Féculents" },
+  };
+  await page.route("**/api/catalog?*", async (route) => {
+    if (!route.request().url().includes("channel=wholesale")) return route.continue();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [wholesaleProduct], total: 1, page: 1, pageSize: 48, pages: 1, filters: { categories: [wholesaleProduct.category], brands: [], countries: ["Côte d'Ivoire"] } }) });
+  });
+
+  await page.goto("/?view=wholesale", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { level: 1, name: /marché de gros|wholesale market/i })).toBeVisible();
+  await expect(page.getByText(/semoule de manioc fraîche|fresh cassava semolina/i)).toBeVisible();
+  const grid = page.getByTestId("wholesale-product-grid");
+  await expect(grid).toBeVisible();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  const columns = await grid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(columns).toBe(isMobile ? 2 : 4);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/wholesale-market-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await page.getByRole("button", { name: /demander un devis|request a quote/i }).click();
+  const quoteDialog = page.getByRole("dialog", { name: /demande de devis professionnel|professional quote request/i });
+  await expect(quoteDialog.getByLabel(/entreprise|company/i)).toBeVisible();
+  await quoteDialog.getByRole("button", { name: /annuler|cancel/i }).click();
+  await page.locator("[data-testid=wholesale-product-card] select").selectOption("5");
+  await expect(page.getByText(/30,00\s*€|€30\.00/).first()).toBeVisible();
+  await page.getByRole("button", { name: /^(ajouter|add)$/i }).click();
+  await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
+  await expect(page.getByText("Attiéké professionnel", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^(gros|wholesale)$/i)).toBeVisible();
+  await expect(page.locator("#main-content").getByText("5", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
 });
 
 test("global search and notifications navigate to useful client destinations", async ({ page }) => {

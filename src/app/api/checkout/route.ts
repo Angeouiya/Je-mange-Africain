@@ -18,6 +18,7 @@ const CheckoutRequest = z.object({
     recipeId: z.string().optional(),
     recipeNameFr: z.string().max(160).optional(),
     recipeNameEn: z.string().max(160).optional(),
+    salesChannel: z.enum(["retail", "wholesale"]).optional(),
   })).min(1).max(80),
   address: z.object({
     firstName: z.string().trim().min(1).max(80),
@@ -85,15 +86,20 @@ export async function POST(request: NextRequest) {
     const number = `JMA-${new Date().getUTCFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
     const paymentMethod = intent.payment_method_types[0] || "card";
     const fraudScore = Math.max(0, Math.min(100, Number(intent.metadata.risk_score) || 0));
+    const wholesalePackages = pricing.validatedItems.filter((item) => item.salesChannel === "wholesale").reduce((sum, item) => sum + item.qty, 0);
+    const retailPackages = new Set(pricing.validatedItems.filter((item) => item.salesChannel === "retail").map((item) => item.thermalClass)).size;
+    const packageCount = Math.max(1, wholesalePackages + retailPackages);
 
     const order = await db.$transaction(async (tx) => {
       const duplicate = await tx.payment.findUnique({ where: { idempotencyKey }, include: { order: true } });
       if (duplicate) return duplicate.order;
 
-      for (const item of pricing.validatedItems) {
-        const product = await tx.product.findUnique({ where: { id: item.productId } });
-        if (!product || product.stockQty - product.reservedQty < item.qty) {
-          throw new CheckoutPricingError(body.locale === "fr" ? `Stock insuffisant pour ${item.nameFr}.` : `Insufficient stock for ${item.nameEn}.`, 409);
+      const reservationTotals = new Map<string, number>();
+      for (const item of pricing.validatedItems) reservationTotals.set(item.productId, (reservationTotals.get(item.productId) || 0) + item.qty * item.unitsPerPack);
+      for (const [productId, requiredUnits] of reservationTotals) {
+        const product = await tx.product.findUnique({ where: { id: productId } });
+        if (!product || product.stockQty - product.reservedQty < requiredUnits) {
+          throw new CheckoutPricingError(body.locale === "fr" ? "Le stock disponible a changé. Vérifiez votre panier." : "Available stock has changed. Please review your basket.", 409);
         }
       }
 
@@ -109,7 +115,7 @@ export async function POST(request: NextRequest) {
           total: pricing.total,
           currency: "EUR",
           weightGrams: pricing.weightGrams,
-          packageCount: pricing.thermalClasses.length || 1,
+          packageCount,
           deliveryName: `${body.address.firstName} ${body.address.lastName}`.trim(),
           deliveryEmail: body.address.email,
           deliveryPhone: body.address.phone,
@@ -133,9 +139,10 @@ export async function POST(request: NextRequest) {
       });
 
       for (const item of pricing.validatedItems) {
-        await tx.product.update({ where: { id: item.productId }, data: { reservedQty: { increment: item.qty } } });
+        const stockUnits = item.qty * item.unitsPerPack;
+        await tx.product.update({ where: { id: item.productId }, data: { reservedQty: { increment: stockUnits } } });
 
-        let remaining = item.qty;
+        let remaining = stockUnits;
         const batches = await tx.inventoryBatch.findMany({
           where: { productId: item.productId, status: "active", quantity: { gt: 0 } },
           orderBy: { expiryDate: "asc" },

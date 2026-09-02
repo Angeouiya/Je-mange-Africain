@@ -57,6 +57,8 @@ export type AdminOrder = {
     lineTotal: number;
     thermalClass: string;
     imageUrl?: string | null;
+    salesChannel?: "retail" | "wholesale";
+    unitsPerPack?: number;
   }>;
   shipments: Array<{
     id: string;

@@ -167,6 +167,10 @@ export interface OrderLine {
   unitLabel?: string;
   maxStock?: number;
   purchasable?: boolean;
+  salesChannel?: "retail" | "wholesale";
+  unitsPerPack?: number;
+  minimumQty?: number;
+  wholesaleTiers?: Array<{ minPacks: number; price: number }>;
 }
 
 export interface OrderEvent {

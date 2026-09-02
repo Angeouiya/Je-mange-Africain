@@ -66,7 +66,8 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
     const unitPrice = Number(item.unitPrice || 0);
     const total = Number(item.lineTotal ?? Number(item.unitPrice || 0) * Number(item.qty || 0));
     const imageUrl = absoluteAssetUrl(item.imageUrl, options.baseUrl);
-    const detail = [item.sku ? `SKU ${item.sku}` : "", isFr ? item.recipeNameFr : item.recipeNameEn].filter(Boolean).join(" · ");
+    const channel = item.salesChannel === "wholesale" ? (isFr ? "Marché de gros" : "Wholesale market") : "";
+    const detail = [channel, item.unitLabel, item.sku ? `SKU ${item.sku}` : "", isFr ? item.recipeNameFr : item.recipeNameEn].filter(Boolean).join(" · ");
     return `<tr><td><div class="item">${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="">` : ""}<div><strong>${escapeHtml(name)}</strong>${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</div></div></td><td class="number">${escapeHtml(quantity)}</td><td class="number">${escapeHtml(formatMoney(unitPrice))}</td><td class="number"><strong>${escapeHtml(formatMoney(total))}</strong></td></tr>`;
   }).join("");
   const payment = Array.isArray(order.payments) ? order.payments[0] : null;

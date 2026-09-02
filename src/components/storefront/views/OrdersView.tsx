@@ -86,6 +86,7 @@ export function OrdersView() {
       if (!qty) return [];
       return [{
         productId: item.productId,
+        variantId: item.salesChannel === "wholesale" ? "wholesale" : undefined,
         name: locale === "en" ? item.nameEn : item.nameFr,
         nameFr: item.nameFr,
         nameEn: item.nameEn,
@@ -98,6 +99,10 @@ export function OrdersView() {
         imageUrl: item.imageUrl || undefined,
         recipeId: item.recipeId || undefined,
         recipeName: item.recipeName || undefined,
+        salesChannel: item.salesChannel,
+        unitsPerPack: item.unitsPerPack,
+        minimumQty: item.minimumQty,
+        wholesaleTiers: item.wholesaleTiers,
       }];
     });
     if (!items.length) return;

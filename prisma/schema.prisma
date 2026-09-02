@@ -21,21 +21,21 @@ datasource db {
  */
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  passwordHash  String?
-  role          String         @default("customer") // customer | super_admin | direction | catalog_manager | recipe_manager | purchase_manager | warehouse_manager | picker | logistics | support | marketing | accounting
-  firstName     String?
-  lastName      String?
-  phone         String?        @unique
-  isActive      Boolean        @default(true)
-  twoFactor     Boolean        @default(false)
-  lastLoginAt   DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  customer      Customer?
-  auditLogs     AuditLog[]
-  legalConsents LegalConsent[]
+  id                String             @id @default(cuid())
+  email             String             @unique
+  passwordHash      String?
+  role              String             @default("customer") // customer | super_admin | direction | catalog_manager | recipe_manager | purchase_manager | warehouse_manager | picker | logistics | support | marketing | accounting
+  firstName         String?
+  lastName          String?
+  phone             String?            @unique
+  isActive          Boolean            @default(true)
+  twoFactor         Boolean            @default(false)
+  lastLoginAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  customer          Customer?
+  auditLogs         AuditLog[]
+  legalConsents     LegalConsent[]
   pushSubscriptions PushSubscription[]
 }
 
@@ -180,51 +180,62 @@ model Supplier {
 }
 
 model Product {
-  id                String                 @id @default(cuid())
-  sku               String                 @unique
-  barcode           String?
-  traditionalName   String
-  categoryId        String
-  category          Category               @relation(fields: [categoryId], references: [id])
-  brandId           String?
-  brand             Brand?                 @relation(fields: [brandId], references: [id])
-  supplierId        String?
-  supplier          Supplier?              @relation(fields: [supplierId], references: [id])
-  country           String                 @default("Côte d'Ivoire")
-  thermalClass      String                 @default("AMBIANT") // AMBIANT | REFRIGERATED | FROZEN
-  storageType       String                 @default("SEC") // SEC | FRAIS | REFRIGERE | SURGELE | FUME | SECHE | CONSERVE
-  storageTempC      String? // e.g. "-18°C"
-  netWeightGrams    Int                    @default(0)
-  volumeMl          Int                    @default(0)
-  unit              String                 @default("piece") // piece | kg | g | L | ml
-  packaging         String // "Boîte 400 g", "Sac 1 kg"
-  costPrice         Decimal?
-  profitMargin      Decimal?
-  price             Decimal
-  promoPrice        Decimal?
-  pricePerKg        Decimal?
-  stockQty          Int                    @default(0)
-  reservedQty       Int                    @default(0)
-  alertThreshold    Int                    @default(5)
-  imageColor        String                 @default("#D65A32")
-  imageEmoji        String                 @default("🍲")
-  imageUrl          String?
-  galleryUrls       String? // JSON array of public image URLs
-  isBestseller      Boolean                @default(false)
-  isNew             Boolean                @default(false)
-  isRecommended     Boolean                @default(false)
-  isOnSale          Boolean                @default(false)
-  status            String                 @default("published") // draft | published | archived
-  nutrition         String? // JSON string
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  translations      ProductTranslation[]
-  aliases           ProductAlias[]
-  variants          ProductVariant[]
-  batches           InventoryBatch[]
-  recipeIngredients RecipeIngredient[]
-  favorites         Favorite[]
-  orderAllocations  OrderBatchAllocation[]
+  id                     String                 @id @default(cuid())
+  sku                    String                 @unique
+  barcode                String?
+  traditionalName        String
+  categoryId             String
+  category               Category               @relation(fields: [categoryId], references: [id])
+  brandId                String?
+  brand                  Brand?                 @relation(fields: [brandId], references: [id])
+  supplierId             String?
+  supplier               Supplier?              @relation(fields: [supplierId], references: [id])
+  country                String                 @default("Côte d'Ivoire")
+  thermalClass           String                 @default("AMBIANT") // AMBIANT | REFRIGERATED | FROZEN
+  storageType            String                 @default("SEC") // SEC | FRAIS | REFRIGERE | SURGELE | FUME | SECHE | CONSERVE
+  storageTempC           String? // e.g. "-18°C"
+  netWeightGrams         Int                    @default(0)
+  volumeMl               Int                    @default(0)
+  unit                   String                 @default("piece") // piece | kg | g | L | ml
+  packaging              String // "Boîte 400 g", "Sac 1 kg"
+  costPrice              Decimal?
+  profitMargin           Decimal?
+  price                  Decimal
+  promoPrice             Decimal?
+  pricePerKg             Decimal?
+  isWholesale            Boolean                @default(false)
+  wholesalePackLabel     String?
+  wholesaleUnitsPerPack  Int                    @default(1)
+  wholesaleMinPacks      Int                    @default(1)
+  wholesalePrice         Decimal?
+  wholesaleTier2MinPacks Int?
+  wholesaleTier2Price    Decimal?
+  wholesaleTier3MinPacks Int?
+  wholesaleTier3Price    Decimal?
+  stockQty               Int                    @default(0)
+  reservedQty            Int                    @default(0)
+  alertThreshold         Int                    @default(5)
+  imageColor             String                 @default("#D65A32")
+  imageEmoji             String                 @default("🍲")
+  imageUrl               String?
+  galleryUrls            String? // JSON array of public image URLs
+  isBestseller           Boolean                @default(false)
+  isNew                  Boolean                @default(false)
+  isRecommended          Boolean                @default(false)
+  isOnSale               Boolean                @default(false)
+  status                 String                 @default("published") // draft | published | archived
+  nutrition              String? // JSON string
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  translations           ProductTranslation[]
+  aliases                ProductAlias[]
+  variants               ProductVariant[]
+  batches                InventoryBatch[]
+  recipeIngredients      RecipeIngredient[]
+  favorites              Favorite[]
+  orderAllocations       OrderBatchAllocation[]
+
+  @@index([status, isWholesale])
 }
 
 model ProductTranslation {
@@ -512,6 +523,8 @@ model OrderItem {
   recipeNameFr    String?
   recipeNameEn    String?
   packWeightGrams Int     @default(0)
+  salesChannel    String  @default("retail") // retail | wholesale
+  unitsPerPack    Int     @default(1)
 }
 
 /**

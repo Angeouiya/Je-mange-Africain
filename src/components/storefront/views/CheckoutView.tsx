@@ -97,6 +97,7 @@ export function CheckoutView() {
     recipeId: item.recipeId,
     recipeNameFr: item.recipeName,
     recipeNameEn: item.recipeName,
+    salesChannel: item.salesChannel,
   }));
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
+import { wholesaleAvailablePacks, wholesaleDiscountPercent, wholesaleTiers } from "@/lib/wholesale";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,21 @@ function project(p: any, locale: string) {
     price: Number(p.price),
     promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
     pricePerKg: p.pricePerKg ? Number(p.pricePerKg) : null,
+    isWholesale: p.isWholesale,
+    wholesalePackLabel: p.wholesalePackLabel,
+    wholesaleUnitsPerPack: p.wholesaleUnitsPerPack,
+    wholesaleMinPacks: p.wholesaleMinPacks,
+    wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : null,
+    wholesaleTiers: wholesaleTiers({
+      wholesaleMinPacks: p.wholesaleMinPacks,
+      wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : null,
+      wholesaleTier2MinPacks: p.wholesaleTier2MinPacks,
+      wholesaleTier2Price: p.wholesaleTier2Price ? Number(p.wholesaleTier2Price) : null,
+      wholesaleTier3MinPacks: p.wholesaleTier3MinPacks,
+      wholesaleTier3Price: p.wholesaleTier3Price ? Number(p.wholesaleTier3Price) : null,
+    }),
+    wholesaleAvailablePacks: wholesaleAvailablePacks(p.stockQty, p.reservedQty, p.wholesaleUnitsPerPack),
+    wholesaleDiscountPercent: p.wholesalePrice ? wholesaleDiscountPercent(Number(p.price), p.wholesaleUnitsPerPack, Number(p.wholesalePrice)) : 0,
     stockQty: p.stockQty,
     alertThreshold: p.alertThreshold,
     imageColor: p.imageColor,
@@ -50,6 +66,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
   const section = searchParams.get("section"); // home | list
+  const channel = searchParams.get("channel") === "wholesale" ? "wholesale" : "retail";
   const category = searchParams.get("category");
   const brand = searchParams.get("brand");
   const country = searchParams.get("country");
@@ -86,12 +103,12 @@ export async function GET(req: NextRequest) {
   }
 
   // list with filters
-  const where: any = { status: "published" };
+  const where: any = { status: "published", ...(channel === "wholesale" ? { isWholesale: true, wholesalePrice: { not: null } } : {}) };
   if (category) where.categoryId = category;
   if (brand) where.brandId = brand;
   if (country) where.country = country;
   if (thermal) where.thermalClass = thermal;
-  if (maxPrice) where.price = { lte: parseFloat(maxPrice) };
+  if (maxPrice) where[channel === "wholesale" ? "wholesalePrice" : "price"] = { lte: parseFloat(maxPrice) };
   if (q) {
     const norm = normalize(q);
     where.OR = [
@@ -104,8 +121,8 @@ export async function GET(req: NextRequest) {
 
   let orderBy: any = [{ createdAt: "desc" }];
   if (sort === "popular") orderBy = [{ isBestseller: "desc" }, { stockQty: "desc" }];
-  if (sort === "priceAsc") orderBy = [{ price: "asc" }];
-  if (sort === "priceDesc") orderBy = [{ price: "desc" }];
+  if (sort === "priceAsc") orderBy = [{ [channel === "wholesale" ? "wholesalePrice" : "price"]: "asc" }];
+  if (sort === "priceDesc") orderBy = [{ [channel === "wholesale" ? "wholesalePrice" : "price"]: "desc" }];
   if (sort === "new") orderBy = [{ isNew: "desc" }, { createdAt: "desc" }];
   if (sort === "available") orderBy = [{ stockQty: "desc" }];
 

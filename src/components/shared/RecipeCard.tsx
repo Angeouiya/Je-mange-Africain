@@ -26,7 +26,7 @@ export interface RecipeListItem {
   ingredientCount?: number;
 }
 
-export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; index?: number }) {
+export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: RecipeListItem; index?: number; compact?: boolean }) {
   const locale = useStore((s) => s.locale);
   const navigate = useStore((s) => s.navigate);
   const savedRecipes = useStore((s) => s.savedRecipes);
@@ -44,7 +44,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
       className="group flex flex-col overflow-hidden rounded-lg border border-charcoal/10 bg-white transition-all hover:-translate-y-0.5 hover:border-forest/30 hover:shadow-[0_22px_50px_-34px_rgba(24,26,24,0.55)]"
     >
-      <div className="relative flex aspect-[16/10] items-center justify-center bg-muted/40">
+      <div className={`relative flex items-center justify-center bg-muted/40 ${compact ? "aspect-[16/9]" : "aspect-[16/10]"}`}>
         <ProductImage
           src={photoUrl}
           fallbackSrc="/hero-feast-v2.webp"
@@ -73,9 +73,9 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
           <Bookmark className={`h-4 w-4 ${isSaved ? "fill-terre text-terre" : ""}`} />
         </button>
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="font-display text-lg font-semibold leading-tight text-charcoal">{recipe.title}</h3>
-        {recipe.description && <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{recipe.description}</p>}
+      <div className={`flex flex-1 flex-col gap-2 ${compact ? "p-3" : "p-4"}`}>
+        <h3 className={`font-display font-semibold leading-tight text-charcoal ${compact ? "text-base" : "text-lg"}`}>{recipe.title}</h3>
+        {!compact && recipe.description ? <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{recipe.description}</p> : null}
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {recipe.timeMinutes} min</span>
           <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> {recipe.baseServings} {t.config.peopleUnit}</span>
@@ -83,7 +83,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
         </div>
         <Button
           onClick={() => navigate("recipe-config", { recipeId: recipe.id })}
-          className="mt-3 h-10 w-full bg-forest text-white hover:bg-forest-dark"
+          className={`${compact ? "mt-1 h-9 text-xs" : "mt-3 h-10"} w-full bg-forest text-white hover:bg-forest-dark`}
         >
           {t.recipes.configure}
           <ChevronRight className="ml-1 h-4 w-4" />

@@ -15,6 +15,7 @@ export function Footer() {
 
   const shopLinks: [string, ViewId, any?][] = [
     [t.nav.catalog, "catalog", {}],
+    [locale === "fr" ? "Marché de gros" : "Wholesale market", "wholesale", {}],
     [t.nav.recipes, "recipes", {}],
     [t.home.bestsellers, "catalog", {}],
     [t.home.onSale, "catalog", {}],
