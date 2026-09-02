@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { authorizeCustomerRequest } from "@/lib/customer-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +27,15 @@ const FALLBACK_NOTIFICATIONS = [
 
 export async function GET(req: NextRequest) {
   const locale = new URL(req.url).searchParams.get("locale") === "en" ? "en" : "fr";
+  const customer = await authorizeCustomerRequest(req);
+  const directoryUser = customer
+    ? await db.user.findUnique({ where: { email: customer.email.toLowerCase() }, select: { id: true } })
+    : null;
   const stored = await db.notification.findMany({
-    where: { channel: { in: ["web", "push"] } },
+    where: {
+      channel: { in: ["web", "push"] },
+      ...(directoryUser ? { OR: [{ userId: null }, { userId: directoryUser.id }] } : { userId: null }),
+    },
     orderBy: { createdAt: "desc" },
     take: 12,
   });

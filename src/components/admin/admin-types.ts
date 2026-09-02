@@ -44,6 +44,7 @@ export type AdminOrder = {
   deliveryCountry: string;
   deliverySlot?: string | null;
   paymentMethod?: string | null;
+  notes?: string | null;
   items: Array<{
     id: string;
     nameFr: string;
@@ -64,6 +65,9 @@ export type AdminOrder = {
     actualDelivery?: string | null;
     confirmCode?: string | null;
     carrier?: string | null;
+    trackingUrl?: string | null;
+    proofPhoto?: string | null;
+    signature?: string | null;
   }>;
   timeline: Array<{ status: string; label: string; at: string; actor?: string | null }>;
   payments: Array<{ method: string; status: string; amount: number; reference?: string | null }>;

@@ -118,3 +118,49 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
 });
+
+test("delivered orders expose carrier tracking and proof without leaking internal notes", async ({ page }) => {
+  const deliveredOrder = {
+    id: "order-delivered",
+    number: "JMA-260902-0098",
+    status: "delivered",
+    subtotal: 35,
+    shippingCost: 6.9,
+    vatAmount: 6.98,
+    promoDiscount: 0,
+    total: 41.9,
+    weightGrams: 1800,
+    packageCount: 1,
+    createdAt: "2026-09-01T09:30:00.000Z",
+    deliveryName: "Aminata Koné",
+    deliveryAddress: "12 rue des Cultures",
+    deliveryCity: "Paris",
+    deliveryPostalCode: "75011",
+    deliveryCountry: "France",
+    deliverySlot: "Mercredi, 14 h - 18 h",
+    paymentMethod: "card",
+    items: [{ id: "line-proof", productId: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 7, qty: 5, lineTotal: 35, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp", recipeName: null }],
+    shipments: [{ id: "shipment-proof", trackingNumber: "JMA-FR-260902-PROOF", thermalClass: "REFRIGERATED", status: "delivered", estimatedDelivery: "2026-09-02T14:00:00.000Z", actualDelivery: "2026-09-02T15:12:00.000Z", confirmCode: "4821", carrier: "Chrono Frais Europe", carrierName: "Chrono Frais Europe", trackingUrl: "https://track.example.com/{ref}", proofPhoto: "/hero-feast-v2.webp", signature: "Aminata Koné" }],
+    timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-01T09:30:00.000Z", actor: "Système" }, { status: "delivered", label: "Delivered", at: "2026-09-02T15:12:00.000Z", actor: "Chrono Frais Europe" }],
+    payments: [{ method: "Carte", status: "captured", amount: 41.9, reference: "pi_proof" }],
+  };
+
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer: { id: "customer-proof", email: "aminata@example.fr", phone: "+33600000000", firstName: "Aminata", lastName: "Koné", role: "customer", loyaltyPoints: 200, walletCredit: 0 } }) }));
+  await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [deliveredOrder] }) }));
+  await page.route("**/api/orders/order-delivered?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(deliveredOrder) }));
+
+  await page.goto("/?view=orders", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: /mes commandes|my orders/i })).toBeVisible();
+  await page.getByRole("button", { name: /^(suivre|track)$/i }).click();
+  await expect(page.getByRole("heading", { name: "JMA-260902-0098" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /suivre chez le transporteur|track with carrier/i })).toHaveAttribute("href", "https://track.example.com/JMA-FR-260902-PROOF");
+  await expect(page.getByText(/preuve de remise|delivery proof/i)).toBeVisible();
+  await expect(page.getByRole("img", { name: /preuve de livraison|delivery proof/i })).toBeVisible();
+  await expect(page.getByText(/reçu par aminata koné|received by aminata koné/i)).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/notes internes|internal operations notes|chaîne du froid contrôlée/i);
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+
+  await page.goto("/?view=order-tracking&orderId=order-delivered", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "JMA-260902-0098" })).toBeVisible();
+});

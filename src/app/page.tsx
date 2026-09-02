@@ -35,6 +35,9 @@ export default function Page() {
     if (requestedView === "recipe-config" && searchParams.get("recipeId")) {
       navigate("recipe-config", { recipeId: searchParams.get("recipeId") || undefined });
     }
+    if (requestedView === "order-tracking" && searchParams.get("orderId")) {
+      navigate("order-tracking", { orderId: searchParams.get("orderId") || undefined });
+    }
     if (["catalog", "recipes", "orders", "account"].includes(requestedView || "")) {
       navigate(requestedView as "catalog" | "recipes" | "orders" | "account");
     }

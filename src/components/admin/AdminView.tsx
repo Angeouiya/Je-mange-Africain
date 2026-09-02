@@ -293,7 +293,7 @@ export function AdminView({
               {section === "overview" ? <OverviewSection locale={locale} onNavigate={selectSection} /> : null}
               {section === "catalog" ? <OfferSection locale={locale} workspace="products" /> : null}
               {section === "recipes" ? <OfferSection locale={locale} workspace="recipes" /> : null}
-              {section === "orders" ? <OrdersSection locale={locale} /> : null}
+              {section === "orders" ? <OrdersSection locale={locale} canUpdate={hasAdminPermission(adminRole, "orders", "update")} /> : null}
               {section === "inventory" ? <InventorySection locale={locale} /> : null}
               {section === "customers" ? <CustomersSection locale={locale} /> : null}
               {section === "campaigns" ? <PushCampaignAdmin locale={locale} /> : null}

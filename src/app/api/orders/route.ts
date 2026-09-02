@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
       deliveryCountry: o.deliveryCountry,
       deliverySlot: o.deliverySlot,
       paymentMethod: o.paymentMethod,
+      ...(access.scope === "admin" ? { notes: o.notes } : {}),
       items: o.items.map((it) => ({
         id: it.id, productId: it.productId, nameFr: it.nameFr, nameEn: it.nameEn, sku: it.sku,
         unitPrice: Number(it.unitPrice), qty: it.qty, lineTotal: Number(it.lineTotal),
@@ -64,6 +65,8 @@ export async function GET(req: NextRequest) {
         id: s.id, trackingNumber: s.trackingNumber, thermalClass: s.thermalClass, status: s.status,
         estimatedDelivery: s.estimatedDelivery, actualDelivery: s.actualDelivery, confirmCode: s.confirmCode,
         carrier: s.carrier?.name || null,
+        carrierName: s.carrier?.name || null, trackingUrl: s.carrier?.trackingUrl || null,
+        proofPhoto: s.proofPhoto, signature: s.signature,
       })),
       timeline: o.timeline.map((e) => ({ status: e.status, label: e.label, at: e.at, actor: e.actor })),
       payments: o.payments.map((p) => ({ method: p.method, status: p.status, amount: Number(p.amount), reference: p.reference })),

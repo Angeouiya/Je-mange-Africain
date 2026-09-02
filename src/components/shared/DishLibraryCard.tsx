@@ -76,7 +76,7 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
   return (
     <Dialog open={Boolean(dish)} onOpenChange={(open) => { if (!open) onClose(); }}>
       {dish ? (
-        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto p-0">
+        <DialogContent className="max-h-[92vh] overflow-y-auto p-0 sm:max-w-4xl">
           <div className="relative aspect-[16/6] min-h-52 overflow-hidden rounded-t-lg bg-muted">
             <ProductImage src={getRecipePhoto({ name: dish.name, title: dish.name, country: dish.country, category: dish.categoryLabel })} alt={dish.name} emoji="🍽️" color="#3F681C" size="lg" className="h-full w-full" rounded="rounded-none" />
             <div className="absolute inset-0 bg-gradient-to-t from-charcoal/85 via-charcoal/10 to-transparent" />

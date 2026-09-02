@@ -60,6 +60,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       id: s.id, trackingNumber: s.trackingNumber, thermalClass: s.thermalClass, status: s.status,
       estimatedDelivery: s.estimatedDelivery, actualDelivery: s.actualDelivery, confirmCode: s.confirmCode,
       carrier: s.carrier?.name || null,
+      carrierName: s.carrier?.name || null, trackingUrl: s.carrier?.trackingUrl || null,
+      proofPhoto: s.proofPhoto, signature: s.signature,
     })),
     timeline: order.timeline.map((e) => ({ status: e.status, label: e.label, at: e.at, actor: e.actor })),
     payments: order.payments.map((p) => ({ method: p.method, status: p.status, amount: Number(p.amount), reference: p.reference })),

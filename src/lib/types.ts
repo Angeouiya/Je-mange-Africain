@@ -182,6 +182,9 @@ export interface OrderShipment {
   confirmCode: string | null;
   estimatedDelivery: string | null;
   actualDelivery: string | null;
+  trackingUrl?: string | null;
+  proofPhoto?: string | null;
+  signature?: string | null;
 }
 
 export interface OrderPayment {

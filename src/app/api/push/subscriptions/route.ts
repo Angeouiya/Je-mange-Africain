@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { authorizeCustomerRequest } from "@/lib/customer-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,15 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Abonnement push invalide." }, { status: 400 });
 
   const { subscription, deviceId, locale } = parsed.data;
+  const customer = await authorizeCustomerRequest(request);
+  const directoryUser = customer
+    ? await db.user.findUnique({ where: { email: customer.email.toLowerCase() }, select: { id: true } })
+    : null;
   const saved = await db.pushSubscription.upsert({
     where: { endpoint: subscription.endpoint },
     create: {
       endpoint: subscription.endpoint,
+      userId: directoryUser?.id || null,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
       deviceId,
@@ -34,6 +40,7 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get("user-agent")?.slice(0, 500),
     },
     update: {
+      userId: directoryUser?.id || null,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
       deviceId,

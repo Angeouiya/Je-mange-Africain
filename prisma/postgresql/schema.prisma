@@ -37,6 +37,7 @@ model User {
   customer      Customer?
   auditLogs     AuditLog[]
   legalConsents LegalConsent[]
+  pushSubscriptions PushSubscription[]
 }
 
 model LegalConsent {
@@ -743,6 +744,8 @@ model Notification {
 
 model PushSubscription {
   id           String    @id @default(cuid())
+  userId       String?
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   endpoint     String    @unique
   p256dh       String
   auth         String
@@ -757,5 +760,6 @@ model PushSubscription {
   updatedAt    DateTime  @updatedAt
 
   @@index([deviceId])
+  @@index([userId, enabled])
   @@index([enabled])
 }

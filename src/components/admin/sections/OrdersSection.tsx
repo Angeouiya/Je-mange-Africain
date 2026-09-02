@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useFetch } from "@/lib/use-fetch";
 import { formatDate, formatDateTime, formatPrice, formatWeight, normalize, orderStatusColor, thermalLabel } from "@/lib/format";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { OrderFulfillmentControl } from "@/components/admin/OrderFulfillmentControl";
 
 type FlowId = "all" | "validate" | "prepare" | "deliver" | "closed";
 
@@ -34,13 +35,14 @@ function statusLabel(status: string, isFr: boolean) {
   return (labels[status] || [status, status])[isFr ? 0 : 1];
 }
 
-export default function OrdersSection({ locale }: { locale: "fr" | "en" }) {
+export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "en"; canUpdate: boolean }) {
   const isFr = locale === "fr";
   const { data, loading, error, refetch } = useFetch<{ orders: AdminOrder[] }>(`/api/orders?locale=${locale}`, [locale]);
   const [flow, setFlow] = useState<FlowId>("all");
   const [query, setQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
-  const orders = data?.orders || [];
+  const [orderOverrides, setOrderOverrides] = useState<Record<string, AdminOrder>>({});
+  const orders = useMemo(() => (data?.orders || []).map((order) => orderOverrides[order.id] || order), [data?.orders, orderOverrides]);
   const counts = useMemo(() => ({
     all: orders.length,
     validate: orders.filter((order) => flowFor(order.status) === "validate").length,
@@ -103,7 +105,7 @@ export default function OrdersSection({ locale }: { locale: "fr" | "en" }) {
       ) : <AdminEmptyState icon={<Box className="h-5 w-5" />} title={isFr ? "Aucune commande dans cette vue" : "No orders in this view"} description={isFr ? "Modifiez l'étape ou la recherche pour retrouver une commande." : "Change the stage or search to find an order."} />}
 
       <Dialog open={Boolean(selectedOrder)} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
-        <DialogContent className="max-h-[92dvh] max-w-4xl overflow-y-auto p-0">
+        <DialogContent className="max-h-[92dvh] overflow-y-auto p-0 sm:max-w-4xl">
           {selectedOrder ? <>
             <DialogHeader className="border-b border-border px-5 py-5 sm:px-6"><div className="flex flex-wrap items-center gap-2 pr-8"><DialogTitle className="text-xl font-black text-terre">{selectedOrder.number}</DialogTitle><Badge className={`border ${orderStatusColor(selectedOrder.status)}`}>{statusLabel(selectedOrder.status, isFr)}</Badge></div><DialogDescription>{formatDateTime(selectedOrder.createdAt, locale)} · {selectedOrder.items.length} {isFr ? "articles" : "items"} · {formatPrice(selectedOrder.total, locale)}</DialogDescription></DialogHeader>
             <div className="grid gap-7 px-5 py-6 lg:grid-cols-[1.05fr_0.95fr] sm:px-6">
@@ -116,6 +118,16 @@ export default function OrdersSection({ locale }: { locale: "fr" | "en" }) {
                 <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Paiement et colis" : "Payment and parcels"}</h3><div className="mt-3 divide-y divide-border border-y border-border text-xs">{selectedOrder.payments.map((payment, index) => <div key={`${payment.reference}-${index}`} className="flex justify-between gap-3 py-3"><span>{payment.method} · <span className="text-muted-foreground">{payment.status}</span></span><strong>{formatPrice(payment.amount, locale)}</strong></div>)}{selectedOrder.shipments.map((shipment) => <div key={shipment.id} className="py-3"><div className="flex justify-between gap-3"><span className="font-bold">{shipment.carrier || (isFr ? "Transporteur" : "Carrier")}</span><span className="text-muted-foreground">{shipment.status}</span></div><p className="mt-1 text-[10px] text-muted-foreground">{shipment.trackingNumber || (isFr ? "Suivi à attribuer" : "Tracking pending")}{shipment.estimatedDelivery ? ` · ${formatDate(shipment.estimatedDelivery, locale)}` : ""}</p></div>)}</div></section>
               </div>
             </div>
+            <OrderFulfillmentControl
+              key={selectedOrder.id}
+              order={selectedOrder}
+              locale={locale}
+              canUpdate={canUpdate}
+              onUpdated={(updatedOrder) => {
+                setSelectedOrder(updatedOrder);
+                setOrderOverrides((current) => ({ ...current, [updatedOrder.id]: updatedOrder }));
+              }}
+            />
           </> : null}
         </DialogContent>
       </Dialog>

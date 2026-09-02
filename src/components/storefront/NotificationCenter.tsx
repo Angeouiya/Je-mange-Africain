@@ -47,8 +47,27 @@ function isStandaloneApp() {
   return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
+async function persistSubscription(subscription: PushSubscription, locale: "fr" | "en") {
+  const serialized = subscription.toJSON();
+  if (!serialized.endpoint || !serialized.keys?.p256dh || !serialized.keys.auth) throw new Error("Abonnement incomplet");
+  const response = await fetch("/api/push/subscriptions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      subscription: { endpoint: serialized.endpoint, keys: serialized.keys },
+      deviceId: getDeviceId(),
+      locale,
+    }),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Activation impossible");
+  localStorage.setItem(SUBSCRIPTION_STORAGE_KEY, payload.id);
+  return payload.id as string;
+}
+
 export function NotificationCenter() {
   const locale = useStore((state) => state.locale);
+  const customer = useStore((state) => state.customer);
   const { data } = useFetch<{ notifications: WebNotification[] }>(`/api/notifications?locale=${locale}`, [locale]);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [pushState, setPushState] = useState<PushState>("checking");
@@ -83,6 +102,7 @@ export function NotificationCenter() {
       setPublicKey(config.publicKey);
       const subscription = await registration.pushManager.getSubscription();
       if (!active) return;
+      if (subscription) await persistSubscription(subscription, locale);
       if (Notification.permission === "denied") setPushState("denied");
       else setPushState(subscription ? "active" : "inactive");
     }).catch(() => active && setPushState("unsupported"));
@@ -90,7 +110,7 @@ export function NotificationCenter() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [customer?.id, locale]);
 
   const notifications = data?.notifications || [];
   const unread = useMemo(
@@ -118,20 +138,7 @@ export function NotificationCenter() {
         userVisibleOnly: true,
         applicationServerKey: decodeApplicationKey(publicKey),
       });
-      const serialized = subscription.toJSON();
-      if (!serialized.endpoint || !serialized.keys?.p256dh || !serialized.keys.auth) throw new Error("Abonnement incomplet");
-      const response = await fetch("/api/push/subscriptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subscription: { endpoint: serialized.endpoint, keys: serialized.keys },
-          deviceId: getDeviceId(),
-          locale,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Activation impossible");
-      localStorage.setItem(SUBSCRIPTION_STORAGE_KEY, payload.id);
+      await persistSubscription(subscription, locale);
       setPushState("active");
       setPushError(false);
     } catch {

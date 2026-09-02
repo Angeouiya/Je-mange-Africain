@@ -10,6 +10,8 @@ export type PushPayload = {
   image?: string;
 };
 
+export type LocalizedPushPayload = { fr: PushPayload; en: PushPayload };
+
 function configureWebPush() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -66,4 +68,18 @@ export async function broadcastPush(payload: PushPayload) {
   }
 
   return { total: subscriptions.length, sent, failed, configured: true };
+}
+
+export async function sendPushToUser(userId: string, payload: LocalizedPushPayload) {
+  if (!configureWebPush()) return { total: 0, sent: 0, failed: 0, configured: false };
+  const subscriptions = await db.pushSubscription.findMany({ where: { userId, enabled: true }, take: 20 });
+  const results = await Promise.all(
+    subscriptions.map((subscription) => sendPushToSubscriptionId(subscription.id, payload[subscription.locale === "en" ? "en" : "fr"])),
+  );
+  return {
+    total: subscriptions.length,
+    sent: results.filter((result) => result.sent).length,
+    failed: results.filter((result) => !result.sent).length,
+    configured: true,
+  };
 }

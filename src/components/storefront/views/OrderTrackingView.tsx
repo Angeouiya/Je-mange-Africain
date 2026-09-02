@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertCircle, CheckCircle2, Circle, MapPin, Truck, Package, LogIn } from "lucide-react";
+import { AlertCircle, Camera, CheckCircle2, Circle, ClipboardSignature, ExternalLink, MapPin, Truck, Package, LogIn } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,7 +63,7 @@ export function OrderTrackingView() {
                   <span className={`absolute -left-[27px] grid h-5 w-5 place-items-center rounded-full ${isLast ? "bg-forest text-cream" : "bg-muted text-muted-foreground"}`}>
                     {isLast ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-2.5 w-2.5 fill-current" />}
                   </span>
-                  <p className="text-sm font-semibold text-charcoal">{e.label}</p>
+                  <p className="text-sm font-semibold text-charcoal">{t.orders.statuses[orderStatusKey(e.status) as keyof typeof t.orders.statuses] || e.label}</p>
                   <p className="text-[11px] text-muted-foreground">{formatDateTime(e.at, locale)} {e.actor && `· ${e.actor}`}</p>
                 </motion.li>
               );
@@ -76,17 +76,24 @@ export function OrderTrackingView() {
           <div className="rounded-lg border border-border bg-card p-4">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-charcoal"><Truck className="h-4 w-4 text-terre" /> {t.orders.packages}</h2>
             <div className="space-y-2">
-              {order.shipments.map((s: any) => (
+              {order.shipments.map((s: any) => {
+                const trackingHref = typeof s.trackingUrl === "string" && s.trackingUrl.startsWith("https://") && s.trackingNumber
+                  ? s.trackingUrl.replace("{ref}", encodeURIComponent(s.trackingNumber))
+                  : null;
+                return (
                 <div key={s.id} className="rounded-lg border border-border p-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-charcoal">{s.trackingNumber}</span>
+                    <span className="min-w-0 truncate text-xs font-semibold text-charcoal">{s.trackingNumber || (locale === "fr" ? "Suivi en cours d'attribution" : "Tracking pending")}</span>
                     <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] ${thermalColor(s.thermalClass)}`}>{thermalLabel(s.thermalClass, locale)}</span>
                   </div>
-                  <p className="mt-1 text-[11px] text-muted-foreground">{s.carrier} · <span>{t.orders.statuses[orderStatusKey(s.status) as keyof typeof t.orders.statuses] || s.status}</span></p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{s.carrier || s.carrierName || (locale === "fr" ? "Transporteur à attribuer" : "Carrier pending")} · <span>{t.orders.statuses[orderStatusKey(s.status) as keyof typeof t.orders.statuses] || s.status}</span></p>
                   <p className="text-[11px] text-muted-foreground">{t.orders.estimatedDelivery} : {s.estimatedDelivery ? formatDate(s.estimatedDelivery, locale) : "—"}</p>
                   {s.confirmCode && <p className="mt-0.5 text-[11px] font-medium text-forest">Code : {s.confirmCode}</p>}
+                  {trackingHref ? <a href={trackingHref} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-terre hover:underline">{locale === "fr" ? "Suivre chez le transporteur" : "Track with carrier"}<ExternalLink className="h-3 w-3" /></a> : null}
+                  {s.actualDelivery || s.proofPhoto || s.signature ? <div className="mt-3 border-t border-border pt-3"><p className="flex items-center gap-1.5 text-[10px] font-black uppercase text-forest"><CheckCircle2 className="h-3.5 w-3.5" />{locale === "fr" ? "Preuve de remise" : "Delivery proof"}</p>{s.actualDelivery ? <p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Remis le" : "Handed over on"} {formatDateTime(s.actualDelivery, locale)}</p> : null}{s.proofPhoto ? <ProductImage src={s.proofPhoto} alt={locale === "fr" ? `Preuve de livraison du colis ${s.trackingNumber || ""}` : `Delivery proof for parcel ${s.trackingNumber || ""}`} emoji="" color="#F2F5F1" size="lg" className="mt-2 h-32 w-full" rounded="rounded-md" priority /> : null}{s.signature ? <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-charcoal"><ClipboardSignature className="h-3.5 w-3.5 text-forest" />{locale === "fr" ? "Reçu par" : "Received by"} {s.signature}</p> : s.proofPhoto ? <p className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground"><Camera className="h-3.5 w-3.5" />{locale === "fr" ? "Photo enregistrée par le livreur" : "Photo recorded by the courier"}</p> : null}</div> : null}
                 </div>
-              ))}
+                );
+              })}
               {!order.shipments.length ? <p className="text-xs leading-5 text-muted-foreground">{locale === "fr" ? "Le colis sera attribué après la préparation." : "A parcel will be assigned after packing."}</p> : null}
             </div>
           </div>

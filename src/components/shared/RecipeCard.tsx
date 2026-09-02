@@ -50,6 +50,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
           size="lg"
           className="h-full w-full"
           rounded="rounded-none"
+          priority={index < 2}
         />
         {recipe.isPopular && (
           <Badge className="absolute left-3 top-3 border-0 bg-terre text-cream shadow-sm"><Star className="mr-1 h-3 w-3 fill-current" /> {t.recipes.popular}</Badge>

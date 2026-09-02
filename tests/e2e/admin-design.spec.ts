@@ -64,6 +64,32 @@ async function mockAdminApi(page: Page) {
 
     if (path === "/api/admin/session") payload = { user: { email: "direction@je-mange-africain.com", role: "super_admin" } };
     else if (path === "/api/admin/dashboard") payload = dashboard;
+    else if (path === "/api/admin/orders/order-1" && request.method() === "PATCH") {
+      const body = request.postDataJSON() as {
+        status?: string;
+        notes?: string;
+        shipment?: { id?: string; carrier?: string; trackingNumber?: string; thermalClass?: string; estimatedDelivery?: string; confirmCode?: string; proofPhoto?: string; signature?: string };
+      };
+      const nextShipment = {
+        ...order.shipments[0],
+        ...body.shipment,
+        id: body.shipment?.id || order.shipments[0].id,
+        carrier: body.shipment?.carrier || order.shipments[0].carrier,
+        status: body.status === "shipped" ? "picked_up" : order.shipments[0].status,
+      };
+      const nextTimeline = body.status
+        ? [...order.timeline, { status: body.status, label: body.status === "packed" ? "Colis prêt" : body.status, at: "2026-09-02T10:30:00.000Z", actor: "direction@je-mange-africain.com" }]
+        : order.timeline;
+      payload = {
+        updatedShipmentId: nextShipment.id,
+        order: {
+          status: body.status || order.status,
+          notes: body.notes || null,
+          shipments: [nextShipment],
+          timeline: nextTimeline,
+        },
+      };
+    }
     else if (path === "/api/admin/products") payload = {
       products: [{ id: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", descriptionFr: "Semoule de manioc fermentée, fraîche et légère.", descriptionEn: "Light, fresh fermented cassava couscous.", traditionalName: "Attiéké", sku: "JMA-ATT-500", categoryId: "cat-1", packaging: "Sachet 500 g", costPrice: 2.8, profitMargin: 2.1, costSource: "recorded", price: 4.9, promoPrice: null, stockQty: 84, alertThreshold: 12, netWeightGrams: 500, imageColor: "#E9B949", imageEmoji: "", imageUrl: "/products/attieke.webp", aliases: ["atchéké", "couscous de manioc"], isNew: false, isRecommended: true, isBestseller: true, status: "published", thermalClass: "REFRIGERATED", storageType: "REFRIGERE", country: "Côte d'Ivoire" }],
       total: 1,
@@ -162,6 +188,34 @@ test("the product workspace edits bilingual content and calculates the customer 
     mkdirSync(directory, { recursive: true });
     await page.screenshot({ path: join(directory, `product-edit-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }
+  const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+});
+
+test("the order workspace saves logistics and confirms each sensitive advancement", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#orders", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Du paiement jusqu'à la porte" })).toBeVisible();
+  await page.getByRole("button", { name: /JMA-260902-0142/ }).click();
+
+  const dialog = page.getByRole("dialog", { name: "JMA-260902-0142" });
+  await expect(dialog.getByRole("heading", { name: "Préparer, tracer et remettre" })).toBeVisible();
+  await dialog.getByLabel("Transporteur").fill("Chrono Frais Europe");
+  await dialog.getByLabel("Numéro de suivi").fill("JMA-FR-260902-ADV");
+  await dialog.getByLabel("Notes internes d'exploitation").fill("Chaîne du froid contrôlée avant emballage.");
+  await dialog.getByRole("button", { name: "Enregistrer la logistique" }).click();
+  await expect(dialog.getByRole("status")).toContainText("La fiche logistique est enregistrée.");
+
+  await dialog.getByRole("button", { name: /Passer à Colis prêt/ }).click();
+  const confirmation = page.getByRole("alertdialog", { name: "Confirmer l'avancement de la commande ?" });
+  await expect(confirmation).toContainText("Tous les articles sont déclarés emballés");
+  await confirmation.getByRole("button", { name: "Confirmer l'étape" }).click();
+  await expect(dialog.getByRole("status")).toContainText("Colis prêt");
+  await expect(dialog.getByText("Colis prêt", { exact: true }).first()).toBeVisible();
+
+  const overflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
   const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
