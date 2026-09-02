@@ -101,7 +101,18 @@ async function mockAdminApi(page: Page) {
     };
     else if (path === "/api/orders") payload = { orders: [order] };
     else if (path === "/api/admin/stock") payload = { batches: [{ id: "batch-1", lotNumber: "ATT-2608-FR", productId: "product-1", productName: "Attiéké frais", quantity: 120, reserved: 36, expiryDate: "2026-09-12T00:00:00.000Z", receiptDate: "2026-08-29T00:00:00.000Z", costPrice: 2.8, status: "active", warehouse: "Paris Nord" }] };
-    else if (path === "/api/admin/customers") payload = { customers: [{ id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", city: "Paris", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr" }] };
+    else if (path === "/api/admin/customers/customer-1" && request.method() === "PATCH") payload = { notes: "Cliente fidèle, préfère les produits frais ivoiriens.", updatedAt: now };
+    else if (path === "/api/admin/customers/customer-1") payload = {
+      customer: { id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", updatedAt: now, addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador", notes: "Privilégie les créneaux de livraison du samedi." },
+      metrics: { completedOrders: 6, activeOrders: 1, cancelledOrders: 1 },
+      addresses: [{ id: "address-1", label: "Maison", recipient: "Aminata Koné", street: "12 rue des Cultures", postalCode: "75011", city: "Paris", country: "France", phone: "+33 6 00 00 00 00", isDefault: true }],
+      recentOrders: [{ id: "order-1", number: "JMA-260902-0142", status: "preparing", total: 48.7, createdAt: now, itemCount: 2, paymentMethod: "card", paymentStatus: "captured", items: [{ id: "line-1", name: "Attiéké frais", qty: 2, imageUrl: "/products/attieke.webp" }] }],
+      topProducts: [{ productId: "product-1", name: "Attiéké frais", imageUrl: "/products/attieke.webp", quantity: 12, revenue: 58.8 }],
+      favorites: [{ id: "favorite-1", productId: "product-1", name: "Attiéké frais", imageUrl: "/products/attieke.webp" }],
+      savedRecipes: [{ id: "saved-1", recipeId: "recipe-1", title: "Attiéké poisson braisé", country: "Côte d'Ivoire", imageUrl: "/recipes/attieke-poisson.webp" }],
+      tickets: [{ id: "ticket-1", number: "SUP-260901", subject: "Précision sur mon créneau de livraison", priority: "normal", status: "open", assignee: "Service client", updatedAt: now }],
+    };
+    else if (path === "/api/admin/customers") payload = { customers: [{ id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador" }] };
     else if (path === "/api/admin/push") payload = { activeSubscriptions: 1284, recent: [{ id: "push-1", titleFr: "Le marché du week-end", bodyFr: "Votre sélection ivoirienne est disponible.", sent: true, createdAt: now, type: "promotion" }] };
     else if (path === "/api/admin/advertisements") payload = { advertisements: [{ id: "ad-1", placement: "home", titleFr: "Saveurs de Côte d'Ivoire", titleEn: "Flavours of Côte d'Ivoire", bodyFr: "Une sélection prête à cuisiner.", bodyEn: "A selection ready to cook.", imageUrl: "/hero-feast-v2.webp", imageAltFr: "Table de plats ivoiriens", imageAltEn: "Table of Ivorian dishes", linkUrl: "/?view=catalog", status: "published", priority: 1, startsAt: now, endsAt: "2026-09-30T23:59:59.000Z" }] };
     else if (path === "/api/admin/profitability") payload = {
@@ -129,7 +140,7 @@ const sections = [
   { id: "recipes", nav: "Recettes achetables", title: "Construire des recettes achetables" },
   { id: "orders", nav: "Orchestrer les commandes", title: "Du paiement jusqu'à la porte" },
   { id: "inventory", nav: "Tracer les lots", title: "Inventaire piloté par les lots" },
-  { id: "customers", nav: "Développer la relation", title: "Comprendre chaque relation" },
+  { id: "customers", nav: "Développer la relation", title: "Piloter chaque relation" },
   { id: "campaigns", nav: "Diffuser sur mobile", title: "Composer, vérifier, diffuser" },
   { id: "advertising", nav: "Piloter les emplacements", title: "Régie publicitaire" },
   { id: "finance", nav: "Mesurer la rentabilité", title: "Rentabilité et encaissements" },
@@ -220,6 +231,38 @@ test("the order workspace saves logistics and confirms each sensitive advancemen
 
   const overflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+  const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+});
+
+test("the customer workspace provides a complete and auditable relationship view", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#customers", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Piloter chaque relation" })).toBeVisible();
+  await expect(page.getByText("426,40 €", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Ouvrir le profil de Aminata Koné" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Aminata Koné" });
+  await expect(dialog.getByText("Produits les plus achetés")).toBeVisible();
+  await expect(dialog.getByText("Attiéké poisson braisé")).toBeVisible();
+  await dialog.getByRole("tab", { name: /Commandes/ }).click();
+  await expect(dialog.getByText("JMA-260902-0142")).toBeVisible();
+  await expect(dialog.getByText("48,70 €")).toBeVisible();
+  await dialog.getByRole("tab", { name: /Relation/ }).click();
+  await expect(dialog.getByText("Précision sur mon créneau de livraison")).toBeVisible();
+  const notes = dialog.getByLabel("Notes internes sur le client");
+  await notes.fill("Cliente fidèle, préfère les produits frais ivoiriens.");
+  await dialog.getByRole("button", { name: "Enregistrer la note" }).click();
+  await expect(dialog.getByRole("status")).toContainText("Note enregistrée et auditée");
+
+  const overflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `customer-360-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
   const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);

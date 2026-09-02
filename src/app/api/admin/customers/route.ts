@@ -1,34 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
+import { customerSegment, NON_COMMERCIAL_ORDER_STATUSES } from "@/lib/customer-analytics";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const authorization = await authorizeAdminRequest(req, { module: "customers", action: "read" });
   if (!authorization.ok) return authorization.response;
-  const { searchParams } = new URL(req.url);
-  const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
+  const [customers, orderMetrics] = await Promise.all([
+    db.customer.findMany({
+      select: {
+        id: true,
+        loyaltyPoints: true,
+        walletCredit: true,
+        preferredLang: true,
+        createdAt: true,
+        user: { select: { email: true, firstName: true, lastName: true, phone: true } },
+        addresses: {
+          select: { city: true, country: true, phone: true },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+          take: 1,
+        },
+        _count: {
+          select: {
+            addresses: true,
+            favorites: true,
+            savedRecipes: true,
+            tickets: { where: { status: { in: ["open", "pending"] } } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.order.groupBy({
+      by: ["customerId"],
+      where: {
+        customerId: { not: null },
+        status: { notIn: [...NON_COMMERCIAL_ORDER_STATUSES] },
+      },
+      _count: { _all: true },
+      _sum: { total: true },
+      _avg: { total: true },
+      _max: { createdAt: true },
+    }),
+  ]);
 
-  const customers = await db.customer.findMany({
-    include: {
-      user: true,
-      addresses: true,
-      _count: { select: { orders: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const metricsByCustomer = new Map(orderMetrics.flatMap((metric) => metric.customerId ? [[metric.customerId, metric] as const] : []));
 
   return NextResponse.json({
-    customers: customers.map((c) => ({
-      id: c.id,
-      email: c.user.email,
-      name: `${c.user.firstName || ""} ${c.user.lastName || ""}`.trim() || c.user.email,
-      city: c.addresses[0]?.city || "—",
-      orders: c._count.orders,
-      loyalty: c.loyaltyPoints,
-      walletCredit: Number(c.walletCredit),
-      preferredLang: c.preferredLang,
-    })),
+    customers: customers.map((customer) => {
+      const metrics = metricsByCustomer.get(customer.id);
+      const orders = metrics?._count._all || 0;
+      const lifetimeValue = Number(metrics?._sum.total || 0);
+      const averageBasket = Number(metrics?._avg.total || 0);
+      const lastOrderAt = metrics?._max.createdAt?.toISOString() || null;
+      const primaryAddress = customer.addresses[0];
+      return {
+        id: customer.id,
+        email: customer.user.email,
+        name: `${customer.user.firstName || ""} ${customer.user.lastName || ""}`.trim() || customer.user.email,
+        phone: customer.user.phone || primaryAddress?.phone || null,
+        city: primaryAddress?.city || "—",
+        country: primaryAddress?.country || "—",
+        orders,
+        loyalty: customer.loyaltyPoints,
+        walletCredit: Number(customer.walletCredit),
+        preferredLang: customer.preferredLang,
+        lifetimeValue,
+        averageBasket,
+        lastOrderAt,
+        joinedAt: customer.createdAt.toISOString(),
+        addresses: customer._count.addresses,
+        favorites: customer._count.favorites,
+        savedRecipes: customer._count.savedRecipes,
+        openTickets: customer._count.tickets,
+        segment: customerSegment({ orders, lifetimeValue, loyalty: customer.loyaltyPoints, lastOrderAt }),
+      };
+    }),
   });
 }

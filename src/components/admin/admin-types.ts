@@ -79,11 +79,74 @@ export type AdminCustomer = {
   id: string;
   email: string;
   name: string;
+  phone?: string | null;
   city: string;
+  country: string;
   orders: number;
   loyalty: number;
   walletCredit: number;
   preferredLang: string;
+  lifetimeValue: number;
+  averageBasket: number;
+  lastOrderAt?: string | null;
+  joinedAt: string;
+  addresses: number;
+  favorites: number;
+  savedRecipes: number;
+  openTickets: number;
+  segment: "ambassador" | "active" | "at_risk" | "new";
+};
+
+export type AdminCustomerDetail = {
+  customer: AdminCustomer & {
+    notes: string;
+    updatedAt: string;
+  };
+  metrics: {
+    completedOrders: number;
+    activeOrders: number;
+    cancelledOrders: number;
+  };
+  addresses: Array<{
+    id: string;
+    label: string;
+    recipient: string;
+    street: string;
+    postalCode: string;
+    city: string;
+    country: string;
+    phone?: string | null;
+    isDefault: boolean;
+  }>;
+  recentOrders: Array<{
+    id: string;
+    number: string;
+    status: string;
+    total: number;
+    createdAt: string;
+    itemCount: number;
+    paymentMethod?: string | null;
+    paymentStatus?: string | null;
+    items: Array<{ id: string; name: string; qty: number; imageUrl?: string | null }>;
+  }>;
+  topProducts: Array<{
+    productId: string;
+    name: string;
+    imageUrl?: string | null;
+    quantity: number;
+    revenue: number;
+  }>;
+  favorites: Array<{ id: string; productId: string; name: string; imageUrl?: string | null }>;
+  savedRecipes: Array<{ id: string; recipeId: string; title: string; country: string; imageUrl?: string | null }>;
+  tickets: Array<{
+    id: string;
+    number: string;
+    subject: string;
+    priority: string;
+    status: string;
+    assignee?: string | null;
+    updatedAt: string;
+  }>;
 };
 
 export type InventoryBatch = {
