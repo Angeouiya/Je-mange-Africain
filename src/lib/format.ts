@@ -117,3 +117,14 @@ export function orderStatusColor(status: string): string {
 export function orderStatusKey(status: string): string {
   return status.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
+
+/** Localized label for persisted delivery service codes and legacy free-text slots. */
+export function deliveryServiceLabel(service: string | null | undefined, locale: Locale = "fr"): string {
+  if (!service) return "";
+  const labels: Record<string, [string, string]> = {
+    standard: ["Livraison standard", "Standard delivery"],
+    express: ["Livraison express", "Express delivery"],
+    relay: ["Point relais", "Pickup point"],
+  };
+  return (labels[service] || [service, service])[locale === "en" ? 1 : 0];
+}

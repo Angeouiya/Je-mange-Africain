@@ -156,12 +156,17 @@ export interface OrderLine {
   nameEn: string;
   sku: string;
   unitPrice: number;
+  currentUnitPrice?: number;
   qty: number;
   lineTotal: number;
   thermalClass: string;
   recipeId: string | null;
   recipeName: string | null;
   packWeightGrams: number;
+  imageUrl?: string | null;
+  unitLabel?: string;
+  maxStock?: number;
+  purchasable?: boolean;
 }
 
 export interface OrderEvent {

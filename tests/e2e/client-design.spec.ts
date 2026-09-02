@@ -260,12 +260,12 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     id: "order-delivered",
     number: "JMA-260902-0098",
     status: "delivered",
-    subtotal: 35,
+    subtotal: 39,
     shippingCost: 6.9,
-    vatAmount: 6.98,
+    vatAmount: 7.65,
     promoDiscount: 0,
-    total: 41.9,
-    weightGrams: 1800,
+    total: 45.9,
+    weightGrams: 2200,
     packageCount: 1,
     createdAt: "2026-09-01T09:30:00.000Z",
     deliveryName: "Aminata Koné",
@@ -273,12 +273,15 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     deliveryCity: "Paris",
     deliveryPostalCode: "75011",
     deliveryCountry: "France",
-    deliverySlot: "Mercredi, 14 h - 18 h",
+    deliverySlot: "standard",
     paymentMethod: "card",
-    items: [{ id: "line-proof", productId: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 7, qty: 5, lineTotal: 35, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp", recipeName: null }],
+    items: [
+      { id: "line-proof", productId: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 7, currentUnitPrice: 7.5, qty: 5, lineTotal: 35, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp", recipeId: null, recipeName: null, unitLabel: "Sachet 500 g", packWeightGrams: 500, maxStock: 3, purchasable: true },
+      { id: "line-sold-out", productId: "product-2", name: "Piment frais", nameFr: "Piment frais", nameEn: "Fresh chilli", sku: "JMA-PIM-200", unitPrice: 4, qty: 1, lineTotal: 4, thermalClass: "REFRIGERATED", imageUrl: "/products/piment.webp", recipeId: null, recipeName: null, unitLabel: "Barquette 200 g", packWeightGrams: 200, maxStock: 0, purchasable: false },
+    ],
     shipments: [{ id: "shipment-proof", trackingNumber: "JMA-FR-260902-PROOF", thermalClass: "REFRIGERATED", status: "delivered", estimatedDelivery: "2026-09-02T14:00:00.000Z", actualDelivery: "2026-09-02T15:12:00.000Z", confirmCode: "4821", carrier: "Chrono Frais Europe", carrierName: "Chrono Frais Europe", trackingUrl: "https://track.example.com/{ref}", proofPhoto: "/hero-feast-v2.webp", signature: "Aminata Koné" }],
-    timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-01T09:30:00.000Z", actor: "Système" }, { status: "delivered", label: "Delivered", at: "2026-09-02T15:12:00.000Z", actor: "Chrono Frais Europe" }],
-    payments: [{ method: "Carte", status: "captured", amount: 41.9, reference: "pi_proof" }],
+    timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-01T09:30:00.000Z", actor: null }, { status: "delivered", label: "Delivered", at: "2026-09-02T15:12:00.000Z", actor: null }],
+    payments: [{ method: "Carte", status: "captured", amount: 45.9, reference: "pi_proof" }],
   };
 
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer: { id: "customer-proof", email: "aminata@example.fr", phone: "+33600000000", firstName: "Aminata", lastName: "Koné", role: "customer", loyaltyPoints: 200, walletCredit: 0 } }) }));
@@ -287,8 +290,29 @@ test("delivered orders expose carrier tracking and proof without leaking interna
 
   await page.goto("/?view=orders", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /mes commandes|my orders/i })).toBeVisible();
+  await expect(page.getByLabel(/n° de commande ou produit|order number or product/i)).toBeVisible();
+  await page.getByLabel(/n° de commande ou produit|order number or product/i).fill("attiéké");
+  await expect(page.getByText("JMA-260902-0098")).toBeVisible();
+  await page.getByLabel(/n° de commande ou produit|order number or product/i).fill("introuvable");
+  await expect(page.getByText(/aucune commande ne correspond|no order matches/i)).toBeVisible();
+  await page.getByRole("button", { name: /réinitialiser|reset/i }).click();
+  await page.getByRole("button", { name: /livrées|delivered/i }).click();
+  await expect(page.getByRole("button", { name: /livrées|delivered/i })).toHaveAttribute("aria-pressed", "true");
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/orders-center-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+  }
+  await page.getByRole("button", { name: /recommander|reorder/i }).click();
+  await expect(page.getByRole("alertdialog")).toContainText(/partiellement disponible|partially available/i);
+  await page.getByRole("button", { name: /continuer|continue/i }).click();
+  await expect(page.getByText(/attiéké frais|fresh attieke/i).first()).toBeVisible();
+  await expect(page.getByText(/22,50 €|€22\.50/).first()).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(/piment frais|fresh chilli/i);
+
+  await page.goto("/?view=orders", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /^(suivre|track)$/i }).click();
   await expect(page.getByRole("heading", { name: "JMA-260902-0098" })).toBeVisible();
+  await expect(page.getByText(/livraison standard|standard delivery/i).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /facture|invoice/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /suivre chez le transporteur|track with carrier/i })).toHaveAttribute("href", "https://track.example.com/JMA-FR-260902-PROOF");
   await expect(page.getByText(/preuve de remise|delivery proof/i)).toBeVisible();
   await expect(page.getByRole("img", { name: /preuve de livraison|delivery proof/i })).toBeVisible();
@@ -296,6 +320,9 @@ test("delivered orders expose carrier tracking and proof without leaking interna
   await expect(page.locator("body")).not.toContainText(/notes internes|internal operations notes|chaîne du froid contrôlée/i);
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/order-tracking-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+  }
 
   await page.goto("/?view=order-tracking&orderId=order-delivered", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "JMA-260902-0098" })).toBeVisible();

@@ -330,7 +330,15 @@ export const dict = {
     // Orders / tracking
     orders: {
       title: "Mes commandes",
+      subtitle: "Suivez vos livraisons, retrouvez vos factures et recommandez vos essentiels.",
       empty: "Aucune commande pour le moment.",
+      noMatch: "Aucune commande ne correspond à votre recherche.",
+      searchPlaceholder: "N° de commande ou produit",
+      all: "Toutes",
+      active: "En cours",
+      deliveredFilter: "Livrées",
+      attention: "À suivre",
+      orderCount: "commandes",
       number: "Commande",
       date: "Date",
       status: "Statut",
@@ -775,7 +783,15 @@ export const dict = {
 
     orders: {
       title: "My orders",
+      subtitle: "Track deliveries, retrieve invoices and reorder your essentials.",
       empty: "No order yet.",
+      noMatch: "No order matches your search.",
+      searchPlaceholder: "Order number or product",
+      all: "All",
+      active: "In progress",
+      deliveredFilter: "Delivered",
+      attention: "Needs attention",
+      orderCount: "orders",
       number: "Order",
       date: "Date",
       status: "Status",
