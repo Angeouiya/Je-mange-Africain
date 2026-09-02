@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { BellRing, Globe2, History, Languages, LoaderCircle, Send, Smartphone, Target, UsersRound } from "lucide-react";
+import { BellRing, Check, Globe2, History, Languages, LoaderCircle, Send, Smartphone, Target, UsersRound } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPrimitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ const initialCampaign: CampaignDraft = {
 export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
   const { data, loading, refetch } = useFetch<PushDashboard>("/api/admin/push");
   const [campaign, setCampaign] = useState(initialCampaign);
+  const [editorLocale, setEditorLocale] = useState<"fr" | "en">(locale);
   const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -72,6 +73,8 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
         : (locale === "fr" ? `${payload.delivery.sent} appareil(s) notifié(s).` : `${payload.delivery.sent} device(s) notified.`);
       setResult({ type: "success", message: deliveryMessage });
       setCampaign(initialCampaign);
+      setEditorLocale(locale);
+      setPreviewLocale(locale);
       refetch();
     } catch (error) {
       setResult({ type: "error", message: error instanceof Error ? error.message : "Envoi impossible" });
@@ -101,6 +104,10 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
   const audienceCount = data?.audiences?.[campaign.audience] ?? (campaign.audience === "all" ? data?.activeSubscriptions : 0) ?? 0;
   const previewTitle = previewLocale === "fr" ? campaign.titleFr : campaign.titleEn;
   const previewBody = previewLocale === "fr" ? campaign.bodyFr : campaign.bodyEn;
+  const localeReady = {
+    fr: campaign.titleFr.trim().length >= 3 && campaign.bodyFr.trim().length >= 8,
+    en: campaign.titleEn.trim().length >= 3 && campaign.bodyEn.trim().length >= 8,
+  };
 
   return (
     <div className="space-y-6">
@@ -118,11 +125,26 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
         <div className="min-w-0">
           <section className="border-y border-black/8 bg-white px-4 py-5 sm:px-5" aria-labelledby="campaign-message-title">
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-terre text-white"><Globe2 className="h-4 w-4" /></span><div><h3 id="campaign-message-title" className="text-sm font-black text-charcoal">{locale === "fr" ? "Message bilingue" : "Bilingual message"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Les deux versions sont obligatoires avant diffusion." : "Both versions are required before delivery."}</p></div></div>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <CampaignField id="push-title-fr" label="Titre français" value={campaign.titleFr} maxLength={80} onChange={(titleFr) => setCampaign({ ...campaign, titleFr })} />
-              <CampaignField id="push-title-en" label="English title" value={campaign.titleEn} maxLength={80} onChange={(titleEn) => setCampaign({ ...campaign, titleEn })} />
-              <CampaignField id="push-body-fr" label="Message français" value={campaign.bodyFr} maxLength={220} multiline onChange={(bodyFr) => setCampaign({ ...campaign, bodyFr })} />
-              <CampaignField id="push-body-en" label="English message" value={campaign.bodyEn} maxLength={220} multiline onChange={(bodyEn) => setCampaign({ ...campaign, bodyEn })} />
+            <div className="mt-4 grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/45 p-1 sm:hidden" role="tablist" aria-label={locale === "fr" ? "Langue du message" : "Message language"}>
+              {(["fr", "en"] as const).map((language) => (
+                <button key={language} type="button" role="tab" aria-selected={editorLocale === language} aria-controls={`campaign-language-${language}`} onClick={() => setEditorLocale(language)} className={`flex h-10 items-center justify-center gap-2 rounded-md text-xs font-black transition ${editorLocale === language ? "bg-charcoal text-white shadow-sm" : "text-muted-foreground"}`}>
+                  <span>{language.toUpperCase()}</span>
+                  <span className="font-semibold">{language === "fr" ? "Français" : "English"}</span>
+                  {localeReady[language] ? <span title={locale === "fr" ? "Version complète" : "Version complete"} className={`grid h-4 w-4 place-items-center rounded-full ${editorLocale === language ? "bg-gold text-charcoal" : "bg-forest text-white"}`}><Check className="h-2.5 w-2.5" /></span> : <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-terre/55" />}
+                </button>
+              ))}
+            </div>
+            <div className="mt-5 grid gap-5 sm:grid-cols-2 sm:gap-0">
+              <div id="campaign-language-fr" role="tabpanel" aria-label={locale === "fr" ? "Version française" : "French version"} className={`${editorLocale === "fr" ? "space-y-4" : "hidden"} sm:block sm:space-y-4 sm:pr-5`}>
+                <p className="hidden items-center gap-2 text-[10px] font-black uppercase text-terre sm:flex"><span className="grid h-5 min-w-6 place-items-center rounded bg-terre/10 px-1">FR</span> Français</p>
+                <CampaignField id="push-title-fr" label="Titre français" value={campaign.titleFr} maxLength={80} onChange={(titleFr) => setCampaign({ ...campaign, titleFr })} />
+                <CampaignField id="push-body-fr" label="Message français" value={campaign.bodyFr} maxLength={220} multiline onChange={(bodyFr) => setCampaign({ ...campaign, bodyFr })} />
+              </div>
+              <div id="campaign-language-en" role="tabpanel" aria-label={locale === "fr" ? "Version anglaise" : "English version"} className={`${editorLocale === "en" ? "space-y-4" : "hidden"} sm:block sm:space-y-4 sm:border-l sm:border-border sm:pl-5`}>
+                <p className="hidden items-center gap-2 text-[10px] font-black uppercase text-forest sm:flex"><span className="grid h-5 min-w-6 place-items-center rounded bg-forest/10 px-1">EN</span> English</p>
+                <CampaignField id="push-title-en" label="English title" value={campaign.titleEn} maxLength={80} onChange={(titleEn) => setCampaign({ ...campaign, titleEn })} />
+                <CampaignField id="push-body-en" label="English message" value={campaign.bodyEn} maxLength={220} multiline onChange={(bodyEn) => setCampaign({ ...campaign, bodyEn })} />
+              </div>
             </div>
           </section>
 

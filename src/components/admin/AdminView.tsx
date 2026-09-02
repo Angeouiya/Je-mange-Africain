@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -123,6 +123,14 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
 
+function resetAdminViewport() {
+  const root = document.documentElement;
+  const previousScrollBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = "auto";
+  window.scrollTo(0, 0);
+  root.style.scrollBehavior = previousScrollBehavior;
+}
+
 export function AdminView({
   adminEmail = "",
   adminRole = "",
@@ -136,6 +144,8 @@ export function AdminView({
   const [section, setSection] = useState<AdminSectionId>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const sectionTitleRef = useRef<HTMLHeadingElement>(null);
+  const focusSectionTitleRef = useRef(false);
   const { data: dashboardData } = useFetch<DashboardPayload>(`/api/admin/dashboard?locale=${locale}`, [locale]);
   const availableGroups = useMemo(() => NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => hasAdminPermission(adminRole, item.module, "read")) })).filter((group) => group.items.length), [adminRole]);
   const availableItems = useMemo(() => availableGroups.flatMap((group) => group.items), [availableGroups]);
@@ -166,6 +176,15 @@ export function AdminView({
   }, [availableItems, section]);
 
   useEffect(() => {
+    resetAdminViewport();
+
+    if (focusSectionTitleRef.current) {
+      focusSectionTitleRef.current = false;
+      requestAnimationFrame(() => sectionTitleRef.current?.focus({ preventScroll: true }));
+    }
+  }, [section]);
+
+  useEffect(() => {
     const media = window.matchMedia("(min-width: 768px)");
     const syncViewport = () => setIsDesktop(media.matches);
     syncViewport();
@@ -178,10 +197,14 @@ export function AdminView({
   const isFr = locale === "fr";
 
   const selectSection = (next: AdminSectionId) => {
+    focusSectionTitleRef.current = next !== section;
     setSection(next);
     setSidebarOpen(false);
     window.history.replaceState(null, "", `${window.location.pathname}#${next}`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (next === section) {
+      resetAdminViewport();
+      requestAnimationFrame(() => sectionTitleRef.current?.focus({ preventScroll: true }));
+    }
   };
 
   const badgeFor = (id: AdminSectionId) => {
@@ -281,7 +304,7 @@ export function AdminView({
           <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><current.icon className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0 flex-1">
             <p className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{current.marker} · {isFr ? currentGroup?.labelFr : currentGroup?.labelEn}</p>
-            <h1 className="truncate text-sm font-black text-charcoal">{isFr ? current.labelFr : current.labelEn}</h1>
+            <h1 ref={sectionTitleRef} tabIndex={-1} className="truncate text-sm font-black text-charcoal outline-none">{isFr ? current.labelFr : current.labelEn}</h1>
             <p className="hidden truncate text-[9px] text-muted-foreground lg:block">{isFr ? current.purposeFr : current.purposeEn}</p>
           </div>
           <Badge variant="outline" className="ml-3 h-8 shrink-0 border-forest/25 bg-white/70 px-2 text-[9px] font-bold text-forest sm:px-3"><ShieldCheck className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>

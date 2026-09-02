@@ -124,18 +124,19 @@ export function SectionTabs<T extends string>({
   label: string;
 }) {
   return (
-    <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-white p-1" role="tablist" aria-label={label}>
+    <div className="scroll-pretty flex w-full max-w-full gap-1 overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-white p-1 sm:w-fit" role="tablist" aria-label={label}>
       {items.map((item) => (
         <button
           key={item.value}
           type="button"
           role="tab"
           aria-selected={value === item.value}
+          aria-label={typeof item.count === "number" ? `${item.label}, ${item.count}` : item.label}
           onClick={() => onChange(item.value)}
-          className={`flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-xs font-bold transition-colors ${value === item.value ? "bg-charcoal text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}
+          className={`flex h-9 min-w-max flex-1 shrink-0 items-center justify-center gap-2 rounded-md px-3 text-xs font-bold transition-colors sm:flex-none ${value === item.value ? "bg-charcoal text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}
         >
           {item.label}
-          {typeof item.count === "number" ? <span className={`tabular-nums ${value === item.value ? "text-white/65" : "text-muted-foreground"}`}>{item.count}</span> : null}
+          {typeof item.count === "number" ? <span aria-hidden="true" className={`grid min-w-5 place-items-center rounded px-1.5 py-0.5 text-[9px] tabular-nums ${value === item.value ? "bg-white/12 text-white" : "bg-muted text-muted-foreground"}`}>{item.count}</span> : null}
         </button>
       ))}
     </div>

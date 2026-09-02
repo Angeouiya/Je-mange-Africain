@@ -165,6 +165,8 @@ test("every professional workspace has a clear purpose and stays inside the view
     const navigation = page.getByRole("navigation", { name: "Navigation professionnelle" });
     await navigation.getByRole("button", { name: new RegExp(`^${section.nav}`) }).click();
     await expect(page.locator("header h1")).toHaveText(section.nav);
+    await expect(page.locator("header h1")).toBeFocused();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
     await expect(page.locator("main").getByRole("heading", { name: section.title })).toBeVisible();
     if (mobile) {
       const workspaceHeader = await page.getByTestId("admin-page-header").boundingBox();
@@ -292,8 +294,11 @@ test("push campaigns target a measured audience and preview both languages", asy
   await page.goto("/admin#campaigns", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Composer, vérifier, diffuser" })).toBeVisible();
   await page.getByLabel("Titre français").fill("Les saveurs du week-end");
-  await page.getByLabel("English title").fill("Weekend flavours");
   await page.getByLabel("Message français").fill("Découvrez une sélection ivoirienne préparée pour vous.");
+  if ((page.viewportSize()?.width || 0) < 768) {
+    await page.getByRole("tablist", { name: "Langue du message" }).getByRole("tab", { name: /EN English/ }).click();
+  }
+  await page.getByLabel("English title").fill("Weekend flavours");
   await page.getByLabel("English message").fill("Discover an Ivorian selection prepared for you.");
   await page.getByLabel("Audience", { exact: true }).selectOption("ambassador");
   await expect(page.getByText("184 appareil(s) ciblé(s)")).toBeVisible();
