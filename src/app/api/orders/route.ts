@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     where,
     orderBy: { createdAt: "desc" },
     include: {
+      customer: { select: { user: { select: { email: true, phone: true } } } },
       items: true,
       shipments: { include: { carrier: true } },
       timeline: { orderBy: { at: "asc" } },
@@ -41,6 +42,7 @@ export async function GET(req: NextRequest) {
       vatAmount: Number(o.vatAmount),
       promoDiscount: Number(o.promoDiscount),
       total: Number(o.total),
+      currency: o.currency,
       weightGrams: o.weightGrams,
       packageCount: o.packageCount,
       createdAt: o.createdAt,
@@ -51,6 +53,8 @@ export async function GET(req: NextRequest) {
       deliveryCountry: o.deliveryCountry,
       deliverySlot: o.deliverySlot,
       paymentMethod: o.paymentMethod,
+      customerEmail: o.customer?.user.email || null,
+      customerPhone: o.customer?.user.phone || null,
       ...(access.scope === "admin" ? { notes: o.notes } : {}),
       items: o.items.map((it) => ({
         id: it.id, productId: it.productId, nameFr: it.nameFr, nameEn: it.nameEn, sku: it.sku,

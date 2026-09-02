@@ -18,6 +18,10 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/dashboard admin|administration/i);
+  const categoryHeading = page.getByRole("heading", { name: /marché par univers|shop by universe/i });
+  await expect(categoryHeading).toBeVisible();
+  const categoryBox = await categoryHeading.boundingBox();
+  expect(categoryBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(page.viewportSize()?.height || 0);
 
   await page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first().click();
   await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
@@ -83,6 +87,8 @@ test("registration requires legal consent and two independently visible password
   await expect(page.getByRole("button", { name: /créer mon compte|create my account/i })).toBeDisabled();
   await page.getByRole("checkbox", { name: /politique de confidentialité|privacy policy/i }).click();
   await expect(page.getByRole("button", { name: /créer mon compte|create my account/i })).toBeEnabled();
+  const brandNameBox = await dialog.locator(".font-brand").first().boundingBox();
+  expect((brandNameBox?.x || 0) + (brandNameBox?.width || 0)).toBeLessThanOrEqual(page.viewportSize()?.width || 0);
   await expectNoHorizontalOverflow(page, dialog);
   await expectNoSeriousA11yViolations(page);
 

@@ -39,7 +39,7 @@ export function HomeView() {
           <Image src="/hero-feast-v2.webp" alt="" fill sizes="100vw" loading="eager" fetchPriority="high" className="object-cover object-[63%_center] md:object-center" />
           <div className="absolute inset-0 bg-charcoal/58 md:bg-gradient-to-r md:from-charcoal/92 md:via-charcoal/60 md:to-charcoal/10" />
         </div>
-        <div className="relative mx-auto flex min-h-[52svh] max-w-7xl flex-col justify-center gap-5 px-5 py-10 md:min-h-[34rem] md:px-10 md:py-20 lg:px-12">
+        <div className="relative mx-auto flex min-h-[28rem] max-w-7xl flex-col justify-center gap-4 px-5 py-8 md:min-h-[34rem] md:gap-5 md:px-10 md:py-20 lg:px-12">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Badge className="border-0 bg-transparent p-0 text-[10px] font-extrabold uppercase text-gold shadow-none">
               <Sparkles className="mr-1 h-3 w-3" /> {t.home.heroBadge}
@@ -47,33 +47,33 @@ export function HomeView() {
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="max-w-3xl font-display text-[2.3rem] font-semibold leading-[1.02] text-white sm:text-5xl lg:text-[4rem]"
+            className="max-w-3xl font-display text-[2rem] font-semibold leading-[1.05] text-white sm:text-5xl sm:leading-[1.02] lg:text-[4rem]"
           >
             {t.home.heroTitle.split("\n").map((line, i) => (
-              <span key={i} className="block">{i === 1 ? <span className="text-gold">{line}</span> : line}</span>
+              <span key={i} className="sm:block">{i > 0 ? " " : null}{i === 1 ? <span className="text-gold">{line}</span> : line}</span>
             ))}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-xl text-sm leading-7 text-white/82 sm:text-base"
+            className="max-w-xl text-sm leading-6 text-white/82 sm:text-base sm:leading-7"
           >
             {t.home.heroSubtitle}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-wrap gap-3"
+            className="grid gap-2 sm:flex sm:flex-wrap sm:gap-3"
           >
-            <Button size="lg" onClick={() => navigate("catalog")} className="h-12 bg-terre px-5 text-white shadow-lg hover:bg-terre-dark">
+            <Button size="lg" onClick={() => navigate("catalog")} className="h-11 bg-terre px-5 text-white shadow-lg hover:bg-terre-dark sm:h-12">
               {t.home.heroCtaCatalog} <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("recipes")} className="h-12 border-white/35 bg-white/8 px-5 text-white backdrop-blur hover:bg-white/16 hover:text-white">
+            <Button size="lg" variant="outline" onClick={() => navigate("recipes")} className="h-11 border-white/35 bg-white/8 px-5 text-white backdrop-blur hover:bg-white/16 hover:text-white sm:h-12">
               {t.home.heroCtaRecipes}
             </Button>
           </motion.div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl space-y-14 px-4 pt-10 md:space-y-20 md:px-7 md:pt-16 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-14 px-4 pt-8 md:space-y-20 md:px-7 md:pt-16 lg:px-8">
         {/* CATEGORIES */}
         <Section title={t.home.shopByCategory} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
           {loading ? (

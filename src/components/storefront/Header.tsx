@@ -57,7 +57,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-charcoal/10 bg-white/94 backdrop-blur-xl">
       <div className="african-kente-stripe h-[3px]" />
-      <div className="mx-auto flex h-[4.25rem] max-w-[90rem] items-center gap-2 px-3 md:gap-4 md:px-7">
+      <div className="mx-auto flex h-16 max-w-[90rem] items-center gap-2 px-3 md:h-[4.25rem] md:gap-4 md:px-7">
         {/* mobile menu */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
@@ -145,8 +145,8 @@ export function Header() {
 
       {/* mobile search row */}
       {!searchContext ? (
-        <div className="border-t border-charcoal/8 px-3 pb-2.5 pt-2 md:hidden">
-          <div className="mx-auto max-w-2xl"><SearchBar /></div>
+        <div className="border-t border-charcoal/8 px-3 pb-2 pt-1.5 md:hidden">
+          <div className="mx-auto max-w-2xl"><SearchBar compact /></div>
         </div>
       ) : null}
     </header>

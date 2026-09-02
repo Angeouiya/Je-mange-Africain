@@ -15,6 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const order = await db.order.findFirst({
     where: { id, ...(access.scope === "customer" ? { customerId: access.customerId || "__unassigned__" } : {}) },
     include: {
+      customer: { select: { user: { select: { email: true, phone: true } } } },
       items: true,
       shipments: { include: { carrier: true } },
       timeline: { orderBy: { at: "asc" } },
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     vatAmount: Number(order.vatAmount),
     promoDiscount: Number(order.promoDiscount),
     total: Number(order.total),
+    currency: order.currency,
     weightGrams: order.weightGrams,
     packageCount: order.packageCount,
     createdAt: order.createdAt,
@@ -44,6 +46,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     deliveryCountry: order.deliveryCountry,
     deliverySlot: order.deliverySlot,
     paymentMethod: order.paymentMethod,
+    customerEmail: order.customer?.user.email || null,
+    customerPhone: order.customer?.user.phone || null,
     items: order.items.map((it) => ({
       id: it.id, productId: it.productId,
       name: locale === "en" ? it.nameEn : it.nameFr,

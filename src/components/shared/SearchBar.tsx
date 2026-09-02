@@ -8,8 +8,9 @@ import { useFetch } from "@/lib/use-fetch";
 import { formatPrice } from "@/lib/format";
 import { getDiscountPercent, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { ProductImage } from "./ProductImage";
+import { cn } from "@/lib/utils";
 
-export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
+export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: boolean; compact?: boolean }) {
   const locale = useStore((s) => s.locale);
   const navigate = useStore((s) => s.navigate);
   const t = dict[locale];
@@ -41,7 +42,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
 
   return (
     <div ref={ref} className="relative w-full">
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 shadow-sm transition focus-within:border-terre focus-within:ring-2 focus-within:ring-terre/20">
+      <div className={cn("flex items-center gap-2 rounded-lg border border-border bg-card shadow-sm transition focus-within:border-terre focus-within:ring-2 focus-within:ring-terre/20", compact ? "px-3 py-2" : "px-4 py-2.5")}>
         <Search className="h-4 w-4 text-muted-foreground" />
         <input
           autoFocus={autoFocus}
