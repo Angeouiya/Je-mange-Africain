@@ -482,6 +482,18 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await page.getByRole("button", { name: /passer la commande|place order/i }).click();
 
   await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  if (isMobile) {
+    const orderSummary = page.locator("details").filter({ hasText: /votre commande|your order/i });
+    await expect(orderSummary).toBeVisible();
+    await orderSummary.locator("summary").click();
+    await expectLoadedProductImages(orderSummary.getByRole("img", { name: /gombo surgelé|frozen okra/i }), 1);
+    await orderSummary.locator("summary").click();
+  } else {
+    const orderSummary = page.getByRole("complementary", { name: /résumé de la commande|order summary/i });
+    await expect(orderSummary).toBeVisible();
+    await expectLoadedProductImages(orderSummary.getByRole("img", { name: /gombo surgelé|frozen okra/i }), 1);
+  }
   await expect(page.getByLabel(/pays de livraison|delivery country/i)).toHaveValue("France");
   const standard = page.getByRole("radio", { name: /standard/i });
   const express = page.getByRole("radio", { name: /express/i });
@@ -489,12 +501,21 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expect(standard).toBeChecked();
   await expect(relay).toBeDisabled();
   await expect(page.getByText(/indisponible avec les produits frais ou surgelés|unavailable for chilled or frozen products/i)).toBeVisible();
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await page.screenshot({ path: `output/playwright/audit/checkout-overview-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
   await express.check();
   await expect(express).toBeChecked();
   await expect(page.getByText(/flotte interne jma · 12 à 24 h|flotte interne jma · 12-24 h/i)).toBeVisible();
 
   await page.getByLabel(/pays de livraison|delivery country/i).selectOption("Belgique");
   await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Belgique");
+  await expect(page.locator("body")).not.toContainText(/doit être configuré avant l'ouverture|must be configured before orders/i);
+  if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+    await expect(page.getByText(/paiement momentanément indisponible|payment temporarily unavailable/i)).toBeVisible();
+    await expect(page.getByText(/votre panier reste enregistré|your basket remains saved/i)).toBeVisible();
+  }
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.getByText(/mode de livraison|delivery option/i).scrollIntoViewIfNeeded();
     await page.screenshot({ path: `output/playwright/audit/checkout-delivery-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });

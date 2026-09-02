@@ -4,7 +4,7 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
-import { Check, CreditCard, Loader2, Lock, LogIn, MapPinned, ShieldCheck, Truck, Zap } from "lucide-react";
+import { Check, ChevronDown, CreditCard, Loader2, Lock, LogIn, MapPinned, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { formatPrice, formatWeight, thermalLabel } from "@/lib/format";
 import { dict } from "@/lib/i18n";
-import { cartSubtotal, cartThermalSplit, cartWeightGrams, useStore } from "@/lib/store";
+import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStore } from "@/lib/store";
 import { postJSON } from "@/lib/use-fetch";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -76,6 +76,7 @@ export function CheckoutView() {
   const [promotionLoading, setPromotionLoading] = useState(false);
 
   const subtotal = cartSubtotal(cart);
+  const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const weight = cartWeightGrams(cart);
   const thermal = cartThermalSplit(cart);
   const thermalKey = thermal.join("|");
@@ -259,7 +260,7 @@ export function CheckoutView() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="cart" className="mb-4" />
       <h1 className="jma-section-title mb-5">{t.checkout.title}</h1>
       <div className="mb-6 flex items-center gap-1.5" aria-label={locale === "fr" ? "Progression du paiement" : "Checkout progress"}>
@@ -272,9 +273,23 @@ export function CheckoutView() {
         ))}
       </div>
 
-      <div className="rounded-lg border border-charcoal/10 bg-white p-4 sm:p-6">
-        {step === 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+        <div className="min-w-0">
+          <details className="group mb-4 border-y border-border bg-white lg:hidden">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-terre/10 text-terre"><ShoppingBag className="h-4 w-4" /></span>
+              <span className="min-w-0 flex-1"><span className="block text-xs font-extrabold text-charcoal">{locale === "fr" ? "Votre commande" : "Your order"}</span><span className="mt-0.5 block text-[10px] text-muted-foreground">{itemCount} {locale === "fr" ? "article(s)" : "item(s)"} · {formatWeight(weight, locale)}</span></span>
+              <strong className="text-sm tabular-nums text-terre">{formatPrice(displayTotal, locale)}</strong>
+              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-border py-4">
+              <CheckoutBasketPreview cart={cart} locale={locale} subtotal={subtotal} promoDiscount={promoDiscount} shipping={shipFee} total={displayTotal} shippingLoading={shipLoading || promotionLoading} />
+            </div>
+          </details>
+
+          <div className="rounded-lg border border-charcoal/10 bg-white p-4 sm:p-6">
+            {step === 0 ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <Field label={t.checkout.firstName} value={form.firstName} onChange={(value) => setForm({ ...form, firstName: value })} autoComplete="given-name" />
               <Field label={t.checkout.lastName} value={form.lastName} onChange={(value) => setForm({ ...form, lastName: value })} autoComplete="family-name" />
@@ -318,16 +333,66 @@ export function CheckoutView() {
               </RadioGroup>
             </div>
             {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
-            <Button onClick={preparePayment} disabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise} className="w-full bg-terre text-cream hover:bg-terre-dark">
-              {preparingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.loading}</> : t.next}
+            <Button onClick={preparePayment} disabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise} aria-describedby={!stripePromise ? "checkout-payment-unavailable" : undefined} className="w-full bg-terre text-cream hover:bg-terre-dark">
+              {preparingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.loading}</> : !stripePromise ? (locale === "fr" ? "Paiement indisponible" : "Payment unavailable") : t.next}
             </Button>
-            {!stripePromise ? <ErrorMessage>{locale === "fr" ? "Le paiement sécurisé doit être configuré avant l'ouverture des commandes." : "Secure payment must be configured before orders can open."}</ErrorMessage> : null}
-          </motion.div>
-        ) : intent && stripePromise ? (
-          <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#B9472B", colorText: "#3F2930", borderRadius: "8px", fontFamily: "Manrope, sans-serif" } } }}>
-            <SecurePaymentStages step={step} setStep={setStep} clientSecret={intent.clientSecret} processing={processing} paymentError={paymentError} setPaymentError={setPaymentError} amount={displayTotal} locale={locale} review={review} onConfirm={finalizeOrder} />
-          </Elements>
-        ) : null}
+            {!stripePromise ? <div id="checkout-payment-unavailable" className="flex items-start gap-3 rounded-lg border border-gold/35 bg-gold/[0.08] p-3 text-charcoal"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-terre"><Lock className="h-3.5 w-3.5" /></span><div><p className="text-xs font-extrabold">{locale === "fr" ? "Paiement momentanément indisponible" : "Payment temporarily unavailable"}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Votre panier reste enregistré. Vous pourrez reprendre cette commande dès le retour du service." : "Your basket remains saved. You can resume this order as soon as the service returns."}</p></div></div> : null}
+              </motion.div>
+            ) : intent && stripePromise ? (
+              <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#B9472B", colorText: "#3F2930", borderRadius: "8px", fontFamily: "Manrope, sans-serif" } } }}>
+                <SecurePaymentStages step={step} setStep={setStep} clientSecret={intent.clientSecret} processing={processing} paymentError={paymentError} setPaymentError={setPaymentError} amount={displayTotal} locale={locale} review={review} onConfirm={finalizeOrder} />
+              </Elements>
+            ) : null}
+          </div>
+        </div>
+
+        <aside className="hidden rounded-lg border border-charcoal/10 bg-white p-4 lg:sticky lg:top-24 lg:block" aria-label={locale === "fr" ? "Résumé de la commande" : "Order summary"}>
+          <div className="mb-4 flex items-center gap-3 border-b border-border pb-4"><span className="grid h-9 w-9 place-items-center rounded-md bg-terre/10 text-terre"><ShoppingBag className="h-4 w-4" /></span><div><h2 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Votre commande" : "Your order"}</h2><p className="mt-0.5 text-[10px] text-muted-foreground">{itemCount} {locale === "fr" ? "article(s)" : "item(s)"}</p></div></div>
+          <CheckoutBasketPreview cart={cart} locale={locale} subtotal={subtotal} promoDiscount={promoDiscount} shipping={shipFee} total={displayTotal} shippingLoading={shipLoading || promotionLoading} />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function CheckoutBasketPreview({
+  cart,
+  locale,
+  subtotal,
+  promoDiscount,
+  shipping,
+  total,
+  shippingLoading,
+}: {
+  cart: CartItem[];
+  locale: "fr" | "en";
+  subtotal: number;
+  promoDiscount: number;
+  shipping: number;
+  total: number;
+  shippingLoading: boolean;
+}) {
+  const t = dict[locale];
+
+  return (
+    <div>
+      <div className="scroll-pretty max-h-56 space-y-3 overflow-y-auto pr-1">
+        {cart.map((item) => {
+          const localizedName = (locale === "en" ? item.nameEn : item.nameFr) || item.name;
+          return (
+            <div key={item.id} className="flex items-center gap-3">
+              <ProductImage src={item.imageUrl} alt={localizedName} emoji={item.imageEmoji} color={item.imageColor} size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" />
+              <div className="min-w-0 flex-1"><p className="truncate text-[11px] font-extrabold text-charcoal">{localizedName}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{item.qty} × {item.unitLabel || formatPrice(item.unitPrice, locale)}</p></div>
+              <span className="shrink-0 text-[11px] font-bold tabular-nums text-charcoal">{formatPrice(item.unitPrice * item.qty, locale)}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 space-y-2 border-t border-border pt-4 text-[11px]">
+        <PriceLine label={t.cart.subtotal} value={formatPrice(subtotal, locale)} />
+        {promoDiscount > 0 ? <PriceLine label={t.cart.promo} value={`-${formatPrice(promoDiscount, locale)}`} accent /> : null}
+        <PriceLine label={t.cart.shipping} value={shippingLoading ? t.loading : shipping === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipping, locale)} muted={shippingLoading} />
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-3 text-sm"><span className="font-extrabold text-charcoal">{t.cart.total}</span><strong className="text-base tabular-nums text-terre">{formatPrice(total, locale)}</strong></div>
       </div>
     </div>
   );
