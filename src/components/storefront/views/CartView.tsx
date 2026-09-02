@@ -116,8 +116,8 @@ export function CartView() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-2" />
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="jma-section-title">{t.cart.title}</h1>
+      <div className="mb-5 flex items-end justify-between gap-4 border-b border-charcoal/10 pb-4">
+        <div><p className="jma-eyebrow">{locale === "fr" ? "Votre sélection" : "Your selection"}</p><h1 className="jma-section-title mt-1">{t.cart.title}</h1></div>
         <AlertDialog>
           <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="mr-1 h-4 w-4" /> {t.cart.clear}</Button></AlertDialogTrigger>
           <AlertDialogContent>
@@ -135,25 +135,25 @@ export function CartView() {
             const recipeName = key.split("::")[1] || "Recette";
             const groupTotal = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
             return (
-              <div key={key} className="rounded-lg border border-forest/25 bg-forest/[0.035] p-3">
+              <section key={key} className="border-y border-forest/25 bg-forest/[0.035] px-3 py-3">
                 <div className="mb-2 flex items-center gap-2">
                   <Badge className="bg-forest text-cream border-0">{t.cart.recipeGroup.replace("{name}", recipeName)}</Badge>
                   <span className="ml-auto text-sm font-bold text-forest">{formatPrice(groupTotal, locale)}</span>
                 </div>
-                <div className="space-y-2">
+                <div className="divide-y divide-forest/12">
                   {items.map((c) => <CartLine key={c.id} c={c} locale={locale} onQty={(q) => updateQty(c.id, q)} onRemove={() => removeLine(c.id)} />)}
                 </div>
-              </div>
+              </section>
             );
           })}
 
           {/* standalone */}
           {standalone.length > 0 && (
-            <div className="rounded-lg border border-charcoal/10 bg-white p-3">
-              <div className="space-y-2">
+            <section className="border-y border-charcoal/10 bg-white px-3 py-1">
+              <div className="divide-y divide-charcoal/8">
                 {standalone.map((c) => <CartLine key={c.id} c={c} locale={locale} onQty={(q) => updateQty(c.id, q)} onRemove={() => removeLine(c.id)} />)}
               </div>
-            </div>
+            </section>
           )}
 
         </div>
@@ -223,7 +223,7 @@ export function CartView() {
 function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string; onQty: (q: number) => void; onRemove: () => void }) {
   const t = dict[locale as "fr" | "en"];
   return (
-    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg bg-muted/45 p-2.5 sm:flex sm:gap-3">
+    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 sm:flex sm:gap-3">
       <ProductImage src={c.imageUrl} alt={c.name} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="row-span-2 h-14 w-14 shrink-0 sm:row-auto" rounded="rounded-md" />
       <div className="min-w-0 sm:flex-1">
         <p className="truncate text-sm font-bold text-charcoal">{c.name}</p>
