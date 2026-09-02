@@ -73,12 +73,13 @@ export function InfoView() {
   };
 
   const c = content[page] || content.about;
+  const isLegalPage = ["cgv", "privacy", "cookies", "delivery"].includes(page);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-7 md:py-12 lg:px-8">
       <PageBackButton fallbackView="home" className="mb-3" />
-      <h1 className="jma-section-title mb-6">{c.title}</h1>
-      <div className="border-t border-charcoal/10 pt-6">{c.body}</div>
+      {!isLegalPage ? <h1 className="jma-section-title mb-6">{c.title}</h1> : null}
+      <div className={isLegalPage ? "" : "border-t border-charcoal/10 pt-6"}>{c.body}</div>
     </div>
   );
 }

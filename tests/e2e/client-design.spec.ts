@@ -285,6 +285,34 @@ test("registration requires legal consent and two independently visible password
   await expect(page.getByRole("main")).toBeVisible();
 });
 
+test("public legal documents are bilingual, navigable and free of drafting notes", async ({ page }) => {
+  await page.goto("/conditions-generales?lang=fr", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { level: 1, name: "Conditions générales d'utilisation et de vente" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.locator('[data-testid="legal-contents"]:visible')).toHaveText("Sommaire du document");
+  await expect(page.getByText(/version contractuelle applicable/i)).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/ce modèle doit|doit être complété|this template must/i);
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/legal-terms-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+  }
+
+  await page.getByRole("link", { name: "EN", exact: true }).click();
+  await expect(page).toHaveURL(/conditions-generales\?lang=en/);
+  await expect(page.getByRole("heading", { level: 1, name: "Terms of use and sale" })).toBeVisible();
+  await expect(page.locator('[data-testid="legal-contents"]:visible')).toHaveText("Document contents");
+
+  await page.goto("/confidentialite?lang=fr", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { level: 1, name: "Politique de confidentialité" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.getByText("confidentialite@je-mange-africain.com").first()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/legal-privacy-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+  }
+});
+
 test("the customer workspace edits identity and manages a persistent address book", async ({ page }) => {
   let account = {
     customer: { id: "customer-account", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 180, walletCredit: 12.5, preferredLang: "fr" },
@@ -535,7 +563,7 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     paymentMethod: "card",
     items: [
       { id: "line-proof", productId: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 7, currentUnitPrice: 7.5, qty: 5, lineTotal: 35, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp", recipeId: null, recipeName: null, unitLabel: "Sachet 500 g", packWeightGrams: 500, maxStock: 3, purchasable: true },
-      { id: "line-sold-out", productId: "product-2", name: "Piment frais", nameFr: "Piment frais", nameEn: "Fresh chilli", sku: "JMA-PIM-200", unitPrice: 4, qty: 1, lineTotal: 4, thermalClass: "REFRIGERATED", imageUrl: "/products/piment.webp", recipeId: null, recipeName: null, unitLabel: "Barquette 200 g", packWeightGrams: 200, maxStock: 0, purchasable: false },
+      { id: "line-sold-out", productId: "product-2", name: "Piment frais", nameFr: "Piment frais", nameEn: "Fresh chilli", sku: "JMA-PIM-200", unitPrice: 4, qty: 1, lineTotal: 4, thermalClass: "REFRIGERATED", imageUrl: "/products/piment-frais.webp", recipeId: null, recipeName: null, unitLabel: "Barquette 200 g", packWeightGrams: 200, maxStock: 0, purchasable: false },
     ],
     shipments: [{ id: "shipment-proof", trackingNumber: "JMA-FR-260902-PROOF", thermalClass: "REFRIGERATED", status: "delivered", estimatedDelivery: "2026-09-02T14:00:00.000Z", actualDelivery: "2026-09-02T15:12:00.000Z", confirmCode: "4821", carrier: "Chrono Frais Europe", carrierName: "Chrono Frais Europe", trackingUrl: "https://track.example.com/{ref}", proofPhoto: "/hero-feast-v2.webp", signature: "Aminata Koné" }],
     timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-01T09:30:00.000Z", actor: null }, { status: "delivered", label: "Delivered", at: "2026-09-02T15:12:00.000Z", actor: null }],
@@ -556,6 +584,7 @@ test("delivered orders expose carrier tracking and proof without leaking interna
   await page.getByRole("button", { name: /réinitialiser|reset/i }).click();
   await page.getByRole("button", { name: /livrées|delivered/i }).click();
   await expect(page.getByRole("button", { name: /livrées|delivered/i })).toHaveAttribute("aria-pressed", "true");
+  await expectLoadedProductImages(page.getByRole("img", { name: /attiéké frais|fresh attieke|piment frais|fresh chilli/i }), 2);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/orders-center-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
   }

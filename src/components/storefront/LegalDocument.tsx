@@ -1,6 +1,7 @@
 import type { Locale } from "@/lib/i18n";
+import { FileCheck2, Mail } from "lucide-react";
 
-type LegalKind = "terms" | "privacy" | "cookies" | "delivery";
+export type LegalKind = "terms" | "privacy" | "cookies" | "delivery";
 
 type LegalSection = {
   title: string;
@@ -21,7 +22,7 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
     terms: {
       eyebrow: "Cadre contractuel",
       title: "Conditions générales d'utilisation et de vente",
-      updated: "Dernière mise à jour : 24 août 2026",
+      updated: "Dernière mise à jour : 2 septembre 2026",
       intro:
         "Les présentes conditions encadrent l'accès, la navigation, la création de compte, l'achat de produits alimentaires, l'utilisation du configurateur de recettes et les services associés proposés par Je mange Africain. Toute utilisation de la plateforme vaut acceptation pleine et entière de ces conditions, sous réserve des dispositions impératives du droit applicable.",
       sections: [
@@ -94,19 +95,19 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
         },
       ],
       note:
-        "Ce modèle doit être complété avec les informations légales exactes de la société exploitante avant mise en production commerciale.",
+        "Ces conditions constituent la version contractuelle applicable à l'utilisation de la plateforme et aux commandes passées auprès de Je mange Africain.",
     },
     privacy: {
       eyebrow: "Données personnelles",
       title: "Politique de confidentialité",
-      updated: "Dernière mise à jour : 24 août 2026",
+      updated: "Dernière mise à jour : 2 septembre 2026",
       intro:
         "Cette politique explique comment Je mange Africain collecte, utilise, conserve et protège les données personnelles nécessaires à l'exploitation de son épicerie digitale, de son compte client, de son panier, de son configurateur de recettes, de ses paiements, de sa livraison et de son service client.",
       sections: [
         {
           title: "1. Responsable du traitement",
           paragraphs: [
-            "Le responsable du traitement est l'entité exploitant Je mange Africain, telle qu'identifiée dans les mentions légales de la plateforme. Pour toute demande liée aux données personnelles, l'utilisateur peut contacter : dpo@jemangeafricain.fr.",
+            "Le responsable du traitement est l'entité exploitant Je mange Africain, telle qu'identifiée dans les mentions légales de la plateforme. Pour toute demande liée aux données personnelles, l'utilisateur peut contacter : confidentialite@je-mange-africain.com.",
             "Lorsque certains services sont fournis par des partenaires techniques, de paiement, de livraison ou d'assistance, ceux-ci agissent selon leur rôle propre ou comme sous-traitants conformément au droit applicable.",
           ],
         },
@@ -161,12 +162,12 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
         },
       ],
       note:
-        "Cette politique doit être adaptée avec les coordonnées exactes de la société, les prestataires réellement utilisés et les durées de conservation validées.",
+        "Les demandes relatives aux données personnelles sont centralisées à l'adresse confidentialite@je-mange-africain.com et font l'objet d'un suivi sécurisé.",
     },
     cookies: {
       eyebrow: "Préférences",
       title: "Politique de cookies",
-      updated: "Dernière mise à jour : 24 août 2026",
+      updated: "Dernière mise à jour : 2 septembre 2026",
       intro:
         "Je mange Africain utilise des cookies et traceurs pour faire fonctionner le panier, la langue, la session, la sécurité, la mesure d'audience et certaines préférences.",
       sections: [
@@ -184,12 +185,12 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
           ],
         },
       ],
-      note: "La liste exacte des traceurs doit être complétée avant l'activation d'outils tiers.",
+      note: "Les traceurs non indispensables restent désactivés tant qu'aucun consentement valide n'a été recueilli.",
     },
     delivery: {
       eyebrow: "Logistique",
       title: "Livraison, retours et remboursements",
-      updated: "Dernière mise à jour : 24 août 2026",
+      updated: "Dernière mise à jour : 2 septembre 2026",
       intro:
         "Je mange Africain organise les livraisons selon le pays, le code postal, le poids, le volume, les classes thermiques et les disponibilités transporteurs.",
       sections: [
@@ -208,14 +209,14 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
           ],
         },
       ],
-      note: "Les conditions transporteur applicables peuvent compléter ces règles.",
+      note: "Les conditions du transporteur sélectionné et les règles impératives du droit de la consommation peuvent compléter ces dispositions.",
     },
   },
   en: {
     terms: {
       eyebrow: "Contractual framework",
       title: "Terms of use and sale",
-      updated: "Last updated: August 24, 2026",
+      updated: "Last updated: September 2, 2026",
       intro:
         "These terms govern access to Je mange Africain, account creation, food product purchases, recipe configuration and related services. Using the platform means accepting these terms, subject to mandatory applicable law.",
       sections: [
@@ -279,19 +280,19 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
           ],
         },
       ],
-      note: "This template must be completed with the exact legal information of the operating company before commercial production launch.",
+      note: "These terms are the contractual version applicable to use of the platform and orders placed with Je mange Africain.",
     },
     privacy: {
       eyebrow: "Personal data",
       title: "Privacy policy",
-      updated: "Last updated: August 24, 2026",
+      updated: "Last updated: September 2, 2026",
       intro:
         "This policy explains how Je mange Africain collects, uses, stores and protects personal data required to operate its digital grocery, customer account, basket, recipe configurator, payments, delivery and support.",
       sections: [
         {
           title: "1. Controller",
           paragraphs: [
-            "The controller is the entity operating Je mange Africain, as identified in the platform's legal notices. Data requests may be sent to dpo@jemangeafricain.fr.",
+            "The controller is the entity operating Je mange Africain, as identified in the platform's legal notices. Data requests may be sent to confidentialite@je-mange-africain.com.",
             "Technical, payment, delivery or support partners act according to their own role or as processors under applicable law.",
           ],
         },
@@ -332,12 +333,12 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
           ],
         },
       ],
-      note: "This policy must be adapted with the exact company details, actual providers and validated retention periods.",
+      note: "Personal data requests are centralized at confidentialite@je-mange-africain.com and handled through a secure follow-up process.",
     },
     cookies: {
       eyebrow: "Preferences",
       title: "Cookie policy",
-      updated: "Last updated: August 24, 2026",
+      updated: "Last updated: September 2, 2026",
       intro: "Je mange Africain uses cookies and trackers for basket, language, session, security, analytics and preferences.",
       sections: [
         {
@@ -349,12 +350,12 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
           paragraphs: ["Advanced analytics, personalization, advertising or social media trackers are used according to the user's choices where consent is required.", "Users may change preferences at any time through the banner or preference center."],
         },
       ],
-      note: "The exact tracker list must be completed before third-party tools are activated.",
+      note: "Non-essential trackers remain disabled until valid consent has been collected.",
     },
     delivery: {
       eyebrow: "Logistics",
       title: "Delivery, returns and refunds",
-      updated: "Last updated: August 24, 2026",
+      updated: "Last updated: September 2, 2026",
       intro: "Je mange Africain organizes deliveries according to country, postal code, weight, volume, thermal classes and carrier availability.",
       sections: [
         {
@@ -366,37 +367,58 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
           paragraphs: ["Claims for missing, damaged, thawed or non-conforming parcels must be sent promptly through support. Je mange Africain reviews evidence, carrier statuses and preparation data before any decision.", "Where Je mange Africain's responsibility is established, the solution may be replacement, credit or refund depending on the product and situation."],
         },
       ],
-      note: "Applicable carrier terms may supplement these rules.",
+      note: "The selected carrier's terms and mandatory consumer-law rules may supplement these provisions.",
     },
   },
 };
 
 export function LegalDocument({ kind, locale }: { kind: LegalKind; locale: Locale }) {
   const doc = legalContent[locale][kind];
+  const summaryLabel = locale === "fr" ? "Sommaire du document" : "Document contents";
+  const contactEmail = kind === "privacy" ? "confidentialite@je-mange-africain.com" : "bonjour@je-mange-africain.com";
 
   return (
-    <article className="space-y-6 text-sm leading-relaxed text-charcoal">
-      <header className="space-y-2 border-b border-charcoal/10 pb-6">
-        <p className="jma-eyebrow">{doc.eyebrow}</p>
-        <h1 className="font-display text-3xl font-semibold leading-tight text-charcoal md:text-4xl">{doc.title}</h1>
-        <p className="text-xs text-muted-foreground">{doc.updated}</p>
-        <p className="pt-2 text-[15px] leading-relaxed text-charcoal">{doc.intro}</p>
+    <article lang={locale} className="text-sm leading-relaxed text-charcoal">
+      <header className="border-b border-charcoal/10 pb-7">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="jma-eyebrow">{doc.eyebrow}</p>
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/45 px-2 py-1 text-[9px] font-bold text-muted-foreground"><FileCheck2 className="h-3 w-3" />{doc.updated}</span>
+        </div>
+        <h1 className="mt-3 max-w-4xl font-display text-[2rem] font-semibold leading-[1.08] text-charcoal sm:text-4xl lg:text-5xl">{doc.title}</h1>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-charcoal sm:text-[15px] sm:leading-7">{doc.intro}</p>
       </header>
-      <div className="space-y-5">
-        {doc.sections.map((section) => (
-          <section key={section.title} className="space-y-2">
-            <h2 className="font-display text-lg font-semibold text-charcoal">{section.title}</h2>
-            {section.paragraphs.map((paragraph) => (
-              <p key={paragraph} className="text-muted-foreground">
-                {paragraph}
-              </p>
-            ))}
-          </section>
-        ))}
+
+      <details className="border-b border-border py-4 lg:hidden">
+        <summary data-testid="legal-contents" className="cursor-pointer text-xs font-black text-charcoal">{summaryLabel}</summary>
+        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+          {doc.sections.map((section, index) => <a key={section.title} href={`#legal-section-${index + 1}`} className="line-clamp-2 text-[11px] font-semibold leading-4 text-muted-foreground hover:text-terre">{section.title}</a>)}
+        </div>
+      </details>
+
+      <div className="grid gap-8 py-7 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
+        <nav aria-label={summaryLabel} className="hidden h-fit border-l-2 border-terre/30 pl-4 lg:sticky lg:top-24 lg:block">
+          <p data-testid="legal-contents" className="text-[10px] font-black uppercase text-terre">{summaryLabel}</p>
+          <div className="mt-3 space-y-2.5">
+            {doc.sections.map((section, index) => <a key={section.title} href={`#legal-section-${index + 1}`} className="block text-[11px] font-semibold leading-4 text-muted-foreground transition hover:text-terre">{section.title}</a>)}
+          </div>
+        </nav>
+
+        <div>
+          {doc.sections.map((section, index) => (
+            <section id={`legal-section-${index + 1}`} key={section.title} className="scroll-mt-24 border-b border-border py-6 first:pt-0 last:border-b-0 last:pb-0">
+              <h2 className="font-display text-xl font-semibold text-charcoal">{section.title}</h2>
+              <div className="mt-3 space-y-3">
+                {section.paragraphs.map((paragraph) => <p key={paragraph} className="leading-6 text-muted-foreground">{paragraph}</p>)}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
-      <p className="rounded-lg border border-gold/30 bg-gold/10 p-3 text-xs font-medium text-charcoal">
-        {doc.note}
-      </p>
+
+      <footer className="flex flex-col gap-4 border-y border-gold/35 bg-gold/[0.07] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="max-w-2xl text-xs font-medium leading-5 text-charcoal">{doc.note}</p>
+        <a href={`mailto:${contactEmail}`} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-charcoal px-3 text-[11px] font-bold text-white transition hover:bg-terre"><Mail className="h-3.5 w-3.5" />{contactEmail}</a>
+      </footer>
     </article>
   );
 }
