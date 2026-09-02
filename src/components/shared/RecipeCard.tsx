@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Clock, Users, Flame, ChevronRight } from "lucide-react";
+import { Clock, Users, Flame, ChevronRight, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductImage } from "./ProductImage";
@@ -52,7 +52,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
           rounded="rounded-none"
         />
         {recipe.isPopular && (
-          <Badge className="absolute left-3 top-3 bg-terre text-cream border-0 shadow-sm">★ {t.recipes.popular}</Badge>
+          <Badge className="absolute left-3 top-3 border-0 bg-terre text-cream shadow-sm"><Star className="mr-1 h-3 w-3 fill-current" /> {t.recipes.popular}</Badge>
         )}
         <Badge variant="outline" className="absolute right-3 top-3 bg-white/80 backdrop-blur">{recipe.country}</Badge>
       </div>

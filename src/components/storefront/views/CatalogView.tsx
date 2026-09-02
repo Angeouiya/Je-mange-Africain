@@ -113,9 +113,15 @@ export function CatalogView() {
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
           <div className="relative col-span-2 flex-1 sm:col-span-1">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.header.searchPlaceholder} className="h-11 border-charcoal/12 bg-white pl-9" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t.header.searchPlaceholder}
+              aria-label={locale === "fr" ? "Rechercher dans le catalogue" : "Search the catalogue"}
+              className="h-11 border-charcoal/12 bg-white pl-9"
+            />
           </div>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-11 min-w-0 rounded-lg border border-charcoal/12 bg-white px-3 text-sm font-semibold text-charcoal sm:w-auto">
+          <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={locale === "fr" ? "Trier les produits" : "Sort products"} className="h-11 min-w-0 rounded-lg border border-charcoal/12 bg-white px-3 text-sm font-semibold text-charcoal sm:w-auto">
             <option value="popular">{t.catalog.sortPopular}</option>
             <option value="priceAsc">{t.catalog.sortPriceAsc}</option>
             <option value="priceDesc">{t.catalog.sortPriceDesc}</option>
@@ -205,7 +211,9 @@ function FilterGroup({ label, children }: { label: string; children: React.React
 function FilterChip({ active, onClick, children }: { active?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={`flex min-h-9 w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs font-semibold transition ${
         active ? "bg-charcoal text-white" : "text-charcoal hover:bg-muted"
       }`}
@@ -218,7 +226,7 @@ function ActiveFilter({ onClear, children }: { onClear: () => void; children: Re
   return (
     <Badge variant="outline" className="gap-1 border-terre/40 bg-terre/5 text-terre">
       {children}
-      <button onClick={onClear} aria-label="Retirer"><X className="h-3 w-3" /></button>
+      <button type="button" onClick={onClear} aria-label="Retirer le filtre"><X className="h-3 w-3" /></button>
     </Badge>
   );
 }

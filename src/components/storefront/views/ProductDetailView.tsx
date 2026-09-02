@@ -115,8 +115,10 @@ export function ProductDetailView() {
           <div className="flex flex-wrap gap-2">
             {product.variants?.map((v: any) => (
               <button
+                type="button"
                 key={v.id}
                 onClick={() => setVariantId(v.id)}
+                aria-pressed={variantId === v.id}
                 className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
                   variantId === v.id ? "border-terre bg-terre/5 text-terre" : "border-border text-charcoal hover:bg-muted"
                 }`}
@@ -176,14 +178,14 @@ export function ProductDetailView() {
           {/* qty + add */}
           <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap">
             <div className="inline-flex shrink-0 items-center rounded-lg border border-border">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} className="grid h-10 w-10 place-items-center rounded-md hover:bg-muted" aria-label="Diminuer"><Minus className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} className="grid h-10 w-10 place-items-center rounded-md hover:bg-muted" aria-label={locale === "fr" ? `Diminuer la quantité de ${product.name}` : `Decrease ${product.name} quantity`}><Minus className="h-4 w-4" /></button>
               <span className="min-w-10 text-center font-semibold tabular-nums">{qty}</span>
-              <button onClick={() => setQty(Math.min(product.stockQty || 99, qty + 1))} className="grid h-10 w-10 place-items-center rounded-md hover:bg-muted" aria-label="Augmenter"><Plus className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setQty(Math.min(product.stockQty || 99, qty + 1))} className="grid h-10 w-10 place-items-center rounded-md hover:bg-muted" aria-label={locale === "fr" ? `Augmenter la quantité de ${product.name}` : `Increase ${product.name} quantity`}><Plus className="h-4 w-4" /></button>
             </div>
             <Button onClick={handleAdd} disabled={outOfStock} size="lg" className="order-last w-full whitespace-normal bg-terre text-center leading-tight text-cream shadow-md hover:bg-terre-dark sm:order-none sm:min-w-0 sm:flex-1">
               <Plus className="mr-1 h-4 w-4" /> {t.product.addToCart}
             </Button>
-            <Button variant="outline" size="icon" onClick={() => toggleFavorite(product.id)} aria-label="Favori" className="ml-auto h-11 w-11 shrink-0 sm:ml-0">
+            <Button variant="outline" size="icon" onClick={() => toggleFavorite(product.id)} aria-pressed={isFav} aria-label={isFav ? (locale === "fr" ? `Retirer ${product.name} des favoris` : `Remove ${product.name} from favourites`) : (locale === "fr" ? `Ajouter ${product.name} aux favoris` : `Add ${product.name} to favourites`)} className="ml-auto h-11 w-11 shrink-0 sm:ml-0">
               <Heart className={`h-5 w-5 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />
             </Button>
           </div>

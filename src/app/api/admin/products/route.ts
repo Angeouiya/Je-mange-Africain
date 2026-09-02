@@ -1,34 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
+import { productAdminInput, roundMoney } from "@/lib/admin-product-schema";
 
 export const dynamic = "force-dynamic";
-
-const ProductInput = z.object({
-  name: z.string().trim().min(2).max(120),
-  traditionalName: z.string().trim().min(2).max(120),
-  sku: z.string().trim().min(3).max(40).regex(/^[a-zA-Z0-9_-]+$/),
-  categoryId: z.string().trim().min(1),
-  country: z.string().trim().min(2).max(80),
-  packaging: z.string().trim().min(2).max(80),
-  description: z.string().trim().min(10).max(1200),
-  costPrice: z.coerce.number().positive().max(10000),
-  profitMargin: z.coerce.number().min(0).max(10000),
-  promoPrice: z.union([z.coerce.number().positive().max(10000), z.literal(""), z.null()]).optional(),
-  stockQty: z.coerce.number().int().min(0).max(100000),
-  netWeightGrams: z.coerce.number().int().min(0).max(100000),
-  thermalClass: z.enum(["AMBIANT", "REFRIGERATED", "FROZEN"]),
-  storageType: z.enum(["SEC", "FRAIS", "REFRIGERE", "SURGELE", "FUME", "SECHE", "CONSERVE"]),
-  aliases: z.array(z.string().trim().min(2).max(80)).max(12).default([]),
-  imageUrl: z.string().url().max(1000),
-  isNew: z.boolean().default(false),
-  isRecommended: z.boolean().default(false),
-  isBestseller: z.boolean().default(false),
-});
-
-const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export async function GET(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request, { module: "catalog", action: "read" });
@@ -37,7 +13,7 @@ export async function GET(request: NextRequest) {
   const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
   const products = await db.product.findMany({
     orderBy: { updatedAt: "desc" },
-    include: { translations: true, batches: true },
+    include: { translations: true, batches: true, aliases: true },
   });
 
   return NextResponse.json({
@@ -48,12 +24,20 @@ export async function GET(request: NextRequest) {
         ? product.batches.reduce((sum, batch) => sum + Number(batch.costPrice) * Math.max(0, batch.quantity + batch.reserved), 0) / batchWeight
         : null;
       const costPrice = product.costPrice === null ? estimatedCost : Number(product.costPrice);
+      const french = product.translations.find((translation) => translation.locale === "fr");
+      const english = product.translations.find((translation) => translation.locale === "en");
       return {
         id: product.id,
-        name: product.translations.find((translation) => translation.locale === locale)?.name || product.traditionalName,
+        name: product.translations.find((translation) => translation.locale === locale)?.name || french?.name || product.traditionalName,
+        nameFr: french?.name || product.traditionalName,
+        nameEn: english?.name || french?.name || product.traditionalName,
+        descriptionFr: french?.description || "",
+        descriptionEn: english?.description || french?.description || "",
         traditionalName: product.traditionalName,
         sku: product.sku,
+        categoryId: product.categoryId,
         country: product.country,
+        packaging: product.packaging,
         costPrice,
         profitMargin: product.profitMargin === null && costPrice !== null ? roundMoney(Number(product.price) - costPrice) : product.profitMargin === null ? null : Number(product.profitMargin),
         costSource: product.costPrice === null ? "estimated" : "recorded",
@@ -61,6 +45,7 @@ export async function GET(request: NextRequest) {
         promoPrice: product.promoPrice === null ? null : Number(product.promoPrice),
         stockQty: product.stockQty,
         alertThreshold: product.alertThreshold,
+        netWeightGrams: product.netWeightGrams,
         imageColor: product.imageColor,
         imageEmoji: product.imageEmoji,
         imageUrl: product.imageUrl,
@@ -69,7 +54,9 @@ export async function GET(request: NextRequest) {
         isRecommended: product.isRecommended,
         isBestseller: product.isBestseller,
         thermalClass: product.thermalClass,
+        storageType: product.storageType,
         status: product.status,
+        aliases: product.aliases.map((alias) => alias.alias),
       };
     }),
   });
@@ -79,7 +66,7 @@ export async function POST(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request, { module: "catalog", action: "create" });
   if (!authorization.ok) return authorization.response;
 
-  const parsed = ProductInput.safeParse(await request.json().catch(() => null));
+  const parsed = productAdminInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "La fiche produit est incomplète ou contient des valeurs invalides.", details: parsed.error.flatten() }, { status: 400 });
   }
@@ -120,11 +107,11 @@ export async function POST(request: NextRequest) {
       isRecommended: input.isRecommended,
       isBestseller: input.isBestseller,
       isOnSale: typeof input.promoPrice === "number",
-      status: "published",
+      status: input.status,
       translations: {
         create: [
-          { locale: "fr", name: input.name, description: input.description, validated: true },
-          { locale: "en", name: input.name, description: input.description, validated: false },
+          { locale: "fr", name: input.nameFr, description: input.descriptionFr, validated: true },
+          { locale: "en", name: input.nameEn, description: input.descriptionEn, validated: true },
         ],
       },
       aliases: { create: aliases.map((alias) => ({ alias, locale: "fr" })) },
@@ -137,17 +124,17 @@ export async function POST(request: NextRequest) {
       action: "product_create",
       entityType: "Product",
       entityId: product.id,
-      after: JSON.stringify({ sku: product.sku, name: input.name, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty, imageUrl: input.imageUrl, isNew: input.isNew, isRecommended: input.isRecommended, isBestseller: input.isBestseller }),
+      after: JSON.stringify({ sku: product.sku, nameFr: input.nameFr, nameEn: input.nameEn, costPrice: input.costPrice, profitMargin: input.profitMargin, price, stockQty: input.stockQty, imageUrl: input.imageUrl, status: input.status, isNew: input.isNew, isRecommended: input.isRecommended, isBestseller: input.isBestseller }),
       reason: `Création depuis la console par ${authorization.user.email}`,
     },
   });
 
-  const recommendationText = `${input.name} ${input.traditionalName} ${input.description} ${input.country} ${category.nameFr} ${aliases.join(" ")}`;
+  const recommendationText = `${input.nameFr} ${input.nameEn} ${input.traditionalName} ${input.descriptionFr} ${input.descriptionEn} ${input.country} ${category.nameFr} ${aliases.join(" ")}`;
   const recommendations = searchDishLibrary({ product: recommendationText, limit: 6 })
     .map(({ dish, score }) => localizeDish(dish, "fr", score));
 
   return NextResponse.json({
-    product: { id: product.id, sku: product.sku, name: input.name, price },
+    product: { id: product.id, sku: product.sku, name: input.nameFr, price },
     recommendations,
   }, { status: 201 });
 }

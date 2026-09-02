@@ -55,6 +55,7 @@ export function RecipesView() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={locale === "fr" ? "Rechercher un plat, un ingrédient, une origine..." : "Search a dish, ingredient, origin..."}
+                aria-label={locale === "fr" ? "Rechercher une recette ou un plat" : "Search for a recipe or dish"}
                 className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
@@ -85,11 +86,11 @@ export function RecipesView() {
 
         <div className="flex flex-col gap-3 border-b border-border pb-4">
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setCategory(null)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${!category ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
+            <button type="button" onClick={() => setCategory(null)} aria-pressed={!category} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${!category ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
               {t.recipes.all}
             </button>
             {(mode === "recipes" ? data?.categories : dishData?.categories)?.map((item: any) => (
-              <button key={item.slug} onClick={() => setCategory(category === item.slug ? null : item.slug)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${category === item.slug ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
+              <button type="button" key={item.slug} onClick={() => setCategory(category === item.slug ? null : item.slug)} aria-pressed={category === item.slug} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${category === item.slug ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
                 {item.name}
               </button>
             ))}
@@ -97,9 +98,9 @@ export function RecipesView() {
           {mode === "library" ? (
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <button onClick={() => setCountry("")} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${!country ? "bg-forest text-white" : "bg-forest/8 text-forest"}`}>{locale === "fr" ? "Toute l'Afrique" : "All Africa"}</button>
+              <button type="button" onClick={() => setCountry("")} aria-pressed={!country} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${!country ? "bg-forest text-white" : "bg-forest/8 text-forest"}`}>{locale === "fr" ? "Toute l'Afrique" : "All Africa"}</button>
               {dishData?.countries?.map((item: string) => (
-                <button key={item} onClick={() => setCountry(country === item ? "" : item)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${country === item ? "bg-forest text-white" : "bg-forest/8 text-forest"}`}>{item}</button>
+                <button type="button" key={item} onClick={() => setCountry(country === item ? "" : item)} aria-pressed={country === item} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${country === item ? "bg-forest text-white" : "bg-forest/8 text-forest"}`}>{item}</button>
               ))}
             </div>
           ) : null}

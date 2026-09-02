@@ -168,7 +168,7 @@ export function CartView() {
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Tag className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={couponInput} onChange={(e) => setCouponInput(e.target.value)} placeholder={t.cart.coupon} className="pl-8 text-sm" />
+                  <Input value={couponInput} onChange={(e) => setCouponInput(e.target.value)} placeholder={t.cart.coupon} aria-label={t.cart.coupon} className="pl-8 text-sm" />
                 </div>
                 <Button size="sm" onClick={applyCoupon} className="bg-charcoal text-cream hover:bg-charcoal/90">{t.cart.applyCoupon}</Button>
               </div>
@@ -230,12 +230,12 @@ function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string;
         <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground"><span className="truncate">{c.unitLabel}</span><span aria-hidden="true">·</span><span className={`inline-flex shrink-0 items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>
       </div>
       <div className="col-start-2 row-start-2 inline-flex w-fit items-center rounded-full border border-border sm:col-auto sm:row-auto">
-        <button onClick={() => onQty(c.qty - 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label="-"><span className="text-xs">−</span></button>
+        <button type="button" onClick={() => onQty(c.qty - 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label={locale === "fr" ? `Diminuer la quantité de ${c.name}` : `Decrease ${c.name} quantity`}><span className="text-xs">−</span></button>
         <span className="min-w-7 text-center text-sm font-semibold">{c.qty}</span>
-        <button onClick={() => onQty(Math.min(c.maxStock || 99, c.qty + 1))} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label="+"><span className="text-xs">+</span></button>
+        <button type="button" onClick={() => onQty(Math.min(c.maxStock || 99, c.qty + 1))} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label={locale === "fr" ? `Augmenter la quantité de ${c.name}` : `Increase ${c.name} quantity`}><span className="text-xs">+</span></button>
       </div>
       <span className="col-start-3 row-start-2 whitespace-nowrap text-right text-sm font-bold text-terre sm:col-auto sm:row-auto sm:w-20">{formatPrice(c.unitPrice * c.qty, locale as any)}</span>
-      <button onClick={onRemove} aria-label={t.remove} className="col-start-3 row-start-1 justify-self-end text-muted-foreground hover:text-destructive sm:col-auto sm:row-auto">
+      <button type="button" onClick={onRemove} aria-label={`${t.remove} ${c.name}`} className="col-start-3 row-start-1 justify-self-end text-muted-foreground hover:text-destructive sm:col-auto sm:row-auto">
         <Trash2 className="h-4 w-4" />
       </button>
     </motion.div>

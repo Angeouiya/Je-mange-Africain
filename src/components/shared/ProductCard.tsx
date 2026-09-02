@@ -114,8 +114,12 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
           {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0 shadow-sm">{t.promo}</Badge>}
         </div>
         <button
+          type="button"
           onClick={handleFav}
-          aria-label="Favori"
+          aria-pressed={isFav}
+          aria-label={isFav
+            ? (locale === "fr" ? `Retirer ${product.name} des favoris` : `Remove ${product.name} from favourites`)
+            : (locale === "fr" ? `Ajouter ${product.name} aux favoris` : `Add ${product.name} to favourites`)}
           className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full border border-black/8 bg-white/90 shadow-sm backdrop-blur transition hover:bg-white"
         >
           <Heart className={`h-4 w-4 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />

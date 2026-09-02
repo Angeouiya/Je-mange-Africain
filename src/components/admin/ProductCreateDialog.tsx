@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, type ReactNode, useDeferredValue, useMemo, useState } from "react";
-import { BookOpen, Calculator, ChefHat, LoaderCircle, PackagePlus, Sparkles } from "lucide-react";
+import { BookOpen, Calculator, ChefHat, LoaderCircle, PackagePlus, PencilLine, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,20 +13,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useFetch } from "@/lib/use-fetch";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 
 type ProductDraft = {
-  name: string;
+  nameFr: string;
+  nameEn: string;
   traditionalName: string;
   sku: string;
   categoryId: string;
   country: string;
   packaging: string;
-  description: string;
+  descriptionFr: string;
+  descriptionEn: string;
   costPrice: string;
   profitMargin: string;
   promoPrice: string;
@@ -36,40 +37,71 @@ type ProductDraft = {
   storageType: "SEC" | "FRAIS" | "REFRIGERE" | "SURGELE" | "FUME" | "SECHE" | "CONSERVE";
   aliases: string;
   imageUrl: string;
+  status: "draft" | "published" | "archived";
   isNew: boolean;
   isRecommended: boolean;
   isBestseller: boolean;
 };
 
-const initialDraft: ProductDraft = {
-  name: "",
-  traditionalName: "",
-  sku: "",
-  categoryId: "",
-  country: "Côte d'Ivoire",
-  packaging: "",
-  description: "",
-  costPrice: "",
-  profitMargin: "",
-  promoPrice: "",
-  stockQty: "0",
-  netWeightGrams: "0",
-  thermalClass: "AMBIANT",
-  storageType: "SEC",
-  aliases: "",
-  imageUrl: "",
-  isNew: true,
-  isRecommended: false,
-  isBestseller: false,
+export type EditableProduct = {
+  id: string;
+  nameFr: string;
+  nameEn: string;
+  traditionalName: string;
+  sku: string;
+  categoryId: string;
+  country: string;
+  packaging: string;
+  descriptionFr: string;
+  descriptionEn: string;
+  costPrice?: number | null;
+  profitMargin?: number | null;
+  promoPrice?: number | null;
+  stockQty: number;
+  netWeightGrams: number;
+  thermalClass: ProductDraft["thermalClass"];
+  storageType: ProductDraft["storageType"];
+  aliases?: string[];
+  imageUrl?: string | null;
+  status?: ProductDraft["status"];
+  isNew?: boolean;
+  isRecommended?: boolean;
+  isBestseller?: boolean;
 };
 
-export function ProductCreateDialog({ locale, onCreated }: { locale: string; onCreated: () => void }) {
+const draftFor = (product?: EditableProduct): ProductDraft => ({
+  nameFr: product?.nameFr || "",
+  nameEn: product?.nameEn || "",
+  traditionalName: product?.traditionalName || "",
+  sku: product?.sku || "",
+  categoryId: product?.categoryId || "",
+  country: product?.country || "Côte d'Ivoire",
+  packaging: product?.packaging || "",
+  descriptionFr: product?.descriptionFr || "",
+  descriptionEn: product?.descriptionEn || "",
+  costPrice: product?.costPrice === null || product?.costPrice === undefined ? "" : String(product.costPrice),
+  profitMargin: product?.profitMargin === null || product?.profitMargin === undefined ? "" : String(product.profitMargin),
+  promoPrice: product?.promoPrice === null || product?.promoPrice === undefined ? "" : String(product.promoPrice),
+  stockQty: String(product?.stockQty ?? 0),
+  netWeightGrams: String(product?.netWeightGrams ?? 0),
+  thermalClass: product?.thermalClass || "AMBIANT",
+  storageType: product?.storageType || "SEC",
+  aliases: product?.aliases?.join(", ") || "",
+  imageUrl: product?.imageUrl || "",
+  status: product?.status || "published",
+  isNew: product?.isNew ?? true,
+  isRecommended: Boolean(product?.isRecommended),
+  isBestseller: Boolean(product?.isBestseller),
+});
+
+export function ProductCreateDialog({ locale, onCreated, product }: { locale: "fr" | "en"; onCreated: () => void; product?: EditableProduct }) {
+  const editing = Boolean(product);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(initialDraft);
+  const [draft, setDraft] = useState(() => draftFor(product));
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const { data: categoriesData } = useFetch(`/api/categories?locale=${locale}`, [locale]);
-  const productSignal = useDeferredValue(`${draft.name} ${draft.traditionalName} ${draft.description} ${draft.country}`.trim());
+  const productSignal = useDeferredValue(`${draft.nameFr} ${draft.nameEn} ${draft.traditionalName} ${draft.descriptionFr} ${draft.descriptionEn} ${draft.country}`.trim());
   const recommendationsUrl = productSignal.length >= 3
     ? `/api/dishes?locale=${locale}&product=${encodeURIComponent(productSignal)}&limit=6`
     : null;
@@ -79,12 +111,14 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
   const marginRate = salePrice > 0 ? (Number(draft.profitMargin || 0) / salePrice) * 100 : 0;
   const hasRequiredFields = useMemo(
     () => Boolean(
-      draft.name.trim()
+      draft.nameFr.trim()
+      && draft.nameEn.trim()
       && draft.traditionalName.trim()
       && draft.sku.trim()
       && draft.categoryId
       && draft.packaging.trim()
-      && draft.description.trim()
+      && draft.descriptionFr.trim().length >= 10
+      && draft.descriptionEn.trim().length >= 10
       && draft.imageUrl
       && Number(draft.costPrice) > 0
       && draft.profitMargin !== ""
@@ -96,14 +130,23 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
 
   const update = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
 
+  const handleOpen = (nextOpen: boolean) => {
+    if (submitting) return;
+    setOpen(nextOpen);
+    if (nextOpen) {
+      setDraft(draftFor(product));
+      setSubmitError("");
+    }
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!hasRequiredFields) return;
     setSubmitting(true);
     setSubmitError("");
     try {
-      const response = await fetch("/api/admin/products", {
-        method: "POST",
+      const response = await fetch(editing ? `/api/admin/products/${product!.id}` : "/api/admin/products", {
+        method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...draft,
@@ -112,7 +155,7 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Enregistrement impossible.");
-      setDraft(initialDraft);
+      setDraft(draftFor());
       setOpen(false);
       onCreated();
     } catch (cause) {
@@ -123,21 +166,22 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-terre text-cream hover:bg-terre-dark"><PackagePlus className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Nouveau produit" : "New product"}</Button>
+        {editing ? <Button type="button" variant="outline" size="icon" className="h-8 w-8 bg-white" aria-label={locale === "fr" ? `Modifier la fiche ${product!.nameFr}` : `Edit ${product!.nameEn}`} title={locale === "fr" ? "Modifier la fiche complète" : "Edit full record"}><PencilLine className="h-4 w-4" /></Button> : <Button size="sm" className="bg-terre text-cream hover:bg-terre-dark"><PackagePlus className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Nouveau produit" : "New product"}</Button>}
       </DialogTrigger>
       <DialogContent className="max-h-[94vh] overflow-y-auto p-0 sm:max-w-5xl">
         <form onSubmit={submit}>
           <DialogHeader className="border-b border-border px-5 py-5 sm:px-7">
-            <DialogTitle className="flex items-center gap-2 text-xl text-charcoal"><PackagePlus className="h-5 w-5 text-terre" /> {locale === "fr" ? "Enregistrer un produit" : "Register a product"}</DialogTitle>
-            <DialogDescription>{locale === "fr" ? "La bibliothèque culinaire analyse la fiche et propose immédiatement les plats dans lesquels ce produit peut être valorisé." : "The culinary library analyses the record and instantly suggests dishes where this product can be featured."}</DialogDescription>
+            <DialogTitle className="flex items-center gap-2 text-xl text-charcoal">{editing ? <PencilLine className="h-5 w-5 text-terre" /> : <PackagePlus className="h-5 w-5 text-terre" />} {editing ? (locale === "fr" ? "Modifier la fiche produit" : "Edit product record") : (locale === "fr" ? "Enregistrer un produit" : "Register a product")}</DialogTitle>
+            <DialogDescription>{editing ? (locale === "fr" ? "Mettez à jour les deux langues, le prix interne, le stock et la publication depuis une seule fiche contrôlée." : "Update both languages, internal pricing, stock and publishing from one controlled record.") : (locale === "fr" ? "La bibliothèque culinaire analyse la fiche et propose immédiatement les plats dans lesquels ce produit peut être valorisé." : "The culinary library analyses the record and instantly suggests dishes where this product can be featured.")}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-7 px-5 py-6 sm:px-7 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={locale === "fr" ? "Nom commercial" : "Product name"} required><Input value={draft.name} onChange={(event) => update("name", event.target.value)} placeholder="Attiéké frais premium" /></Field>
+                <Field label="Nom commercial français" required><Input value={draft.nameFr} onChange={(event) => update("nameFr", event.target.value)} placeholder="Attiéké frais premium" /></Field>
+                <Field label="English product name" required><Input value={draft.nameEn} onChange={(event) => update("nameEn", event.target.value)} placeholder="Premium fresh attieke" /></Field>
                 <Field label={locale === "fr" ? "Nom traditionnel" : "Traditional name"} required><Input value={draft.traditionalName} onChange={(event) => update("traditionalName", event.target.value)} placeholder="Attiéké" /></Field>
                 <Field label="SKU" required><Input value={draft.sku} onChange={(event) => update("sku", event.target.value.toUpperCase())} placeholder="JMA-ATT-001" /></Field>
                 <Field label={locale === "fr" ? "Catégorie" : "Category"} required>
@@ -150,9 +194,10 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
                 <Field label={locale === "fr" ? "Conditionnement" : "Packaging"} required><Input value={draft.packaging} onChange={(event) => update("packaging", event.target.value)} placeholder="Sachet 500 g" /></Field>
               </div>
 
-              <Field label={locale === "fr" ? "Description client" : "Customer description"} required>
-                <Textarea value={draft.description} onChange={(event) => update("description", event.target.value)} rows={4} placeholder={locale === "fr" ? "Origine, goût, texture, usage et conservation..." : "Origin, flavour, texture, use and storage..."} />
-              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Description française" required><Textarea value={draft.descriptionFr} onChange={(event) => update("descriptionFr", event.target.value)} rows={5} placeholder="Origine, goût, texture, usage et conservation..." /></Field>
+                <Field label="English description" required><Textarea value={draft.descriptionEn} onChange={(event) => update("descriptionEn", event.target.value)} rows={5} placeholder="Origin, flavour, texture, use and storage..." /></Field>
+              </div>
 
               <section className="overflow-hidden rounded-lg border border-terre/20 bg-terre/[0.035]">
                 <div className="flex items-start gap-3 border-b border-terre/15 px-4 py-3">
@@ -188,6 +233,11 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
                   </select>
                 </Field>
               </div>
+              <Field label={locale === "fr" ? "État de publication" : "Publishing status"}>
+                <select value={draft.status} onChange={(event) => update("status", event.target.value as ProductDraft["status"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
+                  <option value="published">{locale === "fr" ? "Publié dans la boutique" : "Published in store"}</option><option value="draft">{locale === "fr" ? "Brouillon interne" : "Internal draft"}</option><option value="archived">{locale === "fr" ? "Désactivé" : "Disabled"}</option>
+                </select>
+              </Field>
               <Field label={locale === "fr" ? "Alias de recherche" : "Search aliases"}><Input value={draft.aliases} onChange={(event) => update("aliases", event.target.value)} placeholder="atchéké, couscous de manioc" /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Séparez les variantes par une virgule." : "Separate variants with commas."}</p></Field>
             </div>
 
@@ -223,8 +273,8 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
 
           <DialogFooter className="border-t border-border px-5 py-4 sm:px-7">
             {submitError ? <p role="alert" className="mr-auto self-center text-xs text-destructive">{submitError}</p> : null}
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{locale === "fr" ? "Annuler" : "Cancel"}</Button>
-            <Button type="submit" disabled={!hasRequiredFields || submitting} className="bg-terre text-white hover:bg-terre-dark">{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <PackagePlus className="mr-2 h-4 w-4" />}{submitting ? (locale === "fr" ? "Publication..." : "Publishing...") : (locale === "fr" ? "Publier le produit" : "Publish product")}</Button>
+            <Button type="button" variant="outline" onClick={() => handleOpen(false)}>{locale === "fr" ? "Annuler" : "Cancel"}</Button>
+            <Button type="submit" disabled={!hasRequiredFields || submitting} className="bg-terre text-white hover:bg-terre-dark">{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : editing ? <PencilLine className="mr-2 h-4 w-4" /> : <PackagePlus className="mr-2 h-4 w-4" />}{submitting ? (locale === "fr" ? "Enregistrement..." : "Saving...") : editing ? (locale === "fr" ? "Enregistrer les modifications" : "Save changes") : draft.status === "published" ? (locale === "fr" ? "Publier le produit" : "Publish product") : (locale === "fr" ? "Enregistrer le produit" : "Save product")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -233,7 +283,7 @@ export function ProductCreateDialog({ locale, onCreated }: { locale: string; onC
 }
 
 function Field({ label, required = false, children }: { label: string; required?: boolean; children: ReactNode }) {
-  return <div className="space-y-1.5"><Label>{label}{required ? <span className="ml-1 text-terre">*</span> : null}</Label>{children}</div>;
+  return <label className="block space-y-1.5"><span className="block text-sm font-medium leading-none text-charcoal">{label}{required ? <span className="ml-1 text-terre">*</span> : null}</span>{children}</label>;
 }
 
 function EditorialFlag({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {

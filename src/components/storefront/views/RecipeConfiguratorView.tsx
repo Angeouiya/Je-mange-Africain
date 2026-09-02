@@ -258,12 +258,12 @@ export function RecipeConfiguratorView() {
                 <strong className="text-sm text-terre">{servings} {t.config.peopleUnit}</strong>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <CounterField label={t.config.adults} value={adults} onChange={updateAdults} max={24 - children} />
-                <CounterField label={t.config.children} value={children} onChange={updateChildren} max={24 - adults} />
+                <CounterField label={t.config.adults} value={adults} onChange={updateAdults} max={24 - children} locale={locale} />
+                <CounterField label={t.config.children} value={children} onChange={updateChildren} max={24 - adults} locale={locale} />
               </div>
               <div className="flex gap-1">
                 {(["normal", "generous"] as const).map((p) => (
-                  <button key={p} onClick={() => setPortion(p)} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${portion === p ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                  <button type="button" key={p} onClick={() => setPortion(p)} aria-pressed={portion === p} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${portion === p ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {t.config[p]}
                   </button>
                 ))}
@@ -275,7 +275,7 @@ export function RecipeConfiguratorView() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.protein}</p>
               <div className="grid grid-cols-2 gap-1">
                 {([["recipe", locale === "fr" ? "Recette originale" : "Original recipe"], ["fish", t.config.fish], ["meat", t.config.meat], ["none", t.config.none]] as const).map(([v, label]) => (
-                  <button key={v} onClick={() => setProtein(v)} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${protein === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                  <button type="button" key={v} onClick={() => setProtein(v)} aria-pressed={protein === v} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${protein === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {label}
                   </button>
                 ))}
@@ -291,7 +291,7 @@ export function RecipeConfiguratorView() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.spiceLevel} 🌶️</p>
               <div className="flex gap-1">
                 {([["mild", t.config.mild], ["medium", t.config.medium], ["hot", t.config.hot], ["veryHot", t.config.veryHot]] as const).map(([v, label], i) => (
-                  <button key={v} onClick={() => setSpiceLevel(v)} className={`flex-1 rounded-lg px-1 py-1.5 text-[11px] font-medium transition ${spiceLevel === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                  <button type="button" key={v} onClick={() => setSpiceLevel(v)} aria-pressed={spiceLevel === v} className={`flex-1 rounded-lg px-1 py-1.5 text-[11px] font-medium transition ${spiceLevel === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {"🌶️".repeat(i + 1)} <span className="block">{label}</span>
                   </button>
                 ))}
@@ -303,7 +303,7 @@ export function RecipeConfiguratorView() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.formula}</p>
               <div className="flex gap-1">
                 {([["economy", t.config.economy], ["standard", t.config.standard], ["premium", t.config.premium]] as const).map(([v, label]) => (
-                  <button key={v} onClick={() => setFormula(v)} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${formula === v ? "bg-forest text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                  <button type="button" key={v} onClick={() => setFormula(v)} aria-pressed={formula === v} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${formula === v ? "bg-forest text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {label}
                   </button>
                 ))}
@@ -342,11 +342,18 @@ export function RecipeConfiguratorView() {
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pb-3">
                   <div className="mb-3 flex items-center gap-3 border-b border-border pb-3">
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted" aria-label={locale === "fr" ? `${completedStepCount} étapes terminées sur ${preparationSteps.length}` : `${completedStepCount} of ${preparationSteps.length} steps completed`}>
+                    <div
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={preparationSteps.length}
+                      aria-valuenow={completedStepCount}
+                      aria-label={locale === "fr" ? `${completedStepCount} étapes terminées sur ${preparationSteps.length}` : `${completedStepCount} of ${preparationSteps.length} steps completed`}
+                      className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
+                    >
                       <div className="h-full rounded-full bg-forest transition-all" style={{ width: `${preparationSteps.length ? (completedStepCount / preparationSteps.length) * 100 : 0}%` }} />
                     </div>
                     <span className="text-xs font-bold text-forest">{completedStepCount}/{preparationSteps.length}</span>
-                    {completedStepCount > 0 ? <button type="button" onClick={() => setCompletedSteps([])} className="text-xs font-semibold text-terre hover:underline">{locale === "fr" ? "Recommencer" : "Restart"}</button> : null}
+                    {completedStepCount > 0 ? <button type="button" onClick={() => setCompletedSteps([])} className="inline-flex min-h-7 items-center px-1 text-xs font-semibold text-terre hover:underline">{locale === "fr" ? "Recommencer" : "Restart"}</button> : null}
                   </div>
                   {preparationAdjustments.length > 0 ? (
                     <div className="mb-3 border-l-2 border-gold bg-gold/8 px-3 py-2">
@@ -477,14 +484,14 @@ function RecipeMetric({ icon: Icon, label, value }: { icon: React.ComponentType<
   );
 }
 
-function CounterField({ label, value, onChange, max }: { label: string; value: number; onChange: (value: number) => void; max: number }) {
+function CounterField({ label, value, onChange, max, locale }: { label: string; value: number; onChange: (value: number) => void; max: number; locale: "fr" | "en" }) {
   return (
     <div className="rounded-lg border border-border bg-background p-2">
       <p className="mb-1 text-[10px] font-semibold text-muted-foreground">{label}</p>
       <div className="flex items-center justify-between">
-        <button type="button" onClick={() => onChange(value - 1)} disabled={value <= 0} className="grid h-8 w-8 place-items-center rounded-md text-charcoal transition hover:bg-muted disabled:opacity-35" aria-label={`Réduire ${label}`}><Minus className="h-3.5 w-3.5" /></button>
+        <button type="button" onClick={() => onChange(value - 1)} disabled={value <= 0} className="grid h-8 w-8 place-items-center rounded-md text-charcoal transition hover:bg-muted disabled:opacity-35" aria-label={locale === "fr" ? `Réduire ${label}` : `Decrease ${label}`}><Minus className="h-3.5 w-3.5" /></button>
         <span className="min-w-8 text-center text-base font-extrabold text-charcoal">{value}</span>
-        <button type="button" onClick={() => onChange(value + 1)} disabled={value >= max} className="grid h-8 w-8 place-items-center rounded-md text-charcoal transition hover:bg-muted disabled:opacity-35" aria-label={`Augmenter ${label}`}><Plus className="h-3.5 w-3.5" /></button>
+        <button type="button" onClick={() => onChange(value + 1)} disabled={value >= max} className="grid h-8 w-8 place-items-center rounded-md text-charcoal transition hover:bg-muted disabled:opacity-35" aria-label={locale === "fr" ? `Augmenter ${label}` : `Increase ${label}`}><Plus className="h-3.5 w-3.5" /></button>
       </div>
     </div>
   );
@@ -506,6 +513,9 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
   const proteinRemoved = ing.removalReason === "protein-none";
   const replacementOptions = ing.replacementOptions || [];
   const currentMissingFromOptions = ing.isReplacement && !replacementOptions.some((option: any) => option.productId === ing.productId);
+  const pantryActionLabel = locale === "fr"
+    ? (pantryRemoved ? `Retirer ${localizedName} de mes ingrédients disponibles` : `J'ai déjà ${localizedName} à la maison`)
+    : (pantryRemoved ? `Remove ${localizedName} from pantry` : `I already have ${localizedName} at home`);
 
   return (
     <div className={`space-y-3 p-4 transition ${ing.removed ? "bg-muted/20" : ""}`}>
@@ -522,7 +532,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
           </div>
         </div>
         <div className="flex shrink-0 gap-1">
-          <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} title={locale === "fr" ? (pantryRemoved ? "Retirer de mes ingrédients disponibles" : "Je l'ai déjà à la maison") : (pantryRemoved ? "Remove from pantry" : "I already have this")} className={`grid h-9 w-9 place-items-center rounded-md border transition ${pantryRemoved ? "border-forest bg-forest text-white" : "border-border text-muted-foreground hover:border-forest hover:text-forest"}`}>
+          <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} aria-label={pantryActionLabel} title={pantryActionLabel} className={`grid h-9 w-9 place-items-center rounded-md border transition ${pantryRemoved ? "border-forest bg-forest text-white" : "border-border text-muted-foreground hover:border-forest hover:text-forest"}`}>
             <House className="h-4 w-4" />
           </button>
           {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} title={locale === "fr" ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette") : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe")} aria-label={locale === "fr" ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette") : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe")} className={`grid h-9 w-9 place-items-center rounded-md border transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-border text-muted-foreground hover:border-terre hover:text-terre"}`}>
@@ -537,7 +547,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
         </div>
       ) : null}
 
-      <div className="grid grid-cols-3 items-end gap-2 text-xs">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 text-xs">
         <div>
           <p className="text-[10px] text-muted-foreground">{t.config.neededQty}</p>
           <p className="font-semibold text-charcoal">{formatQty(ing.neededQty, ing.neededUnit, locale as any)}</p>

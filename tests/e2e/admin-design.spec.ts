@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -64,7 +65,7 @@ async function mockAdminApi(page: Page) {
     if (path === "/api/admin/session") payload = { user: { email: "direction@je-mange-africain.com", role: "super_admin" } };
     else if (path === "/api/admin/dashboard") payload = dashboard;
     else if (path === "/api/admin/products") payload = {
-      products: [{ id: "product-1", name: "Attiéké frais", traditionalName: "Attiéké", sku: "JMA-ATT-500", costPrice: 2.8, profitMargin: 2.1, costSource: "recorded", price: 4.9, stockQty: 84, alertThreshold: 12, imageColor: "#E9B949", imageEmoji: "", imageUrl: "/products/attieke.webp", isNew: false, isRecommended: true, isBestseller: true, status: "published", thermalClass: "REFRIGERATED", country: "Côte d'Ivoire" }],
+      products: [{ id: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", descriptionFr: "Semoule de manioc fermentée, fraîche et légère.", descriptionEn: "Light, fresh fermented cassava couscous.", traditionalName: "Attiéké", sku: "JMA-ATT-500", categoryId: "cat-1", packaging: "Sachet 500 g", costPrice: 2.8, profitMargin: 2.1, costSource: "recorded", price: 4.9, promoPrice: null, stockQty: 84, alertThreshold: 12, netWeightGrams: 500, imageColor: "#E9B949", imageEmoji: "", imageUrl: "/products/attieke.webp", aliases: ["atchéké", "couscous de manioc"], isNew: false, isRecommended: true, isBestseller: true, status: "published", thermalClass: "REFRIGERATED", storageType: "REFRIGERE", country: "Côte d'Ivoire" }],
       total: 1,
     };
     else if (path === "/api/admin/recipes") payload = {
@@ -138,4 +139,56 @@ test("the professional console remains separate from the customer storefront", a
   await expect(page.getByText("direction@je-mange-africain.com")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/mon panier|mes favoris|se connecter avec votre compte client/i);
   await expect(page.getByRole("button", { name: /quitter/i })).toBeVisible();
+});
+
+test("the product workspace edits bilingual content and calculates the customer price", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#catalog", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Ce qui est réellement vendu" })).toBeVisible();
+  await page.getByRole("button", { name: "Modifier la fiche Attiéké frais" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Modifier la fiche produit" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Nom commercial français")).toHaveValue("Attiéké frais");
+  await expect(dialog.getByLabel("English product name")).toHaveValue("Fresh attieke");
+  await dialog.getByLabel("Coût brut d'achat (€)").fill("3.20");
+  await dialog.getByLabel("Marge bénéficiaire (€)").fill("1.80");
+  await expect(dialog.getByText("5,00 €", { exact: true })).toBeVisible();
+
+  const dialogOverflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(dialogOverflow).toBeLessThanOrEqual(1);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `product-edit-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+});
+
+test("advanced recipe, advertising and team editors remain accessible and bounded", async ({ page }) => {
+  test.setTimeout(150_000);
+  await mockAdminApi(page);
+
+  const editors = [
+    { hash: "recipes", title: "Construire des recettes achetables", trigger: "Nouvelle recette", dialog: "Composer une recette achetable" },
+    { hash: "advertising", title: "Régie publicitaire", trigger: "Nouvelle affiche", dialog: "Composer une affiche publicitaire" },
+    { hash: "team", title: "Équipe professionnelle", trigger: "Inviter un membre", dialog: "Créer un accès professionnel" },
+  ];
+
+  for (const editor of editors) {
+    await page.goto(`/admin#${editor.hash}`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: editor.title })).toBeVisible();
+    await page.getByRole("button", { name: editor.trigger }).click();
+    const dialog = page.getByRole("dialog", { name: editor.dialog });
+    await expect(dialog).toBeVisible();
+    const overflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+    expect(overflow, `${editor.dialog} overflows horizontally`).toBeLessThanOrEqual(1);
+    const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+    expect(blocking, `${editor.dialog}\n${blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")}`).toEqual([]);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  }
 });
