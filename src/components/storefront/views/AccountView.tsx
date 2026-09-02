@@ -170,19 +170,19 @@ export function AccountView() {
 
   if (!customer) {
     return (
-      <div role="dialog" aria-modal="true" aria-labelledby="customer-auth-title" className="fixed inset-0 z-[80] overflow-y-auto bg-cream">
-        <div className="african-kente-stripe sticky inset-x-0 top-0 z-10 h-1" />
+      <div role="dialog" aria-modal="true" aria-labelledby="customer-auth-title" className="fixed inset-0 z-[80] overflow-y-auto bg-white">
+        <div className="african-kente-stripe sticky inset-x-0 top-0 z-10 h-[3px]" />
         <button type="button" onClick={() => navigate(params.returnView === "checkout" ? "cart" : "home")} disabled={authStatus === "busy"} className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-border bg-white text-charcoal shadow-sm transition hover:border-terre hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={locale === "fr" ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
           <X className="h-5 w-5" />
         </button>
         <div className="mx-auto flex min-h-full w-full max-w-md items-start px-4 py-16 sm:items-center sm:py-12">
-        <section className="w-full rounded-lg bg-white p-5 shadow-sm sm:border sm:border-border sm:p-7">
+        <section className="w-full rounded-lg bg-white p-5 sm:border sm:border-charcoal/10 sm:p-7 sm:shadow-[0_26px_70px_-52px_rgba(24,26,24,0.6)]">
           <div className="mb-8 flex justify-center sm:justify-start">
             <BrandLockup size="large" />
           </div>
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-lg bg-terre/10"><User className="h-6 w-6 text-terre" /></div>
-            <div><h1 id="customer-auth-title" className="text-xl font-extrabold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</h1><p className="text-xs text-muted-foreground">{locale === "fr" ? "Votre compte, simplement et en toute sécurité." : "Simple, secure access to your account."}</p></div>
+            <div><h1 id="customer-auth-title" className="font-display text-2xl font-semibold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</h1><p className="text-xs text-muted-foreground">{locale === "fr" ? "Votre compte, simplement et en toute sécurité." : "Simple, secure access to your account."}</p></div>
           </div>
 
           {authMode !== "forgot" ? (
@@ -258,13 +258,13 @@ export function AccountView() {
   const orderCount = orderData?.orders?.length || 0;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 lg:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
       <div className="mb-4 flex items-center gap-3">
         <div className="grid h-14 w-14 place-items-center rounded-full bg-terre/15 text-xl font-bold text-terre">
           {customer.firstName[0]}{customer.lastName[0]}
         </div>
         <div>
-          <h1 className="text-xl font-bold text-charcoal">{customer.firstName} {customer.lastName}</h1>
+          <h1 className="font-display text-2xl font-semibold text-charcoal">{customer.firstName} {customer.lastName}</h1>
           <p className="text-xs text-muted-foreground">{customer.email}</p>
         </div>
       </div>

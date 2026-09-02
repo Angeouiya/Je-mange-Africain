@@ -105,7 +105,7 @@ export function CartView() {
       <div className="mx-auto flex max-w-2xl flex-col items-center justify-center gap-4 px-4 py-20 text-center">
         <PageBackButton fallbackView="catalog" className="self-start" />
         <ShoppingBag className="h-16 w-16 text-muted-foreground/50" />
-        <h2 className="text-xl font-bold text-charcoal">{t.cart.empty}</h2>
+        <h2 className="font-display text-2xl font-semibold text-charcoal">{t.cart.empty}</h2>
         <Button onClick={() => navigate("catalog")} className="bg-terre text-cream hover:bg-terre-dark">
           {t.cart.emptyCta} <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
@@ -114,10 +114,10 @@ export function CartView() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-2" />
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-charcoal md:text-3xl">{t.cart.title}</h1>
+        <h1 className="jma-section-title">{t.cart.title}</h1>
         <AlertDialog>
           <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="mr-1 h-4 w-4" /> {t.cart.clear}</Button></AlertDialogTrigger>
           <AlertDialogContent>
@@ -135,7 +135,7 @@ export function CartView() {
             const recipeName = key.split("::")[1] || "Recette";
             const groupTotal = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
             return (
-              <div key={key} className="rounded-2xl border border-forest/30 bg-forest/5 p-3">
+              <div key={key} className="rounded-lg border border-forest/25 bg-forest/[0.035] p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <Badge className="bg-forest text-cream border-0">{t.cart.recipeGroup.replace("{name}", recipeName)}</Badge>
                   <span className="ml-auto text-sm font-bold text-forest">{formatPrice(groupTotal, locale)}</span>
@@ -149,7 +149,7 @@ export function CartView() {
 
           {/* standalone */}
           {standalone.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="rounded-lg border border-charcoal/10 bg-white p-3">
               <div className="space-y-2">
                 {standalone.map((c) => <CartLine key={c.id} c={c} locale={locale} onQty={(q) => updateQty(c.id, q)} onRemove={() => removeLine(c.id)} />)}
               </div>
@@ -160,8 +160,8 @@ export function CartView() {
 
         {/* summary */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h2 className="mb-3 text-sm font-bold text-charcoal">{t.config.summary}</h2>
+          <div className="rounded-lg border border-charcoal/12 bg-white p-4 shadow-[0_22px_50px_-42px_rgba(24,26,24,0.55)]">
+            <h2 className="mb-3 font-display text-xl font-semibold text-charcoal">{t.config.summary}</h2>
 
             {/* coupon */}
             <div className="mb-3 space-y-1.5">
@@ -223,7 +223,7 @@ export function CartView() {
 function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string; onQty: (q: number) => void; onRemove: () => void }) {
   const t = dict[locale as "fr" | "en"];
   return (
-    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg bg-background p-2.5 sm:flex sm:gap-3">
+    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg bg-muted/45 p-2.5 sm:flex sm:gap-3">
       <ProductImage src={c.imageUrl} alt={c.name} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="row-span-2 h-14 w-14 shrink-0 sm:row-auto" rounded="rounded-md" />
       <div className="min-w-0 sm:flex-1">
         <p className="truncate text-sm font-bold text-charcoal">{c.name}</p>

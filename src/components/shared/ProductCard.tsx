@@ -84,27 +84,28 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ y: 10 }}
+      animate={{ y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
       onClick={() => navigate("product", { productId: product.id })}
-      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg"
+      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border border-charcoal/10 bg-white transition-all hover:-translate-y-0.5 hover:border-charcoal/20 hover:shadow-[0_22px_50px_-34px_rgba(24,26,24,0.55)]"
     >
       <div className="relative">
-        <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-[5/4]" : "aspect-[4/3]"}`}>
+        <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-[4/3]" : "aspect-[4/3]"}`}>
           <ProductImage
             src={photoUrl}
             alt={product.name}
             emoji={product.imageEmoji}
             color={product.imageColor}
             size="lg"
+            priority={index < 2}
             className="h-full w-full"
             rounded="rounded-none"
           />
         </div>
         <div className="absolute left-2 top-2 flex max-w-[74%] flex-col gap-1">
           {discountPercent > 0 && (
-            <span className="w-fit rounded-md bg-destructive px-2 py-1 text-[11px] font-extrabold leading-none text-white shadow-md">
+            <span className="w-fit rounded-md bg-destructive px-2 py-1 text-[10px] font-extrabold leading-none text-white shadow-sm">
               -{discountPercent}%
             </span>
           )}
@@ -115,13 +116,13 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
         <button
           onClick={handleFav}
           aria-label="Favori"
-          className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/80 backdrop-blur transition hover:bg-white"
+          className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full border border-black/8 bg-white/90 shadow-sm backdrop-blur transition hover:bg-white"
         >
           <Heart className={`h-4 w-4 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />
         </button>
       </div>
 
-      <div className={`flex min-w-0 flex-1 flex-col ${compact ? "gap-1.5 p-2.5" : "gap-2.5 p-3"}`}>
+      <div className={`flex min-w-0 flex-1 flex-col ${compact ? "gap-1.5 p-3" : "gap-2.5 p-3.5"}`}>
         <div className="flex items-center gap-1.5">
           <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium ${thermalColor(product.thermalClass)}`}>
             {thermalLabel(product.thermalClass, locale)}
@@ -130,7 +131,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
           {outOfStock && <span className="text-[10px] font-semibold text-destructive">{t.outOfStock}</span>}
         </div>
         <div>
-          <h3 className={`line-clamp-2 break-words font-bold leading-tight text-charcoal ${compact ? "text-xs" : "text-sm"}`}>{product.name}</h3>
+          <h3 className={`line-clamp-2 break-words font-extrabold leading-tight text-charcoal ${compact ? "text-xs" : "text-sm"}`}>{product.name}</h3>
           <p className="mt-0.5 line-clamp-1 text-[11px] font-medium text-terre">{product.traditionalName}</p>
         </div>
         {!compact && <p className="line-clamp-2 min-h-[2.2rem] text-[11px] leading-relaxed text-muted-foreground">{commercialLine}</p>}
@@ -146,14 +147,14 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
                 )}
               </div>
             )}
-            <span className={`${compact ? "text-sm" : "text-base"} block whitespace-nowrap font-extrabold text-terre`}>{formatPrice(price, locale)}</span>
+            <span className={`${compact ? "text-sm" : "text-base"} block whitespace-nowrap font-black text-terre`}>{formatPrice(price, locale)}</span>
             {product.pricePerKg && !compact && <span className="block truncate text-[10px] text-muted-foreground">{formatUnitPrice(product.pricePerKg, locale)} / kg</span>}
           </div>
           <Button
             size="sm"
             onClick={handleAdd}
             disabled={outOfStock}
-            className="h-8 w-8 rounded-full bg-terre p-0 text-cream shadow-sm hover:bg-terre-dark"
+            className="h-9 w-9 rounded-full bg-terre p-0 text-white shadow-sm hover:bg-terre-dark"
             aria-label={t.product.addToCart}
           >
             <Plus className="h-4 w-4" />

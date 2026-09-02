@@ -169,7 +169,7 @@ export function CheckoutView() {
         <div className="flex min-h-[55dvh] flex-col items-center justify-center text-center">
           <span className="grid h-14 w-14 place-items-center rounded-md bg-terre/10 text-terre"><Lock className="h-6 w-6" /></span>
           <p className="mt-5 text-[10px] font-black uppercase text-terre">{locale === "fr" ? "Paiement protégé" : "Protected checkout"}</p>
-          <h1 className="mt-2 text-2xl font-black text-charcoal">{locale === "fr" ? "Connectez-vous avant de finaliser" : "Sign in before checkout"}</h1>
+          <h1 className="mt-2 font-display text-3xl font-semibold text-charcoal">{locale === "fr" ? "Connectez-vous avant de finaliser" : "Sign in before checkout"}</h1>
           <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">{locale === "fr" ? "Votre panier reste intact. La connexion associe l'adresse, le paiement et le suivi de livraison au bon compte." : "Your basket remains intact. Signing in links the address, payment and delivery tracking to the correct account."}</p>
           <div className="mt-6 flex w-full max-w-sm flex-col gap-2 sm:flex-row">
             <Button onClick={() => navigate("account", { returnView: "checkout" })} className="flex-1 bg-terre text-white hover:bg-terre-dark"><LogIn className="mr-2 h-4 w-4" />{t.nav.login}</Button>
@@ -211,9 +211,9 @@ export function CheckoutView() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 lg:px-6">
+    <div className="mx-auto max-w-3xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="cart" className="mb-4" />
-      <h1 className="mb-4 text-2xl font-bold text-charcoal md:text-3xl">{t.checkout.title}</h1>
+      <h1 className="jma-section-title mb-5">{t.checkout.title}</h1>
       <div className="mb-6 flex items-center gap-1.5" aria-label={locale === "fr" ? "Progression du paiement" : "Checkout progress"}>
         {steps.map((label, index) => (
           <div key={label} className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -224,7 +224,7 @@ export function CheckoutView() {
         ))}
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
+      <div className="rounded-lg border border-charcoal/10 bg-white p-4 sm:p-6">
         {step === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -253,7 +253,7 @@ export function CheckoutView() {
             {!stripePromise ? <ErrorMessage>{locale === "fr" ? "Le paiement sécurisé doit être configuré avant l'ouverture des commandes." : "Secure payment must be configured before orders can open."}</ErrorMessage> : null}
           </motion.div>
         ) : intent && stripePromise ? (
-          <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#D65A32", colorText: "#242424", borderRadius: "8px", fontFamily: "Poppins, sans-serif" } } }}>
+          <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#B74325", colorText: "#181A18", borderRadius: "8px", fontFamily: "Manrope, sans-serif" } } }}>
             <SecurePaymentStages step={step} setStep={setStep} clientSecret={intent.clientSecret} processing={processing} paymentError={paymentError} setPaymentError={setPaymentError} amount={displayTotal} locale={locale} review={review} onConfirm={finalizeOrder} />
           </Elements>
         ) : null}
@@ -348,7 +348,7 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
 
 function Field({ label, value, onChange, type = "text", autoComplete }: { label: string; value: string; onChange: (value: string) => void; type?: string; autoComplete?: string }) {
   const id = useId();
-  return <div className="min-w-0"><Label htmlFor={id} className="mb-1 block text-xs font-semibold text-charcoal">{label}</Label><Input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} className="min-w-0 bg-background" /></div>;
+  return <div className="min-w-0"><Label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-charcoal">{label}</Label><Input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} className="h-11 min-w-0 border-charcoal/12 bg-white" /></div>;
 }
 
 function PriceLine({ label, value, accent = false, muted = false }: { label: string; value: string; accent?: boolean; muted?: boolean }) {

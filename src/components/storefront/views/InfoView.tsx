@@ -38,14 +38,14 @@ export function InfoView() {
             ["Comment fonctionne le configurateur de recettes ?", "Choisissez une recette, indiquez le nombre de personnes, personnalisez (protéine, piment, kplô…). Le système calcule les quantités, choisit les conditionnements, estime les restes et le coût par personne. Ajoutez tout au panier en un clic."],
             ["Quels sont les délais de livraison ?", "Livraison standard sous 48-72h en France, 24h en express. Livraison offerte dès 50 € d'achat."],
             ["Comment sont gérés les produits frais et surgelés ?", "Chaque produit a une classe thermique (ambiant, réfrigéré, surgelé). Votre commande est expédiée en plusieurs colis selon les classes, avec chaîne du froid respectée."],
-            ["Puis-je commander sans compte ?", "Oui, la commande invité est possible, mais un compte permet de suivre vos colis, sauvegarder vos recettes et cumuler des points de fidélité."],
+            ["Puis-je commander sans compte ?", "Vous pouvez explorer le catalogue et composer votre panier librement. La connexion devient obligatoire avant le paiement afin de sécuriser l'adresse, la facture et le suivi de livraison."],
             ["Quels moyens de paiement acceptez-vous ?", "Carte bancaire, Apple Pay, Google Pay, PayPal, cartes cadeaux et avoirs. Paiement vérifié côté serveur."],
             ["Comment se passe un remboursement ?", "En cas de produit manquant ou abîmé, ouvrez une réclamation depuis votre compte. Notre service client traite sous 48h et émet un avoir ou un remboursement."],
           ] : [
             ["How does the recipe configurator work?", "Pick a recipe, set the number of people, customize (protein, spice, kplô…). The system computes quantities, picks packaging, estimates leftovers and cost per person. Add everything to cart in one click."],
             ["What are the delivery times?", "Standard delivery within 48-72h in France, 24h express. Free delivery from €50."],
             ["How are fresh and frozen products handled?", "Each product has a thermal class (ambient, chilled, frozen). Your order ships in multiple parcels by class, with cold chain respected."],
-            ["Can I order without an account?", "Yes, guest checkout is possible, but an account lets you track parcels, save recipes and earn loyalty points."],
+            ["Can I order without an account?", "You can browse the catalogue and build your basket freely. Sign-in is required before payment to secure the address, invoice and delivery tracking."],
             ["Which payment methods do you accept?", "Credit card, Apple Pay, Google Pay, PayPal, gift cards and store credit. Payment verified server-side."],
             ["How do refunds work?", "For missing or damaged products, open a claim from your account. Our support handles it within 48h and issues credit or a refund."],
           ]).map(([q, a], i) => (
@@ -70,10 +70,10 @@ export function InfoView() {
   const c = content[page] || content.about;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 lg:px-6">
+    <div className="mx-auto max-w-3xl px-4 py-8 md:px-7 md:py-12 lg:px-8">
       <PageBackButton fallbackView="home" className="mb-3" />
-      <h1 className="mb-5 text-2xl font-bold text-charcoal md:text-3xl">{c.title}</h1>
-      <div className="jma-card rounded-2xl p-5 md:p-7">{c.body}</div>
+      <h1 className="jma-section-title mb-6">{c.title}</h1>
+      <div className="border-t border-charcoal/10 pt-6">{c.body}</div>
     </div>
   );
 }

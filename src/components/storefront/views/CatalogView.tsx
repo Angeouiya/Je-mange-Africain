@@ -107,15 +107,15 @@ export function CatalogView() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
-      <div className="mb-4 flex flex-col gap-3">
-        <h1 className="text-2xl font-bold text-charcoal md:text-3xl">{t.catalog.title}</h1>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
+    <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
+      <div className="mb-6 flex flex-col gap-4 border-b border-charcoal/10 pb-6">
+        <div><p className="jma-eyebrow">{locale === "fr" ? "Catalogue vivant" : "Live catalogue"}</p><h1 className="jma-section-title mt-1">{t.catalog.title}</h1></div>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
+          <div className="relative col-span-2 flex-1 sm:col-span-1">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.header.searchPlaceholder} className="pl-9" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.header.searchPlaceholder} className="h-11 border-charcoal/12 bg-white pl-9" />
           </div>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm">
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-11 min-w-0 rounded-lg border border-charcoal/12 bg-white px-3 text-sm font-semibold text-charcoal sm:w-auto">
             <option value="popular">{t.catalog.sortPopular}</option>
             <option value="priceAsc">{t.catalog.sortPriceAsc}</option>
             <option value="priceDesc">{t.catalog.sortPriceDesc}</option>
@@ -126,7 +126,7 @@ export function CatalogView() {
             <SheetTrigger asChild>
               <Button variant="outline" className="lg:hidden" aria-label={t.catalog.filters}><SlidersHorizontal className="h-4 w-4" /></Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 overflow-y-auto bg-cream">
+            <SheetContent side="left" className="w-80 overflow-y-auto bg-white">
               <SheetHeader><SheetTitle>{t.catalog.filters}</SheetTitle></SheetHeader>
               <div className="p-4">{FilterPanel}</div>
               <div className="p-4 pt-0">
@@ -139,8 +139,8 @@ export function CatalogView() {
 
       <div className="flex gap-6">
         {/* desktop sidebar */}
-        <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-24 space-y-5 rounded-xl border border-border bg-card p-4">
+        <aside className="hidden w-64 shrink-0 border-r border-charcoal/10 pr-6 lg:block">
+          <div className="sticky top-24 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-charcoal">{t.catalog.filters}</h2>
               <button onClick={clearAll} className="text-xs text-terre hover:underline">{t.catalog.clearFilters}</button>
@@ -166,10 +166,10 @@ export function CatalogView() {
 
           {loading ? (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-2xl" />)}
+              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-lg" />)}
             </div>
           ) : data?.products?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
               <PackageSearch className="h-10 w-10 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">{t.catalog.noResults}</p>
               <Button onClick={clearAll} variant="outline">{t.catalog.clearFilters}</Button>
@@ -206,8 +206,8 @@ function FilterChip({ active, onClick, children }: { active?: boolean; onClick: 
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-xs font-medium transition ${
-        active ? "bg-terre text-cream" : "text-charcoal hover:bg-muted"
+      className={`flex min-h-9 w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs font-semibold transition ${
+        active ? "bg-charcoal text-white" : "text-charcoal hover:bg-muted"
       }`}
     >
       {children}

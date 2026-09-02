@@ -18,7 +18,7 @@ export function MobileNav() {
 
   type ClientNavItem = { id: ViewId; label: string; desktopLabel: string; purpose: string; icon: LucideIcon; accent: string };
   const publicItems: ClientNavItem[] = [
-    { id: "home", label: t.mobileNav.home, desktopLabel: locale === "fr" ? "Découvrir" : "Discover", purpose: locale === "fr" ? "Sélections et nouveautés" : "Selections and new arrivals", icon: Home, accent: "#B84A26" },
+    { id: "home", label: t.mobileNav.home, desktopLabel: locale === "fr" ? "Découvrir" : "Discover", purpose: locale === "fr" ? "Sélections et nouveautés" : "Selections and new arrivals", icon: Home, accent: "#B74325" },
     { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: LayoutGrid, accent: "#2F6B4F" },
     { id: "recipes", label: t.mobileNav.recipes, desktopLabel: locale === "fr" ? "Cuisiner une recette" : "Cook a recipe", purpose: locale === "fr" ? "Personnaliser puis composer le panier" : "Customise and build the basket", icon: ChefHat, accent: "#805C00" },
     { id: "cart", label: t.mobileNav.cart, desktopLabel: locale === "fr" ? "Finaliser le panier" : "Complete basket", purpose: locale === "fr" ? "Quantités, livraison et total" : "Quantities, delivery and total", icon: ShoppingBag, accent: "#326B8A" },
@@ -56,45 +56,45 @@ export function MobileNav() {
           <button
             key={it.id}
             onClick={() => navigate(it.id)}
-            className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-semibold transition ${
-              active ? "bg-terre/10 text-terre" : "text-muted-foreground"
+            className={`relative flex min-h-[3.75rem] flex-col items-center justify-center gap-1 text-[9px] font-bold transition-colors ${
+              active ? "text-terre" : "text-muted-foreground hover:text-charcoal"
             }`}
             aria-label={it.label}
           >
-            <Icon className={`h-5 w-5 ${active ? "scale-110" : ""} transition`} />
+            <Icon className={`h-[1.15rem] w-[1.15rem] ${active ? "stroke-[2.4]" : ""} transition`} />
             <span className="leading-none">{it.label}</span>
             {it.id === "cart" && count > 0 && (
               <span className="absolute right-1/2 top-1 grid h-4 min-w-4 translate-x-3 place-items-center rounded-full bg-terre px-1 text-[9px] font-bold text-cream">
                 {count}
               </span>
             )}
-            {active && <span className="absolute bottom-1 h-0.5 w-8 rounded-full bg-terre" />}
+            {active && <span className="absolute inset-x-4 top-0 h-0.5 bg-terre" />}
           </button>
         );
   };
 
   return (
     <>
-      <nav className="jma-safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-white/95 px-2 pt-1 shadow-[0_-18px_40px_-34px_rgba(36,36,36,0.8)] backdrop-blur-xl md:hidden">
+      <nav className="jma-safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t border-charcoal/10 bg-white/96 px-1 shadow-[0_-16px_36px_-30px_rgba(24,26,24,0.75)] backdrop-blur-xl md:hidden">
         <div className="mx-auto grid max-w-xl grid-cols-5">{mobileItems.map(renderMobileItem)}</div>
       </nav>
 
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-white/10 bg-charcoal text-white md:flex">
-        <div className="african-kente-stripe h-1 shrink-0" />
-        <button onClick={() => navigate("home")} className="border-b border-white/10 px-5 py-4 text-left" aria-label={locale === "fr" ? "Accueil" : "Home"}>
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-white/8 bg-charcoal text-white md:flex">
+        <div className="african-kente-stripe h-[3px] shrink-0" />
+        <button onClick={() => navigate("home")} className="border-b border-white/8 px-5 py-5 text-left" aria-label={locale === "fr" ? "Accueil" : "Home"}>
           <BrandLockup compact inverse />
         </button>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 overflow-y-auto px-3 py-5">
           {desktopGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? "mt-5" : ""}>
-            <div className="flex items-center px-3 pb-1.5"><p className="text-[9px] font-extrabold uppercase text-white/70">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-white/60">{group.intent}</span></div>
+            <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-white/72">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-white/62">{group.intent}</span></div>
             <div className="space-y-1">{group.items.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.id);
               return (
-                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} className={`flex min-h-14 w-full items-center gap-3 rounded-md border-l-2 px-3 text-left transition ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-white/75 hover:bg-white/8 hover:text-white"}`} style={active ? { borderLeftColor: item.accent } : undefined}>
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: active ? item.accent : `${item.accent}30` }}><Icon className="h-4 w-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold">{item.desktopLabel}</span><span className={`mt-0.5 block truncate text-[9px] ${active ? "text-charcoal/75" : "text-white/70"}`}>{item.purpose}</span></span>
+                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} className={`flex min-h-[3.75rem] w-full items-center gap-3 rounded-md border-l-2 px-3 text-left transition ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-white/72 hover:bg-white/7 hover:text-white"}`} style={active ? { borderLeftColor: item.accent } : undefined}>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: active ? item.accent : `${item.accent}28` }}><Icon className="h-[1.05rem] w-[1.05rem]" /></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold">{item.desktopLabel}</span><span className={`mt-1 block truncate text-[9px] ${active ? "text-charcoal/72" : "text-white/62"}`}>{item.purpose}</span></span>
                   {item.id === "cart" && count > 0 ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-extrabold text-charcoal">{count}</span> : null}
                 </button>
               );

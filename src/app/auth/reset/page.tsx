@@ -43,13 +43,13 @@ export default function PasswordResetPage() {
   };
 
   return (
-    <main className="min-h-screen bg-cream px-4 py-8 sm:grid sm:place-items-center">
-      <section className="mx-auto w-full max-w-md rounded-lg border border-border bg-white p-5 shadow-sm sm:p-7">
+    <main className="min-h-screen bg-white px-4 py-8 sm:grid sm:place-items-center">
+      <section className="mx-auto w-full max-w-md rounded-lg border border-charcoal/10 bg-white p-5 shadow-[0_26px_70px_-52px_rgba(24,26,24,0.6)] sm:p-7">
         <a href="/" className="inline-flex" aria-label="Retour à l'accueil"><BrandLockup size="large" /></a>
         <div className="mt-8 flex items-start gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-terre/10 text-terre"><KeyRound className="h-5 w-5" /></span>
           <div>
-            <h1 className="text-xl font-extrabold text-charcoal">Nouveau mot de passe</h1>
+            <h1 className="font-display text-2xl font-semibold text-charcoal">Nouveau mot de passe</h1>
             <p className="mt-1 text-sm text-muted-foreground">Choisissez au moins 8 caractères.</p>
           </div>
         </div>

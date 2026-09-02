@@ -36,19 +36,19 @@ export function RecipesView() {
     : ["Attieke fish", "Okra sauce", "Mafe", "Kplo", "Plantain", "Quick dinner"];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
       {/* hero */}
-      <section className="relative mb-6 overflow-hidden rounded-lg bg-charcoal p-6 text-cream md:p-10">
+      <section className="relative mb-7 min-h-[28rem] overflow-hidden rounded-lg bg-charcoal p-6 text-white md:min-h-[30rem] md:p-10">
         <Image src="/recipe-library-hero.webp" alt="" fill sizes="100vw" className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-r from-charcoal/88 via-charcoal/62 to-charcoal/12" />
         <div className="relative max-w-3xl">
-          <span className="inline-flex items-center gap-1 rounded-full bg-gold/90 px-3 py-1 text-xs font-semibold text-charcoal">
+          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase text-gold">
             <Sparkles className="h-3 w-3" /> {t.home.heroCtaRecipes}
           </span>
-          <h1 className="mt-3 text-2xl font-extrabold md:text-4xl">{t.recipes.title}</h1>
-          <p className="mt-1 max-w-2xl text-cream/85">{t.recipes.subtitle}</p>
+          <h1 className="mt-3 max-w-xl font-display text-3xl font-semibold leading-tight md:text-5xl">{t.recipes.title}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/78 md:text-base">{t.recipes.subtitle}</p>
           <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-gold"><BookOpen className="h-3.5 w-3.5" /> {locale === "fr" ? "20 plats africains documentés, dont 10 spécialités ivoiriennes" : "20 documented African dishes, including 10 Ivorian specialties"}</p>
-          <div className="mt-5 max-w-2xl rounded-lg border border-cream/15 bg-cream/12 p-2 backdrop-blur">
+          <div className="mt-6 max-w-2xl rounded-lg border border-white/16 bg-white/10 p-2 backdrop-blur">
             <div className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-charcoal">
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
@@ -63,7 +63,7 @@ export function RecipesView() {
                 <button
                   key={item}
                   onClick={() => setSearch(item)}
-                  className="rounded-full border border-cream/20 bg-cream/15 px-2.5 py-1 text-[11px] font-semibold text-cream transition hover:bg-cream/25"
+                  className="rounded-full border border-white/20 bg-white/12 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-white/22"
                 >
                   {item}
                 </button>

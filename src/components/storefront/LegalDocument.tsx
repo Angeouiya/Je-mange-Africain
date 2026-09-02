@@ -376,16 +376,16 @@ export function LegalDocument({ kind, locale }: { kind: LegalKind; locale: Local
 
   return (
     <article className="space-y-6 text-sm leading-relaxed text-charcoal">
-      <header className="space-y-2 border-b border-border pb-5">
-        <p className="text-xs font-bold uppercase tracking-wide text-terre">{doc.eyebrow}</p>
-        <h1 className="text-2xl font-extrabold text-charcoal md:text-3xl">{doc.title}</h1>
+      <header className="space-y-2 border-b border-charcoal/10 pb-6">
+        <p className="jma-eyebrow">{doc.eyebrow}</p>
+        <h1 className="font-display text-3xl font-semibold leading-tight text-charcoal md:text-4xl">{doc.title}</h1>
         <p className="text-xs text-muted-foreground">{doc.updated}</p>
         <p className="pt-2 text-[15px] leading-relaxed text-charcoal">{doc.intro}</p>
       </header>
       <div className="space-y-5">
         {doc.sections.map((section) => (
           <section key={section.title} className="space-y-2">
-            <h2 className="text-base font-bold text-charcoal">{section.title}</h2>
+            <h2 className="font-display text-lg font-semibold text-charcoal">{section.title}</h2>
             {section.paragraphs.map((paragraph) => (
               <p key={paragraph} className="text-muted-foreground">
                 {paragraph}
@@ -400,4 +400,3 @@ export function LegalDocument({ kind, locale }: { kind: LegalKind; locale: Local
     </article>
   );
 }
-

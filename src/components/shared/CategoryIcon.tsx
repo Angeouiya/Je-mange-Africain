@@ -28,7 +28,7 @@ export function CategoryIcon({ slug, color, className }: { slug?: string; color?
   const resolvedColor = categoryColors[slug || ""] || color || "#D65A32";
   return (
     <span
-      className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/50 shadow-sm", className)}
+      className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/55 shadow-sm", className)}
       style={{ color: resolvedColor, backgroundColor: `color-mix(in srgb, ${resolvedColor} 13%, white)` }}
       aria-hidden="true"
     >

@@ -191,13 +191,13 @@ export function AdminView({
   };
 
   return (
-    <div className="min-h-dvh bg-[#F4F5F1] text-charcoal md:flex">
+    <div className="min-h-dvh bg-white text-charcoal md:flex">
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[18.5rem] transform flex-col border-r border-white/8 bg-[#1B1B19] text-cream shadow-2xl transition-transform duration-300 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:shadow-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[18.5rem] transform flex-col border-r border-white/8 bg-charcoal text-white shadow-2xl transition-transform duration-300 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:shadow-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-hidden={!isDesktop && !sidebarOpen}
         inert={!isDesktop && !sidebarOpen ? true : undefined}
       >
-        <div className="african-kente-stripe h-1.5 shrink-0" />
+        <div className="african-kente-stripe h-[3px] shrink-0" />
         <div className="flex items-center justify-between px-5 py-5">
           <BrandLockup context="admin" compact inverse />
           <button type="button" onClick={() => setSidebarOpen(false)} className="grid h-10 w-10 place-items-center rounded-md text-cream/70 hover:bg-white/8 hover:text-white md:hidden" aria-label={isFr ? "Fermer la navigation" : "Close navigation"}>
@@ -210,8 +210,8 @@ export function AdminView({
             <div key={group.labelFr} className="mt-4 first:mt-1">
               <div className="flex items-center gap-2 px-3">
                 <span className="text-[9px] font-black tabular-nums text-gold/65">{String(groupIndex + 1).padStart(2, "0")}</span>
-                <p className="text-[9px] font-extrabold uppercase text-cream/42">{isFr ? group.labelFr : group.labelEn}</p>
-                <span className="ml-auto text-[8px] font-bold uppercase text-cream/22">{isFr ? group.verbFr : group.verbEn}</span>
+                <p className="text-[9px] font-extrabold uppercase text-white/70">{isFr ? group.labelFr : group.labelEn}</p>
+                <span className="ml-auto text-[8px] font-bold uppercase text-white/58">{isFr ? group.verbFr : group.verbEn}</span>
               </div>
               <div className="mt-1.5 space-y-1">
                 {group.items.map((item) => {
@@ -231,7 +231,7 @@ export function AdminView({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
-                        <span className={`mt-0.5 block line-clamp-2 text-[9px] leading-4 ${active ? "text-charcoal/55" : "text-cream/38"}`}>{isFr ? item.purposeFr : item.purposeEn}</span>
+                        <span className={`mt-0.5 block line-clamp-2 text-[9px] leading-4 ${active ? "text-charcoal/72" : "text-white/62"}`}>{isFr ? item.purposeFr : item.purposeEn}</span>
                       </span>
                       {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: active ? item.accent : "#F2A900" }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: item.accent }}>{item.marker}</span> : <ChevronRight className="h-4 w-4 text-cream/20" />}
                     </button>
@@ -247,7 +247,7 @@ export function AdminView({
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-forest text-xs font-black text-white">{(adminEmail || "J").slice(0, 1).toUpperCase()}</span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[11px] font-bold text-white">{adminEmail || (isFr ? "Session professionnelle" : "Professional session")}</p>
-              <p className="mt-0.5 truncate text-[9px] uppercase text-cream/38">{adminRole ? adminRole.replaceAll("_", " ") : (isFr ? "Exploitation" : "Operations")}</p>
+              <p className="mt-0.5 truncate text-[9px] uppercase text-white/62">{adminRole ? adminRole.replaceAll("_", " ") : (isFr ? "Exploitation" : "Operations")}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-1 rounded-md bg-white/[0.035] p-1" aria-label={isFr ? "Langue" : "Language"}>
@@ -276,7 +276,7 @@ export function AdminView({
       {sidebarOpen ? <button type="button" className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} aria-label={isFr ? "Fermer la navigation" : "Close navigation"} /> : null}
 
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
-        <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b-2 bg-[#F4F5F1]/94 px-4 backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
+        <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/94 px-4 backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
           <button type="button" onClick={() => setSidebarOpen(true)} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-border bg-white md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><Menu className="h-5 w-5" /></button>
           <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><current.icon className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0 flex-1">

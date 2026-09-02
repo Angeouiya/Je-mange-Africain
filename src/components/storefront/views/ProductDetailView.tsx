@@ -41,7 +41,7 @@ export function ProductDetailView() {
     }
   }, [product?.id, pushRecentlyViewed]);
 
-  if (loading) return <div className="mx-auto max-w-7xl px-4 py-10"><Skeleton className="h-96 rounded-2xl" /></div>;
+  if (loading) return <div className="mx-auto max-w-7xl px-4 py-10"><Skeleton className="h-96 rounded-lg" /></div>;
   if (!product) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Produit introuvable.</div>;
 
   const variant = product.variants?.find((v: any) => v.id === variantId) || product.variants?.[0];
@@ -75,12 +75,12 @@ export function ProductDetailView() {
   };
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 py-4 lg:px-6">
+    <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 py-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-4" />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         {/* visual */}
-        <div className="min-w-0 space-y-3">
+        <div className="min-w-0 space-y-3 lg:sticky lg:top-24 lg:self-start">
           <div className="relative -mx-4 flex aspect-[4/3] items-center justify-center overflow-hidden border-y border-border bg-card sm:mx-0 sm:aspect-square sm:rounded-lg sm:border">
             <ProductImage
               src={heroPhoto}
@@ -139,7 +139,7 @@ export function ProductDetailView() {
             {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0">{t.promo}</Badge>}
           </div>
           <div>
-            <h1 className="break-words text-2xl font-bold text-charcoal md:text-3xl">{product.name}</h1>
+            <h1 className="break-words font-display text-3xl font-semibold leading-tight text-charcoal md:text-4xl">{product.name}</h1>
             <p className="break-words text-sm text-muted-foreground">{product.traditionalName} · {product.country}</p>
             <p className="mt-2 text-sm font-medium leading-relaxed text-terre">{commercialLine}</p>
           </div>
@@ -251,7 +251,7 @@ export function ProductDetailView() {
       {/* related */}
       {product.related?.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-3 text-lg font-bold text-charcoal">{t.product.alternatives}</h2>
+          <h2 className="jma-section-title mb-4">{t.product.alternatives}</h2>
           <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6 [&>*]:min-w-0">
             {product.related.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} />)}
           </div>
@@ -259,7 +259,7 @@ export function ProductDetailView() {
       )}
       {product.relatedRecipes?.length > 0 && (
         <section className="mt-8">
-          <h2 className="mb-3 text-lg font-bold text-charcoal">{t.product.relatedRecipes}</h2>
+          <h2 className="jma-section-title mb-4">{t.product.relatedRecipes}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {product.relatedRecipes.map((r: any, i: number) => (
               <RecipeCard key={r.id} recipe={r} index={i} />

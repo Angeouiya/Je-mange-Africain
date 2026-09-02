@@ -31,12 +31,12 @@ export function OrdersView() {
   };
 
   if (!customer) {
-    return <div className="mx-auto grid min-h-[55vh] max-w-md place-items-center px-4 text-center"><div><span className="mx-auto grid h-11 w-11 place-items-center rounded-lg bg-terre/10 text-terre"><LogIn className="h-5 w-5" /></span><h1 className="mt-4 text-xl font-black text-charcoal">{locale === "fr" ? "Connectez-vous pour voir vos commandes" : "Sign in to view your orders"}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "fr" ? "Votre historique et le suivi de livraison sont protégés par votre compte." : "Your history and delivery tracking are protected by your account."}</p><Button onClick={() => navigate("account")} className="mt-5 bg-terre text-white hover:bg-terre-dark">{t.nav.login}</Button></div></div>;
+    return <div className="mx-auto grid min-h-[55vh] max-w-md place-items-center px-4 text-center"><div><span className="mx-auto grid h-11 w-11 place-items-center rounded-lg bg-terre/10 text-terre"><LogIn className="h-5 w-5" /></span><h1 className="mt-4 font-display text-2xl font-semibold text-charcoal">{locale === "fr" ? "Connectez-vous pour voir vos commandes" : "Sign in to view your orders"}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "fr" ? "Votre historique et le suivi de livraison sont protégés par votre compte." : "Your history and delivery tracking are protected by your account."}</p><Button onClick={() => navigate("account")} className="mt-5 bg-terre text-white hover:bg-terre-dark">{t.nav.login}</Button></div></div>;
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 lg:px-6">
-      <h1 className="mb-4 text-2xl font-bold text-charcoal md:text-3xl">{t.orders.title}</h1>
+    <div className="mx-auto max-w-4xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
+      <h1 className="jma-section-title mb-5">{t.orders.title}</h1>
       {loading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-lg" />)}</div>
       ) : error ? (
@@ -50,7 +50,7 @@ export function OrdersView() {
       ) : (
         <div className="space-y-3">
           {data.orders.map((o: any) => (
-            <div key={o.id} className="rounded-lg border border-border bg-card p-4 [contain-intrinsic-size:150px] [content-visibility:auto]">
+            <div key={o.id} className="rounded-lg border border-charcoal/10 bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                 <div>
                   <p className="text-sm font-bold text-terre">{o.number}</p>

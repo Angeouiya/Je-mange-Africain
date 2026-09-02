@@ -1,22 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins, Caveat } from "next/font/google";
+import { Manrope, Fraunces } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/lib/store-provider";
 import { StructuredData } from "@/components/shared/StructuredData";
 
-const poppins = Poppins({
-  variable: "--font-poppins",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
   preload: false,
 });
 
-const caveat = Caveat({
-  variable: "--font-caveat",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
@@ -72,7 +70,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#B84A26",
+  themeColor: "#B74325",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -85,7 +83,7 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body
-        className={`${poppins.variable} ${caveat.variable} antialiased bg-background text-foreground min-h-screen`}
+        className={`${manrope.variable} ${fraunces.variable} antialiased bg-background text-foreground min-h-screen`}
       >
         <a href="#main-content" className="jma-skip-link">Aller au contenu principal</a>
         <StructuredData />

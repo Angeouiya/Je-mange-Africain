@@ -6,9 +6,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-poppins);
+  --font-sans: var(--font-manrope);
   --font-mono: var(--font-geist-mono);
-  --font-brand: var(--font-caveat);
+  --font-brand: var(--font-fraunces);
+  --font-display: var(--font-fraunces);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -53,48 +54,48 @@
 :root {
   --radius: 0.5rem;
   /* Brand palette */
-  --terre: #B84A26;
-  --terre-dark: #963B1E;
-  --gold: #F2A900;
-  --forest: #3F681C;
-  --forest-dark: #2F5014;
-  --charcoal: #242424;
-  --cream: #FFF9F2;
-  --mist: #F6F7F2;
-  --ink-soft: #343434;
-  --light-grey: #F4F4F2;
+  --terre: #B74325;
+  --terre-dark: #923019;
+  --gold: #DDA51E;
+  --forest: #215D49;
+  --forest-dark: #174636;
+  --charcoal: #181A18;
+  --cream: #FFFDFC;
+  --mist: #F5F7F4;
+  --ink-soft: #353936;
+  --light-grey: #F4F6F3;
 
-  --background: #F6F7F2;
-  --foreground: #242424;
+  --background: #FFFFFF;
+  --foreground: #181A18;
   --card: #FFFFFF;
   --card-foreground: #242424;
   --popover: #FFFFFF;
   --popover-foreground: #242424;
-  --primary: #B84A26;
+  --primary: #B74325;
   --primary-foreground: #FFF9F2;
   --secondary: #3F681C;
   --secondary-foreground: #FFF9F2;
-  --muted: #EEF1EA;
-  --muted-foreground: #6B6357;
+  --muted: #F1F4F0;
+  --muted-foreground: #687069;
   --accent: #F2A900;
   --accent-foreground: #242424;
   --destructive: #C0392B;
-  --border: #E8DFD3;
-  --input: #E8DFD3;
-  --ring: #B84A26;
-  --chart-1: #B84A26;
+  --border: #E2E7E1;
+  --input: #DDE3DC;
+  --ring: #B74325;
+  --chart-1: #B74325;
   --chart-2: #3F681C;
   --chart-3: #F2A900;
   --chart-4: #8B4513;
   --chart-5: #C0392B;
-  --sidebar: #242424;
-  --sidebar-foreground: #FFF9F2;
-  --sidebar-primary: #B84A26;
+  --sidebar: #181A18;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #B74325;
   --sidebar-primary-foreground: #FFF9F2;
   --sidebar-accent: #3A3A3A;
   --sidebar-accent-foreground: #FFF9F2;
   --sidebar-border: #3A3A3A;
-  --sidebar-ring: #B84A26;
+  --sidebar-ring: #B74325;
 }
 
 .dark {
@@ -143,8 +144,8 @@
     font-feature-settings: "ss01", "cv01";
     min-height: 100svh;
     overscroll-behavior-y: none;
-    background:
-      linear-gradient(180deg, #FFFFFF 0%, var(--mist) 34%, #F8F3EA 100%);
+    background: #FFFFFF;
+    letter-spacing: 0;
   }
   ::selection {
     background-color: color-mix(in srgb, var(--terre) 25%, transparent);
@@ -212,13 +213,7 @@
   background-size: 22px 22px;
 }
 .african-kente-stripe {
-  background: repeating-linear-gradient(
-    90deg,
-    var(--terre) 0 14px,
-    var(--gold) 14px 18px,
-    var(--forest) 18px 32px,
-    var(--charcoal) 32px 36px
-  );
+  background: linear-gradient(90deg, var(--terre) 0 28%, var(--gold) 28% 48%, var(--forest) 48% 72%, #2f7182 72% 86%, #70465f 86% 100%);
 }
 
 @keyframes steam-rise {
@@ -241,9 +236,7 @@
 @layer utilities {
   .jma-shell {
     min-height: 100svh;
-    background:
-      radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--gold) 18%, transparent), transparent 24rem),
-      linear-gradient(180deg, #FFFFFF 0%, var(--mist) 42%, #F8F3EA 100%);
+    background: #FFFFFF;
   }
   .jma-screen {
     width: 100%;
@@ -254,7 +247,7 @@
   .jma-card {
     border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
     background: color-mix(in srgb, #FFFFFF 94%, var(--mist));
-    box-shadow: 0 18px 44px -36px rgba(36, 36, 36, 0.45);
+    box-shadow: 0 18px 46px -38px rgba(24, 26, 24, 0.5);
   }
   .jma-safe-bottom {
     padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
@@ -263,5 +256,27 @@
   .rounded-2xl,
   .rounded-3xl {
     border-radius: 0.5rem;
+  }
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-fraunces), Georgia, serif; }
+  .jma-eyebrow {
+    color: var(--terre);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .jma-section-title {
+    color: var(--charcoal);
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-size: clamp(1.55rem, 2.4vw, 2.25rem);
+    font-weight: 650;
+    line-height: 1.08;
+  }
+  .jma-hairline { border-color: color-mix(in srgb, var(--charcoal) 11%, transparent); }
+  .jma-page-grid {
+    background-image: linear-gradient(to right, color-mix(in srgb, var(--charcoal) 4%, transparent) 1px, transparent 1px);
+    background-size: min(7.5vw, 6rem) 100%;
   }
 }

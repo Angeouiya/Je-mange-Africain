@@ -53,7 +53,7 @@ export function ProductImage({
     <div
       className={`relative flex items-center justify-center overflow-hidden ${rounded} ${sizes[size]} ${className}`}
       style={{
-        background: `linear-gradient(135deg, ${color}22, ${color}44)`,
+        background: `color-mix(in srgb, ${color} 18%, white)`,
       }}
     >
       {showPhoto && (
@@ -70,13 +70,6 @@ export function ProductImage({
           <div className="absolute inset-0 bg-gradient-to-t from-charcoal/35 via-transparent to-white/10" />
         </>
       )}
-      <div
-        className={`absolute inset-0 ${showPhoto ? "opacity-0" : "opacity-30"}`}
-        style={{
-          backgroundImage: `radial-gradient(circle, ${color}33 1.5px, transparent 1.5px)`,
-          backgroundSize: "18px 18px",
-        }}
-      />
       {!showPhoto && (
         <motion.span
           className={`relative select-none ${emojiSizes[size]}`}
@@ -88,10 +81,6 @@ export function ProductImage({
           {emoji}
         </motion.span>
       )}
-      <div
-        className={`absolute -bottom-6 -right-6 h-16 w-16 rounded-full ${showPhoto ? "opacity-0" : "opacity-20"}`}
-        style={{ background: color }}
-      />
     </div>
   );
 }

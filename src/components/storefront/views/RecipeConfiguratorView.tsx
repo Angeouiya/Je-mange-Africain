@@ -202,7 +202,7 @@ export function RecipeConfiguratorView() {
     navigate("cart");
   };
 
-  if (loading) return <div className="mx-auto max-w-7xl px-4 py-10"><Skeleton className="h-96 rounded-2xl" /></div>;
+  if (loading) return <div className="mx-auto max-w-7xl px-4 py-10"><Skeleton className="h-96 rounded-lg" /></div>;
   if (!recipe) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Recette introuvable.</div>;
 
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
@@ -213,11 +213,11 @@ export function RecipeConfiguratorView() {
   const purchasableCount = (calc?.ingredients || []).filter((ingredient) => !ingredient.removed && ingredient.packs > 0 && ingredient.available).length;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="recipes" className="mb-3" />
 
       {/* recipe header */}
-      <div className="mb-5 grid overflow-hidden rounded-2xl border border-border bg-card shadow-sm md:grid-cols-[240px_1fr]">
+      <div className="mb-7 grid overflow-hidden rounded-lg border border-charcoal/10 bg-white md:grid-cols-[280px_1fr]">
         <div className="relative aspect-[4/3] md:aspect-auto">
           <ProductImage
             src={recipePhoto}
@@ -231,7 +231,7 @@ export function RecipeConfiguratorView() {
         </div>
         <div className="p-5 md:p-6">
           <Badge variant="outline" className="mb-2">{recipe.country}</Badge>
-          <h1 className="text-2xl font-extrabold text-charcoal md:text-3xl">{recipe.title}</h1>
+          <h1 className="font-display text-3xl font-semibold leading-tight text-charcoal md:text-4xl">{recipe.title}</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{recipe.description}</p>
           <div className="mt-4 grid grid-cols-3 gap-2 text-center sm:max-w-md">
             <RecipeMetric icon={Users} label={t.config.peopleUnit} value={String(recipe.baseServings)} />
@@ -244,7 +244,7 @@ export function RecipeConfiguratorView() {
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         {/* LEFT: config form */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="rounded-lg border border-charcoal/10 bg-white p-4">
             <div className="mb-3 flex items-center gap-2">
               <Sliders className="h-4 w-4 text-terre" />
               <h2 className="text-sm font-bold text-charcoal">{t.config.title}</h2>
@@ -335,7 +335,7 @@ export function RecipeConfiguratorView() {
         <div className="min-w-0 space-y-5">
           {/* steps accordion */}
           {preparationSteps.length > 0 && (
-            <Accordion type="single" collapsible defaultValue="steps" className="rounded-2xl border border-border bg-card px-2">
+            <Accordion type="single" collapsible defaultValue="steps" className="rounded-lg border border-charcoal/10 bg-white px-2">
               <AccordionItem value="steps" className="border-0">
                 <AccordionTrigger className="px-3 text-sm font-bold text-charcoal">
                   <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-gold" /> {locale === "fr" ? "Étapes de préparation" : "Preparation steps"} · {preparationSteps.length}</span>
@@ -380,7 +380,7 @@ export function RecipeConfiguratorView() {
           )}
 
           {/* ingredients table */}
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="overflow-hidden rounded-lg border border-charcoal/10 bg-white">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="text-sm font-bold text-charcoal">{t.config.ingredientsNeeded}</h2>
               {hasManualChoices && (
@@ -408,7 +408,7 @@ export function RecipeConfiguratorView() {
 
           {/* summary card */}
           {calc && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border-2 border-terre/30 bg-gradient-to-br from-cream to-cream/50 p-5">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg border border-terre/25 bg-terre/[0.035] p-5">
               <h2 className="mb-3 text-sm font-bold text-charcoal">{t.config.summary}</h2>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div>

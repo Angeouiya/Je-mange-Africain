@@ -36,12 +36,12 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ y: 10 }}
+      animate={{ y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-forest/30 hover:shadow-lg"
+      className="group flex flex-col overflow-hidden rounded-lg border border-charcoal/10 bg-white transition-all hover:-translate-y-0.5 hover:border-forest/30 hover:shadow-[0_22px_50px_-34px_rgba(24,26,24,0.55)]"
     >
-      <div className="relative flex aspect-[4/3] items-center justify-center bg-muted/40">
+      <div className="relative flex aspect-[16/10] items-center justify-center bg-muted/40">
         <ProductImage
           src={photoUrl}
           alt={recipe.title}
@@ -57,8 +57,8 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
         <Badge variant="outline" className="absolute right-3 top-3 bg-white/80 backdrop-blur">{recipe.country}</Badge>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="text-base font-bold leading-tight text-charcoal">{recipe.title}</h3>
-        {recipe.description && <p className="line-clamp-2 text-xs text-muted-foreground">{recipe.description}</p>}
+        <h3 className="font-display text-lg font-semibold leading-tight text-charcoal">{recipe.title}</h3>
+        {recipe.description && <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{recipe.description}</p>}
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {recipe.timeMinutes} min</span>
           <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> {recipe.baseServings} {t.config.peopleUnit}</span>
@@ -66,7 +66,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
         </div>
         <Button
           onClick={() => navigate("recipe-config", { recipeId: recipe.id })}
-          className="mt-3 w-full bg-forest text-cream hover:bg-forest-dark"
+          className="mt-3 h-10 w-full bg-forest text-white hover:bg-forest-dark"
         >
           {t.recipes.configure}
           <ChevronRight className="ml-1 h-4 w-4" />
