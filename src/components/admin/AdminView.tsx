@@ -104,7 +104,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbEn: "Engage",
     items: [
       { id: "customers", module: "customers", icon: UsersRound, marker: "06", accent: "#9A4E63", labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
-      { id: "campaigns", module: "marketing", icon: BellRing, marker: "07", accent: "#B16A25", labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
+      { id: "campaigns", module: "marketing", icon: BellRing, marker: "07", accent: "#925018", labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
       { id: "advertising", module: "marketing", icon: Megaphone, marker: "08", accent: "#C54F36", labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
     ],
   },
@@ -209,7 +209,7 @@ export function AdminView({
           {availableGroups.map((group, groupIndex) => (
             <div key={group.labelFr} className="mt-4 first:mt-1">
               <div className="flex items-center gap-2 px-3">
-                <span className="text-[9px] font-black tabular-nums text-gold/65">{String(groupIndex + 1).padStart(2, "0")}</span>
+                <span className="text-[9px] font-black tabular-nums text-gold">{String(groupIndex + 1).padStart(2, "0")}</span>
                 <p className="text-[9px] font-extrabold uppercase text-white/70">{isFr ? group.labelFr : group.labelEn}</p>
                 <span className="ml-auto text-[8px] font-bold uppercase text-white/58">{isFr ? group.verbFr : group.verbEn}</span>
               </div>
@@ -251,7 +251,7 @@ export function AdminView({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-1 rounded-md bg-white/[0.035] p-1" aria-label={isFr ? "Langue" : "Language"}>
-            {(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => setLocale(language)} className={`h-8 rounded text-[10px] font-extrabold uppercase ${locale === language ? "bg-white text-charcoal" : "text-cream/45 hover:text-white"}`}>{language}</button>)}
+            {(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => setLocale(language)} className={`h-8 rounded text-[10px] font-extrabold uppercase ${locale === language ? "bg-white text-charcoal" : "text-cream/65 hover:text-white"}`}>{language}</button>)}
           </div>
           <div className="mt-1 grid grid-cols-2 gap-1">
             <Button type="button" variant="ghost" onClick={() => window.location.assign("https://je-mange-africain.com")} className="h-9 justify-start px-2 text-[10px] text-cream/55 hover:bg-white/8 hover:text-white">

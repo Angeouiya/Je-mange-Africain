@@ -113,7 +113,12 @@ async function mockAdminApi(page: Page) {
       tickets: [{ id: "ticket-1", number: "SUP-260901", subject: "Précision sur mon créneau de livraison", priority: "normal", status: "open", assignee: "Service client", updatedAt: now }],
     };
     else if (path === "/api/admin/customers") payload = { customers: [{ id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador" }] };
-    else if (path === "/api/admin/push") payload = { activeSubscriptions: 1284, recent: [{ id: "push-1", titleFr: "Le marché du week-end", bodyFr: "Votre sélection ivoirienne est disponible.", sent: true, createdAt: now, type: "promotion" }] };
+    else if (path === "/api/admin/push" && request.method() === "POST") payload = { campaign: { id: "push-2" }, delivery: { total: 184, sent: 184, failed: 0, configured: true } };
+    else if (path === "/api/admin/push") payload = {
+      activeSubscriptions: 1284,
+      audiences: { all: 1284, signed_in: 932, guests: 352, ambassador: 184, active: 516, at_risk: 126, new: 106 },
+      recent: [{ id: "push-1", titleFr: "Le marché du week-end", bodyFr: "Votre sélection ivoirienne est disponible.", sent: true, createdAt: now, type: "promotion", url: "/?view=catalog", audience: "all", recipientCount: 1268, deliveredCount: 1249, failedCount: 19 }],
+    };
     else if (path === "/api/admin/advertisements") payload = { advertisements: [{ id: "ad-1", placement: "home", titleFr: "Saveurs de Côte d'Ivoire", titleEn: "Flavours of Côte d'Ivoire", bodyFr: "Une sélection prête à cuisiner.", bodyEn: "A selection ready to cook.", imageUrl: "/hero-feast-v2.webp", imageAltFr: "Table de plats ivoiriens", imageAltEn: "Table of Ivorian dishes", linkUrl: "/?view=catalog", status: "published", priority: 1, startsAt: now, endsAt: "2026-09-30T23:59:59.000Z" }] };
     else if (path === "/api/admin/profitability") payload = {
       general: { ...profitabilityRow, id: "general", label: "Ensemble de l'offre", secondary: null, revenue: 28742.4, grossCost: 16416.8, margin: 12325.6, units: 4260, orders: 1260, marginRate: 42.9 },
@@ -264,6 +269,38 @@ test("the customer workspace provides a complete and auditable relationship view
     await page.screenshot({ path: join(directory, `customer-360-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }
   const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+});
+
+test("push campaigns target a measured audience and preview both languages", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#campaigns", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Composer, vérifier, diffuser" })).toBeVisible();
+  await page.getByLabel("Titre français").fill("Les saveurs du week-end");
+  await page.getByLabel("English title").fill("Weekend flavours");
+  await page.getByLabel("Message français").fill("Découvrez une sélection ivoirienne préparée pour vous.");
+  await page.getByLabel("English message").fill("Discover an Ivorian selection prepared for you.");
+  await page.getByLabel("Audience", { exact: true }).selectOption("ambassador");
+  await expect(page.getByText("184 appareil(s) ciblé(s)")).toBeVisible();
+  await page.getByLabel("Langue de l’aperçu").getByRole("button", { name: "en", exact: true }).click();
+  await expect(page.getByText("Weekend flavours")).toBeVisible();
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `push-audience-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: true });
+  }
+
+  await page.getByRole("button", { name: "Vérifier puis diffuser" }).click();
+  const confirmation = page.getByRole("alertdialog", { name: "Diffuser cette campagne maintenant ?" });
+  await expect(confirmation).toContainText("184 appareil(s)");
+  await expect(confirmation).toContainText("française ou anglaise");
+  await confirmation.getByRole("button", { name: "Confirmer la diffusion" }).click();
+  await expect(page.getByRole("status")).toContainText("184 appareil(s) notifié(s)");
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
 });

@@ -743,18 +743,22 @@ model AuditLog {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String?
-  channel   String // email | sms | web | push | whatsapp
-  type      String
-  titleFr   String
-  titleEn   String
-  bodyFr    String
-  bodyEn    String
-  url       String   @default("/")
-  sent      Boolean  @default(false)
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String?
+  channel        String // email | sms | web | push | whatsapp
+  type           String
+  titleFr        String
+  titleEn        String
+  bodyFr         String
+  bodyEn         String
+  url            String   @default("/")
+  audience       String   @default("all")
+  recipientCount Int      @default(0)
+  deliveredCount Int      @default(0)
+  failedCount    Int      @default(0)
+  sent           Boolean  @default(false)
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
 }
 
 model PushSubscription {
