@@ -73,7 +73,7 @@ const initialDraft = (): RecipeDraft => ({
   baseServings: "4",
   imageEmoji: "🍲",
   imageUrl: "",
-  imageColor: "#3F681C",
+  imageColor: "#8A3042",
   isPopular: false,
   isNew: true,
   isRecommended: false,

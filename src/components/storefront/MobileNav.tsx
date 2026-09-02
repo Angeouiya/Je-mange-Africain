@@ -19,7 +19,7 @@ export function MobileNav() {
   type ClientNavItem = { id: ViewId; label: string; desktopLabel: string; purpose: string; icon: LucideIcon; accent: string };
   const publicItems: ClientNavItem[] = [
     { id: "home", label: t.mobileNav.home, desktopLabel: locale === "fr" ? "Découvrir" : "Discover", purpose: locale === "fr" ? "Sélections et nouveautés" : "Selections and new arrivals", icon: Home, accent: "#B74325" },
-    { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: LayoutGrid, accent: "#2F6B4F" },
+    { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: LayoutGrid, accent: "#8A3042" },
     { id: "wholesale", label: locale === "fr" ? "Gros" : "Wholesale", desktopLabel: locale === "fr" ? "Marché de gros" : "Wholesale market", purpose: locale === "fr" ? "Cartons, lots et prix dégressifs" : "Cases, lots and tiered prices", icon: Boxes, accent: "#8A5A24" },
     { id: "recipes", label: t.mobileNav.recipes, desktopLabel: locale === "fr" ? "Cuisiner une recette" : "Cook a recipe", purpose: locale === "fr" ? "Personnaliser puis composer le panier" : "Customise and build the basket", icon: ChefHat, accent: "#805C00" },
     { id: "cart", label: t.mobileNav.cart, desktopLabel: locale === "fr" ? "Finaliser le panier" : "Complete basket", purpose: locale === "fr" ? "Quantités, livraison et total" : "Quantities, delivery and total", icon: ShoppingBag, accent: "#326B8A" },
@@ -40,7 +40,7 @@ export function MobileNav() {
       intent: locale === "fr" ? "Finaliser" : "Complete",
       items: [
         publicItems.find((item) => item.id === "cart")!,
-        ...(customer ? [{ id: "orders" as ViewId, label: t.orders.title, desktopLabel: locale === "fr" ? "Suivre mes commandes" : "Track my orders", purpose: locale === "fr" ? "Statut, colis et livraison" : "Status, parcels and delivery", icon: ClipboardList, accent: "#39756A" }] : []),
+        ...(customer ? [{ id: "orders" as ViewId, label: t.orders.title, desktopLabel: locale === "fr" ? "Suivre mes commandes" : "Track my orders", purpose: locale === "fr" ? "Statut, colis et livraison" : "Status, parcels and delivery", icon: ClipboardList, accent: "#6C5D7B" }] : []),
       ],
     },
   ];

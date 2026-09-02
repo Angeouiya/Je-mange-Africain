@@ -48,7 +48,7 @@ export function DishLibraryCard({ dish, onSelect, compact = false, index = 0 }: 
   return (
     <article className={`group flex h-full flex-col overflow-hidden border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-lg ${compact ? "rounded-md [contain-intrinsic-size:390px] [content-visibility:auto]" : "rounded-lg"}`}>
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-        <ProductImage src={photo} alt={dish.name} emoji="🍽️" color="#3F681C" size="lg" priority={index < 2} className="h-full w-full transition duration-500 group-hover:scale-[1.03]" rounded="rounded-none" />
+        <ProductImage src={photo} alt={dish.name} emoji="🍽️" color="#8A3042" size="lg" priority={index < 2} className="h-full w-full transition duration-500 group-hover:scale-[1.03]" rounded="rounded-none" />
         <Badge className={`absolute border-0 bg-charcoal/85 text-white backdrop-blur ${compact ? "bottom-2 left-2 px-1.5 py-0.5 text-[8px]" : "left-3 top-3"}`}>{dish.country}</Badge>
         {dish.featured ? <Badge className={`absolute border-0 bg-gold text-charcoal ${compact ? "right-2 top-2 px-1.5 py-0.5 text-[8px]" : "right-3 top-3"}`}>{locale === "fr" ? "Incontournable" : "Essential"}</Badge> : null}
       </div>
@@ -78,7 +78,7 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
       {dish ? (
         <DialogContent className="max-h-[92vh] overflow-y-auto p-0 sm:max-w-4xl">
           <div className="relative aspect-[16/6] min-h-52 overflow-hidden rounded-t-lg bg-muted">
-            <ProductImage src={getRecipePhoto({ name: dish.name, title: dish.name, country: dish.country, category: dish.categoryLabel })} alt={dish.name} emoji="🍽️" color="#3F681C" size="lg" className="h-full w-full" rounded="rounded-none" />
+            <ProductImage src={getRecipePhoto({ name: dish.name, title: dish.name, country: dish.country, category: dish.categoryLabel })} alt={dish.name} emoji="🍽️" color="#8A3042" size="lg" className="h-full w-full" rounded="rounded-none" />
             <div className="absolute inset-0 bg-gradient-to-t from-charcoal/85 via-charcoal/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-7">
               <p className="text-xs font-bold uppercase tracking-wider text-gold">{dish.country} · {dish.region}</p>

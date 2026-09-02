@@ -25,8 +25,8 @@ export function HomeView() {
   const homeAdvertisement = advertisingData?.advertisements?.[0];
 
   const commitments = [
-    { icon: ShieldCheck, title: t.home.commitment1Title, desc: t.home.commitment1Desc, color: "#3F681C" },
-    { icon: Snowflake, title: t.home.commitment2Title, desc: t.home.commitment2Desc, color: "#3F681C" },
+    { icon: ShieldCheck, title: t.home.commitment1Title, desc: t.home.commitment1Desc, color: "#8A3042" },
+    { icon: Snowflake, title: t.home.commitment2Title, desc: t.home.commitment2Desc, color: "#8A3042" },
     { icon: Truck, title: t.home.commitment3Title, desc: t.home.commitment3Desc, color: "#D65A32" },
     { icon: Headphones, title: t.home.commitment4Title, desc: t.home.commitment4Desc, color: "#F2A900" },
   ];

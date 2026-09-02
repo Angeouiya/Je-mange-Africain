@@ -184,7 +184,7 @@ export function OrdersView() {
                     <div className="divide-y divide-border/70 px-4">
                       {order.items.slice(0, 3).map((item) => (
                         <div key={item.id} className="flex min-w-0 items-center gap-3 py-3">
-                          <ProductImage src={item.imageUrl} alt={locale === "en" ? item.nameEn : item.nameFr} emoji="" color="#F2F5F1" size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" />
+                          <ProductImage src={item.imageUrl} alt={locale === "en" ? item.nameEn : item.nameFr} emoji="" color="#F7F4F3" size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-charcoal">{locale === "en" ? item.nameEn : item.nameFr}</p>
                             <p className="truncate text-[11px] text-muted-foreground">{item.unitLabel || item.sku} · {item.qty} × {formatPrice(item.unitPrice, locale)}</p>

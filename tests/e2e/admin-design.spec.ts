@@ -202,6 +202,12 @@ test("the product workspace edits bilingual content and calculates the customer 
   await expect(dialog.getByLabel("Conditionnement de gros")).toBeVisible();
   await dialog.getByLabel("Conditionnement de gros").fill("Carton de 6 sachets");
   await expect(dialog.getByLabel("Prix par colis (€)")).toHaveValue("27");
+  await expect(dialog.getByText("7,80 €", { exact: true })).toBeVisible();
+  await dialog.getByLabel("Palier 2", { exact: true }).fill("5");
+  await dialog.getByLabel("Prix (€)", { exact: true }).fill("25");
+  await dialog.getByLabel("Palier 3 (colis)", { exact: true }).fill("10");
+  await dialog.getByLabel("Prix palier 3 (€)", { exact: true }).fill("23");
+  await expect(dialog.getByText(/Le prix doit couvrir le coût brut/)).toHaveCount(0);
 
   const dialogOverflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(dialogOverflow).toBeLessThanOrEqual(1);

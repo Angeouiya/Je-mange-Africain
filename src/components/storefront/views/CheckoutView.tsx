@@ -232,13 +232,16 @@ export function CheckoutView() {
         <p className="text-muted-foreground">{form.email}{form.phone ? ` · ${form.phone}` : ""}</p>
       </div>
       <div className="space-y-1.5">
-        {cart.map((item) => (
-          <div key={item.id} className="flex items-center gap-2 text-sm">
-            <ProductImage src={item.imageUrl} alt={item.name} emoji={item.imageEmoji} color={item.imageColor} size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" />
-            <span className="min-w-0 flex-1 truncate pr-2 text-charcoal">{item.name} × {item.qty}</span>
-            <span className="font-medium">{formatPrice(item.unitPrice * item.qty, locale)}</span>
-          </div>
-        ))}
+        {cart.map((item) => {
+          const localizedName = (locale === "en" ? item.nameEn : item.nameFr) || item.name;
+          return (
+            <div key={item.id} className="flex items-center gap-2 text-sm">
+              <ProductImage src={item.imageUrl} alt={localizedName} emoji={item.imageEmoji} color={item.imageColor} size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" />
+              <span className="min-w-0 flex-1 truncate pr-2 text-charcoal">{localizedName} × {item.qty}</span>
+              <span className="font-medium">{formatPrice(item.unitPrice * item.qty, locale)}</span>
+            </div>
+          );
+        })}
       </div>
       <div className="space-y-1 border-t border-border pt-2 text-sm">
         <PriceLine label={t.cart.subtotal} value={intent ? formatPrice(intent.pricing.subtotal, locale) : formatPrice(subtotal, locale)} />
@@ -321,7 +324,7 @@ export function CheckoutView() {
             {!stripePromise ? <ErrorMessage>{locale === "fr" ? "Le paiement sécurisé doit être configuré avant l'ouverture des commandes." : "Secure payment must be configured before orders can open."}</ErrorMessage> : null}
           </motion.div>
         ) : intent && stripePromise ? (
-          <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#B74325", colorText: "#181A18", borderRadius: "8px", fontFamily: "Manrope, sans-serif" } } }}>
+          <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#B9472B", colorText: "#3F2930", borderRadius: "8px", fontFamily: "Manrope, sans-serif" } } }}>
             <SecurePaymentStages step={step} setStep={setStep} clientSecret={intent.clientSecret} processing={processing} paymentError={paymentError} setPaymentError={setPaymentError} amount={displayTotal} locale={locale} review={review} onConfirm={finalizeOrder} />
           </Elements>
         ) : null}

@@ -16,6 +16,8 @@ export interface Product {
   barcode: string | null;
   traditionalName: string;
   name: string;
+  nameFr?: string;
+  nameEn?: string;
   description: string;
   preparation: string;
   storage: string;

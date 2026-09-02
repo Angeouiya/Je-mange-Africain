@@ -7,22 +7,22 @@
   </defs>
   <rect width="64" height="64" rx="14" fill="#FFF9F2"/>
   <!-- steam -->
-  <g stroke="#3F681C" stroke-width="2.4" stroke-linecap="round" fill="none" opacity="0.85">
+  <g stroke="#8A3042" stroke-width="2.4" stroke-linecap="round" fill="none" opacity="0.85">
     <path d="M22 16 C19 13, 25 10, 22 6"/>
     <path d="M32 16 C35 13, 29 10, 32 6"/>
     <path d="M42 16 C39 13, 45 10, 42 6"/>
   </g>
   <!-- pot -->
   <path d="M10 27 H54 V40 C54 54, 46 60, 32 60 C18 60, 10 54, 10 40 Z" fill="url(#jmaPotIco)"/>
-  <rect x="8" y="24" width="48" height="5" rx="2.5" fill="#242424"/>
-  <rect x="7" y="58" width="50" height="3.5" rx="1.75" fill="#242424"/>
+  <rect x="8" y="24" width="48" height="5" rx="2.5" fill="#3F2930"/>
+  <rect x="7" y="58" width="50" height="3.5" rx="1.75" fill="#3F2930"/>
   <!-- africa -->
   <g transform="translate(21,30) scale(1.05)">
     <path d="M11 0 C15 0, 20 1.5, 21.5 5 C23.5 9, 22 14, 23.5 17.5 C25 21, 27.5 22, 26 26 C24.5 30, 20 30, 17.5 32.5 C15 35, 12 36, 8 35 C4 34, 5 28, 4 24 C3 20, 0 17.5, 1.5 12.5 C3 7.5, 6 1, 11 0 Z" fill="#FFF9F2"/>
   </g>
   <!-- leaf -->
-  <path d="M53 16 C60 13, 64 18, 61 25 C56 25, 52 22, 53 16 Z" fill="#3F681C"/>
+  <path d="M53 16 C60 13, 64 18, 61 25 C56 25, 52 22, 53 16 Z" fill="#8A3042"/>
   <!-- pepper -->
-  <path d="M14 15 C9 14, 5 18, 6.5 23 C8 26, 12 25, 14.5 22 C16 19.5, 16 16.5, 14 15 Z" fill="#D65A32" stroke="#242424" stroke-width="0.8"/>
-  <path d="M10 15 C10 13, 11 11.5, 12.5 11.5" stroke="#3F681C" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M14 15 C9 14, 5 18, 6.5 23 C8 26, 12 25, 14.5 22 C16 19.5, 16 16.5, 14 15 Z" fill="#D65A32" stroke="#3F2930" stroke-width="0.8"/>
+  <path d="M10 15 C10 13, 11 11.5, 12.5 11.5" stroke="#8A3042" stroke-width="1.6" fill="none" stroke-linecap="round"/>
 </svg>

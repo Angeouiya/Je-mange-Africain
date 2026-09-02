@@ -20,6 +20,8 @@ import { wholesaleDiscountPercent, wholesalePriceForQuantity, type WholesaleTier
 type WholesaleProduct = {
   id: string;
   name: string;
+  nameFr?: string;
+  nameEn?: string;
   traditionalName: string;
   description: string;
   country: string;
@@ -60,14 +62,14 @@ export function WholesaleView() {
       <PageBackButton fallbackView="catalog" className="mb-2" />
       <header className="border-b border-charcoal/10 pb-4 sm:pb-5">
         <div className="flex items-start justify-between gap-3 sm:items-end">
-          <div>
+          <div className="min-w-0">
             <p className="jma-eyebrow">{isFr ? "Distribution professionnelle" : "Professional distribution"}</p>
             <h1 className="jma-section-title mt-1">{isFr ? "Marché de gros" : "Wholesale market"}</h1>
-            <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground sm:text-sm">{isFr ? "Commandez par carton ou par lot, profitez de prix dégressifs et conservez la traçabilité de la chaîne du froid." : "Order by case or lot, access tiered pricing and preserve cold-chain traceability."}</p>
+            <p className="mt-1.5 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-5">{isFr ? "Commandez par carton ou par lot, profitez de prix dégressifs et conservez la traçabilité de la chaîne du froid." : "Order by case or lot, access tiered pricing and preserve cold-chain traceability."}</p>
           </div>
           <Button type="button" variant="outline" onClick={() => setQuoteOpen(true)} className="h-10 shrink-0 px-3 sm:px-4" aria-label={isFr ? "Demander un devis" : "Request a quote"}><Boxes className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{isFr ? "Devis" : "Quote"}</span><span className="hidden sm:inline">{isFr ? "Demander un devis" : "Request a quote"}</span></Button>
         </div>
-        <div className="mt-4"><MarketChannelSwitch channel="wholesale" /></div>
+        <div className="mt-3 sm:mt-4"><MarketChannelSwitch channel="wholesale" /></div>
       </header>
 
       <section className="grid grid-cols-3 divide-x divide-charcoal/10 border-b border-charcoal/10" aria-label={isFr ? "Services du marché de gros" : "Wholesale services"}>
@@ -76,26 +78,26 @@ export function WholesaleView() {
         <WholesalePromise icon={Truck} title={isFr ? "Livraison Europe" : "European delivery"} detail={isFr ? "Ambiant, frais et surgelé séparés." : "Ambient, chilled and frozen separated."} />
       </section>
 
-      <section className="py-5" aria-labelledby="wholesale-products-title">
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 bg-white pl-9" placeholder={isFr ? "Rechercher un produit de gros" : "Search wholesale products"} aria-label={isFr ? "Rechercher dans le marché de gros" : "Search the wholesale market"} />
-          </div>
-          <p className="text-[11px] font-bold text-muted-foreground">{data ? `${data.total} ${isFr ? "offre(s) professionnelle(s)" : "professional offer(s)"}` : ""}</p>
+      <section className="py-3 sm:py-5" aria-labelledby="wholesale-products-title">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 bg-white pl-9" placeholder={isFr ? "Rechercher un produit de gros" : "Search wholesale products"} aria-label={isFr ? "Rechercher dans le marché de gros" : "Search the wholesale market"} />
         </div>
-        {data?.filters.categories?.length ? (
-          <div className="-mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0" role="group" aria-label={isFr ? "Filtrer par rayon" : "Filter by category"}>
-            <FilterButton active={!category} onClick={() => setCategory("")}>{isFr ? "Tous" : "All"}</FilterButton>
-            {data.filters.categories.map((item) => <FilterButton key={item.id} active={category === item.id} onClick={() => setCategory(item.id)}>{item.name}</FilterButton>)}
-          </div>
-        ) : null}
+        <div className="mt-2 flex min-w-0 items-center gap-2">
+          {data?.filters.categories?.length ? (
+            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={isFr ? "Filtrer par rayon" : "Filter by category"}>
+              <FilterButton active={!category} onClick={() => setCategory("")}>{isFr ? "Tous" : "All"}</FilterButton>
+              {data.filters.categories.map((item) => <FilterButton key={item.id} active={category === item.id} onClick={() => setCategory(item.id)}>{item.name}</FilterButton>)}
+            </div>
+          ) : <div className="flex-1" />}
+          <p className="shrink-0 text-[10px] font-bold text-muted-foreground"><span className="sm:hidden">{data ? `${data.total} ${isFr ? "offre(s) pro" : "pro offer(s)"}` : ""}</span><span className="hidden sm:inline">{data ? `${data.total} ${isFr ? "offre(s) professionnelle(s)" : "professional offer(s)"}` : ""}</span></p>
+        </div>
 
         <h2 id="wholesale-products-title" className="sr-only">{isFr ? "Produits vendus en gros" : "Wholesale products"}</h2>
         {loading ? <div className="mt-5 grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="aspect-[3/5] rounded-md" />)}</div> : null}
         {!loading && error ? <div className="mt-5 border-y border-destructive/20 py-10 text-center"><p className="text-sm font-bold text-destructive">{error}</p><Button type="button" variant="outline" onClick={refetch} className="mt-3">{isFr ? "Réessayer" : "Try again"}</Button></div> : null}
         {!loading && !error && data?.products.length ? (
-          <div className="mt-5 grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3 lg:grid-cols-4" data-testid="wholesale-product-grid">
+          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:mt-5 md:grid-cols-3 md:gap-3 lg:grid-cols-4" data-testid="wholesale-product-grid">
             {data.products.map((product, index) => <WholesaleProductCard key={product.id} product={product} index={index} />)}
           </div>
         ) : null}
@@ -129,8 +131,8 @@ function WholesaleProductCard({ product, index }: { product: WholesaleProduct; i
       productId: product.id,
       variantId: "wholesale",
       name: product.name,
-      nameFr: product.name,
-      nameEn: product.name,
+      nameFr: product.nameFr || product.name,
+      nameEn: product.nameEn || product.name,
       unitPrice,
       unitLabel: product.wholesalePackLabel,
       packWeightGrams: product.netWeightGrams * product.wholesaleUnitsPerPack,
@@ -151,18 +153,18 @@ function WholesaleProductCard({ product, index }: { product: WholesaleProduct; i
 
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-md border border-charcoal/10 bg-white [contain-intrinsic-size:480px] [content-visibility:auto]" data-testid="wholesale-product-card">
-      <div className="relative aspect-square overflow-hidden bg-muted/40">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted/40">
         <ProductImage src={photo} fallbackSrc={getProductPhoto({ ...product, imageUrl: null })} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="lg" priority={index < 2} className="h-full w-full" rounded="rounded-none" />
         {discount > 0 ? <span className="absolute left-2 top-2 rounded-md bg-destructive px-2 py-1 text-[10px] font-extrabold leading-none text-white">-{discount}%</span> : null}
         <span className="absolute bottom-2 left-2 rounded-md bg-charcoal/90 px-2 py-1 text-[9px] font-bold text-white">{product.country}</span>
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-2.5">
-        <div><h3 className="line-clamp-2 min-h-7 break-words text-[11px] font-extrabold leading-tight text-charcoal">{product.name}</h3><p className="mt-0.5 line-clamp-1 text-[9px] text-muted-foreground">{product.description}</p></div>
-        <p className="line-clamp-1 text-[9px] font-bold text-forest">{product.wholesalePackLabel} · {product.wholesaleUnitsPerPack} {isFr ? "unités" : "units"}</p>
+        <div><h3 className="line-clamp-2 min-h-7 break-words text-xs font-extrabold leading-tight text-charcoal">{product.name}</h3><p className="mt-0.5 line-clamp-2 min-h-8 text-[10px] leading-4 text-muted-foreground">{product.description}</p></div>
+        <p className="line-clamp-1 text-[10px] font-bold text-forest">{product.wholesalePackLabel} · {product.wholesaleUnitsPerPack} {isFr ? "unités" : "units"}</p>
         <div className="mt-1">
           <div className="flex flex-wrap items-center gap-1"><span className="text-[10px] text-muted-foreground line-through">{formatPrice(retailPackPrice, locale)}</span>{discount > 0 ? <span className="text-[9px] font-bold text-destructive">-{discount}%</span> : null}</div>
           <p className="text-[15px] font-black text-terre">{formatPrice(unitPrice, locale)} <span className="text-[9px] font-semibold text-muted-foreground">/ {isFr ? "colis" : "case"}</span></p>
-          <p className="text-[9px] text-muted-foreground">{formatUnitPrice(unitPrice / product.wholesaleUnitsPerPack, locale)} / {isFr ? "unité" : "unit"}</p>
+          <p className="text-[10px] text-muted-foreground">{formatUnitPrice(unitPrice / product.wholesaleUnitsPerPack, locale)} / {isFr ? "unité" : "unit"}</p>
         </div>
         {tiers.length > 1 ? (
           <label className="mt-1 block"><span className="sr-only">{isFr ? `Choisir un palier pour ${product.name}` : `Choose a tier for ${product.name}`}</span><select value={tiers.reduce((selected, tier) => quantity >= tier.minPacks ? tier.minPacks : selected, tiers[0].minPacks)} onChange={(event) => changeQuantity(Number(event.target.value))} className="h-8 w-full rounded-md border border-border bg-white px-2 text-[9px] font-bold text-charcoal">{tiers.map((tier) => <option key={tier.minPacks} value={tier.minPacks}>{tier.minPacks}+ {isFr ? "colis" : "cases"} · {formatPrice(tier.price, locale)}</option>)}</select></label>
@@ -179,7 +181,7 @@ function WholesaleProductCard({ product, index }: { product: WholesaleProduct; i
 }
 
 function WholesalePromise({ icon: Icon, title, detail }: { icon: typeof PackageCheck; title: string; detail: string }) {
-  return <div className="flex min-w-0 flex-col items-center px-1.5 py-3 text-center sm:flex-row sm:items-start sm:gap-3 sm:px-5 sm:py-4 sm:text-left"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-forest/10 text-forest sm:h-9 sm:w-9"><Icon className="h-4 w-4" /></span><div className="min-w-0"><h2 className="mt-1 break-words text-[9px] font-extrabold leading-3 text-charcoal sm:mt-0 sm:text-xs sm:leading-normal">{title}</h2><p className="mt-0.5 hidden text-[10px] leading-4 text-muted-foreground sm:block">{detail}</p></div></div>;
+  return <div className="flex min-w-0 flex-col items-center px-1.5 py-2 text-center sm:flex-row sm:items-start sm:gap-3 sm:px-5 sm:py-4 sm:text-left"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-forest/10 text-forest sm:h-9 sm:w-9"><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></span><div className="min-w-0"><h2 className="mt-1 break-words text-[9px] font-extrabold leading-3 text-charcoal sm:mt-0 sm:text-xs sm:leading-normal">{title}</h2><p className="mt-0.5 hidden text-[10px] leading-4 text-muted-foreground sm:block">{detail}</p></div></div>;
 }
 
 function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {

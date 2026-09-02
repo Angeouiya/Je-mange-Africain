@@ -15,6 +15,8 @@ export interface ProductListItem {
   sku: string;
   traditionalName: string;
   name: string;
+  nameFr?: string;
+  nameEn?: string;
   price: number;
   promoPrice: number | null;
   pricePerKg?: number | null;
@@ -65,8 +67,8 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
       productId: product.id,
       variantId: defaultVariant?.id,
       name: product.name,
-      nameFr: product.name,
-      nameEn: product.name,
+      nameFr: product.nameFr || product.name,
+      nameEn: product.nameEn || product.name,
       unitPrice: price,
       unitLabel: product.packaging || defaultVariant?.label || "",
       packWeightGrams: defaultVariant?.weightGrams || 0,

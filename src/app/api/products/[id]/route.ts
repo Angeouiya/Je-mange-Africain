@@ -21,7 +21,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const t = product.translations.find((x) => x.locale === locale) || product.translations[0];
+  const fr = product.translations.find((x) => x.locale === "fr") || product.translations[0];
+  const en = product.translations.find((x) => x.locale === "en") || fr;
+  const t = locale === "en" ? en : fr;
 
   // Related products (same category, exclude self)
   const related = await db.product.findMany({
@@ -51,22 +53,28 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     include: { translations: true, brand: true, category: true, variants: true },
   });
 
-  const proj = (p: any) => ({
-    id: p.id, sku: p.sku, traditionalName: p.traditionalName,
-    name: p.translations?.find((x: any) => x.locale === locale)?.name || p.traditionalName,
-    price: Number(p.price), promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
-    pricePerKg: p.pricePerKg ? Number(p.pricePerKg) : null,
-    imageColor: p.imageColor, imageEmoji: p.imageEmoji, imageUrl: p.imageUrl, stockQty: p.stockQty,
-    alertThreshold: p.alertThreshold,
-    country: p.country,
-    thermalClass: p.thermalClass, packaging: p.packaging,
-    isBestseller: p.isBestseller,
-    isNew: p.isNew,
-    isOnSale: p.isOnSale,
-    brandName: p.brand?.[`name${locale === "en" ? "En" : "Fr"}`] || p.brand?.nameFr || null,
-    category: p.category ? { id: p.category.id, slug: p.category.slug, name: p.category[`name${locale === "en" ? "En" : "Fr"}`], color: p.category.color } : null,
-    variants: p.variants?.map((v: any) => ({ id: v.id, label: v.label, weightGrams: v.weightGrams, volumeMl: v.volumeMl, price: Number(v.price), pricePerKg: v.pricePerKg ? Number(v.pricePerKg) : null, isDefault: v.isDefault })) || [],
-  });
+  const proj = (p: any) => {
+    const relatedFr = p.translations?.find((x: any) => x.locale === "fr") || p.translations?.[0];
+    const relatedEn = p.translations?.find((x: any) => x.locale === "en") || relatedFr;
+    return {
+      id: p.id, sku: p.sku, traditionalName: p.traditionalName,
+      name: (locale === "en" ? relatedEn : relatedFr)?.name || p.traditionalName,
+      nameFr: relatedFr?.name || p.traditionalName,
+      nameEn: relatedEn?.name || relatedFr?.name || p.traditionalName,
+      price: Number(p.price), promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
+      pricePerKg: p.pricePerKg ? Number(p.pricePerKg) : null,
+      imageColor: p.imageColor, imageEmoji: p.imageEmoji, imageUrl: p.imageUrl, stockQty: p.stockQty,
+      alertThreshold: p.alertThreshold,
+      country: p.country,
+      thermalClass: p.thermalClass, packaging: p.packaging,
+      isBestseller: p.isBestseller,
+      isNew: p.isNew,
+      isOnSale: p.isOnSale,
+      brandName: p.brand?.[`name${locale === "en" ? "En" : "Fr"}`] || p.brand?.nameFr || null,
+      category: p.category ? { id: p.category.id, slug: p.category.slug, name: p.category[`name${locale === "en" ? "En" : "Fr"}`], color: p.category.color } : null,
+      variants: p.variants?.map((v: any) => ({ id: v.id, label: v.label, weightGrams: v.weightGrams, volumeMl: v.volumeMl, price: Number(v.price), pricePerKg: v.pricePerKg ? Number(v.pricePerKg) : null, isDefault: v.isDefault })) || [],
+    };
+  };
 
   let nutrition: any = null;
   try { nutrition = product.nutrition ? JSON.parse(product.nutrition) : null; } catch { nutrition = null; }
@@ -77,6 +85,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     barcode: product.barcode,
     traditionalName: product.traditionalName,
     name: t?.name || product.traditionalName,
+    nameFr: fr?.name || product.traditionalName,
+    nameEn: en?.name || fr?.name || product.traditionalName,
     description: t?.description || "",
     preparation: t?.preparation || null,
     storage: t?.storage || null,

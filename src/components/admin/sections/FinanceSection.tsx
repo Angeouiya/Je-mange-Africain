@@ -38,7 +38,7 @@ export default function FinanceSection({ locale }: { locale: "fr" | "en" }) {
     <div className="space-y-6">
       <AdminPageHeader
         variant="control"
-        accent="#3F681C"
+        accent="#8A3042"
         icon={<CircleDollarSign className="h-5 w-5" />}
         eyebrow={isFr ? "Pilotage financier" : "Financial steering"}
         title={isFr ? "Rentabilité et encaissements" : "Profitability and payments"}

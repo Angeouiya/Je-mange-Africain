@@ -82,6 +82,8 @@ test("the wholesale market applies volume pricing and preserves case quantities 
     id: "wholesale-attieke",
     sku: "JMA-WHO-ATT",
     name: "Attiéké professionnel",
+    nameFr: "Attiéké professionnel",
+    nameEn: "Professional attieke",
     traditionalName: "Attiéké",
     description: "Semoule de manioc fraîche pour restaurants et traiteurs.",
     country: "Côte d'Ivoire",
@@ -104,7 +106,9 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   };
   await page.route("**/api/catalog?*", async (route) => {
     if (!route.request().url().includes("channel=wholesale")) return route.continue();
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [wholesaleProduct], total: 1, page: 1, pageSize: 48, pages: 1, filters: { categories: [wholesaleProduct.category], brands: [], countries: ["Côte d'Ivoire"] } }) });
+    const english = route.request().url().includes("locale=en");
+    const localizedProduct = { ...wholesaleProduct, name: english ? wholesaleProduct.nameEn : wholesaleProduct.nameFr, description: english ? "Fresh cassava semolina for restaurants and caterers." : wholesaleProduct.description };
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [localizedProduct], total: 1, page: 1, pageSize: 48, pages: 1, filters: { categories: [wholesaleProduct.category], brands: [], countries: ["Côte d'Ivoire"] } }) });
   });
 
   await page.goto("/?view=wholesale", { waitUntil: "domcontentloaded" });
@@ -115,6 +119,11 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   const columns = await grid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(columns).toBe(isMobile ? 2 : 4);
+  const wholesaleImage = grid.getByRole("img", { name: "Attiéké professionnel" });
+  await expect(wholesaleImage).toBeVisible();
+  await expect.poll(() => wholesaleImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  const productCardBox = await grid.getByTestId("wholesale-product-card").first().boundingBox();
+  expect(productCardBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(isMobile ? 530 : 560);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/wholesale-market-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
@@ -125,8 +134,10 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   await page.locator("[data-testid=wholesale-product-card] select").selectOption("5");
   await expect(page.getByText(/30,00\s*€|€30\.00/).first()).toBeVisible();
   await page.getByRole("button", { name: /^(ajouter|add)$/i }).click();
+  await page.getByRole("button", { name: "Switch language" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Wholesale market" })).toBeVisible();
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
-  await expect(page.getByText("Attiéké professionnel", { exact: true })).toBeVisible();
+  await expect(page.getByText("Professional attieke", { exact: true })).toBeVisible();
   await expect(page.getByText(/^(gros|wholesale)$/i)).toBeVisible();
   await expect(page.locator("#main-content").getByText("5", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);

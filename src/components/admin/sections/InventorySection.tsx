@@ -40,7 +40,7 @@ export default function InventorySection({ locale }: { locale: "fr" | "en" }) {
     <div className="space-y-6">
       <AdminPageHeader
         variant="control"
-        accent="#39756A"
+        accent="#9A4E63"
         icon={<Warehouse className="h-5 w-5" />}
         eyebrow={isFr ? "Disponibilité et traçabilité" : "Availability and traceability"}
         title={isFr ? "Inventaire piloté par les lots" : "Batch-led inventory"}

@@ -519,7 +519,7 @@ function CounterField({ label, value, onChange, max, locale }: { label: string; 
 function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePantry, onReplace }: { ing: any; locale: string; onPackDelta: (delta: number) => void; onToggleExcluded: () => void; onTogglePantry: () => void; onReplace: (productId: string) => void }) {
   const t = dict[locale as "fr" | "en"];
   const roleColor: Record<string, string> = {
-    protein: "bg-red-100 text-red-700", base: "bg-amber-100 text-amber-700", aromatic: "bg-green-100 text-green-700",
+    protein: "bg-red-100 text-red-700", base: "bg-amber-100 text-amber-700", aromatic: "bg-gold/15 text-amber-800",
     spice: "bg-orange-100 text-orange-700", fat: "bg-yellow-100 text-yellow-700", side: "bg-blue-100 text-blue-700", optional: "bg-gray-100 text-gray-600",
   };
   const roleLabel: Record<string, [string, string]> = {

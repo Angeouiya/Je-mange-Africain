@@ -83,7 +83,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Construire",
     verbEn: "Build",
     items: [
-      { id: "catalog", module: "catalog", icon: PackageSearch, marker: "02", accent: "#2F6B4F", labelFr: "Produits vendus", labelEn: "Products for sale", mobileFr: "Produits", mobileEn: "Products", purposeFr: "Images, prix public, marge et statut", purposeEn: "Images, public price, margin and status" },
+      { id: "catalog", module: "catalog", icon: PackageSearch, marker: "02", accent: "#8A3042", labelFr: "Produits vendus", labelEn: "Products for sale", mobileFr: "Produits", mobileEn: "Products", purposeFr: "Images, prix public, marge et statut", purposeEn: "Images, public price, margin and status" },
       { id: "recipes", module: "recipes", icon: ChefHat, marker: "03", accent: "#D39B24", labelFr: "Recettes achetables", labelEn: "Shoppable recipes", mobileFr: "Recettes", mobileEn: "Recipes", purposeFr: "Composition, substitutions et préparation", purposeEn: "Composition, substitutions and method" },
     ],
   },
@@ -94,7 +94,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbEn: "Operate",
     items: [
       { id: "orders", module: "orders", icon: ClipboardList, marker: "04", accent: "#326B8A", labelFr: "Orchestrer les commandes", labelEn: "Orchestrate orders", mobileFr: "Commandes", mobileEn: "Orders", purposeFr: "Valider, préparer et remettre au transporteur", purposeEn: "Validate, pack and hand over to carrier" },
-      { id: "inventory", module: "stock", icon: Boxes, marker: "05", accent: "#39756A", labelFr: "Tracer les lots", labelEn: "Trace batches", mobileFr: "Lots", mobileEn: "Batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
+      { id: "inventory", module: "stock", icon: Boxes, marker: "05", accent: "#9A4E63", labelFr: "Tracer les lots", labelEn: "Trace batches", mobileFr: "Lots", mobileEn: "Batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
     ],
   },
   {
@@ -114,7 +114,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Contrôler",
     verbEn: "Control",
     items: [
-      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "09", accent: "#3F681C", labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
+      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "09", accent: "#8A3042", labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
       { id: "governance", module: "audit", icon: Fingerprint, marker: "10", accent: "#55524A", labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
       { id: "team", module: "team", icon: UserRoundCog, marker: "11", accent: "#6C5D7B", labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
     ],
@@ -273,7 +273,7 @@ export function AdminView({
         </div>
       </aside>
 
-      {sidebarOpen ? <button type="button" className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} aria-label={isFr ? "Fermer la navigation" : "Close navigation"} /> : null}
+      {sidebarOpen ? <button type="button" className="fixed inset-0 z-40 bg-forest-dark/45 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} aria-label={isFr ? "Fermer la navigation" : "Close navigation"} /> : null}
 
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
         <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/94 px-4 backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>

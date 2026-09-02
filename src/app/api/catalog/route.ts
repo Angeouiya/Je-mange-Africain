@@ -7,14 +7,20 @@ export const dynamic = "force-dynamic";
 
 /** Localized product projection for storefront. */
 function project(p: any, locale: string) {
-  const t = p.translations?.find((x: any) => x.locale === locale) || p.translations?.[0];
+  const fr = p.translations?.find((x: any) => x.locale === "fr") || p.translations?.[0];
+  const en = p.translations?.find((x: any) => x.locale === "en") || fr;
+  const t = locale === "en" ? en : fr;
   return {
     id: p.id,
     sku: p.sku,
     barcode: p.barcode,
     traditionalName: p.traditionalName,
     name: t?.name || p.traditionalName,
+    nameFr: fr?.name || p.traditionalName,
+    nameEn: en?.name || fr?.name || p.traditionalName,
     description: t?.description || "",
+    descriptionFr: fr?.description || "",
+    descriptionEn: en?.description || fr?.description || "",
     preparation: t?.preparation || null,
     storage: t?.storage || null,
     ingredients: t?.ingredients || null,

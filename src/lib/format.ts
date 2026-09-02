@@ -87,7 +87,7 @@ export function normalize(s: string): string {
 export function thermalColor(thermal: string): string {
   switch (thermal) {
     case "FROZEN": return "bg-blue-100 text-blue-800 border-blue-200";
-    case "REFRIGERATED": return "bg-teal-100 text-teal-800 border-teal-200";
+    case "REFRIGERATED": return "bg-blue-100 text-blue-800 border-blue-200";
     default: return "bg-amber-100 text-amber-800 border-amber-200";
   }
 }
@@ -104,7 +104,7 @@ export function thermalLabel(thermal: string, locale: Locale = "fr"): string {
 
 /** Status color for order state */
 export function orderStatusColor(status: string): string {
-  if (["delivered"].includes(status)) return "bg-green-100 text-green-800 border-green-200";
+  if (["delivered"].includes(status)) return "bg-terre/10 text-terre border-terre/20";
   if (["cancelled", "failed", "refunded"].includes(status)) return "bg-red-100 text-red-800 border-red-200";
   if (["shipped", "in_transit", "delivering", "packed", "controlDone"].includes(status))
     return "bg-blue-100 text-blue-800 border-blue-200";

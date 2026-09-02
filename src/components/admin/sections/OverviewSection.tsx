@@ -78,7 +78,7 @@ export default function OverviewSection({ locale, onNavigate }: { locale: "fr" |
           </div>
           <div className="divide-y divide-black/8 border-y border-black/8 bg-white">
             {operationalAlerts.map((item) => (
-              <button key={item.label} type="button" onClick={() => onNavigate(item.target)} className="group flex w-full items-center gap-3 px-3 py-4 text-left transition-colors hover:bg-black/[0.025] sm:px-4">
+              <button key={item.label} type="button" onClick={() => onNavigate(item.target)} className="group flex w-full items-center gap-3 px-3 py-4 text-left transition-colors hover:bg-forest/[0.035] sm:px-4">
                 <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${item.color}`}><item.icon className="h-[18px] w-[18px]" /></span>
                 <span className="min-w-0 flex-1"><span className="block text-sm font-extrabold text-charcoal">{item.label}</span><span className="mt-0.5 block text-[11px] leading-5 text-muted-foreground">{item.detail}</span></span>
                 <span className="text-xl font-black tabular-nums text-charcoal">{item.value}</span>
