@@ -1,27 +1,18 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import {
-  User, Package, Heart, ChefHat, Star, Wallet, LogOut, Settings, ArrowLeft, MailCheck, X, Eye, EyeOff, Bookmark, ShieldCheck,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { User, ArrowLeft, MailCheck, X, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
-import { useFetch } from "@/lib/use-fetch";
-import { ProductCard } from "@/components/shared/ProductCard";
-import { RecipeCard } from "@/components/shared/RecipeCard";
-import { formatPrice } from "@/lib/format";
-import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LEGAL_PATHS } from "@/lib/legal";
+import { AccountWorkspace } from "@/components/storefront/account/AccountWorkspace";
 
 type AuthMode = "login" | "register" | "forgot";
-type AccountSection = "profile" | "saved" | "settings";
-type SecurityStatus = "idle" | "busy" | "success" | "error";
 
 const emptyRegistration = {
   firstName: "",
@@ -38,9 +29,7 @@ export function AccountView() {
   const locale = useStore((s) => s.locale);
   const customer = useStore((s) => s.customer);
   const setCustomer = useStore((s) => s.setCustomer);
-  const favorites = useStore((s) => s.favorites);
-  const savedRecipes = useStore((s) => s.savedRecipes);
-  const setLocale = useStore((s) => s.setLocale);
+  const setAddresses = useStore((s) => s.setAddresses);
   const navigate = useStore((s) => s.navigate);
   const params = useStore((s) => s.params);
   const t = dict[locale];
@@ -50,34 +39,6 @@ export function AccountView() {
   const [registration, setRegistration] = useState(emptyRegistration);
   const [authStatus, setAuthStatus] = useState<"idle" | "busy" | "error" | "success">("idle");
   const [authMessage, setAuthMessage] = useState("");
-  const [section, setSection] = useState<AccountSection>(params.accountSection || "profile");
-  const [savedTab, setSavedTab] = useState<"products" | "recipes">("products");
-  const [securityStatus, setSecurityStatus] = useState<SecurityStatus>("idle");
-  const [securityMessage, setSecurityMessage] = useState("");
-  const { data: orderData } = useFetch(customer ? `/api/orders?locale=${locale}` : null, [customer?.id, locale]);
-
-  useEffect(() => {
-    if (params.accountSection) setSection(params.accountSection);
-  }, [params.accountSection]);
-
-  const requestPasswordChange = async () => {
-    if (!customer || securityStatus === "busy") return;
-    setSecurityStatus("busy");
-    setSecurityMessage("");
-    const response = await fetch("/api/auth/customer/password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: customer.email }),
-    }).catch(() => null);
-    const payload = response ? await response.json().catch(() => ({})) : {};
-    if (!response?.ok) {
-      setSecurityStatus("error");
-      setSecurityMessage(payload.error || (locale === "fr" ? "Envoi momentanément indisponible." : "Email is temporarily unavailable."));
-      return;
-    }
-    setSecurityStatus("success");
-    setSecurityMessage(locale === "fr" ? "Un lien sécurisé vient d'être envoyé à votre adresse e-mail." : "A secure link has just been sent to your email address.");
-  };
 
   useEffect(() => {
     if (customer) return;
@@ -115,6 +76,7 @@ export function AccountView() {
       return;
     }
     setCustomer(payload.customer);
+    setAddresses(payload.addresses || []);
     setAuthStatus("idle");
     if (params.returnView) navigate(params.returnView);
   };
@@ -141,6 +103,7 @@ export function AccountView() {
     }
     if (payload.customer) {
       setCustomer(payload.customer);
+      setAddresses(payload.addresses || []);
       setAuthStatus("idle");
       if (params.returnView) navigate(params.returnView);
       return;
@@ -250,65 +213,7 @@ export function AccountView() {
     );
   }
 
-  const nav: Array<{ id: AccountSection; icon: LucideIcon; label: string }> = [
-    { id: "profile", icon: User, label: t.account.profile },
-    { id: "saved", icon: Bookmark, label: locale === "fr" ? "Enregistrés" : "Saved" },
-    { id: "settings", icon: Settings, label: locale === "fr" ? "Réglages" : "Settings" },
-  ];
-  const orderCount = orderData?.orders?.length || 0;
-
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="grid h-14 w-14 place-items-center rounded-full bg-terre/15 text-xl font-bold text-terre">
-          {customer.firstName[0]}{customer.lastName[0]}
-        </div>
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-charcoal">{customer.firstName} {customer.lastName}</h1>
-          <p className="text-xs text-muted-foreground">{customer.email}</p>
-        </div>
-      </div>
-
-      <div>
-        <nav className="-mx-4 grid grid-cols-3 gap-1 border-y border-border bg-white px-4 py-2" aria-label={locale === "fr" ? "Rubriques du compte" : "Account sections"}>
-          {nav.map((n) => (
-            <button key={n.id} onClick={() => setSection(n.id)} aria-current={section === n.id ? "page" : undefined} className={`flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-bold transition ${section === n.id ? "bg-charcoal text-white" : "text-charcoal hover:bg-muted"}`}>
-              <n.icon className="h-4 w-4 shrink-0" /> <span className="truncate">{n.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="py-5">
-          {section === "profile" && (
-            <div className="space-y-3">
-              <div><p className="text-[10px] font-extrabold uppercase text-terre">{locale === "fr" ? "Identité et avantages" : "Identity and benefits"}</p><h2 className="mt-1 text-lg font-black text-charcoal">{locale === "fr" ? "Mon profil" : "My profile"}</h2></div>
-              <div className="grid grid-cols-2 gap-3">
-                <FieldReadonly label={t.checkout.firstName} value={customer.firstName} />
-                <FieldReadonly label={t.checkout.lastName} value={customer.lastName} />
-                <FieldReadonly label={t.checkout.email} value={customer.email} />
-                <FieldReadonly label={locale === "fr" ? "Téléphone" : "Phone"} value={customer.phone || "—"} />
-              </div>
-              <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border bg-white">
-                <Stat label={t.account.loyalty} value={`${customer.loyaltyPoints} pts`} icon={Star} color="#F2A900" />
-                <Stat label={t.account.wallet} value={formatPrice(customer.walletCredit, locale)} icon={Wallet} color="#3F681C" />
-                <Stat label={t.account.orders} value={String(orderCount)} icon={Package} color="#D65A32" />
-              </div>
-              <Button type="button" variant="outline" onClick={() => navigate("orders")} className="w-full sm:w-auto"><Package className="mr-2 h-4 w-4" /> {locale === "fr" ? "Voir mes commandes" : "View my orders"}</Button>
-            </div>
-          )}
-          {section === "saved" && <div className="space-y-4"><div><p className="text-[10px] font-extrabold uppercase text-terre">{locale === "fr" ? "Ma sélection" : "My selection"}</p><h2 className="mt-1 text-lg font-black text-charcoal">{locale === "fr" ? "Éléments enregistrés" : "Saved items"}</h2></div><div className="inline-flex rounded-lg border border-border bg-white p-1" role="tablist" aria-label={locale === "fr" ? "Type d'éléments enregistrés" : "Saved item type"}><button type="button" role="tab" aria-selected={savedTab === "products"} onClick={() => setSavedTab("products")} className={`h-9 rounded-md px-3 text-xs font-bold ${savedTab === "products" ? "bg-charcoal text-white" : "text-muted-foreground"}`}>{t.account.favorites} <span className="ml-1 opacity-60">{favorites.length}</span></button><button type="button" role="tab" aria-selected={savedTab === "recipes"} onClick={() => setSavedTab("recipes")} className={`h-9 rounded-md px-3 text-xs font-bold ${savedTab === "recipes" ? "bg-charcoal text-white" : "text-muted-foreground"}`}>{t.account.savedRecipes} <span className="ml-1 opacity-60">{savedRecipes.length}</span></button></div>{savedTab === "products" ? <FavoritesSection locale={locale} favorites={favorites} /> : <SavedRecipesSection locale={locale} savedRecipes={savedRecipes} />}</div>}
-          {section === "settings" && (
-            <div className="space-y-6">
-              <div><p className="text-[10px] font-extrabold uppercase text-terre">{locale === "fr" ? "Préférences et sécurité" : "Preferences and security"}</p><h2 className="mt-1 text-lg font-black text-charcoal">{locale === "fr" ? "Réglages du compte" : "Account settings"}</h2></div>
-              <section className="border-y border-border py-4"><h3 className="text-sm font-extrabold text-charcoal">{t.account.language}</h3><p className="mt-1 text-xs text-muted-foreground">{locale === "fr" ? "Langue utilisée dans l'application et les contenus." : "Language used in the application and content."}</p><div className="mt-3 inline-flex rounded-lg bg-muted p-1">{(["fr", "en"] as const).map((l) => <button key={l} onClick={() => setLocale(l)} className={`h-9 rounded-md px-4 text-xs font-bold ${locale === l ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{l === "fr" ? "Français" : "English"}</button>)}</div></section>
-              <section className="border-b border-border pb-5"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-forest/10 text-forest"><ShieldCheck className="h-4 w-4" /></span><div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Mot de passe" : "Password"}</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">{locale === "fr" ? "Recevez un lien sécurisé pour choisir un nouveau mot de passe." : "Receive a secure link to choose a new password."}</p></div></div><Button type="button" variant="outline" size="sm" onClick={() => void requestPasswordChange()} disabled={securityStatus === "busy" || securityStatus === "success"} className="mt-3">{securityStatus === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer le lien" : "Send link")}</Button>{securityMessage ? <p role={securityStatus === "error" ? "alert" : "status"} className={`mt-3 text-xs ${securityStatus === "error" ? "text-destructive" : "text-forest"}`}>{securityMessage}</p> : null}</section>
-              <section><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Fermer la session" : "Close session"}</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">{locale === "fr" ? "Votre panier restera sur cet appareil après la déconnexion." : "Your cart will stay on this device after sign-out."}</p><LogoutConfirmDialog><Button type="button" variant="outline" className="mt-3 border-destructive/25 text-destructive hover:bg-destructive/5 hover:text-destructive"><LogOut className="mr-2 h-4 w-4" /> {t.account.logout}</Button></LogoutConfirmDialog></section>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  return <AccountWorkspace />;
 }
 
 function LegalCheckbox({ id, checked, onCheckedChange, label, linkLabel, href }: { id: string; checked: boolean; onCheckedChange: (checked: boolean) => void; label: string; linkLabel: string; href: string }) {
@@ -346,55 +251,4 @@ function AuthMessage({ status, message, successIcon = false }: { status: "idle" 
   if (!message || status === "idle" || status === "busy") return null;
   const success = status === "success";
   return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-lg border p-3 text-xs leading-relaxed ${success ? "border-forest/25 bg-forest/5 text-forest" : "border-red-200 bg-red-50 text-red-800"}`}>{success && successIcon ? <MailCheck className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
-}
-
-function FieldReadonly({ label, value }: { label: string; value: string }) {
-  return <div><Label className="mb-1 block text-xs font-semibold text-charcoal">{label}</Label><Input value={value} readOnly className="bg-muted/40" /></div>;
-}
-function Stat({ label, value, icon: Icon, color }: any) {
-  return (
-    <div className="min-w-0 border-r border-border p-3 last:border-r-0">
-      <Icon className="h-4 w-4" style={{ color }} />
-      <p className="mt-2 truncate text-sm font-black text-charcoal">{value}</p>
-      <p className="mt-0.5 truncate text-[9px] text-muted-foreground sm:text-[10px]">{label}</p>
-    </div>
-  );
-}
-function EmptyFeature({ icon: Icon, title, description, actionLabel, onAction }: { icon: LucideIcon; title: string; description: string; actionLabel: string; onAction: () => void }) {
-  return (
-    <div className="flex flex-col items-center gap-2 py-10 text-center">
-      <Icon className="h-10 w-10 text-muted-foreground/40" />
-      <p className="text-sm font-medium text-charcoal">{title}</p>
-      <p className="max-w-sm text-xs leading-5 text-muted-foreground">{description}</p>
-      <Button type="button" variant="outline" size="sm" onClick={onAction} className="mt-1">{actionLabel}</Button>
-    </div>
-  );
-}
-
-function FavoritesSection({ locale, favorites }: { locale: string; favorites: string[] }) {
-  const t = dict[locale as "fr" | "en"];
-  const navigate = useStore((state) => state.navigate);
-  // fetch a few products — use catalog all then filter; simpler: fetch each (small)
-  const { data } = useFetch(`/api/catalog?locale=${locale}&pageSize=100`, []);
-  const products = (data?.products || []).filter((p: any) => favorites.includes(p.id));
-  if (products.length === 0) return <EmptyFeature icon={Heart} title={t.account.favorites} description={locale === "fr" ? "Ajoutez des produits depuis le catalogue pour les retrouver ici." : "Save products from the catalogue to find them here."} actionLabel={locale === "fr" ? "Parcourir le catalogue" : "Browse catalogue"} onAction={() => navigate("catalog")} />;
-  return (
-    <div>
-      <h2 className="mb-3 text-lg font-bold text-charcoal">{t.account.favorites} ({products.length})</h2>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{products.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} />)}</div>
-    </div>
-  );
-}
-function SavedRecipesSection({ locale, savedRecipes }: { locale: string; savedRecipes: string[] }) {
-  const t = dict[locale as "fr" | "en"];
-  const navigate = useStore((state) => state.navigate);
-  const { data } = useFetch(`/api/recipes?locale=${locale}`, []);
-  const recipes = (data?.recipes || []).filter((r: any) => savedRecipes.includes(r.id));
-  if (recipes.length === 0) return <EmptyFeature icon={ChefHat} title={t.account.savedRecipes} description={locale === "fr" ? "Enregistrez une recette pour la retrouver rapidement et préparer son panier." : "Save a recipe to find it quickly and prepare its basket."} actionLabel={locale === "fr" ? "Découvrir les recettes" : "Discover recipes"} onAction={() => navigate("recipes")} />;
-  return (
-    <div>
-      <h2 className="mb-3 text-lg font-bold text-charcoal">{t.account.savedRecipes} ({recipes.length})</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{recipes.map((r: any, i: number) => <RecipeCard key={r.id} recipe={r} index={i} />)}</div>
-    </div>
-  );
 }

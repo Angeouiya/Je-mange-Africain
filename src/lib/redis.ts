@@ -2,7 +2,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
 
-export type RateLimitPolicy = "auth" | "register" | "checkout" | "search";
+export type RateLimitPolicy = "auth" | "register" | "checkout" | "search" | "account";
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -14,6 +14,7 @@ const policyConfig: Record<RateLimitPolicy, { requests: number; windowMs: number
   register: { requests: 4, windowMs: 60 * 60_000, window: "1 h" },
   checkout: { requests: 12, windowMs: 60_000, window: "1 m" },
   search: { requests: 90, windowMs: 60_000, window: "1 m" },
+  account: { requests: 30, windowMs: 60_000, window: "1 m" },
 };
 
 const remoteLimiters = redis

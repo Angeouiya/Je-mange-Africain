@@ -58,7 +58,7 @@ export function CheckoutView() {
   const [preparingPayment, setPreparingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [intent, setIntent] = useState<IntentResponse | null>(null);
-  const address = addresses[0];
+  const address = addresses.find((item) => item.isDefault) || addresses[0];
   const [form, setForm] = useState({
     firstName: address?.firstName || customer?.firstName || "",
     lastName: address?.lastName || customer?.lastName || "",

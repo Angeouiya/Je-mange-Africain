@@ -4,6 +4,7 @@ import { getSupabaseCustomerConfig, normalizePhone, setCustomerCookies, toCustom
 import { db } from "@/lib/db";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { enforceRateLimit } from "@/lib/redis";
+import { loadCustomerAccount } from "@/lib/customer-account";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +90,8 @@ export async function POST(request: Request) {
       await saveCustomerDirectory(parsed.data, acceptedAt);
       if (signupPayload.access_token) {
         const customer = toCustomerSession(signupPayload.user);
-        const response = NextResponse.json({ customer, requiresEmailConfirmation: false });
+        const account = customer ? await loadCustomerAccount(customer, true).catch(() => null) : null;
+        const response = NextResponse.json({ ...(account || { customer, addresses: [] }), requiresEmailConfirmation: false });
         setCustomerCookies(response, signupPayload);
         return response;
       }
@@ -107,7 +109,8 @@ export async function POST(request: Request) {
     const tokenPayload = await tokenResponse.json().catch(() => ({}));
     if (!tokenResponse.ok) return NextResponse.json({ error: "Compte créé. La connexion doit être renouvelée." }, { status: 409 });
     const customer = toCustomerSession(tokenPayload.user);
-    const response = NextResponse.json({ customer, requiresEmailConfirmation: false });
+    const account = customer ? await loadCustomerAccount(customer, true).catch(() => null) : null;
+    const response = NextResponse.json({ ...(account || { customer, addresses: [] }), requiresEmailConfirmation: false });
     setCustomerCookies(response, tokenPayload);
     return response;
   } catch {

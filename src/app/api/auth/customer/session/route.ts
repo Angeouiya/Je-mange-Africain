@@ -11,6 +11,7 @@ import {
 } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
 import { enforceRateLimit } from "@/lib/redis";
+import { loadCustomerAccount } from "@/lib/customer-account";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,8 @@ const Credentials = z.object({
 export async function GET(request: NextRequest) {
   const customer = await authorizeCustomerRequest(request);
   if (!customer) return NextResponse.json({ customer: null });
-  return NextResponse.json({ customer });
+  const account = await loadCustomerAccount(customer, true).catch(() => null);
+  return NextResponse.json(account || { customer, addresses: [] }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: NextRequest) {
@@ -56,7 +58,8 @@ export async function POST(request: NextRequest) {
   const customer = toCustomerSession(payload.user);
   if (!customer) return NextResponse.json({ error: "Ce compte doit se connecter depuis son espace dédié." }, { status: 403 });
 
-  const response = NextResponse.json({ customer });
+  const account = await loadCustomerAccount(customer, true).catch(() => null);
+  const response = NextResponse.json(account || { customer, addresses: [] });
   setCustomerCookies(response, payload);
   return response;
 }

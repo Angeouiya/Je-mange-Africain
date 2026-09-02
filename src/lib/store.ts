@@ -51,7 +51,7 @@ export interface ViewParams {
   category?: string;
   query?: string;
   recipeMode?: "recipes" | "library";
-  accountSection?: "profile" | "saved" | "settings";
+  accountSection?: "profile" | "addresses" | "saved" | "settings";
   returnView?: ViewId;
   infoPage?: "about" | "help" | "contact" | "cgv" | "privacy" | "cookies" | "delivery";
 }
@@ -66,6 +66,7 @@ export interface Address {
   city: string;
   country: string;
   phone?: string;
+  isDefault?: boolean;
 }
 
 export interface Customer {
@@ -77,6 +78,7 @@ export interface Customer {
   role: "customer";
   loyaltyPoints: number;
   walletCredit: number;
+  preferredLang?: Locale;
 }
 
 /* ------------------------------------------------------------------ */
@@ -129,7 +131,7 @@ interface AppState {
 
   // addresses
   addresses: Address[];
-  addAddress: (a: Omit<Address, "id">) => void;
+  setAddresses: (addresses: Address[]) => void;
 
   // toast notification helper (resolved on mount)
   _hydrated: boolean;
@@ -250,22 +252,10 @@ export const useStore = create<AppState>()(
 
       customer: null,
       setCustomer: (customer) => set({ customer }),
-      logout: () => set({ customer: null }),
+      logout: () => set({ customer: null, addresses: [] }),
 
-      addresses: [
-        {
-          id: "addr-1",
-          label: "Domicile",
-          firstName: "Awa",
-          lastName: "Traoré",
-          street: "12 rue de la Gare",
-          postalCode: "75011",
-          city: "Paris",
-          country: "France",
-          phone: "+33 6 12 34 56 78",
-        },
-      ],
-      addAddress: (a) => set((s) => ({ addresses: [...s.addresses, { ...a, id: uid() }] })),
+      addresses: [],
+      setAddresses: (addresses) => set({ addresses }),
 
       _hydrated: false,
       setHydrated: (v) => set({ _hydrated: v }),

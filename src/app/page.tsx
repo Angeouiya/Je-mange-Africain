@@ -43,7 +43,12 @@ export default function Page() {
     }
     fetch("/api/auth/customer/session", { cache: "no-store" })
       .then(async (response) => response.ok ? response.json() : null)
-      .then((payload) => useStore.getState().setCustomer(payload?.customer || null))
+      .then((payload) => {
+        const state = useStore.getState();
+        state.setCustomer(payload?.customer || null);
+        if (!payload?.customer) state.setAddresses([]);
+        else if (Array.isArray(payload.addresses)) state.setAddresses(payload.addresses);
+      })
       .catch(() => undefined);
   }, [navigate]);
 

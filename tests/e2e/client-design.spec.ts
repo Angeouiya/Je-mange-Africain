@@ -97,6 +97,84 @@ test("registration requires legal consent and two independently visible password
   await expect(page.getByRole("main")).toBeVisible();
 });
 
+test("the customer workspace edits identity and manages a persistent address book", async ({ page }) => {
+  let account = {
+    customer: { id: "customer-account", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 180, walletCredit: 12.5, preferredLang: "fr" },
+    addresses: [{ id: "address-home", label: "Domicile", firstName: "Awa", lastName: "Traore", street: "12 rue des Cultures", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678", isDefault: true }],
+  };
+
+  await page.addInitScript(({ persistedCustomer, persistedAddresses }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: { locale: "fr", cart: [], favorites: [], savedRecipes: [], recentlyViewed: [], customer: persistedCustomer, addresses: persistedAddresses, country: "France", postalCode: "75011", coupon: null },
+      version: 0,
+    }));
+  }, { persistedCustomer: account.customer, persistedAddresses: account.addresses });
+
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
+  await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [] }) }));
+  await page.route("**/api/customer/account", async (route) => {
+    if (route.request().method() === "PATCH") {
+      const update = route.request().postDataJSON();
+      account = { ...account, customer: { ...account.customer, ...update } };
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) });
+  });
+  await page.route("**/api/customer/account/addresses", async (route) => {
+    const input = route.request().postDataJSON();
+    account = { ...account, addresses: [...account.addresses.map((address) => ({ ...address, isDefault: input.isDefault ? false : address.isDefault })), { ...input, id: "address-office", isDefault: Boolean(input.isDefault) }] };
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(account) });
+  });
+  await page.route("**/api/customer/account/addresses/*", async (route) => {
+    const addressId = new URL(route.request().url()).pathname.split("/").at(-1);
+    if (route.request().method() === "PATCH") {
+      const input = route.request().postDataJSON();
+      account = { ...account, addresses: account.addresses.map((address) => address.id === addressId ? { ...address, ...input } : { ...address, isDefault: input.isDefault ? false : address.isDefault }) };
+    }
+    if (route.request().method() === "DELETE") {
+      const removedDefault = account.addresses.find((address) => address.id === addressId)?.isDefault;
+      const remaining = account.addresses.filter((address) => address.id !== addressId);
+      account = { ...account, addresses: removedDefault && remaining.length ? remaining.map((address, index) => ({ ...address, isDefault: index === 0 })) : remaining };
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) });
+  });
+
+  await page.goto("/?view=account", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Awa Traore" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /mes adresses|my addresses/i })).toBeVisible();
+
+  await page.getByLabel(/prénom|first name/i).fill("Aminata");
+  await page.getByRole("button", { name: /enregistrer mes coordonnées|save my details/i }).click();
+  await expect(page.getByText(/coordonnées sont à jour|contact details are up to date/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aminata Traore" })).toBeVisible();
+
+  await page.getByRole("button", { name: /mes adresses|my addresses/i }).click();
+  await expect(page.getByText("12 rue des Cultures")).toBeVisible();
+  await expect(page.getByText(/adresse proposée au paiement|address suggested at checkout/i)).toBeVisible();
+  await page.getByRole("button", { name: /^ajouter( une adresse)?$|^add( address)?$/i }).first().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(/nom de l'adresse|address name/i).fill("Bureau");
+  await dialog.getByLabel(/adresse complète|street address/i).fill("8 avenue de l'Europe");
+  await dialog.getByLabel(/code postal|postal code/i).fill("69002");
+  await dialog.getByLabel(/ville|city/i).fill("Lyon");
+  await dialog.getByRole("button", { name: /ajouter au carnet|add to address book/i }).click();
+  await expect(page.getByRole("heading", { name: "Bureau" })).toBeVisible();
+  await page.getByRole("button", { name: /définir par défaut|make default/i }).click();
+  await expect(page.getByText(/Bureau · 69002 Lyon, France/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /supprimer l'adresse bureau|delete bureau address/i }).click();
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation.getByText(/commandes déjà passées conserveront|existing orders keep/i)).toBeVisible();
+  await confirmation.getByRole("button", { name: /oui, supprimer|yes, delete/i }).click();
+  await expect(page.getByRole("heading", { name: "Bureau" })).toHaveCount(0);
+
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await page.screenshot({ path: `output/playwright/audit/account-workspace-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+});
+
 test("checkout compares delivery services and protects the cold chain", async ({ page }) => {
   const customer = { id: "customer-checkout", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
   const quoteRequests: Array<Record<string, unknown>> = [];
