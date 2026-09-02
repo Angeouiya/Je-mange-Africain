@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import Image from "next/image";
 import { BookOpen, ChefHat, MapPin, Search, Sparkles, UtensilsCrossed } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,35 +20,36 @@ export function RecipesView() {
   const [mode, setMode] = useState<"recipes" | "library">(params.recipeMode || "recipes");
   const [country, setCountry] = useState("");
   const [selectedDish, setSelectedDish] = useState<DishLibraryItem | null>(null);
+  const deferredSearch = useDeferredValue(search.trim());
 
   const qs = new URLSearchParams({ locale });
   if (category) qs.set("category", category);
-  if (search.trim()) qs.set("q", search.trim());
-  const { data, loading } = useFetch(`/api/recipes?${qs.toString()}`, [locale, category, search]);
+  if (deferredSearch) qs.set("q", deferredSearch);
+  const { data, loading } = useFetch(`/api/recipes?${qs.toString()}`, [locale, category, deferredSearch]);
   const dishQs = new URLSearchParams({ locale });
   if (category) dishQs.set("category", category);
   if (country) dishQs.set("country", country);
-  if (search.trim()) dishQs.set("q", search.trim());
-  const { data: dishData, loading: dishesLoading } = useFetch(`/api/dishes?${dishQs.toString()}`, [locale, category, country, search]);
+  if (deferredSearch) dishQs.set("q", deferredSearch);
+  const { data: dishData, loading: dishesLoading } = useFetch(`/api/dishes?${dishQs.toString()}`, [locale, category, country, deferredSearch]);
 
   const suggestions = locale === "fr"
     ? ["Attiéké poisson", "Sauce gombo", "Mafé", "Kplô", "Plantain", "Dîner rapide"]
     : ["Attieke fish", "Okra sauce", "Mafe", "Kplo", "Plantain", "Quick dinner"];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 md:px-7 md:py-6 lg:px-8">
       {/* hero */}
-      <section className="relative mb-7 min-h-[28rem] overflow-hidden rounded-lg bg-charcoal p-6 text-white md:min-h-[30rem] md:p-10">
+      <section className="relative mb-4 min-h-80 overflow-hidden rounded-lg bg-charcoal p-4 text-white md:min-h-96 md:p-10" data-testid="recipes-hero">
         <Image src="/recipe-library-hero.webp" alt="" fill sizes="100vw" className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-r from-charcoal/88 via-charcoal/62 to-charcoal/12" />
         <div className="relative max-w-3xl">
           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase text-gold">
             <Sparkles className="h-3 w-3" /> {t.home.heroCtaRecipes}
           </span>
-          <h1 className="mt-3 max-w-xl font-display text-3xl font-semibold leading-tight md:text-5xl">{t.recipes.title}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/78 md:text-base">{t.recipes.subtitle}</p>
-          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-gold"><BookOpen className="h-3.5 w-3.5" /> {locale === "fr" ? "20 plats africains documentés, dont 10 spécialités ivoiriennes" : "20 documented African dishes, including 10 Ivorian specialties"}</p>
-          <div className="mt-6 max-w-2xl rounded-lg border border-white/16 bg-white/10 p-2 backdrop-blur">
+          <h1 className="mt-2 max-w-xl font-display text-2xl font-semibold leading-tight md:mt-3 md:text-5xl">{t.recipes.title}</h1>
+          <p className="mt-2 line-clamp-2 max-w-2xl text-xs leading-5 text-white/78 md:text-base md:leading-6">{t.recipes.subtitle}</p>
+          <p className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] font-semibold leading-4 text-gold md:mt-2 md:text-xs"><BookOpen className="h-3.5 w-3.5 shrink-0" /> {locale === "fr" ? "20 plats africains documentés, dont 10 spécialités ivoiriennes" : "20 documented African dishes, including 10 Ivorian specialties"}</p>
+          <div className="mt-4 max-w-2xl rounded-md border border-white/16 bg-white/10 p-1.5 backdrop-blur md:mt-6 md:p-2">
             <div className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-charcoal">
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
@@ -59,12 +60,12 @@ export function RecipesView() {
                 className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mt-2 md:flex-wrap">
               {suggestions.map((item) => (
                 <button
                   key={item}
                   onClick={() => setSearch(item)}
-                  className="rounded-full border border-white/20 bg-white/12 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-white/22"
+                  className="shrink-0 rounded-md border border-white/20 bg-white/12 px-2.5 py-1 text-[10px] font-semibold text-white transition hover:bg-white/22 md:text-[11px]"
                 >
                   {item}
                 </button>
@@ -77,20 +78,20 @@ export function RecipesView() {
       <Tabs
         value={mode}
         onValueChange={(value) => { setMode(value as "recipes" | "library"); setCategory(null); setCountry(""); }}
-        className="gap-5"
+        className="gap-3"
       >
         <TabsList className="grid h-11 w-full grid-cols-2 bg-muted p-1 sm:w-[32rem]">
           <TabsTrigger value="recipes" className="h-full min-w-0 text-xs"><UtensilsCrossed className="h-4 w-4 shrink-0" /> {locale === "fr" ? "Recettes" : "Recipes"}</TabsTrigger>
           <TabsTrigger value="library" className="h-full min-w-0 text-xs"><BookOpen className="h-4 w-4 shrink-0" /> {locale === "fr" ? "Bibliothèque" : "Dish library"}</TabsTrigger>
         </TabsList>
 
-        <div className="flex flex-col gap-3 border-b border-border pb-4">
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setCategory(null)} aria-pressed={!category} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${!category ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
+        <div className="flex flex-col gap-2 border-b border-border pb-2">
+          <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0">
+            <button type="button" onClick={() => setCategory(null)} aria-pressed={!category} className={`shrink-0 rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${!category ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
               {t.recipes.all}
             </button>
             {(mode === "recipes" ? data?.categories : dishData?.categories)?.map((item: any) => (
-              <button type="button" key={item.slug} onClick={() => setCategory(category === item.slug ? null : item.slug)} aria-pressed={category === item.slug} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${category === item.slug ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
+              <button type="button" key={item.slug} onClick={() => setCategory(category === item.slug ? null : item.slug)} aria-pressed={category === item.slug} className={`shrink-0 rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${category === item.slug ? "bg-terre text-cream" : "border border-border bg-card text-charcoal hover:bg-muted"}`}>
                 {item.name}
               </button>
             ))}
@@ -110,8 +111,8 @@ export function RecipesView() {
           {loading ? (
             <ResultSkeleton />
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {data?.recipes?.length ? data.recipes.map((recipe: any, index: number) => <RecipeCard key={recipe.id} recipe={recipe} index={index} />) : (
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4" data-testid="recipes-grid">
+              {data?.recipes?.length ? data.recipes.map((recipe: any, index: number) => <RecipeCard key={recipe.id} recipe={recipe} index={index} compact />) : (
                 <EmptyResult locale={locale} onReset={() => { setSearch(""); setCategory(null); }} library={false} />
               )}
             </div>
@@ -126,8 +127,8 @@ export function RecipesView() {
           {dishesLoading ? (
             <ResultSkeleton />
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {dishData?.dishes?.length ? dishData.dishes.map((dish: DishLibraryItem) => <DishLibraryCard key={dish.slug} dish={dish} onSelect={setSelectedDish} />) : (
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4" data-testid="dish-library-grid">
+              {dishData?.dishes?.length ? dishData.dishes.map((dish: DishLibraryItem, index: number) => <DishLibraryCard key={dish.slug} dish={dish} onSelect={setSelectedDish} compact index={index} />) : (
                 <EmptyResult locale={locale} onReset={() => { setSearch(""); setCategory(null); setCountry(""); }} library />
               )}
             </div>
@@ -140,7 +141,7 @@ export function RecipesView() {
 }
 
 function ResultSkeleton() {
-  return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-80 rounded-lg" />)}</div>;
+  return <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4">{Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="aspect-[3/5] rounded-md" />)}</div>;
 }
 
 function EmptyResult({ locale, onReset, library }: { locale: "fr" | "en"; onReset: () => void; library: boolean }) {

@@ -36,7 +36,7 @@ export type DishLibraryItem = {
   steps: string[];
 };
 
-export function DishLibraryCard({ dish, onSelect }: { dish: DishLibraryItem; onSelect: (dish: DishLibraryItem) => void }) {
+export function DishLibraryCard({ dish, onSelect, compact = false, index = 0 }: { dish: DishLibraryItem; onSelect: (dish: DishLibraryItem) => void; compact?: boolean; index?: number }) {
   const locale = useStore((state) => state.locale);
   const difficulty = dish.difficulty === "easy"
     ? locale === "fr" ? "Facile" : "Easy"
@@ -46,23 +46,23 @@ export function DishLibraryCard({ dish, onSelect }: { dish: DishLibraryItem; onS
   const photo = getRecipePhoto({ name: dish.name, title: dish.name, country: dish.country, category: dish.categoryLabel });
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-lg">
+    <article className={`group flex h-full flex-col overflow-hidden border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-lg ${compact ? "rounded-md [contain-intrinsic-size:390px] [content-visibility:auto]" : "rounded-lg"}`}>
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-        <ProductImage src={photo} alt={dish.name} emoji="🍽️" color="#3F681C" size="lg" className="h-full w-full transition duration-500 group-hover:scale-[1.03]" rounded="rounded-none" />
-        <Badge className="absolute left-3 top-3 border-0 bg-charcoal/85 text-white backdrop-blur">{dish.country}</Badge>
-        {dish.featured ? <Badge className="absolute right-3 top-3 border-0 bg-gold text-charcoal">{locale === "fr" ? "Incontournable" : "Essential"}</Badge> : null}
+        <ProductImage src={photo} alt={dish.name} emoji="🍽️" color="#3F681C" size="lg" priority={index < 2} className="h-full w-full transition duration-500 group-hover:scale-[1.03]" rounded="rounded-none" />
+        <Badge className={`absolute border-0 bg-charcoal/85 text-white backdrop-blur ${compact ? "bottom-2 left-2 px-1.5 py-0.5 text-[8px]" : "left-3 top-3"}`}>{dish.country}</Badge>
+        {dish.featured ? <Badge className={`absolute border-0 bg-gold text-charcoal ${compact ? "right-2 top-2 px-1.5 py-0.5 text-[8px]" : "right-3 top-3"}`}>{locale === "fr" ? "Incontournable" : "Essential"}</Badge> : null}
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-terre">{dish.categoryLabel} · {dish.region}</p>
-        <h3 className="mt-1 text-base font-extrabold leading-snug text-charcoal">{dish.name}</h3>
-        <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{dish.description}</p>
-        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+      <div className={`flex flex-1 flex-col ${compact ? "p-2.5" : "p-4"}`}>
+        <p className={`${compact ? "text-[8px]" : "text-[10px] tracking-wider"} truncate font-bold uppercase text-terre`}>{dish.categoryLabel} · {dish.region}</p>
+        <h3 className={`${compact ? "mt-1 line-clamp-2 min-h-7 text-[12px]" : "mt-1 text-base"} font-extrabold leading-snug text-charcoal`}>{dish.name}</h3>
+        <p className={`${compact ? "mt-1 line-clamp-2 min-h-8 text-[10px] leading-4" : "mt-2 line-clamp-2 text-xs leading-5"} text-muted-foreground`}>{dish.description}</p>
+        <div className={`${compact ? "mt-2 gap-x-2 text-[10px]" : "mt-3 gap-x-3 text-[11px]"} flex flex-wrap gap-y-1 text-muted-foreground`}>
           <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {dish.timeMinutes} min</span>
           <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> {dish.servings}</span>
-          <span className="inline-flex items-center gap-1"><Flame className="h-3 w-3" /> {difficulty}</span>
+          <span className={`${compact ? "hidden sm:inline-flex" : "inline-flex"} items-center gap-1`}><Flame className="h-3 w-3" /> {difficulty}</span>
         </div>
-        <Button onClick={() => onSelect(dish)} variant="outline" className="mt-4 w-full border-forest text-forest hover:bg-forest hover:text-white">
-          <BookOpen className="mr-2 h-4 w-4" /> {locale === "fr" ? "Voir la fiche complète" : "View full dish"}
+        <Button onClick={() => onSelect(dish)} variant="outline" aria-label={locale === "fr" ? `Voir la fiche complète de ${dish.name}` : `View the full record for ${dish.name}`} className={`${compact ? "mt-2 h-8 px-2 text-[10px]" : "mt-4"} w-full border-forest text-forest hover:bg-forest hover:text-white`}>
+          <BookOpen className={`${compact ? "mr-1 h-3.5 w-3.5" : "mr-2 h-4 w-4"}`} /> {compact ? (locale === "fr" ? "Voir la fiche" : "View record") : (locale === "fr" ? "Voir la fiche complète" : "View full dish")}
         </Button>
       </div>
     </article>

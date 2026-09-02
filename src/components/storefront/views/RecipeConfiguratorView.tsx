@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
   Users, Clock, Flame, Minus, Plus, ShoppingCart, RotateCcw,
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
-  Trash2, Undo2, RefreshCw, House,
+  Trash2, Undo2, RefreshCw, House, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -213,12 +213,12 @@ export function RecipeConfiguratorView() {
   const purchasableCount = (calc?.ingredients || []).filter((ingredient) => !ingredient.removed && ingredient.packs > 0 && ingredient.available).length;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="recipes" className="mb-3" />
 
       {/* recipe header */}
-      <div className="mb-7 grid overflow-hidden rounded-lg border border-charcoal/10 bg-white md:grid-cols-[280px_1fr]">
-        <div className="relative aspect-[4/3] md:aspect-auto">
+      <div className="mb-4 grid grid-cols-[6.75rem_minmax(0,1fr)] overflow-hidden rounded-md border border-charcoal/10 bg-white md:mb-6 md:grid-cols-[280px_1fr] md:rounded-lg" data-testid="recipe-header">
+        <div className="relative min-h-44 md:min-h-52">
           <ProductImage
             src={recipePhoto}
             alt={recipe.title}
@@ -229,11 +229,11 @@ export function RecipeConfiguratorView() {
             className="h-full w-full"
           />
         </div>
-        <div className="p-5 md:p-6">
-          <Badge variant="outline" className="mb-2">{recipe.country}</Badge>
-          <h1 className="font-display text-3xl font-semibold leading-tight text-charcoal md:text-4xl">{recipe.title}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{recipe.description}</p>
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center sm:max-w-md">
+        <div className="min-w-0 p-3 md:p-6">
+          <Badge variant="outline" className="mb-1.5 max-w-full truncate px-1.5 py-0.5 text-[9px] md:mb-2 md:px-2.5 md:text-xs">{recipe.country}</Badge>
+          <h1 className="line-clamp-2 font-display text-lg font-semibold leading-tight text-charcoal md:text-4xl">{recipe.title}</h1>
+          <p className="mt-1.5 line-clamp-2 max-w-3xl text-[10px] leading-4 text-muted-foreground md:mt-2 md:text-sm md:leading-relaxed">{recipe.description}</p>
+          <div className="mt-2 grid grid-cols-3 divide-x divide-border border-t border-border pt-2 text-center md:mt-4 md:max-w-md md:pt-3">
             <RecipeMetric icon={Users} label={t.config.peopleUnit} value={String(recipe.baseServings)} />
             <RecipeMetric icon={Clock} label="min" value={String(recipe.timeMinutes)} />
             <RecipeMetric icon={Flame} label={locale === "fr" ? "niveau" : "level"} value={diff} />
@@ -241,10 +241,16 @@ export function RecipeConfiguratorView() {
         </div>
       </div>
 
+      <nav aria-label={locale === "fr" ? "Parcours de la recette" : "Recipe journey"} className="mb-4 grid grid-cols-3 rounded-md border border-border bg-white p-1" data-testid="recipe-flow-nav">
+        <RecipeFlowLink href="#recipe-settings" icon={Sliders} number="1" label={locale === "fr" ? "Configurer" : "Configure"} />
+        <RecipeFlowLink href="#recipe-ingredients" icon={Package} number="2" label={locale === "fr" ? "Ingrédients" : "Ingredients"} />
+        <RecipeFlowLink href="#recipe-preparation" icon={Sparkles} number="3" label={locale === "fr" ? "Préparation" : "Preparation"} />
+      </nav>
+
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         {/* LEFT: config form */}
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-lg border border-charcoal/10 bg-white p-4">
+        <aside id="recipe-settings" className="scroll-mt-24 lg:sticky lg:top-24 lg:self-start">
+          <div className="rounded-md border border-charcoal/10 bg-white p-4 md:rounded-lg">
             <div className="mb-3 flex items-center gap-2">
               <Sliders className="h-4 w-4 text-terre" />
               <h2 className="text-sm font-bold text-charcoal">{t.config.title}</h2>
@@ -253,7 +259,7 @@ export function RecipeConfiguratorView() {
             {/* people */}
             <div className="space-y-3 border-b border-border pb-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.stepPeople}</p>
-              <div className="flex items-center justify-between rounded-lg bg-terre/8 px-3 py-2">
+              <div className="flex items-center justify-between rounded-md bg-terre/8 px-3 py-2">
                 <span className="text-xs font-semibold text-charcoal">{locale === "fr" ? "Table configurée" : "Configured table"}</span>
                 <strong className="text-sm text-terre">{servings} {t.config.peopleUnit}</strong>
               </div>
@@ -263,7 +269,7 @@ export function RecipeConfiguratorView() {
               </div>
               <div className="flex gap-1">
                 {(["normal", "generous"] as const).map((p) => (
-                  <button type="button" key={p} onClick={() => setPortion(p)} aria-pressed={portion === p} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${portion === p ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                  <button type="button" key={p} onClick={() => setPortion(p)} aria-pressed={portion === p} className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition ${portion === p ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {t.config[p]}
                   </button>
                 ))}
@@ -275,7 +281,7 @@ export function RecipeConfiguratorView() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.protein}</p>
               <div className="grid grid-cols-2 gap-1">
                 {([["recipe", locale === "fr" ? "Recette originale" : "Original recipe"], ["fish", t.config.fish], ["meat", t.config.meat], ["none", t.config.none]] as const).map(([v, label]) => (
-                  <button type="button" key={v} onClick={() => setProtein(v)} aria-pressed={protein === v} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${protein === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                  <button type="button" key={v} onClick={() => setProtein(v)} aria-pressed={protein === v} className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition ${protein === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {label}
                   </button>
                 ))}
@@ -288,11 +294,12 @@ export function RecipeConfiguratorView() {
 
             {/* spice */}
             <div className="space-y-2 border-b border-border py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.spiceLevel} 🌶️</p>
+              <p className="flex items-center gap-1 text-xs font-semibold uppercase text-muted-foreground"><Flame className="h-3.5 w-3.5 text-terre" /> {t.config.spiceLevel}</p>
               <div className="flex gap-1">
                 {([["mild", t.config.mild], ["medium", t.config.medium], ["hot", t.config.hot], ["veryHot", t.config.veryHot]] as const).map(([v, label], i) => (
-                  <button type="button" key={v} onClick={() => setSpiceLevel(v)} aria-pressed={spiceLevel === v} className={`flex-1 rounded-lg px-1 py-1.5 text-[11px] font-medium transition ${spiceLevel === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
-                    {"🌶️".repeat(i + 1)} <span className="block">{label}</span>
+                  <button type="button" key={v} onClick={() => setSpiceLevel(v)} aria-pressed={spiceLevel === v} className={`flex-1 rounded-md px-1 py-1.5 text-[11px] font-medium transition ${spiceLevel === v ? "bg-terre text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                    <span className="flex justify-center gap-px" aria-hidden="true">{Array.from({ length: i + 1 }, (_, flameIndex) => <Flame key={flameIndex} className="h-3 w-3 fill-current" />)}</span>
+                    <span className="block">{label}</span>
                   </button>
                 ))}
               </div>
@@ -303,7 +310,7 @@ export function RecipeConfiguratorView() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.formula}</p>
               <div className="flex gap-1">
                 {([["economy", t.config.economy], ["standard", t.config.standard], ["premium", t.config.premium]] as const).map(([v, label]) => (
-                  <button type="button" key={v} onClick={() => setFormula(v)} aria-pressed={formula === v} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${formula === v ? "bg-forest text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                  <button type="button" key={v} onClick={() => setFormula(v)} aria-pressed={formula === v} className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition ${formula === v ? "bg-forest text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {label}
                   </button>
                 ))}
@@ -315,7 +322,7 @@ export function RecipeConfiguratorView() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.alreadyHave}</p>
               <div className="max-h-40 space-y-1 overflow-y-auto scroll-pretty">
                 {recipe.ingredients?.map((ri: any) => (
-                  <label key={ri.recipeIngredientId} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-xs text-charcoal hover:bg-muted">
+                  <label key={ri.recipeIngredientId} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs text-charcoal hover:bg-muted">
                     <input type="checkbox" checked={haveAtHome.includes(ri.recipeIngredientId)} onChange={() => toggleHave(ri.recipeIngredientId)} className="accent-terre" />
                     <ProductImage src={ri.product.imageUrl} alt="" emoji={ri.product.emoji} color={ri.product.color} size="sm" className="h-7 w-7 shrink-0" rounded="rounded-md" />
                     <span className="flex-1 truncate">{locale === "en" ? ri.product.nameEn : ri.product.nameFr}</span>
@@ -333,61 +340,8 @@ export function RecipeConfiguratorView() {
 
         {/* RIGHT: results */}
         <div className="min-w-0 space-y-5">
-          {/* steps accordion */}
-          {preparationSteps.length > 0 && (
-            <Accordion type="single" collapsible defaultValue="steps" className="rounded-lg border border-charcoal/10 bg-white px-2">
-              <AccordionItem value="steps" className="border-0">
-                <AccordionTrigger className="px-3 text-sm font-bold text-charcoal">
-                  <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-gold" /> {locale === "fr" ? "Étapes de préparation" : "Preparation steps"} · {preparationSteps.length}</span>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <div className="mb-3 flex items-center gap-3 border-b border-border pb-3">
-                    <div
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={preparationSteps.length}
-                      aria-valuenow={completedStepCount}
-                      aria-label={locale === "fr" ? `${completedStepCount} étapes terminées sur ${preparationSteps.length}` : `${completedStepCount} of ${preparationSteps.length} steps completed`}
-                      className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
-                    >
-                      <div className="h-full rounded-full bg-forest transition-all" style={{ width: `${preparationSteps.length ? (completedStepCount / preparationSteps.length) * 100 : 0}%` }} />
-                    </div>
-                    <span className="text-xs font-bold text-forest">{completedStepCount}/{preparationSteps.length}</span>
-                    {completedStepCount > 0 ? <button type="button" onClick={() => setCompletedSteps([])} className="inline-flex min-h-7 items-center px-1 text-xs font-semibold text-terre hover:underline">{locale === "fr" ? "Recommencer" : "Restart"}</button> : null}
-                  </div>
-                  {preparationAdjustments.length > 0 ? (
-                    <div className="mb-3 border-l-2 border-gold bg-gold/8 px-3 py-2">
-                      <p className="text-xs font-bold text-charcoal">{locale === "fr" ? "Vos adaptations à appliquer pendant la préparation" : "Your preparation adjustments"}</p>
-                      <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                        {preparationAdjustments.map((ingredient) => (
-                          <li key={ingredient.recipeIngredientId}>
-                            {ingredient.isReplacement
-                              ? (locale === "fr" ? `Remplacer ${ingredient.originalNameFr} par ${ingredient.nameFr}.` : `Replace ${ingredient.originalNameEn} with ${ingredient.nameEn}.`)
-                              : (locale === "fr" ? `Préparer la recette sans ${ingredient.originalNameFr}.` : `Prepare without ${ingredient.originalNameEn}.`)}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  <ol className="divide-y divide-border">
-                    {preparationSteps.map((s: string, i: number) => (
-                      <li key={i} className="py-1">
-                        <button type="button" onClick={() => toggleStep(i)} aria-pressed={completedSteps.includes(i)} className="flex w-full gap-3 px-1 py-3 text-left text-sm text-charcoal transition hover:bg-muted/40">
-                          <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${completedSteps.includes(i) ? "bg-forest text-white" : "bg-terre text-cream"}`}>
-                            {completedSteps.includes(i) ? <Check className="h-4 w-4" /> : i + 1}
-                          </span>
-                          <span className={`pt-1 leading-relaxed ${completedSteps.includes(i) ? "text-muted-foreground line-through" : ""}`}>{s}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
-
           {/* ingredients table */}
-          <div className="overflow-hidden rounded-lg border border-charcoal/10 bg-white">
+          <div id="recipe-ingredients" className="scroll-mt-24 overflow-hidden rounded-md border border-charcoal/10 bg-white md:rounded-lg">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="text-sm font-bold text-charcoal">{t.config.ingredientsNeeded}</h2>
               {hasManualChoices && (
@@ -468,6 +422,61 @@ export function RecipeConfiguratorView() {
               </div>
             </motion.div>
           )}
+
+          {/* preparation follows ingredient choices so every adaptation is reflected here */}
+          {preparationSteps.length > 0 && (
+            <div id="recipe-preparation" className="scroll-mt-24">
+              <Accordion type="single" collapsible defaultValue="steps" className="rounded-md border border-charcoal/10 bg-white px-2 md:rounded-lg">
+                <AccordionItem value="steps" className="border-0">
+                  <AccordionTrigger className="px-3 text-sm font-bold text-charcoal">
+                    <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-gold" /> {locale === "fr" ? "Étapes de préparation" : "Preparation steps"} · {preparationSteps.length}</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3">
+                    <div className="mb-3 flex items-center gap-3 border-b border-border pb-3">
+                      <div
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={preparationSteps.length}
+                        aria-valuenow={completedStepCount}
+                        aria-label={locale === "fr" ? `${completedStepCount} étapes terminées sur ${preparationSteps.length}` : `${completedStepCount} of ${preparationSteps.length} steps completed`}
+                        className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
+                      >
+                        <div className="h-full rounded-full bg-forest transition-all" style={{ width: `${preparationSteps.length ? (completedStepCount / preparationSteps.length) * 100 : 0}%` }} />
+                      </div>
+                      <span className="text-xs font-bold text-forest">{completedStepCount}/{preparationSteps.length}</span>
+                      {completedStepCount > 0 ? <button type="button" onClick={() => setCompletedSteps([])} className="inline-flex min-h-7 items-center px-1 text-xs font-semibold text-terre hover:underline">{locale === "fr" ? "Recommencer" : "Restart"}</button> : null}
+                    </div>
+                    {preparationAdjustments.length > 0 ? (
+                      <div className="mb-3 border-l-2 border-gold bg-gold/8 px-3 py-2">
+                        <p className="text-xs font-bold text-charcoal">{locale === "fr" ? "Vos adaptations à appliquer pendant la préparation" : "Your preparation adjustments"}</p>
+                        <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                          {preparationAdjustments.map((ingredient) => (
+                            <li key={ingredient.recipeIngredientId}>
+                              {ingredient.isReplacement
+                                ? (locale === "fr" ? `Remplacer ${ingredient.originalNameFr} par ${ingredient.nameFr}.` : `Replace ${ingredient.originalNameEn} with ${ingredient.nameEn}.`)
+                                : (locale === "fr" ? `Préparer la recette sans ${ingredient.originalNameFr}.` : `Prepare without ${ingredient.originalNameEn}.`)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    <ol className="divide-y divide-border">
+                      {preparationSteps.map((s: string, i: number) => (
+                        <li key={i} className="py-1">
+                          <button type="button" onClick={() => toggleStep(i)} aria-pressed={completedSteps.includes(i)} aria-label={locale === "fr" ? `Étape ${i + 1} : ${s}` : `Step ${i + 1}: ${s}`} className="flex w-full gap-3 px-1 py-3 text-left text-sm text-charcoal transition hover:bg-muted/40">
+                            <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${completedSteps.includes(i) ? "bg-forest text-white" : "bg-terre text-cream"}`}>
+                              {completedSteps.includes(i) ? <Check className="h-4 w-4" /> : i + 1}
+                            </span>
+                            <span className={`pt-1 leading-relaxed ${completedSteps.includes(i) ? "text-muted-foreground line-through" : ""}`}>{s}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -476,17 +485,27 @@ export function RecipeConfiguratorView() {
 
 function RecipeMetric({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/35 px-3 py-2">
-      <Icon className="mx-auto h-4 w-4 text-terre" />
-      <p className="mt-1 truncate text-sm font-extrabold text-charcoal">{value}</p>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+    <div className="min-w-0 px-1.5 md:px-3">
+      <Icon className="mx-auto h-3.5 w-3.5 text-terre md:h-4 md:w-4" />
+      <p className="mt-0.5 truncate text-[11px] font-extrabold text-charcoal md:mt-1 md:text-sm">{value}</p>
+      <p className="truncate text-[8px] font-semibold uppercase text-muted-foreground md:text-[10px]">{label}</p>
     </div>
+  );
+}
+
+function RecipeFlowLink({ href, icon: Icon, number, label }: { href: string; icon: React.ComponentType<{ className?: string }>; number: string; label: string }) {
+  return (
+    <a href={href} className="flex min-w-0 items-center justify-center gap-1.5 rounded-sm px-1.5 py-2 text-[10px] font-bold text-charcoal transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/40 md:text-xs">
+      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-terre text-[9px] text-white">{number}</span>
+      <Icon className="hidden h-3.5 w-3.5 text-terre sm:block" />
+      <span className="truncate">{label}</span>
+    </a>
   );
 }
 
 function CounterField({ label, value, onChange, max, locale }: { label: string; value: number; onChange: (value: number) => void; max: number; locale: "fr" | "en" }) {
   return (
-    <div className="rounded-lg border border-border bg-background p-2">
+    <div className="rounded-md border border-border bg-background p-2">
       <p className="mb-1 text-[10px] font-semibold text-muted-foreground">{label}</p>
       <div className="flex items-center justify-between">
         <button type="button" onClick={() => onChange(value - 1)} disabled={value <= 0} className="grid h-8 w-8 place-items-center rounded-md text-charcoal transition hover:bg-muted disabled:opacity-35" aria-label={locale === "fr" ? `Réduire ${label}` : `Decrease ${label}`}><Minus className="h-3.5 w-3.5" /></button>
@@ -568,29 +587,36 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
-        <label className="min-w-0 text-[10px] font-semibold text-muted-foreground">
-          <span className="mb-1 flex items-center gap-1"><RefreshCw className="h-3 w-3" /> {locale === "fr" ? "Remplacer cet ingrédient" : "Replace this ingredient"}</span>
-          <select value={ing.productId} onChange={(event) => onReplace(event.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-2 text-xs font-medium text-charcoal outline-none transition focus:border-terre focus:ring-2 focus:ring-terre/15">
-            <option value={ing.originalProductId}>{locale === "fr" ? `Original : ${ing.originalNameFr}` : `Original: ${ing.originalNameEn}`}</option>
-            {currentMissingFromOptions ? <option value={ing.productId}>{locale === "fr" ? `Sélection : ${ing.nameFr}` : `Selected: ${ing.nameEn}`}</option> : null}
-            {replacementOptions.map((option: any) => (
-              <option key={option.productId} value={option.productId} disabled={option.availableStock <= 0}>
-                {option.emoji} {locale === "fr" ? option.nameFr : option.nameEn} · {option.availableStock > 0 ? `${option.availableStock} ${locale === "fr" ? "en stock" : "in stock"}` : t.config.unavailable} · {formatPrice(option.unitPrice, locale as any)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {!ing.removed ? <div>
-          {ing.available ? (
-            <Badge variant="outline" className="h-10 w-full justify-center border-forest/40 bg-forest/5 text-forest"><Check className="mr-1 h-3 w-3" /> {t.config.inStockOk} · {ing.stockQty}</Badge>
-          ) : ing.substituteName ? (
-            <button type="button" onClick={() => onReplace(ing.substituteProductId)} className="flex h-10 w-full items-center justify-center rounded-md border border-amber-400 bg-amber-50 px-2 text-[10px] font-bold text-amber-800"><RefreshCw className="mr-1 h-3 w-3" /> {locale === "fr" ? `Utiliser ${ing.substituteName}` : `Use ${ing.substituteName}`}</button>
-          ) : (
-            <Badge variant="outline" className="h-10 w-full justify-center border-destructive/40 bg-red-50 text-destructive">{t.config.unavailable}</Badge>
-          )}
-        </div> : <div className="flex h-10 items-center text-[10px] text-muted-foreground">{locale === "fr" ? "Aucun achat pour cette ligne" : "No purchase for this line"}</div>}
-      </div>
+      <details className="group rounded-md border border-border bg-muted/15">
+        <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 px-3 text-[11px] font-bold text-charcoal marker:hidden [&::-webkit-details-marker]:hidden">
+          <RefreshCw className="h-3.5 w-3.5 text-terre" />
+          <span className="min-w-0 flex-1 truncate">{locale === "fr" ? `Personnaliser ou remplacer ${localizedName}` : `Customize or replace ${localizedName}`}</span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition group-open:rotate-180" />
+        </summary>
+        <div className="grid gap-2 border-t border-border p-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+          <label className="min-w-0 text-[10px] font-semibold text-muted-foreground">
+            <span className="mb-1 flex items-center gap-1">{locale === "fr" ? "Ingrédient de remplacement" : "Replacement ingredient"}</span>
+            <select aria-label={locale === "fr" ? `Remplacer ${localizedName}` : `Replace ${localizedName}`} value={ing.productId} onChange={(event) => onReplace(event.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-2 text-xs font-medium text-charcoal outline-none transition focus:border-terre focus:ring-2 focus:ring-terre/15">
+              <option value={ing.originalProductId}>{locale === "fr" ? `Original : ${ing.originalNameFr}` : `Original: ${ing.originalNameEn}`}</option>
+              {currentMissingFromOptions ? <option value={ing.productId}>{locale === "fr" ? `Sélection : ${ing.nameFr}` : `Selected: ${ing.nameEn}`}</option> : null}
+              {replacementOptions.map((option: any) => (
+                <option key={option.productId} value={option.productId} disabled={option.availableStock <= 0}>
+                  {option.emoji} {locale === "fr" ? option.nameFr : option.nameEn} · {option.availableStock > 0 ? `${option.availableStock} ${locale === "fr" ? "en stock" : "in stock"}` : t.config.unavailable} · {formatPrice(option.unitPrice, locale as any)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {!ing.removed ? <div>
+            {ing.available ? (
+              <Badge variant="outline" className="h-10 w-full justify-center border-forest/40 bg-forest/5 text-forest"><Check className="mr-1 h-3 w-3" /> {t.config.inStockOk} · {ing.stockQty}</Badge>
+            ) : ing.substituteName ? (
+              <button type="button" onClick={() => onReplace(ing.substituteProductId)} className="flex h-10 w-full items-center justify-center rounded-md border border-amber-400 bg-amber-50 px-2 text-[10px] font-bold text-amber-800"><RefreshCw className="mr-1 h-3 w-3" /> {locale === "fr" ? `Utiliser ${ing.substituteName}` : `Use ${ing.substituteName}`}</button>
+            ) : (
+              <Badge variant="outline" className="h-10 w-full justify-center border-destructive/40 bg-red-50 text-destructive">{t.config.unavailable}</Badge>
+            )}
+          </div> : <div className="flex h-10 items-center text-[10px] text-muted-foreground">{locale === "fr" ? "Aucun achat pour cette ligne" : "No purchase for this line"}</div>}
+        </div>
+      </details>
 
       {!ing.removed && ing.leftover > 0 ? <p className="text-[10px] text-blue-700">{t.config.leftover} : {formatQty(ing.leftover, ing.leftoverUnit || (ing.neededUnit === "L" ? "ml" : "g"), locale as any)} · {ing.packLabel}</p> : null}
     </div>

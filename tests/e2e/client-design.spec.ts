@@ -55,6 +55,21 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();
   await expect(page.getByRole("tab", { name: /bibliothèque|dish library/i })).toBeVisible();
   await expect(page.getByLabel(/rechercher une recette ou un plat|search for a recipe or dish/i)).toBeVisible();
+  const recipeHeroBox = await page.getByTestId("recipes-hero").boundingBox();
+  if (isMobile) expect(recipeHeroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(320);
+  else expect(recipeHeroBox?.height || 0).toBeGreaterThanOrEqual(384);
+  const recipeGrid = page.getByTestId("recipes-grid");
+  await expect(recipeGrid).toBeVisible();
+  const recipeColumns = await recipeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(recipeColumns).toBe(isMobile ? 2 : 3);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/recipes-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await page.getByRole("tab", { name: /bibliothèque|dish library/i }).click();
+  const dishGrid = page.getByTestId("dish-library-grid");
+  await expect(dishGrid).toBeVisible();
+  const dishColumns = await dishGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(dishColumns).toBe(isMobile ? 2 : 3);
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
@@ -428,6 +443,12 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await page.getByRole("button", { name: /configurer|configure/i }).first().click();
 
   await expect(page.getByRole("heading", { name: /configurateur de recette|recipe configurator/i })).toBeVisible();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  const configuratorHeaderBox = await page.getByTestId("recipe-header").boundingBox();
+  if (isMobile) expect(configuratorHeaderBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(210);
+  await expect(page.getByTestId("recipe-flow-nav")).toContainText(/configurer|configure/i);
+  await expect(page.getByTestId("recipe-flow-nav")).toContainText(/ingrédients|ingredients/i);
+  await expect(page.getByTestId("recipe-flow-nav")).toContainText(/préparation|preparation/i);
   await expect(page.getByText(/ingrédients nécessaires|ingredients needed/i)).toBeVisible();
   await expect(page.getByText(/coût total|total cost/i)).toBeVisible();
 
@@ -437,15 +458,19 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await page.getByRole("button", { name: /réintégrer l'ingrédient|restore ingredient/i }).first().click();
   await expect(page.getByText(/retiré de cette recette|removed from this recipe/i)).toHaveCount(0);
 
-  const replacement = page.getByLabel(/remplacer cet ingrédient|replace this ingredient/i).first();
+  await page.locator("#recipe-ingredients details summary").first().click();
+  const replacement = page.getByLabel(/remplacer |replace /i).first();
   expect(await replacement.locator("option").count()).toBeGreaterThan(1);
   await replacement.selectOption({ index: 1 });
   await expect(page.getByText(/remplace |replaces /i).first()).toBeVisible();
 
-  const firstStep = page.locator("ol button").first();
+  const firstStep = page.locator("#recipe-preparation ol button").first();
   await expect(firstStep).toBeVisible();
   await firstStep.click();
   await expect(firstStep).toHaveAttribute("aria-pressed", "true");
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/configurator-reference-${isMobile ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+  }
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
 });
