@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
-import { calculateShippingQuote } from "@/lib/shipping";
+import { calculateShippingQuote, type DeliveryService } from "@/lib/shipping";
 
 export interface CheckoutPricingItem {
   productId: string;
@@ -35,15 +35,19 @@ export class CheckoutPricingError extends Error {
 export async function priceCheckout(input: {
   items: CheckoutPricingItem[];
   country: string;
+  postalCode?: string;
+  deliveryService?: DeliveryService;
   coupon?: string | null;
+  locale?: "fr" | "en";
 }) {
-  if (!Array.isArray(input.items) || input.items.length === 0) throw new CheckoutPricingError("Panier vide");
-  if (input.items.length > 80) throw new CheckoutPricingError("Le panier contient trop de lignes.");
+  const isFr = input.locale !== "en";
+  if (!Array.isArray(input.items) || input.items.length === 0) throw new CheckoutPricingError(isFr ? "Panier vide." : "The basket is empty.");
+  if (input.items.length > 80) throw new CheckoutPricingError(isFr ? "Le panier contient trop de lignes." : "The basket contains too many lines.");
 
   const quantities = new Map<string, number>();
   for (const item of input.items) {
     if (!item.productId || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 99) {
-      throw new CheckoutPricingError("Une quantité du panier est invalide.");
+      throw new CheckoutPricingError(isFr ? "Une quantité du panier est invalide." : "A basket quantity is invalid.");
     }
     quantities.set(item.productId, (quantities.get(item.productId) || 0) + item.qty);
   }
@@ -53,7 +57,7 @@ export async function priceCheckout(input: {
     where: { id: { in: productIds }, status: "published" },
     include: { translations: true },
   });
-  if (products.length !== productIds.length) throw new CheckoutPricingError("Un produit du panier n'est plus disponible.", 409);
+  if (products.length !== productIds.length) throw new CheckoutPricingError(isFr ? "Un produit du panier n'est plus disponible." : "A product in the basket is no longer available.", 409);
 
   const requestedByProduct = new Map(input.items.map((item) => [item.productId, item]));
   const thermalSet = new Set<string>();
@@ -64,7 +68,7 @@ export async function priceCheckout(input: {
   for (const product of products) {
     const qty = quantities.get(product.id) || 0;
     const available = Math.max(0, product.stockQty - product.reservedQty);
-    if (available < qty) throw new CheckoutPricingError(`Stock insuffisant pour ${product.traditionalName}.`, 409);
+    if (available < qty) throw new CheckoutPricingError(isFr ? `Stock insuffisant pour ${product.traditionalName}.` : `Insufficient stock for ${product.traditionalName}.`, 409);
 
     const requested = requestedByProduct.get(product.id);
     const price = Number(product.promoPrice ?? product.price);
@@ -95,7 +99,8 @@ export async function priceCheckout(input: {
 
   subtotal = roundMoney(subtotal);
   const thermalClasses = [...thermalSet].sort();
-  const shippingQuote = await calculateShippingQuote({ country: input.country, weightGrams, thermalClasses });
+  const shippingQuote = await calculateShippingQuote({ country: input.country, postalCode: input.postalCode, weightGrams, thermalClasses, service: input.deliveryService });
+  if (!shippingQuote.available) throw new CheckoutPricingError(isFr ? "Ce service de livraison n'est pas compatible avec la chaîne du froid." : "This delivery service is not compatible with the cold chain.", 409);
   let shipping = shippingQuote.fee;
   let promoDiscount = 0;
   let promotionId: string | null = null;
@@ -121,7 +126,7 @@ export async function priceCheckout(input: {
   const vat = roundMoney((taxable / 1.2) * 0.2);
   const total = roundMoney(taxable + shipping);
   const fingerprint = createHash("sha256")
-    .update(JSON.stringify({ items: validatedItems.map(({ productId, qty, unitPrice }) => ({ productId, qty, unitPrice })), promoDiscount, shipping, total }))
+    .update(JSON.stringify({ items: validatedItems.map(({ productId, qty, unitPrice }) => ({ productId, qty, unitPrice })), deliveryService: shippingQuote.service, carrier: shippingQuote.carrier, promoDiscount, shipping, total }))
     .digest("hex");
 
   return { validatedItems, subtotal, promoDiscount, shipping, vat, total, weightGrams, thermalClasses, shippingQuote, fingerprint, promotionId };

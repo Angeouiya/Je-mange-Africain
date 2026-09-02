@@ -61,4 +61,12 @@ describe("customer invoice document", () => {
     expect(html).toContain("&lt;script&gt;alert(&quot;client&quot;)&lt;/script&gt;");
     expect(html).toContain("Plantain &lt;premium&gt;");
   });
+
+  it("uses a readable delivery service label when the order stores a service code", () => {
+    const html = buildOrderInvoiceHtml({ ...order, deliverySlot: "express" }, "fr", {
+      baseUrl: "https://je-mange-africain.com",
+    });
+
+    expect(html).toContain("Livraison express");
+  });
 });

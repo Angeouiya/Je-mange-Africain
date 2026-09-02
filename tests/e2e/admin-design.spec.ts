@@ -32,11 +32,13 @@ const order = {
   packageCount: 2,
   createdAt: now,
   deliveryName: "Aminata Koné",
+  customerEmail: "aminata@example.fr",
+  customerPhone: "+33 6 00 00 00 00",
   deliveryAddress: "12 rue des Cultures",
   deliveryCity: "Paris",
   deliveryPostalCode: "75011",
   deliveryCountry: "France",
-  deliverySlot: "Jeudi, 14 h - 18 h",
+  deliverySlot: "standard",
   paymentMethod: "card",
   items: [{ id: "line-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 4.9, qty: 2, lineTotal: 9.8, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp" }],
   shipments: [{ id: "shipment-1", trackingNumber: "JMAFR260902", thermalClass: "REFRIGERATED", status: "preparing", estimatedDelivery: "2026-09-04T14:00:00.000Z", carrier: "Chronofresh" }],
@@ -201,6 +203,8 @@ test("the order workspace saves logistics and confirms each sensitive advancemen
 
   const dialog = page.getByRole("dialog", { name: "JMA-260902-0142" });
   await expect(dialog.getByRole("heading", { name: "Préparer, tracer et remettre" })).toBeVisible();
+  await expect(dialog.getByText("aminata@example.fr")).toBeVisible();
+  await expect(dialog.getByText("Livraison standard")).toBeVisible();
   await dialog.getByLabel("Transporteur").fill("Chrono Frais Europe");
   await dialog.getByLabel("Numéro de suivi").fill("JMA-FR-260902-ADV");
   await dialog.getByLabel("Notes internes d'exploitation").fill("Chaîne du froid contrôlée avant emballage.");

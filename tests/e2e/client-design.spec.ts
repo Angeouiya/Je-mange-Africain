@@ -97,6 +97,58 @@ test("registration requires legal consent and two independently visible password
   await expect(page.getByRole("main")).toBeVisible();
 });
 
+test("checkout compares delivery services and protects the cold chain", async ({ page }) => {
+  const customer = { id: "customer-checkout", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
+  const quoteRequests: Array<Record<string, unknown>> = [];
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: {
+        locale: "fr",
+        cart: [{ id: "line-frozen", productId: "product-frozen", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", unitPrice: 8.5, unitLabel: "500 g", packWeightGrams: 500, thermalClass: "FROZEN", imageUrl: "/products/gombo.webp", qty: 2, maxStock: 40 }],
+        customer: persistedCustomer,
+        addresses: [{ id: "address-checkout", label: "Domicile", firstName: "Awa", lastName: "Traoré", street: "12 rue de la Gare", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678" }],
+        favorites: [], savedRecipes: [], recentlyViewed: [], country: "France", postalCode: "75011", coupon: null,
+      },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer }) }));
+  await page.route("**/api/shipping/quote", async (route) => {
+    quoteRequests.push(route.request().postDataJSON());
+    const options = [
+      { service: "standard", fee: 8.5, carrier: "Chrono Frais", packages: 1, minDelayHours: 24, maxDelayHours: 48, available: true, unavailableReason: null },
+      { service: "express", fee: 12.9, carrier: "Flotte interne JMA", packages: 1, minDelayHours: 12, maxDelayHours: 24, available: true, unavailableReason: null },
+      { service: "relay", fee: 0, carrier: "DPD Relais", packages: 1, minDelayHours: 48, maxDelayHours: 72, available: false, unavailableReason: "cold_chain" },
+    ];
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...options[0], options }) });
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
+  await page.getByRole("button", { name: /passer la commande|place order/i }).click();
+
+  await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
+  await expect(page.getByLabel(/pays de livraison|delivery country/i)).toHaveValue("France");
+  const standard = page.getByRole("radio", { name: /standard/i });
+  const express = page.getByRole("radio", { name: /express/i });
+  const relay = page.getByRole("radio", { name: /relais|collection point/i });
+  await expect(standard).toBeChecked();
+  await expect(relay).toBeDisabled();
+  await expect(page.getByText(/indisponible avec les produits frais ou surgelés|unavailable for chilled or frozen products/i)).toBeVisible();
+  await express.check();
+  await expect(express).toBeChecked();
+  await expect(page.getByText(/flotte interne jma · 12 à 24 h|flotte interne jma · 12-24 h/i)).toBeVisible();
+
+  await page.getByLabel(/pays de livraison|delivery country/i).selectOption("Belgique");
+  await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Belgique");
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.getByText(/mode de livraison|delivery option/i).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `output/playwright/audit/checkout-delivery-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+});
+
 test("the recipe configurator recalculates, removes and restores an ingredient", async ({ page }) => {
   await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();

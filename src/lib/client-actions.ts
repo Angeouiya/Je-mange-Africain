@@ -80,6 +80,11 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
       : paymentStatus === "failed"
         ? (isFr ? "Échec du paiement" : "Payment failed")
         : (isFr ? "Statut enregistré avec la commande" : "Status recorded with the order");
+  const deliveryServiceLabel = ({
+    standard: isFr ? "Livraison standard" : "Standard delivery",
+    express: isFr ? "Livraison express" : "Express delivery",
+    relay: isFr ? "Point relais" : "Collection point",
+  } as Record<string, string>)[String(order.deliverySlot || "")] || order.deliverySlot || "";
   const summaryEntries: Array<[string, number]> = [
     [isFr ? "Sous-total produits" : "Products subtotal", Number(order.subtotal || 0)],
     [isFr ? "Livraison" : "Delivery", Number(order.shippingCost || 0)],
@@ -113,7 +118,7 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
   </section>
   <table><thead><tr><th>${escapeHtml(isFr ? "Désignation" : "Item")}</th><th class="number">${escapeHtml(isFr ? "Qté" : "Qty")}</th><th class="number">${escapeHtml(isFr ? "Prix unitaire" : "Unit price")}</th><th class="number">${escapeHtml(isFr ? "Montant" : "Amount")}</th></tr></thead><tbody>${rows}</tbody></table>
   <section class="summary">${summaryRows}<div class="summary-row grand-total"><span>${escapeHtml(isFr ? "Total TTC" : "Total incl. tax")}</span><strong>${escapeHtml(formatMoney(order.total))}</strong></div></section>
-  <section class="payment"><strong>${escapeHtml(isFr ? "Paiement et livraison" : "Payment and delivery")}</strong><div class="payment-grid"><div>${escapeHtml(isFr ? "Statut" : "Status")}: ${escapeHtml(paymentStatusLabel)}</div><div>${escapeHtml(isFr ? "Mode" : "Method")}: ${escapeHtml(paymentMethod || (isFr ? "Enregistré avec la commande" : "Recorded with the order"))}</div>${reference ? `<div>${escapeHtml(isFr ? "Référence du paiement" : "Payment reference")}: ${escapeHtml(reference)}</div>` : ""}${order.deliverySlot ? `<div>${escapeHtml(isFr ? "Créneau" : "Delivery slot")}: ${escapeHtml(order.deliverySlot)}</div>` : ""}</div></section>
+  <section class="payment"><strong>${escapeHtml(isFr ? "Paiement et livraison" : "Payment and delivery")}</strong><div class="payment-grid"><div>${escapeHtml(isFr ? "Statut" : "Status")}: ${escapeHtml(paymentStatusLabel)}</div><div>${escapeHtml(isFr ? "Mode" : "Method")}: ${escapeHtml(paymentMethod || (isFr ? "Enregistré avec la commande" : "Recorded with the order"))}</div>${reference ? `<div>${escapeHtml(isFr ? "Référence du paiement" : "Payment reference")}: ${escapeHtml(reference)}</div>` : ""}${deliveryServiceLabel ? `<div>${escapeHtml(isFr ? "Service" : "Service")}: ${escapeHtml(deliveryServiceLabel)}</div>` : ""}</div></section>
   <footer class="footer">${escapeHtml(isFr ? "Merci pour votre confiance. Conservez cette facture comme justificatif d'achat." : "Thank you for your trust. Keep this invoice as proof of purchase.")}</footer>
 </main></body></html>`;
 }

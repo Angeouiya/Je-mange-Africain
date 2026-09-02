@@ -211,9 +211,12 @@ export interface Order {
   vatAmount: number;
   shippingCost: number;
   total: number;
+  currency: string;
   weightGrams: number;
   packageCount: number;
   deliveryName: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
   deliveryAddress: string | null;
   deliveryCity: string | null;
   deliveryPostalCode: string | null;

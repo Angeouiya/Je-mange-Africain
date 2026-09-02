@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { sendPushToSubscriptionId } from "@/lib/push-server";
 import { enforceRateLimit } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
+import { deliveryContactFingerprint } from "@/lib/checkout-security";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,13 @@ const CheckoutRequest = z.object({
   })).min(1).max(80),
   address: z.object({
     firstName: z.string().trim().min(1).max(80),
-    lastName: z.string().trim().max(80).default(""),
+    lastName: z.string().trim().min(1).max(80),
+    email: z.string().trim().email().max(180),
     street: z.string().trim().min(3).max(180),
     postalCode: z.string().trim().min(2).max(20),
     city: z.string().trim().min(2).max(100),
     country: z.string().trim().min(2).max(80),
-    phone: z.string().trim().max(30).optional(),
+    phone: z.string().trim().min(6).max(30),
   }),
   deliverySlot: z.enum(["standard", "express", "relay"]).default("standard"),
   paymentIntentId: z.string().startsWith("pi_"),
@@ -47,9 +49,10 @@ export async function POST(request: NextRequest) {
   if (!stripe) return NextResponse.json({ error: stripeConfigurationError(body.locale) }, { status: 503 });
 
   try {
-    const pricing = await priceCheckout({ items: body.items, country: body.address.country, coupon: body.coupon });
+    const pricing = await priceCheckout({ items: body.items, country: body.address.country, postalCode: body.address.postalCode, deliveryService: body.deliverySlot, coupon: body.coupon, locale: body.locale });
     const intent = await stripe.paymentIntents.retrieve(body.paymentIntentId);
     const expectedAmount = Math.round(pricing.total * 100);
+    const addressFingerprint = deliveryContactFingerprint(body.address);
 
     if (intent.status !== "succeeded") {
       return NextResponse.json({ error: body.locale === "fr" ? "Le paiement n'est pas encore confirmé." : "Payment has not been confirmed yet." }, { status: 409 });
@@ -59,6 +62,8 @@ export async function POST(request: NextRequest) {
       || intent.currency.toLowerCase() !== "eur"
       || intent.metadata.customer_auth_id !== session.id
       || intent.metadata.cart_fingerprint !== pricing.fingerprint
+      || intent.metadata.delivery_service !== pricing.shippingQuote.service
+      || intent.metadata.address_fingerprint !== addressFingerprint
     ) {
       return NextResponse.json({ error: body.locale === "fr" ? "Le paiement ne correspond plus au panier actuel." : "The payment no longer matches the current basket." }, { status: 409 });
     }
@@ -88,7 +93,7 @@ export async function POST(request: NextRequest) {
       for (const item of pricing.validatedItems) {
         const product = await tx.product.findUnique({ where: { id: item.productId } });
         if (!product || product.stockQty - product.reservedQty < item.qty) {
-          throw new CheckoutPricingError(`Stock insuffisant pour ${item.nameFr}.`, 409);
+          throw new CheckoutPricingError(body.locale === "fr" ? `Stock insuffisant pour ${item.nameFr}.` : `Insufficient stock for ${item.nameEn}.`, 409);
         }
       }
 
@@ -106,6 +111,8 @@ export async function POST(request: NextRequest) {
           weightGrams: pricing.weightGrams,
           packageCount: pricing.thermalClasses.length || 1,
           deliveryName: `${body.address.firstName} ${body.address.lastName}`.trim(),
+          deliveryEmail: body.address.email,
+          deliveryPhone: body.address.phone,
           deliveryAddress: body.address.street,
           deliveryCity: body.address.city,
           deliveryPostalCode: body.address.postalCode,

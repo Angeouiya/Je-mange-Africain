@@ -1,0 +1,3 @@
+ALTER TABLE "Order"
+  ADD COLUMN IF NOT EXISTS "deliveryEmail" TEXT,
+  ADD COLUMN IF NOT EXISTS "deliveryPhone" TEXT;

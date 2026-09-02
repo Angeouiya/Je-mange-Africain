@@ -4,7 +4,7 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
-import { Check, CreditCard, Loader2, Lock, LogIn, ShieldCheck, Truck } from "lucide-react";
+import { Check, CreditCard, Loader2, Lock, LogIn, MapPinned, ShieldCheck, Truck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,8 +25,23 @@ type IntentResponse = {
   clientSecret: string;
   amount: number;
   currency: string;
-  pricing: { subtotal: number; promoDiscount: number; shipping: number; vat: number; packages: number; carrier: string };
+  pricing: { subtotal: number; promoDiscount: number; shipping: number; vat: number; packages: number; carrier: string; service: DeliveryService; minDelayHours: number; maxDelayHours: number };
 };
+
+type DeliveryService = "standard" | "express" | "relay";
+
+type DeliveryOption = {
+  service: DeliveryService;
+  fee: number;
+  carrier: string;
+  packages: number;
+  minDelayHours: number;
+  maxDelayHours: number;
+  available: boolean;
+  unavailableReason: "cold_chain" | null;
+};
+
+type ShippingQuoteResponse = DeliveryOption & { options: DeliveryOption[] };
 
 export function CheckoutView() {
   const locale = useStore((state) => state.locale);
@@ -54,8 +69,8 @@ export function CheckoutView() {
     city: address?.city || "",
     country: address?.country || "France",
   });
-  const [slot, setSlot] = useState("standard");
-  const [shipQuote, setShipQuote] = useState<{ fee: number; carrier: string; packages: number } | null>(null);
+  const [slot, setSlot] = useState<DeliveryService>("standard");
+  const [shipQuote, setShipQuote] = useState<ShippingQuoteResponse | null>(null);
   const [shipLoading, setShipLoading] = useState(false);
   const [promotion, setPromotion] = useState<{ discount: number; freeShipping?: boolean } | null>(null);
   const [promotionLoading, setPromotionLoading] = useState(false);
@@ -65,7 +80,15 @@ export function CheckoutView() {
   const thermal = cartThermalSplit(cart);
   const thermalKey = thermal.join("|");
   const promoDiscount = promotion?.discount || 0;
-  const quotedFee = shipQuote?.fee ?? (subtotal >= 50 ? 0 : 4.9 + 0.6 * (weight / 1000) + (thermal.includes("FROZEN") ? 2.5 : 0));
+  const selectedShipping = shipQuote?.options.find((option) => option.service === slot) || null;
+  const baseEstimate = 4.9 + 0.6 * (weight / 1000) + (thermal.includes("FROZEN") ? 2.5 : 0);
+  const quotedFee = selectedShipping?.available
+    ? selectedShipping.fee
+    : slot === "express"
+      ? baseEstimate + 4
+      : slot === "relay"
+        ? Math.max(0, baseEstimate - 1.5)
+        : baseEstimate;
   const shipFee = promotion?.freeShipping ? 0 : quotedFee;
   const displayTotal = intent?.amount ?? Math.max(0, subtotal - promoDiscount) + shipFee;
   const checkoutItems = cart.map((item) => ({
@@ -79,19 +102,27 @@ export function CheckoutView() {
   useEffect(() => {
     let cancelled = false;
     setShipLoading(true);
-    postJSON<{ fee: number; carrier: string; packages: number }>("/api/shipping/quote", {
-      weightGrams: weight,
-      thermalClasses: thermalKey ? thermalKey.split("|") : [],
-      postalCode: form.postalCode,
-      country: form.country,
-    }).then((quote) => {
-      if (!cancelled) setShipQuote(quote);
-    }).catch(() => {
-      if (!cancelled) setShipQuote(null);
-    }).finally(() => {
-      if (!cancelled) setShipLoading(false);
-    });
-    return () => { cancelled = true; };
+    const timeout = window.setTimeout(() => {
+      postJSON<ShippingQuoteResponse>("/api/shipping/quote", {
+        weightGrams: weight,
+        thermalClasses: thermalKey ? thermalKey.split("|") : [],
+        postalCode: form.postalCode,
+        country: form.country,
+      }).then((quote) => {
+        if (!cancelled) {
+          setShipQuote(quote);
+          setSlot((current) => quote.options.some((option) => option.service === current && option.available) ? current : "standard");
+        }
+      }).catch(() => {
+        if (!cancelled) setShipQuote(null);
+      }).finally(() => {
+        if (!cancelled) setShipLoading(false);
+      });
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
   }, [form.country, form.postalCode, thermalKey, weight]);
 
   useEffect(() => {
@@ -114,7 +145,17 @@ export function CheckoutView() {
     return () => { cancelled = true; };
   }, [coupon, subtotal]);
 
-  const canContinue = Boolean(form.firstName && form.street && form.postalCode && form.city && form.email);
+  const canContinue = Boolean(
+    form.firstName.trim()
+    && form.lastName.trim()
+    && form.email.includes("@")
+    && form.phone.trim().length >= 6
+    && form.street.trim()
+    && form.postalCode.trim()
+    && form.city.trim()
+    && form.country.trim()
+    && selectedShipping?.available !== false
+  );
 
   const preparePayment = async () => {
     setPreparingPayment(true);
@@ -123,6 +164,7 @@ export function CheckoutView() {
       const response = await postJSON<IntentResponse>("/api/payments/intent", {
         items: checkoutItems,
         address: form,
+        deliverySlot: slot,
         coupon,
         locale,
       });
@@ -201,9 +243,11 @@ export function CheckoutView() {
         <PriceLine label={t.cart.subtotal} value={intent ? formatPrice(intent.pricing.subtotal, locale) : formatPrice(subtotal, locale)} />
         {(intent?.pricing.promoDiscount ?? promoDiscount) > 0 ? <PriceLine label={t.cart.promo} value={`-${formatPrice(intent?.pricing.promoDiscount ?? promoDiscount, locale)}`} accent /> : null}
         <PriceLine label={t.cart.shipping} value={(intent?.pricing.shipping ?? shipFee) === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(intent?.pricing.shipping ?? shipFee, locale)} />
-        <PriceLine label={locale === "fr" ? "Transporteur estimé" : "Estimated carrier"} value={intent?.pricing.carrier || shipQuote?.carrier || "-"} muted />
+        <PriceLine label={locale === "fr" ? "Service" : "Service"} value={deliveryServiceLabel(intent?.pricing.service || slot, locale)} />
+        <PriceLine label={locale === "fr" ? "Transporteur estimé" : "Estimated carrier"} value={intent?.pricing.carrier || selectedShipping?.carrier || "-"} muted />
+        <PriceLine label={locale === "fr" ? "Délai estimé" : "Estimated delivery"} value={formatDeliveryWindow(intent?.pricing || selectedShipping, locale)} muted />
         <PriceLine label={t.cart.totalWeight} value={formatWeight(weight, locale)} />
-        <PriceLine label={t.cart.packages} value={`${intent?.pricing.packages || shipQuote?.packages || thermal.length || 1} · ${thermal.map((item) => thermalLabel(item, locale)).join(", ")}`} />
+        <PriceLine label={t.cart.packages} value={`${intent?.pricing.packages || selectedShipping?.packages || thermal.length || 1} · ${thermal.map((item) => thermalLabel(item, locale)).join(", ")}`} />
         <div className="mt-2 flex items-center justify-between border-t border-border pt-3"><span className="font-bold text-charcoal">{t.cart.total}</span><span className="text-xl font-extrabold text-terre">{formatPrice(displayTotal, locale)}</span></div>
       </div>
       <div className="flex items-center gap-2 rounded-lg bg-forest/5 p-2 text-xs text-forest"><ShieldCheck className="h-4 w-4 shrink-0" />{t.checkout.securePayment}</div>
@@ -239,11 +283,34 @@ export function CheckoutView() {
               <Field label={t.checkout.city} value={form.city} onChange={(value) => setForm({ ...form, city: value })} autoComplete="address-level2" />
             </div>
             <div>
-              <Label className="mb-2 block text-xs font-semibold text-charcoal">{t.checkout.deliverySlot}</Label>
-              <RadioGroup value={slot} onValueChange={setSlot} className="space-y-2">
-                {[["standard", t.checkout.standard], ["express", t.checkout.express], ["relay", t.checkout.relay]].map(([value, label]) => (
-                  <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 text-sm has-[:checked]:border-terre has-[:checked]:bg-terre/5"><RadioGroupItem value={value} /><Truck className="h-4 w-4 text-terre" />{label}</label>
-                ))}
+              <Label htmlFor="checkout-country" className="mb-1.5 block text-xs font-semibold text-charcoal">{locale === "fr" ? "Pays de livraison" : "Delivery country"}</Label>
+              <select id="checkout-country" value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} autoComplete="country-name" className="h-11 w-full rounded-md border border-charcoal/12 bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">
+                <option value="France">France</option>
+                <option value="Belgique">{locale === "fr" ? "Belgique" : "Belgium"}</option>
+                <option value="Allemagne">{locale === "fr" ? "Allemagne" : "Germany"}</option>
+                <option value="Pays-Bas">{locale === "fr" ? "Pays-Bas" : "Netherlands"}</option>
+                <option value="Luxembourg">Luxembourg</option>
+              </select>
+            </div>
+            <div>
+              <div className="mb-2 flex items-end justify-between gap-3"><Label className="block text-xs font-semibold text-charcoal">{t.checkout.deliverySlot}</Label>{shipLoading ? <span role="status" className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />{locale === "fr" ? "Calcul en cours" : "Calculating"}</span> : null}</div>
+              <RadioGroup value={slot} onValueChange={(value) => setSlot(value as DeliveryService)} className="space-y-2">
+                {([
+                  ["standard", t.checkout.standard, Truck],
+                  ["express", t.checkout.express, Zap],
+                  ["relay", t.checkout.relay, MapPinned],
+                ] as const).map(([value, label, Icon]) => {
+                  const quote = shipQuote?.options.find((option) => option.service === value);
+                  const unavailable = quote?.available === false;
+                  return (
+                    <label key={value} className={`grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border p-3 transition ${unavailable ? "cursor-not-allowed border-border bg-muted/35" : "cursor-pointer border-border has-[:checked]:border-terre has-[:checked]:bg-terre/[0.045]"}`}>
+                      <RadioGroupItem value={value} disabled={unavailable} />
+                      <span className="grid h-9 w-9 place-items-center rounded-md bg-charcoal/5 text-terre"><Icon className="h-4 w-4" /></span>
+                      <span className="min-w-0"><span className="flex flex-wrap items-center gap-1.5 text-xs font-extrabold text-charcoal">{label}{value === "standard" ? <span className="rounded bg-forest/10 px-1.5 py-0.5 text-[8px] uppercase text-forest">{locale === "fr" ? "Recommandé" : "Recommended"}</span> : null}</span><span className={`mt-1 block truncate text-[10px] ${unavailable ? "text-charcoal/70" : "text-muted-foreground"}`}>{unavailable ? (locale === "fr" ? "Indisponible avec les produits frais ou surgelés" : "Unavailable for chilled or frozen products") : quote ? `${quote.carrier} · ${formatDeliveryWindow(quote, locale)}` : (locale === "fr" ? "Estimation du transporteur" : "Carrier estimate")}</span></span>
+                      <span className="text-right text-xs font-black tabular-nums text-charcoal">{unavailable ? "-" : quote ? formatPrice(quote.fee, locale) : "…"}</span>
+                    </label>
+                  );
+                })}
               </RadioGroup>
             </div>
             {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
@@ -353,6 +420,21 @@ function Field({ label, value, onChange, type = "text", autoComplete }: { label:
 
 function PriceLine({ label, value, accent = false, muted = false }: { label: string; value: string; accent?: boolean; muted?: boolean }) {
   return <div className={`flex items-start justify-between gap-3 ${accent ? "text-forest" : muted ? "text-muted-foreground" : ""}`}><span>{label}</span><span className="max-w-[55%] text-right">{value}</span></div>;
+}
+
+function deliveryServiceLabel(service: DeliveryService, locale: "fr" | "en") {
+  const labels: Record<DeliveryService, [string, string]> = {
+    standard: ["Livraison standard", "Standard delivery"],
+    express: ["Livraison express", "Express delivery"],
+    relay: ["Point relais", "Collection point"],
+  };
+  return labels[service][locale === "fr" ? 0 : 1];
+}
+
+function formatDeliveryWindow(quote: { minDelayHours: number; maxDelayHours: number } | null | undefined, locale: "fr" | "en") {
+  if (!quote) return "-";
+  if (quote.minDelayHours === quote.maxDelayHours) return `${quote.maxDelayHours} h`;
+  return locale === "fr" ? `${quote.minDelayHours} à ${quote.maxDelayHours} h` : `${quote.minDelayHours}-${quote.maxDelayHours} h`;
 }
 
 function ErrorMessage({ children }: { children: ReactNode }) {

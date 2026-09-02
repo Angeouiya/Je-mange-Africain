@@ -462,6 +462,8 @@ model Order {
   weightGrams        Int                    @default(0)
   packageCount       Int                    @default(1)
   deliveryName       String?
+  deliveryEmail      String?
+  deliveryPhone      String?
   deliveryAddress    String?
   deliveryCity       String?
   deliveryPostalCode String?

@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeCustomerRequest } from "@/lib/customer-auth";
@@ -6,6 +5,7 @@ import { CheckoutPricingError, priceCheckout } from "@/lib/checkout-pricing";
 import { assessCheckoutRisk } from "@/lib/fraud";
 import { enforceRateLimit, redis } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
+import { deliveryContactFingerprint } from "@/lib/checkout-security";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +19,15 @@ const IntentRequest = z.object({
   })).min(1).max(80),
   address: z.object({
     firstName: z.string().trim().min(1).max(80),
-    lastName: z.string().trim().max(80).default(""),
+    lastName: z.string().trim().min(1).max(80),
+    email: z.string().trim().email().max(180),
     street: z.string().trim().min(3).max(180),
     postalCode: z.string().trim().min(2).max(20),
     city: z.string().trim().min(2).max(100),
     country: z.string().trim().min(2).max(80),
-    phone: z.string().trim().max(30).optional(),
+    phone: z.string().trim().min(6).max(30),
   }),
+  deliverySlot: z.enum(["standard", "express", "relay"]).default("standard"),
   coupon: z.string().trim().max(50).nullable().optional(),
   locale: z.enum(["fr", "en"]).default("fr"),
 });
@@ -45,7 +47,10 @@ export async function POST(request: NextRequest) {
     const pricing = await priceCheckout({
       items: parsed.data.items,
       country: parsed.data.address.country,
+      postalCode: parsed.data.address.postalCode,
+      deliveryService: parsed.data.deliverySlot,
       coupon: parsed.data.coupon,
+      locale: parsed.data.locale,
     });
     const itemCount = pricing.validatedItems.reduce((sum, item) => sum + item.qty, 0);
     const recentAttempts = await paymentVelocity(customer.id);
@@ -54,27 +59,29 @@ export async function POST(request: NextRequest) {
       itemCount,
       uniqueProducts: pricing.validatedItems.length,
       email: customer.email,
-      phone: parsed.data.address.phone || customer.phone,
+      phone: parsed.data.address.phone,
       postalCode: parsed.data.address.postalCode,
       recentAttempts,
     });
 
-    const addressFingerprint = createHash("sha256").update(JSON.stringify(parsed.data.address)).digest("hex").slice(0, 16);
+    const addressFingerprint = deliveryContactFingerprint(parsed.data.address);
     const intent = await stripe.paymentIntents.create({
       amount: Math.round(pricing.total * 100),
       currency: "eur",
       payment_method_types: ["card"],
-      receipt_email: customer.email,
+      receipt_email: parsed.data.address.email,
       description: "Commande Je mange Africain",
       metadata: {
         customer_auth_id: customer.id,
         cart_fingerprint: pricing.fingerprint,
         risk_score: String(risk.score),
         risk_level: risk.level,
+        delivery_service: pricing.shippingQuote.service,
+        address_fingerprint: addressFingerprint,
       },
       shipping: {
         name: `${parsed.data.address.firstName} ${parsed.data.address.lastName}`.trim(),
-        phone: parsed.data.address.phone || customer.phone || undefined,
+        phone: parsed.data.address.phone,
         address: {
           line1: parsed.data.address.street,
           postal_code: parsed.data.address.postalCode,
@@ -97,6 +104,9 @@ export async function POST(request: NextRequest) {
         vat: pricing.vat,
         packages: pricing.thermalClasses.length || 1,
         carrier: pricing.shippingQuote.carrier,
+        service: pricing.shippingQuote.service,
+        minDelayHours: pricing.shippingQuote.minDelayHours,
+        maxDelayHours: pricing.shippingQuote.maxDelayHours,
       },
     });
   } catch (error) {

@@ -53,8 +53,8 @@ export async function GET(req: NextRequest) {
       deliveryCountry: o.deliveryCountry,
       deliverySlot: o.deliverySlot,
       paymentMethod: o.paymentMethod,
-      customerEmail: o.customer?.user.email || null,
-      customerPhone: o.customer?.user.phone || null,
+      customerEmail: o.deliveryEmail || o.customer?.user.email || null,
+      customerPhone: o.deliveryPhone || o.customer?.user.phone || null,
       ...(access.scope === "admin" ? { notes: o.notes } : {}),
       items: o.items.map((it) => ({
         id: it.id, productId: it.productId, nameFr: it.nameFr, nameEn: it.nameEn, sku: it.sku,

@@ -111,7 +111,7 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
             <div className="grid gap-7 px-5 py-6 lg:grid-cols-[1.05fr_0.95fr] sm:px-6">
               <div className="space-y-6">
                 <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Articles à préparer" : "Items to fulfil"}</h3><div className="mt-3 divide-y divide-border border-y border-border">{selectedOrder.items.map((item) => <div key={item.id} className="flex items-center gap-3 py-3"><ProductImage src={item.imageUrl} alt={isFr ? item.nameFr : item.nameEn} emoji="🍲" color="#D65A32" size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" /><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-charcoal text-[10px] font-black text-white">{item.qty}×</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold">{isFr ? item.nameFr : item.nameEn}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{item.sku} · {thermalLabel(item.thermalClass, locale)}</p></div><span className="text-xs font-extrabold">{formatPrice(item.lineTotal, locale)}</span></div>)}</div></section>
-                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Livraison" : "Delivery"}</h3><div className="mt-3 rounded-lg bg-charcoal p-4 text-white"><p className="text-sm font-extrabold">{selectedOrder.deliveryName}</p><p className="mt-2 text-xs leading-5 text-white/65">{selectedOrder.deliveryAddress}<br />{selectedOrder.deliveryPostalCode} {selectedOrder.deliveryCity}<br />{selectedOrder.deliveryCountry}</p>{selectedOrder.deliverySlot ? <p className="mt-3 border-t border-white/10 pt-3 text-[10px] font-bold text-gold">{selectedOrder.deliverySlot}</p> : null}</div></section>
+                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Livraison" : "Delivery"}</h3><div className="mt-3 rounded-lg bg-charcoal p-4 text-white"><p className="text-sm font-extrabold">{selectedOrder.deliveryName}</p><p className="mt-2 text-xs leading-5 text-white/65">{selectedOrder.deliveryAddress}<br />{selectedOrder.deliveryPostalCode} {selectedOrder.deliveryCity}<br />{selectedOrder.deliveryCountry}{selectedOrder.customerEmail ? <><br />{selectedOrder.customerEmail}</> : null}{selectedOrder.customerPhone ? <><br />{selectedOrder.customerPhone}</> : null}</p>{selectedOrder.deliverySlot ? <p className="mt-3 border-t border-white/10 pt-3 text-[10px] font-bold text-gold">{deliveryServiceLabel(selectedOrder.deliverySlot, isFr)}</p> : null}</div></section>
               </div>
               <div className="space-y-6">
                 <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Progression" : "Progress"}</h3>{selectedOrder.timeline.length ? <ol className="mt-3 space-y-0">{selectedOrder.timeline.map((event, index) => <li key={`${event.status}-${event.at}`} className="relative flex gap-3 pb-5 last:pb-0"><span className={`relative z-10 mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full ${index === selectedOrder.timeline.length - 1 ? "bg-terre text-white" : "bg-forest/10 text-forest"}`}><CheckCircle2 className="h-3.5 w-3.5" /></span>{index < selectedOrder.timeline.length - 1 ? <span className="absolute bottom-0 left-[13px] top-7 w-px bg-border" /> : null}<div><p className="text-xs font-bold text-charcoal">{event.label || statusLabel(event.status, isFr)}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{formatDateTime(event.at, locale)}{event.actor ? ` · ${event.actor}` : ""}</p></div></li>)}</ol> : <p className="mt-3 text-xs text-muted-foreground">{isFr ? "Aucun événement enregistré." : "No event recorded."}</p>}</section>
@@ -133,4 +133,13 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
       </Dialog>
     </div>
   );
+}
+
+function deliveryServiceLabel(service: string, isFr: boolean) {
+  const labels: Record<string, [string, string]> = {
+    standard: ["Livraison standard", "Standard delivery"],
+    express: ["Livraison express", "Express delivery"],
+    relay: ["Point relais", "Collection point"],
+  };
+  return (labels[service] || [service, service])[isFr ? 0 : 1];
 }

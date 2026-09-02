@@ -38,6 +38,8 @@ export type AdminOrder = {
   packageCount: number;
   createdAt: string;
   deliveryName: string;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
   deliveryAddress: string;
   deliveryCity: string;
   deliveryPostalCode: string;
