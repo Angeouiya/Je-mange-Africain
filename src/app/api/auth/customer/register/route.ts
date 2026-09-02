@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Veuillez vérifier toutes les informations saisies." }, { status: 400 });
 
   const { url, key, serviceRoleKey } = getSupabaseCustomerConfig();
-  if (!url || !key) return NextResponse.json({ error: "L'inscription client n'est pas configurée." }, { status: 503 });
+  if (!url || !key) return NextResponse.json({ error: "Le service d'inscription est momentanément indisponible." }, { status: 503 });
 
   const existingDirectoryEntry = await db.user.findFirst({
     where: { OR: [{ phone: parsed.data.phone }, { email: parsed.data.email }] },

@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { User, ArrowLeft, MailCheck, X, Eye, EyeOff } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { User, ArrowLeft, MailCheck, X, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStore } from "@/lib/store";
@@ -11,6 +12,7 @@ import { BrandLockup } from "@/components/shared/BrandLockup";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LEGAL_PATHS } from "@/lib/legal";
 import { AccountWorkspace } from "@/components/storefront/account/AccountWorkspace";
+import { LanguageSwitch } from "@/components/shared/LanguageSwitch";
 
 type AuthMode = "login" | "register" | "forgot";
 
@@ -40,20 +42,10 @@ export function AccountView() {
   const [registration, setRegistration] = useState(emptyRegistration);
   const [authStatus, setAuthStatus] = useState<"idle" | "busy" | "error" | "success">("idle");
   const [authMessage, setAuthMessage] = useState("");
+  const passwordsMatch = registration.confirmPassword.length > 0 && registration.password === registration.confirmPassword;
+  const registrationPasswordsReady = registration.password.length >= 8 && registration.confirmPassword.length >= 8 && passwordsMatch;
 
-  useEffect(() => {
-    if (customer) return;
-    const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && authStatus !== "busy") navigate(params.returnView === "checkout" ? "cart" : "home");
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [authStatus, customer, navigate, params.returnView]);
+  const closeAuth = () => navigate(params.returnView === "checkout" ? "cart" : "home");
 
   const changeAuthMode = (mode: AuthMode) => {
     setAuthMode(mode);
@@ -73,7 +65,7 @@ export function AccountView() {
     const payload = response ? await response.json().catch(() => ({})) : {};
     if (!response?.ok || !payload.customer) {
       setAuthStatus("error");
-      setAuthMessage(payload.error || (locale === "fr" ? "Connexion momentanément indisponible." : "Sign-in is temporarily unavailable."));
+      setAuthMessage(resolveAuthError(payload.error, locale, "Connexion momentanément indisponible.", "Sign-in is temporarily unavailable."));
       return;
     }
     setCustomer(payload.customer);
@@ -85,9 +77,9 @@ export function AccountView() {
 
   const submitRegistration = async (event: FormEvent) => {
     event.preventDefault();
-    if (registration.password !== registration.confirmPassword) {
+    if (!registrationPasswordsReady) {
       setAuthStatus("error");
-      setAuthMessage(locale === "fr" ? "Les deux mots de passe doivent être identiques." : "Both passwords must match.");
+      setAuthMessage(locale === "fr" ? "Saisissez deux mots de passe identiques d'au moins 8 caractères." : "Enter two matching passwords of at least 8 characters.");
       return;
     }
     setAuthStatus("busy");
@@ -100,7 +92,7 @@ export function AccountView() {
     const payload = response ? await response.json().catch(() => ({})) : {};
     if (!response?.ok) {
       setAuthStatus("error");
-      setAuthMessage(payload.error || (locale === "fr" ? "Inscription momentanément indisponible." : "Registration is temporarily unavailable."));
+      setAuthMessage(resolveAuthError(payload.error, locale, "Inscription momentanément indisponible.", "Registration is temporarily unavailable."));
       return;
     }
     if (payload.customer) {
@@ -127,7 +119,7 @@ export function AccountView() {
     const payload = response ? await response.json().catch(() => ({})) : {};
     if (!response?.ok) {
       setAuthStatus("error");
-      setAuthMessage(payload.error || (locale === "fr" ? "Envoi momentanément indisponible." : "Email is temporarily unavailable."));
+      setAuthMessage(resolveAuthError(payload.error, locale, "Envoi momentanément indisponible.", "Email is temporarily unavailable."));
       return;
     }
     setAuthStatus("success");
@@ -136,19 +128,23 @@ export function AccountView() {
 
   if (!customer) {
     return (
-      <div role="dialog" aria-modal="true" aria-labelledby="customer-auth-title" className="fixed inset-0 z-[80] overflow-y-auto bg-white">
-        <div className="african-kente-stripe sticky inset-x-0 top-0 z-10 h-[3px]" />
-        <button type="button" onClick={() => navigate(params.returnView === "checkout" ? "cart" : "home")} disabled={authStatus === "busy"} className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-border bg-white text-charcoal shadow-sm transition hover:border-terre hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={locale === "fr" ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
-          <X className="h-5 w-5" />
-        </button>
-        <div className="mx-auto flex min-h-full w-full max-w-md items-start px-4 py-16 sm:items-center sm:py-12">
+      <Dialog open onOpenChange={(open) => { if (!open && authStatus !== "busy") closeAuth(); }}>
+        <DialogContent showCloseButton={false} className="inset-0 left-0 top-0 z-[80] block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none border-0 bg-white p-0 shadow-none ring-0 data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:max-w-none">
+          <div className="african-kente-stripe sticky inset-x-0 top-0 z-10 h-[3px]" />
+          <div className="fixed left-4 top-4 z-20 sm:left-6 sm:top-6"><LanguageSwitch compact /></div>
+          <DialogClose asChild>
+            <button type="button" disabled={authStatus === "busy"} className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-border bg-white text-charcoal shadow-sm transition hover:border-terre hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={locale === "fr" ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
+              <X className="h-5 w-5" />
+            </button>
+          </DialogClose>
+          <div className="mx-auto flex min-h-full w-full max-w-md items-start px-4 py-16 sm:items-center sm:py-12">
         <section className="w-full rounded-lg bg-white p-5 sm:border sm:border-charcoal/10 sm:p-7 sm:shadow-[0_26px_70px_-52px_rgba(24,26,24,0.6)]">
           <div className="mb-8 flex justify-center sm:justify-start">
             <BrandLockup size="large" />
           </div>
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-lg bg-terre/10"><User className="h-6 w-6 text-terre" /></div>
-            <div><h1 id="customer-auth-title" className="font-display text-2xl font-semibold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</h1><p className="text-xs text-muted-foreground">{locale === "fr" ? "Votre compte, simplement et en toute sécurité." : "Simple, secure access to your account."}</p></div>
+            <div><DialogTitle id="customer-auth-title" className="font-display text-2xl font-semibold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</DialogTitle><DialogDescription className="text-xs">{locale === "fr" ? "Votre compte, simplement et en toute sécurité." : "Simple, secure access to your account."}</DialogDescription></div>
           </div>
 
           {authMode !== "forgot" ? (
@@ -160,7 +156,7 @@ export function AccountView() {
 
           {authMode === "login" ? (
             <form onSubmit={submitLogin} className="mt-5 space-y-4">
-              <div><Label htmlFor="customer-identifier" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "E-mail ou numéro de téléphone" : "Email or phone number"}</Label><Input id="customer-identifier" autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="vous@exemple.fr ou +33..." required /></div>
+              <div><Label htmlFor="customer-identifier" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "E-mail ou numéro de téléphone" : "Email or phone number"}</Label><Input id="customer-identifier" autoFocus autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="vous@exemple.fr ou +33..." required /></div>
               <PasswordInput id="customer-password" label={locale === "fr" ? "Mot de passe" : "Password"} autoComplete="current-password" value={password} onChange={setPassword} locale={locale} />
               <button type="button" onClick={() => changeAuthMode("forgot")} className="text-xs font-bold text-terre hover:underline">{locale === "fr" ? "Mot de passe oublié ?" : "Forgot password?"}</button>
               <AuthMessage status={authStatus} message={authMessage} />
@@ -168,11 +164,12 @@ export function AccountView() {
             </form>
           ) : authMode === "register" ? (
             <form onSubmit={submitRegistration} className="mt-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="register-first-name" className="mb-1 block text-xs font-semibold">{t.checkout.firstName}</Label><Input id="register-first-name" autoComplete="given-name" value={registration.firstName} onChange={(event) => setRegistration({ ...registration, firstName: event.target.value })} required /></div><div><Label htmlFor="register-last-name" className="mb-1 block text-xs font-semibold">{t.checkout.lastName}</Label><Input id="register-last-name" autoComplete="family-name" value={registration.lastName} onChange={(event) => setRegistration({ ...registration, lastName: event.target.value })} required /></div></div>
+              <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="register-first-name" className="mb-1 block text-xs font-semibold">{t.checkout.firstName}</Label><Input id="register-first-name" autoFocus autoComplete="given-name" value={registration.firstName} onChange={(event) => setRegistration({ ...registration, firstName: event.target.value })} required /></div><div><Label htmlFor="register-last-name" className="mb-1 block text-xs font-semibold">{t.checkout.lastName}</Label><Input id="register-last-name" autoComplete="family-name" value={registration.lastName} onChange={(event) => setRegistration({ ...registration, lastName: event.target.value })} required /></div></div>
               <div><Label htmlFor="register-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="register-email" type="email" autoComplete="email" value={registration.email} onChange={(event) => setRegistration({ ...registration, email: event.target.value })} required /></div>
               <div><Label htmlFor="register-phone" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Numéro de téléphone" : "Phone number"}</Label><Input id="register-phone" type="tel" autoComplete="tel" value={registration.phone} onChange={(event) => setRegistration({ ...registration, phone: event.target.value })} placeholder="+33 6 00 00 00 00" required /></div>
               <PasswordInput id="register-password" label={locale === "fr" ? "Mot de passe (8 caractères minimum)" : "Password (8 characters minimum)"} autoComplete="new-password" value={registration.password} onChange={(value) => setRegistration({ ...registration, password: value })} locale={locale} />
               <PasswordInput id="register-confirm-password" label={locale === "fr" ? "Confirmer le mot de passe" : "Confirm password"} autoComplete="new-password" value={registration.confirmPassword} onChange={(value) => setRegistration({ ...registration, confirmPassword: value })} locale={locale} />
+              {registration.confirmPassword ? <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-forest" : "text-destructive"}`}>{passwordsMatch ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}{passwordsMatch ? (locale === "fr" ? "Les mots de passe correspondent." : "Passwords match.") : (locale === "fr" ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
               <div className="space-y-3 rounded-lg border border-border bg-muted/35 p-3">
                 <p className="text-[11px] font-bold text-charcoal">{locale === "fr" ? "Accords obligatoires" : "Required agreements"}</p>
                 <LegalCheckbox
@@ -193,12 +190,12 @@ export function AccountView() {
                 />
               </div>
               <AuthMessage status={authStatus} message={authMessage} />
-              <Button type="submit" disabled={authStatus === "busy" || !registration.termsAccepted || !registration.privacyAccepted} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Création..." : "Creating...") : (locale === "fr" ? "Créer mon compte" : "Create my account")}</Button>
+              <Button type="submit" disabled={authStatus === "busy" || !registrationPasswordsReady || !registration.termsAccepted || !registration.privacyAccepted} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Création..." : "Creating...") : (locale === "fr" ? "Créer mon compte" : "Create my account")}</Button>
             </form>
           ) : (
             <form onSubmit={submitRecovery} className="mt-5 space-y-4">
               <p className="text-sm leading-relaxed text-muted-foreground">{locale === "fr" ? "Saisissez l'e-mail utilisé lors de votre inscription. Nous vous enverrons un lien sécurisé pour choisir un nouveau mot de passe." : "Enter the email used to register. We will send a secure link to choose a new password."}</p>
-              <div><Label htmlFor="recovery-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="recovery-email" type="email" autoComplete="email" value={identifier} onChange={(event) => setIdentifier(event.target.value)} required /></div>
+              <div><Label htmlFor="recovery-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="recovery-email" autoFocus type="email" autoComplete="email" value={identifier} onChange={(event) => setIdentifier(event.target.value)} required /></div>
               <AuthMessage status={authStatus} message={authMessage} successIcon />
               <Button type="submit" disabled={authStatus === "busy" || authStatus === "success"} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer le lien" : "Send reset link")}</Button>
               <button type="button" onClick={() => changeAuthMode("login")} className="inline-flex items-center gap-1.5 text-xs font-bold text-charcoal hover:text-terre"><ArrowLeft className="h-3.5 w-3.5" /> {locale === "fr" ? "Retour à la connexion" : "Back to sign in"}</button>
@@ -211,8 +208,9 @@ export function AccountView() {
             <a href={LEGAL_PATHS.privacy} target="_blank" rel="noreferrer" className="font-semibold text-terre hover:underline">{locale === "fr" ? "politique de confidentialité" : "privacy policy"}</a>.
           </p>
         </section>
-        </div>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -254,4 +252,10 @@ function AuthMessage({ status, message, successIcon = false }: { status: "idle" 
   if (!message || status === "idle" || status === "busy") return null;
   const success = status === "success";
   return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-lg border p-3 text-xs leading-relaxed ${success ? "border-forest/25 bg-forest/5 text-forest" : "border-red-200 bg-red-50 text-red-800"}`}>{success && successIcon ? <MailCheck className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
+}
+
+function resolveAuthError(error: unknown, locale: "fr" | "en", fallbackFr: string, fallbackEn: string) {
+  const message = typeof error === "string" ? error.trim() : "";
+  if (!message || /configur|supabase|service[ _-]?role|api[ _-]?key/i.test(message)) return locale === "fr" ? fallbackFr : fallbackEn;
+  return message;
 }

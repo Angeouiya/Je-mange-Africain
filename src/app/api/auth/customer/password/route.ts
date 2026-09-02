@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const parsed = Recovery.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 });
   const { url, key } = getSupabaseCustomerConfig();
-  if (!url || !key) return NextResponse.json({ error: "La récupération du mot de passe n'est pas configurée." }, { status: 503 });
+  if (!url || !key) return NextResponse.json({ error: "Le service de récupération est momentanément indisponible." }, { status: 503 });
 
   try {
     await fetch(`${url}/auth/v1/recover`, {
@@ -33,7 +33,7 @@ export async function PUT(request: Request) {
   const parsed = Reset.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Lien invalide ou nouveau mot de passe insuffisant." }, { status: 400 });
   const { url, key } = getSupabaseCustomerConfig();
-  if (!url || !key) return NextResponse.json({ error: "La modification du mot de passe n'est pas configurée." }, { status: 503 });
+  if (!url || !key) return NextResponse.json({ error: "Le service de modification du mot de passe est momentanément indisponible." }, { status: 503 });
 
   try {
     const response = await fetch(`${url}/auth/v1/user`, {

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Identifiant ou mot de passe invalide." }, { status: 400 });
 
   const { url, key } = getSupabaseCustomerConfig();
-  if (!url || !key) return NextResponse.json({ error: "La connexion client n'est pas configurée." }, { status: 503 });
+  if (!url || !key) return NextResponse.json({ error: "Le service de connexion est momentanément indisponible." }, { status: 503 });
 
   const identifierKey = parsed.data.identifier.includes("@") ? "email" : "phone";
   const identifier = identifierKey === "phone" ? normalizePhone(parsed.data.identifier) : parsed.data.identifier.toLowerCase();

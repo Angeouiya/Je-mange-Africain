@@ -25,6 +25,31 @@ async function expectLoadedProductImages(images: Locator, maximum = 4) {
   }
 }
 
+async function expectNoGreenUiAccents(page: Page) {
+  const greenStyles = await page.locator("body").evaluate((body) => {
+    const ignoredTags = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS"]);
+    const properties = ["color", "backgroundColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"] as const;
+    const isGreen = (color: string) => {
+      const match = color.match(/rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)/i);
+      if (!match) return false;
+      const [, red, green, blue] = match.map(Number);
+      return green > red * 1.08 && green > blue * 1.08;
+    };
+
+    return [...body.querySelectorAll<HTMLElement>("*")]
+      .filter((element) => !ignoredTags.has(element.tagName) && element.getClientRects().length > 0)
+      .flatMap((element) => {
+        const styles = getComputedStyle(element);
+        return properties
+          .map((property) => ({ element: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}`, property, color: styles[property] }))
+          .filter(({ color }) => isGreen(color));
+      })
+      .slice(0, 20);
+  });
+
+  expect(greenStyles, `green UI styles remain: ${JSON.stringify(greenStyles)}`).toEqual([]);
+}
+
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("main")).toBeVisible();
@@ -43,6 +68,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
     return green > red * 1.08 && green > blue * 1.08;
   });
   expect(greenAccents, `green accents remain in the computed palette: ${greenAccents.join(", ")}`).toEqual([]);
+  await expectNoGreenUiAccents(page);
   const categoryHeading = page.getByRole("heading", { name: /marché par univers|shop by universe/i });
   await expect(categoryHeading).toBeVisible();
   const categoryBox = await categoryHeading.boundingBox();
@@ -119,7 +145,7 @@ test("the wholesale market applies volume pricing and preserves case quantities 
     netWeightGrams: 500,
     thermalClass: "REFRIGERATED",
     imageUrl: "/products/attieke.webp",
-    imageColor: "#F2F5F1",
+    imageColor: "#F7F2F1",
     imageEmoji: "",
     isWholesale: true,
     wholesalePackLabel: "Carton de 6 sachets",
@@ -161,7 +187,7 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   await page.locator("[data-testid=wholesale-product-card] select").selectOption("5");
   await expect(page.getByText(/30,00\s*€|€30\.00/).first()).toBeVisible();
   await page.getByRole("button", { name: /^(ajouter|add)$/i }).click();
-  await page.getByRole("button", { name: "Switch language" }).click();
+  await page.getByRole("button", { name: /passer la plateforme en anglais|switch the platform to french/i }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Wholesale market" })).toBeVisible();
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
   await expect(page.getByText("Professional attieke", { exact: true })).toBeVisible();
@@ -185,15 +211,15 @@ test("global search and notifications navigate to useful client destinations", a
     status: 200,
     contentType: "application/json",
     body: JSON.stringify({
-      results: [{ kind: "product", id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", emoji: "", imageUrl: "/products/attieke.webp", color: "#F2F5F1", price: 7.5, promoPrice: null, country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", availableStock: 14, category: { id: "cat-1", slug: "feculents", name: "Féculents", color: "#D65A32" }, matchedAlias: null }],
-      recipes: [{ kind: "recipe", id: "recipe-search", slug: "kedjenou", name: "Kedjenou de poulet", emoji: "", imageUrl: "/hero-feast-v2.webp", color: "#3F681C", country: "Côte d'Ivoire", category: "Plats", difficulty: "easy", timeMinutes: 55, baseServings: 4 }],
+      results: [{ kind: "product", id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", emoji: "", imageUrl: "/products/attieke.webp", color: "#F7F2F1", price: 7.5, promoPrice: null, country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", availableStock: 14, category: { id: "cat-1", slug: "feculents", name: "Féculents", color: "#D65A32" }, matchedAlias: null }],
+      recipes: [{ kind: "recipe", id: "recipe-search", slug: "kedjenou", name: "Kedjenou de poulet", emoji: "", imageUrl: "/hero-feast-v2.webp", color: "#8A3042", country: "Côte d'Ivoire", category: "Plats", difficulty: "easy", timeMinutes: 55, baseServings: 4 }],
       dishes: [{ kind: "dish", slug: "mafe", name: "Mafé", country: "Mali", categoryLabel: "Sauces" }],
     }),
   }));
   await page.route("**/api/products/product-search?*", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify({ id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", description: "Semoule de manioc prête à accompagner vos plats.", country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", netWeightGrams: 500, stockQty: 14, alertThreshold: 5, imageColor: "#F2F5F1", imageEmoji: "", imageUrl: "/products/attieke.webp", galleryUrls: [], price: 7.5, promoPrice: null, pricePerKg: 15, isBestseller: false, isNew: false, isOnSale: false, variants: [], aliases: ["Attiéké"], ingredients: "Manioc", allergens: null, preparation: "Réchauffer doucement.", storage: "Conserver au frais.", storageTempC: "4°C", nutrition: null, related: [], relatedRecipes: [] }),
+    body: JSON.stringify({ id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", description: "Semoule de manioc prête à accompagner vos plats.", country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", netWeightGrams: 500, stockQty: 14, alertThreshold: 5, imageColor: "#F7F2F1", imageEmoji: "", imageUrl: "/products/attieke.webp", galleryUrls: [], price: 7.5, promoPrice: null, pricePerKg: 15, isBestseller: false, isNew: false, isOnSale: false, variants: [], aliases: ["Attiéké"], ingredients: "Manioc", allergens: null, preparation: "Réchauffer doucement.", storage: "Conserver au frais.", storageTempC: "4°C", nutrition: null, related: [], relatedRecipes: [] }),
   }));
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -254,9 +280,22 @@ test("product details stay bounded and preserve real visual identification in th
 });
 
 test("registration requires legal consent and two independently visible passwords", async ({ page }) => {
+  await page.route("**/api/auth/customer/register", (route) => route.fulfill({
+    status: 503,
+    contentType: "application/json",
+    body: JSON.stringify({ error: "L'inscription client n'est pas configurée." }),
+  }));
   await page.goto("/?view=account", { waitUntil: "domcontentloaded" });
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/auth-login-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  const languageSwitch = dialog.getByRole("button", { name: /passer la plateforme en anglais/i });
+  await expect(languageSwitch).toBeVisible();
+  await languageSwitch.click();
+  await expect(dialog.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await dialog.getByRole("button", { name: /switch the platform to french/i }).click();
   await page.getByRole("tab", { name: /inscription|register/i }).click();
 
   const password = page.getByLabel(/mot de passe \(8 caractères minimum\)|password \(8 characters minimum\)/i);
@@ -271,6 +310,17 @@ test("registration requires legal consent and two independently visible password
   await expect(password).toHaveAttribute("type", "text");
   await expect(confirmation).toHaveAttribute("type", "password");
 
+  await password.fill("motdepasse-solide");
+  await confirmation.fill("motdepasse-different");
+  await expect(page.getByText("Les mots de passe ne correspondent pas.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /créer mon compte|create my account/i })).toBeDisabled();
+  await confirmation.fill("motdepasse-solide");
+  await expect(page.getByText("Les mots de passe correspondent.")).toBeVisible();
+  await page.getByLabel(/prénom|first name/i).fill("Awa");
+  await page.getByLabel(/^nom$|last name/i).fill("Koné");
+  await page.getByLabel(/^e-mail$/i).fill("awa.kone@example.fr");
+  await page.getByLabel(/numéro de téléphone|phone number/i).fill("+33 6 12 34 56 78");
+
   await page.getByRole("checkbox", { name: /conditions générales|terms of use/i }).click();
   await expect(page.getByRole("button", { name: /créer mon compte|create my account/i })).toBeDisabled();
   await page.getByRole("checkbox", { name: /politique de confidentialité|privacy policy/i }).click();
@@ -278,7 +328,15 @@ test("registration requires legal consent and two independently visible password
   const brandNameBox = await dialog.locator(".font-brand").first().boundingBox();
   expect((brandNameBox?.x || 0) + (brandNameBox?.width || 0)).toBeLessThanOrEqual(page.viewportSize()?.width || 0);
   await expectNoHorizontalOverflow(page, dialog);
+  await expectNoGreenUiAccents(page);
   await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/auth-register-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+  }
+
+  await page.getByRole("button", { name: /créer mon compte|create my account/i }).click();
+  await expect(page.getByRole("alert")).toContainText("Inscription momentanément indisponible.");
+  await expect(dialog).not.toContainText(/configuré|supabase|api key/i);
 
   await page.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
@@ -394,8 +452,8 @@ test("the customer workspace edits identity and manages a persistent address boo
 test("the personal library filters and synchronizes saved products and recipes", async ({ page }) => {
   const customer = { id: "customer-saved", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 180, walletCredit: 12.5, preferredLang: "fr" };
   const account = { customer, addresses: [], favoriteProductIds: ["product-saved"], savedRecipeIds: ["recipe-saved"] };
-  const product = { id: "product-saved", sku: "JMA-ATT-500", traditionalName: "Attiéké", name: "Attiéké frais", price: 7.5, promoPrice: null, pricePerKg: 15, stockQty: 14, alertThreshold: 5, country: "Côte d'Ivoire", category: { id: "cat-1", slug: "feculents", name: "Féculents", color: "#D65A32" }, description: "Semoule de manioc", imageUrl: "/products/attieke.webp", imageColor: "#F2F5F1", imageEmoji: "", isBestseller: true, isNew: false, isOnSale: false, thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", variants: [] };
-  const recipe = { id: "recipe-saved", slug: "kedjenou", title: "Kedjenou de poulet", description: "Poulet mijoté aux légumes et aux épices.", country: "Côte d'Ivoire", category: "Plats", difficulty: "easy", timeMinutes: 55, baseServings: 4, imageColor: "#E8EEE8", imageEmoji: "", imageUrl: "/recipes/kedjenou-poulet.webp", isPopular: true, ingredientCount: 8 };
+  const product = { id: "product-saved", sku: "JMA-ATT-500", traditionalName: "Attiéké", name: "Attiéké frais", price: 7.5, promoPrice: null, pricePerKg: 15, stockQty: 14, alertThreshold: 5, country: "Côte d'Ivoire", category: { id: "cat-1", slug: "feculents", name: "Féculents", color: "#D65A32" }, description: "Semoule de manioc", imageUrl: "/products/attieke.webp", imageColor: "#F7F2F1", imageEmoji: "", isBestseller: true, isNew: false, isOnSale: false, thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", variants: [] };
+  const recipe = { id: "recipe-saved", slug: "kedjenou", title: "Kedjenou de poulet", description: "Poulet mijoté aux légumes et aux épices.", country: "Côte d'Ivoire", category: "Plats", difficulty: "easy", timeMinutes: 55, baseServings: 4, imageColor: "#F7F2F1", imageEmoji: "", imageUrl: "/recipes/kedjenou-poulet.webp", isPopular: true, ingredientCount: 8 };
   let savedState = { productIds: [product.id], recipeIds: [recipe.id] };
 
   await page.addInitScript(({ persistedCustomer }) => {
