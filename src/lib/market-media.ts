@@ -141,6 +141,22 @@ const norm = (value?: string | null) =>
 const mediaKey = (value?: string | null) =>
   norm(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+const BRAND_FALLBACK_COLOR = "#8A3042";
+
+/** Keeps legacy or user-provided green accents out of the storefront palette. */
+export function getBrandAccentColor(color?: string | null) {
+  const match = color?.trim().match(/^#([0-9a-f]{6})$/i);
+  if (!match) return color || BRAND_FALLBACK_COLOR;
+
+  const value = Number.parseInt(match[1], 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const readsAsGreen = green > red * 1.08 && green > blue * 1.08;
+
+  return readsAsGreen ? BRAND_FALLBACK_COLOR : color!;
+}
+
 function categorySlug(subject: MarketSubject | CategoryLike | string) {
   if (typeof subject === "string") return norm(subject);
   if ("category" in subject && subject.category) {

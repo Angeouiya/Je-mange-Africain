@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { customerSegment, NON_COMMERCIAL_ORDER_STATUSES } from "@/lib/customer-analytics";
 import { db } from "@/lib/db";
+import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             recipeId: true,
             recipe: {
               select: {
+                slug: true,
+                category: true,
                 country: true,
                 imageUrl: true,
                 translations: { select: { locale: true, title: true } },
@@ -188,13 +191,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: item.id,
         name: locale === "fr" ? item.nameFr : item.nameEn,
         qty: item.qty,
-        imageUrl: item.imageUrl,
+        imageUrl: item.imageUrl || getProductPhoto({ name: locale === "fr" ? item.nameFr : item.nameEn }),
       })),
     })),
     topProducts: topProductGroups.map((product) => ({
       productId: product.productId,
       name: locale === "fr" ? product.nameFr : product.nameEn,
-      imageUrl: product.imageUrl,
+      imageUrl: product.imageUrl || getProductPhoto({ name: locale === "fr" ? product.nameFr : product.nameEn }),
       quantity: product._sum.qty || 0,
       revenue: Number(product._sum.lineTotal || 0),
     })),
@@ -202,14 +205,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       id: favorite.id,
       productId: favorite.productId,
       name: localizedValue(favorite.product.translations, locale)?.name || favorite.product.traditionalName,
-      imageUrl: favorite.product.imageUrl,
+      imageUrl: getProductPhoto({ traditionalName: favorite.product.traditionalName, name: localizedValue(favorite.product.translations, locale)?.name, imageUrl: favorite.product.imageUrl }),
     })),
     savedRecipes: customer.savedRecipes.map((savedRecipe) => ({
       id: savedRecipe.id,
       recipeId: savedRecipe.recipeId,
       title: localizedValue(savedRecipe.recipe.translations, locale)?.title || savedRecipe.recipeId,
       country: savedRecipe.recipe.country,
-      imageUrl: savedRecipe.recipe.imageUrl,
+      imageUrl: getRecipePhoto({
+        slug: savedRecipe.recipe.slug,
+        title: localizedValue(savedRecipe.recipe.translations, locale)?.title,
+        country: savedRecipe.recipe.country,
+        category: savedRecipe.recipe.category,
+        imageUrl: savedRecipe.recipe.imageUrl,
+      }),
     })),
     tickets: customer.tickets.map((ticket) => ({ ...ticket, updatedAt: ticket.updatedAt.toISOString() })),
   });

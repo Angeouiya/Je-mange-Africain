@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { getBrandAccentColor } from "@/lib/market-media";
 
 /** Product visual with a real photo first and a branded fallback for resilience. */
 export function ProductImage({
@@ -47,6 +48,7 @@ export function ProductImage({
   };
   const activeSource = [src, fallbackSrc].find((candidate): candidate is string => Boolean(candidate && !failedSources.includes(candidate)));
   const showPhoto = Boolean(activeSource);
+  const accentColor = getBrandAccentColor(color);
 
   useEffect(() => {
     setFailedSources([]);
@@ -56,7 +58,7 @@ export function ProductImage({
     <div
       className={`relative flex items-center justify-center overflow-hidden ${rounded} ${sizes[size]} ${className}`}
       style={{
-        background: `color-mix(in srgb, ${color} 18%, white)`,
+        background: `color-mix(in srgb, ${accentColor} 18%, white)`,
       }}
     >
       {showPhoto && (

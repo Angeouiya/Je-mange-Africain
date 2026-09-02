@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { z } from "zod";
+import { getBrandAccentColor, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       translations: true,
       ingredients: {
         include: {
-          product: { include: { translations: true, variants: true } },
+          product: { include: { translations: true, variants: true, category: true } },
         },
       },
     },
@@ -45,9 +46,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     difficulty: recipe.difficulty,
     timeMinutes: recipe.timeMinutes,
     baseServings: recipe.baseServings,
-    imageColor: recipe.imageColor,
+    imageColor: getBrandAccentColor(recipe.imageColor),
     imageEmoji: recipe.imageEmoji,
-    imageUrl: recipe.imageUrl,
+    imageUrl: getRecipePhoto({ slug: recipe.slug, title: translation?.title, country: recipe.country, category: recipe.category, imageUrl: recipe.imageUrl }),
     isPopular: recipe.isPopular,
     isNew: recipe.isNew,
     isRecommended: recipe.isRecommended,
@@ -65,8 +66,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: ingredient.product.id,
         traditionalName: ingredient.product.traditionalName,
         emoji: ingredient.product.imageEmoji,
-        imageUrl: ingredient.product.imageUrl,
-        color: ingredient.product.imageColor,
+        imageUrl: getProductPhoto({
+          traditionalName: ingredient.product.traditionalName,
+          imageUrl: ingredient.product.imageUrl,
+          imageEmoji: ingredient.product.imageEmoji,
+          category: { slug: ingredient.product.category.slug, name: ingredient.product.category.nameFr },
+        }),
+        color: getBrandAccentColor(ingredient.product.imageColor),
         nameFr: ingredient.product.translations.find((item) => item.locale === "fr")?.name || ingredient.product.traditionalName,
         nameEn: ingredient.product.translations.find((item) => item.locale === "en")?.name || ingredient.product.traditionalName,
         stockQty: ingredient.product.stockQty,

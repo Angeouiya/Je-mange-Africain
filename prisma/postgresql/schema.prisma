@@ -296,7 +296,7 @@ model Recipe {
   difficulty    String              @default("medium") // easy | medium | hard
   timeMinutes   Int                 @default(45)
   baseServings  Int                 @default(4)
-  imageColor    String              @default("#3F681C")
+  imageColor    String              @default("#8A3042")
   imageEmoji    String              @default("🍽️")
   imageUrl      String?
   galleryUrls   String? // JSON array of public image URLs

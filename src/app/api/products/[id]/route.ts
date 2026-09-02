@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -39,12 +40,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     take: 6,
     distinct: ["recipeId"],
   });
-  const relatedRecipes = recipeRows.map((r) => ({
-    id: r.recipe.id, slug: r.recipe.slug, country: r.recipe.country, category: r.recipe.category,
-    difficulty: r.recipe.difficulty, timeMinutes: r.recipe.timeMinutes, baseServings: r.recipe.baseServings,
-    imageColor: r.recipe.imageColor, imageEmoji: r.recipe.imageEmoji, imageUrl: r.recipe.imageUrl,
-    title: r.recipe.translations.find((t) => t.locale === locale)?.title || r.recipe.translations[0]?.title,
-  }));
+  const relatedRecipes = recipeRows.map((r) => {
+    const title = r.recipe.translations.find((translation) => translation.locale === locale)?.title || r.recipe.translations[0]?.title;
+    return {
+      id: r.recipe.id, slug: r.recipe.slug, country: r.recipe.country, category: r.recipe.category,
+      difficulty: r.recipe.difficulty, timeMinutes: r.recipe.timeMinutes, baseServings: r.recipe.baseServings,
+      imageColor: r.recipe.imageColor, imageEmoji: r.recipe.imageEmoji,
+      imageUrl: getRecipePhoto({ slug: r.recipe.slug, title, country: r.recipe.country, category: r.recipe.category, imageUrl: r.recipe.imageUrl }),
+      title,
+    };
+  });
 
   // Alternatives: same category different product
   const alternatives = await db.product.findMany({
@@ -63,7 +68,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       nameEn: relatedEn?.name || relatedFr?.name || p.traditionalName,
       price: Number(p.price), promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
       pricePerKg: p.pricePerKg ? Number(p.pricePerKg) : null,
-      imageColor: p.imageColor, imageEmoji: p.imageEmoji, imageUrl: p.imageUrl, stockQty: p.stockQty,
+      imageColor: p.imageColor, imageEmoji: p.imageEmoji,
+      imageUrl: getProductPhoto({
+        traditionalName: p.traditionalName,
+        name: (locale === "en" ? relatedEn : relatedFr)?.name,
+        imageUrl: p.imageUrl,
+        imageEmoji: p.imageEmoji,
+        category: p.category ? { slug: p.category.slug, name: p.category.nameFr } : null,
+      }),
+      stockQty: p.stockQty,
       alertThreshold: p.alertThreshold,
       country: p.country,
       thermalClass: p.thermalClass, packaging: p.packaging,
@@ -109,7 +122,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     alertThreshold: product.alertThreshold,
     imageColor: product.imageColor,
     imageEmoji: product.imageEmoji,
-    imageUrl: product.imageUrl,
+    imageUrl: getProductPhoto({
+      traditionalName: product.traditionalName,
+      name: t?.name,
+      description: t?.description,
+      imageUrl: product.imageUrl,
+      imageEmoji: product.imageEmoji,
+      category: { slug: product.category.slug, name: product.category.nameFr },
+    }),
     galleryUrls: (() => { try { return product.galleryUrls ? JSON.parse(product.galleryUrls) : []; } catch { return []; } })(),
     isBestseller: product.isBestseller,
     isNew: product.isNew,

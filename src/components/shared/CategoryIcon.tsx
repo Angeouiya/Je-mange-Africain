@@ -1,5 +1,6 @@
 import { Beef, CircleDot, CookingPot, Fish, GlassWater, Leaf, Sprout, Wheat } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getBrandAccentColor } from "@/lib/market-media";
 
 const categoryIcons = {
   manioc: Sprout,
@@ -25,7 +26,7 @@ const categoryColors: Record<string, string> = {
 
 export function CategoryIcon({ slug, color, className }: { slug?: string; color?: string | null; className?: string }) {
   const Icon = categoryIcons[slug as keyof typeof categoryIcons] || CookingPot;
-  const resolvedColor = categoryColors[slug || ""] || color || "#D65A32";
+  const resolvedColor = getBrandAccentColor(categoryColors[slug || ""] || color || "#D65A32");
   return (
     <span
       className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/55 shadow-sm", className)}

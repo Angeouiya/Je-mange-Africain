@@ -14,10 +14,35 @@ async function expectNoSeriousA11yViolations(page: Page) {
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
 }
 
+async function expectLoadedProductImages(images: Locator, maximum = 4) {
+  const count = Math.min(await images.count(), maximum);
+  expect(count).toBeGreaterThan(0);
+  for (let index = 0; index < count; index += 1) {
+    const image = images.nth(index);
+    await image.scrollIntoViewIfNeeded();
+    await expect(image).toBeVisible();
+    await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0);
+  }
+}
+
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/dashboard admin|administration/i);
+  const accentColors = await page.evaluate(() => {
+    const styles = getComputedStyle(document.documentElement);
+    return ["--terre", "--gold", "--forest", "--forest-dark"].map((token) => styles.getPropertyValue(token).trim());
+  });
+  const greenAccents = accentColors.filter((color) => {
+    const match = color.match(/^#([0-9a-f]{6})$/i);
+    if (!match) return false;
+    const value = Number.parseInt(match[1], 16);
+    const red = (value >> 16) & 255;
+    const green = (value >> 8) & 255;
+    const blue = value & 255;
+    return green > red * 1.08 && green > blue * 1.08;
+  });
+  expect(greenAccents, `green accents remain in the computed palette: ${greenAccents.join(", ")}`).toEqual([]);
   const categoryHeading = page.getByRole("heading", { name: /marché par univers|shop by universe/i });
   await expect(categoryHeading).toBeVisible();
   const categoryBox = await categoryHeading.boundingBox();
@@ -43,6 +68,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.locator("main img").first()).toBeVisible();
   const catalogueGrid = page.getByTestId("catalog-product-grid");
   await expect(catalogueGrid).toBeVisible();
+  await expectLoadedProductImages(catalogueGrid.getByRole("img"));
   const catalogueColumns = await catalogueGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(catalogueColumns).toBe(isMobile ? 2 : 4);
   if (process.env.CLIENT_SCREENSHOTS) {
@@ -60,6 +86,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   else expect(recipeHeroBox?.height || 0).toBeGreaterThanOrEqual(384);
   const recipeGrid = page.getByTestId("recipes-grid");
   await expect(recipeGrid).toBeVisible();
+  await expectLoadedProductImages(recipeGrid.getByRole("img"));
   const recipeColumns = await recipeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(recipeColumns).toBe(isMobile ? 2 : 3);
   if (process.env.CLIENT_SCREENSHOTS) {

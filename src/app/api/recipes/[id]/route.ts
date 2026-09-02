@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getProductPhoto } from "@/lib/market-media";
+import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     baseServings: recipe.baseServings,
     imageColor: recipe.imageColor,
     imageEmoji: recipe.imageEmoji,
-    imageUrl: recipe.imageUrl,
+    imageUrl: getRecipePhoto({ slug: recipe.slug, title: t?.title, country: recipe.country, category: recipe.category, imageUrl: recipe.imageUrl }),
     galleryUrls: (() => { try { return recipe.galleryUrls ? JSON.parse(recipe.galleryUrls) : []; } catch { return []; } })(),
     isPopular: recipe.isPopular,
     isNew: recipe.isNew,

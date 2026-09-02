@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
+import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { wholesaleAvailablePacks, wholesaleDiscountPercent, wholesaleTiers } from "@/lib/wholesale";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +56,14 @@ function project(p: any, locale: string) {
     alertThreshold: p.alertThreshold,
     imageColor: p.imageColor,
     imageEmoji: p.imageEmoji,
-    imageUrl: p.imageUrl,
+    imageUrl: getProductPhoto({
+      traditionalName: p.traditionalName,
+      name: t?.name,
+      description: t?.description,
+      imageUrl: p.imageUrl,
+      imageEmoji: p.imageEmoji,
+      category: p.category ? { slug: p.category.slug, name: p.category.nameFr } : null,
+    }),
     isBestseller: p.isBestseller,
     isNew: p.isNew,
     isRecommended: p.isRecommended,
@@ -98,13 +106,17 @@ export async function GET(req: NextRequest) {
       onSale: onSale.map((p) => project(p, locale)),
       categories: categories.map((c) => ({ id: c.id, slug: c.slug, nameFr: c.nameFr, nameEn: c.nameEn, name: c[`name${locale === "en" ? "En" : "Fr"}`], icon: c.icon, color: c.color, description: c[`description${locale === "en" ? "En" : "Fr"}`] })),
       brands: brands.map((b) => ({ id: b.id, slug: b.slug, name: b[`name${locale === "en" ? "En" : "Fr"}`] })),
-      popularRecipes: popularRecipes.map((r) => ({
-        id: r.id, slug: r.slug, country: r.country, category: r.category, difficulty: r.difficulty,
-        timeMinutes: r.timeMinutes, baseServings: r.baseServings, imageColor: r.imageColor, imageEmoji: r.imageEmoji, imageUrl: r.imageUrl,
-        isNew: r.isNew, isRecommended: r.isRecommended, isPopular: r.isPopular,
-        title: r.translations.find((t) => t.locale === locale)?.title || r.translations[0]?.title,
-        description: r.translations.find((t) => t.locale === locale)?.description,
-      })),
+      popularRecipes: popularRecipes.map((r) => {
+        const translation = r.translations.find((item) => item.locale === locale) || r.translations[0];
+        return {
+          id: r.id, slug: r.slug, country: r.country, category: r.category, difficulty: r.difficulty,
+          timeMinutes: r.timeMinutes, baseServings: r.baseServings, imageColor: r.imageColor, imageEmoji: r.imageEmoji,
+          imageUrl: getRecipePhoto({ slug: r.slug, title: translation?.title, country: r.country, category: r.category, imageUrl: r.imageUrl }),
+          isNew: r.isNew, isRecommended: r.isRecommended, isPopular: r.isPopular,
+          title: translation?.title,
+          description: translation?.description,
+        };
+      }),
     });
   }
 

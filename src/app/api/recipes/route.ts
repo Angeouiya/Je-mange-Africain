@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
+import { getRecipePhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -62,24 +63,27 @@ export async function GET(req: NextRequest) {
   ];
 
   return NextResponse.json({
-    recipes: recipes.map((r) => ({
-      id: r.id,
-      slug: r.slug,
-      country: r.country,
-      category: r.category,
-      difficulty: r.difficulty,
-      timeMinutes: r.timeMinutes,
-      baseServings: r.baseServings,
-      imageColor: r.imageColor,
-      imageEmoji: r.imageEmoji,
-      imageUrl: r.imageUrl,
-      isPopular: r.isPopular,
-      isNew: r.isNew,
-      isRecommended: r.isRecommended,
-      ingredientCount: r.ingredients.length,
-      title: r.translations.find((t) => t.locale === locale)?.title || r.translations[0]?.title,
-      description: r.translations.find((t) => t.locale === locale)?.description,
-    })),
+    recipes: recipes.map((r) => {
+      const translation = r.translations.find((item) => item.locale === locale) || r.translations[0];
+      return {
+        id: r.id,
+        slug: r.slug,
+        country: r.country,
+        category: r.category,
+        difficulty: r.difficulty,
+        timeMinutes: r.timeMinutes,
+        baseServings: r.baseServings,
+        imageColor: r.imageColor,
+        imageEmoji: r.imageEmoji,
+        imageUrl: getRecipePhoto({ slug: r.slug, title: translation?.title, country: r.country, category: r.category, imageUrl: r.imageUrl }),
+        isPopular: r.isPopular,
+        isNew: r.isNew,
+        isRecommended: r.isRecommended,
+        ingredientCount: r.ingredients.length,
+        title: translation?.title,
+        description: translation?.description,
+      };
+    }),
     categories: categories.map((c) => ({ slug: c.slug, name: c[locale === "en" ? "en" : "fr"] })),
   });
 }

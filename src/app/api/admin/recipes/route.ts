@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { normalize } from "@/lib/format";
+import { getBrandAccentColor, getRecipePhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -58,26 +59,29 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    recipes: recipes.map((recipe) => ({
-      id: recipe.id,
-      slug: recipe.slug,
-      country: recipe.country,
-      category: recipe.category,
-      difficulty: recipe.difficulty,
-      timeMinutes: recipe.timeMinutes,
-      baseServings: recipe.baseServings,
-      imageColor: recipe.imageColor,
-      imageEmoji: recipe.imageEmoji,
-      imageUrl: recipe.imageUrl,
-      galleryUrls: (() => { try { return recipe.galleryUrls ? JSON.parse(recipe.galleryUrls) : []; } catch { return []; } })(),
-      isPopular: recipe.isPopular,
-      isNew: recipe.isNew,
-      isRecommended: recipe.isRecommended,
-      status: recipe.status,
-      ingredientCount: recipe.ingredients.length,
-      title: recipe.translations.find((translation) => translation.locale === locale)?.title || recipe.translations[0]?.title,
-      description: recipe.translations.find((translation) => translation.locale === locale)?.description || recipe.translations[0]?.description,
-    })),
+    recipes: recipes.map((recipe) => {
+      const translation = recipe.translations.find((item) => item.locale === locale) || recipe.translations[0];
+      return {
+        id: recipe.id,
+        slug: recipe.slug,
+        country: recipe.country,
+        category: recipe.category,
+        difficulty: recipe.difficulty,
+        timeMinutes: recipe.timeMinutes,
+        baseServings: recipe.baseServings,
+        imageColor: getBrandAccentColor(recipe.imageColor),
+        imageEmoji: recipe.imageEmoji,
+        imageUrl: getRecipePhoto({ slug: recipe.slug, title: translation?.title, country: recipe.country, category: recipe.category, imageUrl: recipe.imageUrl }),
+        galleryUrls: (() => { try { return recipe.galleryUrls ? JSON.parse(recipe.galleryUrls) : []; } catch { return []; } })(),
+        isPopular: recipe.isPopular,
+        isNew: recipe.isNew,
+        isRecommended: recipe.isRecommended,
+        status: recipe.status,
+        ingredientCount: recipe.ingredients.length,
+        title: translation?.title,
+        description: translation?.description,
+      };
+    }),
   });
 }
 
@@ -120,7 +124,7 @@ export async function POST(request: NextRequest) {
         difficulty: input.difficulty,
         timeMinutes: input.timeMinutes,
         baseServings: input.baseServings,
-        imageColor: input.imageColor,
+        imageColor: getBrandAccentColor(input.imageColor),
         imageEmoji: input.imageEmoji,
         imageUrl: input.imageUrl,
         isPopular: input.isPopular,

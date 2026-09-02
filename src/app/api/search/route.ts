@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
 import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
+import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,13 @@ export async function GET(req: NextRequest) {
         name: t?.name || a.product.traditionalName,
         traditionalName: a.product.traditionalName,
         emoji: a.product.imageEmoji,
-        imageUrl: a.product.imageUrl,
+        imageUrl: getProductPhoto({
+          traditionalName: a.product.traditionalName,
+          name: t?.name,
+          imageUrl: a.product.imageUrl,
+          imageEmoji: a.product.imageEmoji,
+          category: a.product.category ? { slug: a.product.category.slug, name: a.product.category.nameFr } : null,
+        }),
         color: a.product.imageColor,
         price: Number(a.product.price),
         promoPrice: a.product.promoPrice ? Number(a.product.promoPrice) : null,
@@ -93,7 +100,13 @@ export async function GET(req: NextRequest) {
         name: t?.name || p.traditionalName,
         traditionalName: p.traditionalName,
         emoji: p.imageEmoji,
-        imageUrl: p.imageUrl,
+        imageUrl: getProductPhoto({
+          traditionalName: p.traditionalName,
+          name: t?.name,
+          imageUrl: p.imageUrl,
+          imageEmoji: p.imageEmoji,
+          category: p.category ? { slug: p.category.slug, name: p.category.nameFr } : null,
+        }),
         color: p.imageColor,
         price: Number(p.price),
         promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
@@ -112,20 +125,23 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const recipes = recipeMatches.map((r) => ({
-    kind: "recipe",
-    id: r.id,
-    slug: r.slug,
-    name: r.translations.find((t) => t.locale === locale)?.title || r.translations[0]?.title,
-    emoji: r.imageEmoji,
-    imageUrl: r.imageUrl,
-    color: r.imageColor,
-    country: r.country,
-    category: r.category,
-    difficulty: r.difficulty,
-    timeMinutes: r.timeMinutes,
-    baseServings: r.baseServings,
-  }));
+  const recipes = recipeMatches.map((r) => {
+    const name = r.translations.find((translation) => translation.locale === locale)?.title || r.translations[0]?.title;
+    return {
+      kind: "recipe",
+      id: r.id,
+      slug: r.slug,
+      name,
+      emoji: r.imageEmoji,
+      imageUrl: getRecipePhoto({ slug: r.slug, title: name, country: r.country, category: r.category, imageUrl: r.imageUrl }),
+      color: r.imageColor,
+      country: r.country,
+      category: r.category,
+      difficulty: r.difficulty,
+      timeMinutes: r.timeMinutes,
+      baseServings: r.baseServings,
+    };
+  });
 
   const dishes = searchDishLibrary({ query: q, limit: 4 }).map(({ dish, score }) => localizeDish(dish, locale, score));
 

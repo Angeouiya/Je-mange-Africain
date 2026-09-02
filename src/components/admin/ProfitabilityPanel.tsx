@@ -49,7 +49,7 @@ export function ProfitabilityPanel({ locale }: { locale: "fr" | "en" }) {
         <label className="flex items-center gap-2 text-xs font-bold text-charcoal"><span>{isFr ? "Période" : "Period"}</span><select value={period} onChange={(event) => setPeriod(event.target.value as Period)} className="h-9 rounded-md border border-input bg-white px-3 text-xs shadow-xs"><option value="all">{isFr ? "Tout l'historique" : "All history"}</option><option value="year">{isFr ? "Cette année" : "This year"}</option><option value="month">{isFr ? "Ce mois" : "This month"}</option><option value="30d">{isFr ? "30 derniers jours" : "Last 30 days"}</option></select></label>
       </div>
 
-      <section className="grid overflow-hidden rounded-lg border border-black/8 bg-white sm:grid-cols-2 xl:grid-cols-4">
+      <section data-testid="profitability-metrics" className="grid grid-cols-3 overflow-hidden rounded-lg border border-black/8 bg-white sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={ChartNoAxesCombined} label={isFr ? "Chiffre d'affaires produits" : "Product revenue"} value={formatPrice(metrics.revenue, locale)} featured />
         <Metric icon={ShoppingBasket} label={isFr ? "Coût brut" : "Gross cost"} value={formatPrice(metrics.grossCost, locale)} />
         <Metric icon={TrendingUp} label={isFr ? "Marge bénéficiaire" : "Profit margin"} value={formatPrice(metrics.margin, locale)} positive={metrics.margin >= 0} />
@@ -70,7 +70,7 @@ export function ProfitabilityPanel({ locale }: { locale: "fr" | "en" }) {
 }
 
 function Metric({ icon: Icon, label, value, featured = false, positive }: { icon: typeof TrendingUp; label: string; value: string; featured?: boolean; positive?: boolean }) {
-  return <div className={`min-w-0 border-b border-black/8 p-4 last:border-b-0 sm:[&:nth-child(odd)]:border-r xl:border-b-0 xl:border-r xl:last:border-r-0 ${featured ? "bg-charcoal text-white" : ""}`}><span className={`grid h-8 w-8 place-items-center rounded-md ${featured ? "bg-terre text-white" : positive === false ? "bg-destructive/10 text-destructive" : "bg-forest/10 text-forest"}`}><Icon className="h-4 w-4" /></span><p className={`mt-4 truncate text-xl font-black tabular-nums ${featured ? "text-white" : positive === false ? "text-destructive" : "text-charcoal"}`}>{value}</p><p className={`mt-1 text-[10px] font-bold ${featured ? "text-white/55" : "text-muted-foreground"}`}>{label}</p></div>;
+  return <div className={`min-w-0 border-b border-r border-black/8 p-3 last:border-r-0 sm:col-span-1 sm:p-4 xl:border-b-0 xl:last:border-r-0 ${featured ? "col-span-3 bg-charcoal text-white sm:col-span-1" : ""}`}><span className={`grid h-7 w-7 place-items-center rounded-md sm:h-8 sm:w-8 ${featured ? "bg-terre text-white" : positive === false ? "bg-destructive/10 text-destructive" : "bg-forest/10 text-forest"}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></span><p className={`mt-3 truncate font-black tabular-nums ${featured ? "text-2xl text-white sm:text-xl" : positive === false ? "text-sm text-destructive sm:text-xl" : "text-sm text-charcoal sm:text-xl"}`}>{value}</p><p className={`mt-1 line-clamp-2 min-h-7 text-[9px] font-bold leading-3.5 sm:min-h-0 sm:text-[10px] ${featured ? "text-white/70" : "text-muted-foreground"}`}>{label}</p></div>;
 }
 
 function GeneralAnalysis({ data, locale }: { data: ProfitabilityData; locale: "fr" | "en" }) {

@@ -23,11 +23,11 @@ export function AdminPageHeader({
 }) {
   if (variant === "command") {
     return (
-      <div className="-mx-4 border-y border-white/8 bg-charcoal px-4 py-6 text-white sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex max-w-3xl items-start gap-4">
-            {icon ? <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: accent }}>{icon}</span> : null}
-            <div><p className="text-[10px] font-extrabold uppercase text-gold">{eyebrow}</p><h2 className="mt-1.5 font-display text-3xl font-semibold sm:text-4xl">{title}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/58">{description}</p></div>
+      <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 border-y border-white/8 bg-charcoal px-4 py-4 text-white sm:-mx-6 sm:px-6 sm:py-6 lg:-mx-8 lg:px-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
+          <div className="flex max-w-3xl items-start gap-3 sm:gap-4">
+            {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:h-11 sm:w-11" style={{ backgroundColor: accent }}>{icon}</span> : null}
+            <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase text-gold sm:text-[10px]">{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.4rem] font-semibold leading-tight sm:mt-1.5 sm:text-4xl">{title}</h2><p className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-white/70 sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6 sm:text-white/58">{description}</p></div>
           </div>
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>
@@ -37,10 +37,10 @@ export function AdminPageHeader({
 
   if (variant === "flow") {
     return (
-      <div className="-mx-4 flex flex-col gap-4 border-y border-black/8 bg-white px-4 py-5 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:-mx-8 lg:px-8">
-        <div className="flex max-w-3xl items-center gap-4">
-          {icon ? <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: accent }}>{icon}</span> : null}
-          <div><p className="text-[10px] font-extrabold uppercase" style={{ color: accent }}>{eyebrow}</p><h2 className="mt-1 font-display text-2xl font-semibold text-charcoal sm:text-3xl">{title}</h2><p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">{description}</p></div>
+      <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 flex flex-col gap-3 border-y border-black/8 bg-white px-4 py-4 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5 lg:-mx-8 lg:px-8">
+        <div className="flex max-w-3xl items-start gap-3 sm:items-center sm:gap-4">
+          {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:h-12 sm:w-12" style={{ backgroundColor: accent }}>{icon}</span> : null}
+          <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase sm:text-[10px]" style={{ color: accent }}>{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
@@ -49,10 +49,10 @@ export function AdminPageHeader({
 
   if (variant === "control") {
     return (
-      <div className="flex flex-col gap-4 border-l-4 bg-white/55 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5" style={{ borderLeftColor: accent }}>
+      <div data-testid="admin-page-header" data-variant={variant} className="flex flex-col gap-3 border-l-[3px] bg-white/55 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:border-l-4 sm:px-5 sm:py-4" style={{ borderLeftColor: accent }}>
         <div className="flex max-w-3xl items-start gap-3">
-          {icon ? <span className="mt-0.5 shrink-0" style={{ color: accent }}>{icon}</span> : null}
-          <div><p className="text-[9px] font-extrabold uppercase text-muted-foreground">{eyebrow}</p><h2 className="mt-1 font-display text-2xl font-semibold text-charcoal sm:text-3xl">{title}</h2><p className="mt-1.5 max-w-2xl text-xs leading-5 text-muted-foreground">{description}</p></div>
+          {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border" style={{ color: accent, borderColor: `${accent}25`, backgroundColor: `${accent}0D` }}>{icon}</span> : null}
+          <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase text-muted-foreground">{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p className="mt-1 line-clamp-3 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-1.5 sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
@@ -60,13 +60,13 @@ export function AdminPageHeader({
   }
 
   return (
-    <div className="flex flex-col gap-4 border-b border-black/8 pb-5 sm:flex-row sm:items-end sm:justify-between">
-      <div className="flex max-w-3xl items-start gap-4">
-        {icon ? <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: accent }}>{icon}</span> : null}
-        <div>
-          <p className="text-[11px] font-extrabold uppercase" style={{ color: accent }}>{eyebrow}</p>
-          <h2 className="mt-1.5 font-display text-3xl font-semibold text-charcoal sm:text-[32px]">{title}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+    <div data-testid="admin-page-header" data-variant={variant} className="flex flex-col gap-3 border-b border-black/8 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
+      <div className="flex max-w-3xl items-start gap-3 sm:gap-4">
+        {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:h-11 sm:w-11" style={{ backgroundColor: accent }}>{icon}</span> : null}
+        <div className="min-w-0">
+          <p className="text-[9px] font-extrabold uppercase sm:text-[11px]" style={{ color: accent }}>{eyebrow}</p>
+          <h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1.5 sm:text-[32px]">{title}</h2>
+          <p className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6">{description}</p>
         </div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}

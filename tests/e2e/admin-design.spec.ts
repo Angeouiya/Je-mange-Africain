@@ -166,6 +166,10 @@ test("every professional workspace has a clear purpose and stays inside the view
     await navigation.getByRole("button", { name: new RegExp(`^${section.nav}`) }).click();
     await expect(page.locator("header h1")).toHaveText(section.nav);
     await expect(page.locator("main").getByRole("heading", { name: section.title })).toBeVisible();
+    if (mobile) {
+      const workspaceHeader = await page.getByTestId("admin-page-header").boundingBox();
+      expect(workspaceHeader?.height || Number.POSITIVE_INFINITY, `${section.nav} uses too much of the first mobile viewport`).toBeLessThanOrEqual(210);
+    }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${section.nav} overflows horizontally`).toBeLessThanOrEqual(1);
     if (process.env.ADMIN_SCREENSHOTS) {

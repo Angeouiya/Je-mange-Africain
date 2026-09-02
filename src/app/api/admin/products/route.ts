@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
 import { productAdminInput, roundMoney, wholesaleProductData } from "@/lib/admin-product-schema";
+import { getProductPhoto } from "@/lib/market-media";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
   const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
   const products = await db.product.findMany({
     orderBy: { updatedAt: "desc" },
-    include: { translations: true, batches: true, aliases: true },
+    include: { translations: true, batches: true, aliases: true, category: true },
   });
 
   return NextResponse.json({
@@ -57,7 +58,13 @@ export async function GET(request: NextRequest) {
         netWeightGrams: product.netWeightGrams,
         imageColor: product.imageColor,
         imageEmoji: product.imageEmoji,
-        imageUrl: product.imageUrl,
+        imageUrl: getProductPhoto({
+          traditionalName: product.traditionalName,
+          name: locale === "en" ? english?.name : french?.name,
+          imageUrl: product.imageUrl,
+          imageEmoji: product.imageEmoji,
+          category: { slug: product.category.slug, name: product.category.nameFr },
+        }),
         galleryUrls: (() => { try { return product.galleryUrls ? JSON.parse(product.galleryUrls) : []; } catch { return []; } })(),
         isNew: product.isNew,
         isRecommended: product.isRecommended,
