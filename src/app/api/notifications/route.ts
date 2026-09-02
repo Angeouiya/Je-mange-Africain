@@ -12,6 +12,7 @@ const FALLBACK_NOTIFICATIONS = [
     titleEn: "The culinary library is growing",
     bodyFr: "Découvrez de nouveaux plats ivoiriens et africains avec ingrédients et préparation détaillée.",
     bodyEn: "Discover new Ivorian and African dishes with detailed ingredients and preparation.",
+    url: "/?view=recipes&recipeMode=library",
     createdAt: "2026-08-24T12:00:00.000Z",
   },
   {
@@ -21,6 +22,7 @@ const FALLBACK_NOTIFICATIONS = [
     titleEn: "Welcome to Je mange Africain",
     bodyFr: "Le code BIENVENUE10 vous offre 10 % dès 30 € d'achat.",
     bodyEn: "Use BIENVENUE10 for 10% off orders over €30.",
+    url: "/?view=catalog",
     createdAt: "2026-08-23T09:00:00.000Z",
   },
 ];
@@ -47,6 +49,7 @@ export async function GET(req: NextRequest) {
       type: notification.type,
       title: locale === "en" ? notification.titleEn : notification.titleFr,
       body: locale === "en" ? notification.bodyEn : notification.bodyFr,
+      url: notification.url,
       createdAt: notification.createdAt,
     })),
   });

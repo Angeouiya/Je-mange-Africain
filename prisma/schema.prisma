@@ -732,12 +732,13 @@ model AuditLog {
 model Notification {
   id        String   @id @default(cuid())
   userId    String?
-  channel   String // email | sms | web | whatsapp
+  channel   String // email | sms | web | push | whatsapp
   type      String
   titleFr   String
   titleEn   String
   bodyFr    String
   bodyEn    String
+  url       String   @default("/")
   sent      Boolean  @default(false)
   read      Boolean  @default(false)
   createdAt DateTime @default(now())

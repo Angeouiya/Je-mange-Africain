@@ -12,9 +12,10 @@ export async function GET(req: NextRequest) {
   if (limited) return limited;
 
   const { searchParams } = new URL(req.url);
-  const q = (searchParams.get("q") || "").trim();
+  const q = (searchParams.get("q") || "").trim().slice(0, 120);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
-  const limit = Math.min(parseInt(searchParams.get("limit") || "8", 10), 20);
+  const requestedLimit = Number.parseInt(searchParams.get("limit") || "8", 10);
+  const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(requestedLimit, 20)) : 8;
 
   if (!q || q.length < 1) {
     return NextResponse.json({ results: [], popular: ["Kplô", "Placali", "Attiéké", "Gombo", "Graine de palme", "Mafé"] });
@@ -70,6 +71,8 @@ export async function GET(req: NextRequest) {
         promoPrice: a.product.promoPrice ? Number(a.product.promoPrice) : null,
         country: a.product.country,
         thermalClass: a.product.thermalClass,
+        packaging: a.product.packaging,
+        availableStock: Math.max(0, a.product.stockQty - a.product.reservedQty),
         category: a.product.category ? {
           id: a.product.category.id,
           slug: a.product.category.slug,
@@ -96,6 +99,8 @@ export async function GET(req: NextRequest) {
         promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
         country: p.country,
         thermalClass: p.thermalClass,
+        packaging: p.packaging,
+        availableStock: Math.max(0, p.stockQty - p.reservedQty),
         category: p.category ? {
           id: p.category.id,
           slug: p.category.slug,

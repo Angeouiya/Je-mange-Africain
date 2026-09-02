@@ -13,7 +13,7 @@ const Campaign = z.object({
   bodyFr: z.string().trim().min(8).max(220),
   bodyEn: z.string().trim().min(8).max(220),
   type: z.enum(["promotion", "recipe", "system"]).default("system"),
-  url: z.string().trim().startsWith("/").max(300).default("/"),
+  url: z.enum(["/", "/?view=catalog", "/?view=recipes", "/?view=orders"]).default("/"),
 });
 
 export async function GET(request: NextRequest) {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   const { url, ...notificationContent } = parsed.data;
   const campaign = await db.notification.create({
-    data: { ...notificationContent, channel: "push", sent: false },
+    data: { ...notificationContent, url, channel: "push", sent: false },
   });
   const delivery = await broadcastPush({
     title: parsed.data.titleFr,

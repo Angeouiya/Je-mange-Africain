@@ -42,6 +42,65 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expectNoHorizontalOverflow(page);
 });
 
+test("global search and notifications navigate to useful client destinations", async ({ page }) => {
+  await page.route("**/api/push/config", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: false, publicKey: null }) }));
+  await page.route("**/api/notifications?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ notifications: [
+      { id: "notice-order", type: "order", title: "Votre commande avance", body: "JMA-260902-0098 est en cours de livraison.", url: "/?view=orders", createdAt: "2026-09-02T10:00:00.000Z" },
+      { id: "notice-recipe", type: "recipe", title: "Une nouvelle recette", body: "Découvrez le kedjenou de poulet.", url: "/?view=recipes&recipeMode=library&query=kedjenou", createdAt: "2026-09-01T09:00:00.000Z" },
+    ] }),
+  }));
+  await page.route("**/api/search?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      results: [{ kind: "product", id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", emoji: "", imageUrl: "/products/attieke.webp", color: "#F2F5F1", price: 7.5, promoPrice: null, country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", availableStock: 14, category: { id: "cat-1", slug: "feculents", name: "Féculents", color: "#D65A32" }, matchedAlias: null }],
+      recipes: [{ kind: "recipe", id: "recipe-search", slug: "kedjenou", name: "Kedjenou de poulet", emoji: "", imageUrl: "/hero-feast-v2.webp", color: "#3F681C", country: "Côte d'Ivoire", category: "Plats", difficulty: "easy", timeMinutes: 55, baseServings: 4 }],
+      dishes: [{ kind: "dish", slug: "mafe", name: "Mafé", country: "Mali", categoryLabel: "Sauces" }],
+    }),
+  }));
+  await page.route("**/api/products/product-search?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", description: "Semoule de manioc prête à accompagner vos plats.", country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", netWeightGrams: 500, stockQty: 14, alertThreshold: 5, imageColor: "#F2F5F1", imageEmoji: "", imageUrl: "/products/attieke.webp", galleryUrls: [], price: 7.5, promoPrice: null, pricePerKg: 15, isBestseller: false, isNew: false, isOnSale: false, variants: [], aliases: ["Attiéké"], ingredients: "Manioc", allergens: null, preparation: "Réchauffer doucement.", storage: "Conserver au frais.", storageTempC: "4°C", nutrition: null, related: [], relatedRecipes: [] }),
+  }));
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const notificationsButton = page.getByRole("button", { name: /notifications, 2 (non lues|unread)/i });
+  await expect(notificationsButton).toBeVisible();
+  await notificationsButton.click();
+  await expect(page.getByRole("heading", { name: "Notifications" }).last()).toBeVisible();
+  await expect(page.getByText("Votre commande avance")).toBeVisible();
+  await expect(page.getByText(/commande|order/i).last()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/notifications-center-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await page.getByRole("button", { name: /votre commande avance/i }).click();
+  await expect(page.getByRole("heading", { name: /connectez-vous pour voir vos commandes|sign in to view your orders/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /notifications, 1 (non lues|unread)/i })).toBeVisible();
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const search = page.getByRole("combobox", { name: /recherche globale|global search/i });
+  await search.focus();
+  await expect(page.getByText(/recherches populaires|popular searches/i)).toBeVisible();
+  await search.fill("attiéké");
+  await expect(page.getByRole("option", { name: /attiéké frais/i })).toBeVisible();
+  await expect(page.getByText(/bibliothèque de plats|dish library/i)).toBeVisible();
+  await expect(page.getByText(/disponible|in stock/i).first()).toBeVisible();
+  await search.press("ArrowDown");
+  await expect(page.getByRole("option", { name: /attiéké frais/i })).toHaveAttribute("aria-selected", "true");
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/global-search-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await search.press("Enter");
+  await expect(page.getByRole("heading", { level: 1, name: "Attiéké frais" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("product details stay bounded and preserve real visual identification in the basket", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first().click();

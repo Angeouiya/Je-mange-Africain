@@ -184,6 +184,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         titleEn,
         bodyFr,
         bodyEn,
+        url: `/?view=order-tracking&orderId=${id}`,
       },
     }).catch(() => null);
     const delivery = await sendPushToUser(order.customer.userId, {

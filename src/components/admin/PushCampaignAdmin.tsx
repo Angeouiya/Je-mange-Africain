@@ -24,7 +24,7 @@ import {
 
 type PushDashboard = {
   activeSubscriptions: number;
-  recent: Array<{ id: string; titleFr: string; bodyFr: string; sent: boolean; createdAt: string; type: string }>;
+  recent: Array<{ id: string; titleFr: string; bodyFr: string; sent: boolean; createdAt: string; type: string; url: string }>;
 };
 
 const initialCampaign = {
@@ -64,6 +64,13 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
   };
 
   const valid = campaign.titleFr.trim().length >= 3 && campaign.titleEn.trim().length >= 3 && campaign.bodyFr.trim().length >= 8 && campaign.bodyEn.trim().length >= 8;
+  const destinations = [
+    { value: "/", label: locale === "fr" ? "Accueil client" : "Customer home" },
+    { value: "/?view=catalog", label: locale === "fr" ? "Catalogue" : "Catalog" },
+    { value: "/?view=recipes", label: locale === "fr" ? "Recettes" : "Recipes" },
+    { value: "/?view=orders", label: locale === "fr" ? "Suivi des commandes" : "Order tracking" },
+  ];
+  const destinationLabel = (url: string) => destinations.find((destination) => destination.value === url)?.label || (locale === "fr" ? "Lien personnalisé" : "Custom link");
 
   return (
     <div className="space-y-6">
@@ -82,18 +89,18 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
           <section className="border-y border-black/8 bg-white px-4 py-5 sm:px-5" aria-labelledby="campaign-message-title">
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-terre text-white"><Globe2 className="h-4 w-4" /></span><div><h3 id="campaign-message-title" className="text-sm font-black text-charcoal">{locale === "fr" ? "Message bilingue" : "Bilingual message"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Les deux versions sont obligatoires avant diffusion." : "Both versions are required before delivery."}</p></div></div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <CampaignField label="Titre français" value={campaign.titleFr} maxLength={80} onChange={(titleFr) => setCampaign({ ...campaign, titleFr })} />
-              <CampaignField label="English title" value={campaign.titleEn} maxLength={80} onChange={(titleEn) => setCampaign({ ...campaign, titleEn })} />
-              <CampaignField label="Message français" value={campaign.bodyFr} maxLength={220} multiline onChange={(bodyFr) => setCampaign({ ...campaign, bodyFr })} />
-              <CampaignField label="English message" value={campaign.bodyEn} maxLength={220} multiline onChange={(bodyEn) => setCampaign({ ...campaign, bodyEn })} />
+              <CampaignField id="push-title-fr" label="Titre français" value={campaign.titleFr} maxLength={80} onChange={(titleFr) => setCampaign({ ...campaign, titleFr })} />
+              <CampaignField id="push-title-en" label="English title" value={campaign.titleEn} maxLength={80} onChange={(titleEn) => setCampaign({ ...campaign, titleEn })} />
+              <CampaignField id="push-body-fr" label="Message français" value={campaign.bodyFr} maxLength={220} multiline onChange={(bodyFr) => setCampaign({ ...campaign, bodyFr })} />
+              <CampaignField id="push-body-en" label="English message" value={campaign.bodyEn} maxLength={220} multiline onChange={(bodyEn) => setCampaign({ ...campaign, bodyEn })} />
             </div>
           </section>
 
           <section className="mt-5 border-y border-black/8 bg-white px-4 py-5 sm:px-5" aria-labelledby="campaign-routing-title">
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-forest text-white"><Target className="h-4 w-4" /></span><div><h3 id="campaign-routing-title" className="text-sm font-black text-charcoal">{locale === "fr" ? "Nature et destination" : "Type and destination"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Le clic ouvre directement l'espace client choisi." : "A tap opens the selected customer destination."}</p></div></div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label htmlFor="push-type">Type</Label><select id="push-type" value={campaign.type} onChange={(event) => setCampaign({ ...campaign, type: event.target.value })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="system">Information</option><option value="promotion">Promotion</option><option value="recipe">Recette</option></select></div>
-              <div className="space-y-2"><Label htmlFor="push-url">Destination</Label><select id="push-url" value={campaign.url} onChange={(event) => setCampaign({ ...campaign, url: event.target.value })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="/">Accueil client</option><option value="/?view=catalog">Catalogue</option><option value="/?view=recipes">Recettes</option><option value="/?view=orders">Suivi des commandes</option></select></div>
+              <div className="space-y-2"><Label htmlFor="push-type">Type</Label><select id="push-type" value={campaign.type} onChange={(event) => setCampaign({ ...campaign, type: event.target.value })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="system">Information</option><option value="promotion">Promotion</option><option value="recipe">{locale === "fr" ? "Recette" : "Recipe"}</option></select></div>
+              <div className="space-y-2"><Label htmlFor="push-url">Destination</Label><select id="push-url" value={campaign.url} onChange={(event) => setCampaign({ ...campaign, url: event.target.value })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{destinations.map((destination) => <option key={destination.value} value={destination.value}>{destination.label}</option>)}</select></div>
             </div>
 
             <AlertDialog>
@@ -117,18 +124,18 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
               <div className="min-w-0 flex-1"><div className="flex items-start gap-2"><p className="flex-1 truncate text-xs font-extrabold">{campaign.titleFr || "Je mange Africain"}</p><span className="text-[9px] text-muted-foreground">maintenant</span></div><p className="mt-1 break-words text-[11px] leading-5 text-muted-foreground">{campaign.bodyFr || "Votre message apparaîtra ici avant toute diffusion."}</p></div>
             </div>
           </div>
-          <div className="mt-5 border-t border-white/10 pt-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-gold" /><h3 className="text-xs font-black">{locale === "fr" ? "Derniers envois" : "Recent sends"}</h3></div><div className="mt-2 divide-y divide-white/10">{data?.recent?.length ? data.recent.slice(0, 5).map((item) => <div key={item.id} className="flex items-start gap-2 py-3"><BellRing className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" /><div className="min-w-0 flex-1"><p className="truncate text-[11px] font-bold">{item.titleFr}</p><p className="mt-0.5 truncate text-[9px] text-white/40">{item.bodyFr}</p></div><span className={`h-2 w-2 shrink-0 rounded-full ${item.sent ? "bg-forest" : "bg-white/25"}`} aria-label={item.sent ? "Envoyé" : "Sans destinataire"} /></div>) : <p className="py-5 text-center text-[10px] text-white/40">{locale === "fr" ? "Aucun envoi" : "No campaigns yet"}</p>}</div></div>
+          <div className="mt-5 border-t border-white/10 pt-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-gold" /><h3 className="text-xs font-black">{locale === "fr" ? "Derniers envois" : "Recent sends"}</h3></div><div className="mt-2 divide-y divide-white/10">{data?.recent?.length ? data.recent.slice(0, 5).map((item) => <div key={item.id} className="flex items-start gap-2 py-3"><BellRing className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" /><div className="min-w-0 flex-1"><p className="truncate text-[11px] font-bold">{item.titleFr}</p><p className="mt-0.5 truncate text-[9px] text-white/40">{item.bodyFr}</p><p className="mt-1 flex items-center gap-1 text-[9px] font-bold text-gold/80"><Target className="h-2.5 w-2.5" /> {destinationLabel(item.url)}</p></div><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${item.sent ? "bg-forest" : "bg-white/25"}`} aria-label={item.sent ? (locale === "fr" ? "Envoyé" : "Sent") : (locale === "fr" ? "Sans destinataire" : "No recipient")} /></div>) : <p className="py-5 text-center text-[10px] text-white/40">{locale === "fr" ? "Aucun envoi" : "No campaigns yet"}</p>}</div></div>
         </aside>
       </div>
     </div>
   );
 }
 
-function CampaignField({ label, value, onChange, maxLength, multiline = false }: { label: string; value: string; onChange: (value: string) => void; maxLength: number; multiline?: boolean }) {
+function CampaignField({ id, label, value, onChange, maxLength, multiline = false }: { id: string; label: string; value: string; onChange: (value: string) => void; maxLength: number; multiline?: boolean }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between"><Label>{label}</Label><span className="text-[10px] text-muted-foreground">{value.length}/{maxLength}</span></div>
-      {multiline ? <Textarea value={value} onChange={(event) => onChange(event.target.value)} maxLength={maxLength} className="min-h-24 resize-none" /> : <Input value={value} onChange={(event) => onChange(event.target.value)} maxLength={maxLength} />}
+      <div className="flex items-center justify-between"><Label htmlFor={id}>{label}</Label><span className="text-[10px] text-muted-foreground">{value.length}/{maxLength}</span></div>
+      {multiline ? <Textarea id={id} value={value} onChange={(event) => onChange(event.target.value)} maxLength={maxLength} className="min-h-24 resize-none" /> : <Input id={id} value={value} onChange={(event) => onChange(event.target.value)} maxLength={maxLength} />}
     </div>
   );
 }
