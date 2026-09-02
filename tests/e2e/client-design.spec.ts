@@ -234,6 +234,66 @@ test("the customer workspace edits identity and manages a persistent address boo
   await expectNoSeriousA11yViolations(page);
 });
 
+test("the personal library filters and synchronizes saved products and recipes", async ({ page }) => {
+  const customer = { id: "customer-saved", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 180, walletCredit: 12.5, preferredLang: "fr" };
+  const account = { customer, addresses: [], favoriteProductIds: ["product-saved"], savedRecipeIds: ["recipe-saved"] };
+  const product = { id: "product-saved", sku: "JMA-ATT-500", traditionalName: "Attiéké", name: "Attiéké frais", price: 7.5, promoPrice: null, pricePerKg: 15, stockQty: 14, alertThreshold: 5, country: "Côte d'Ivoire", category: { id: "cat-1", slug: "feculents", name: "Féculents", color: "#D65A32" }, description: "Semoule de manioc", imageUrl: "/products/attieke.webp", imageColor: "#F2F5F1", imageEmoji: "", isBestseller: true, isNew: false, isOnSale: false, thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", variants: [] };
+  const recipe = { id: "recipe-saved", slug: "kedjenou", title: "Kedjenou de poulet", description: "Poulet mijoté aux légumes et aux épices.", country: "Côte d'Ivoire", category: "Plats", difficulty: "easy", timeMinutes: 55, baseServings: 4, imageColor: "#E8EEE8", imageEmoji: "", imageUrl: "/recipes/kedjenou-poulet.webp", isPopular: true, ingredientCount: 8 };
+  let savedState = { productIds: [product.id], recipeIds: [recipe.id] };
+
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: { locale: "fr", cart: [], favorites: ["product-saved"], savedRecipes: ["recipe-saved"], savedOwnerId: persistedCustomer.id, recentlyViewed: [], customer: persistedCustomer, addresses: [], country: "France", postalCode: "75011", coupon: null },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
+
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
+  await page.route("**/api/customer/account", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
+  await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [] }) }));
+  await page.route("**/api/catalog?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [product], total: 1, page: 1, pageSize: 100, pages: 1, filters: { categories: [], brands: [], countries: [] } }) }));
+  await page.route("**/api/recipes?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ recipes: [recipe], categories: [] }) }));
+  await page.route("**/api/customer/saved", async (route) => {
+    if (route.request().method() === "PUT") savedState = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(savedState) });
+  });
+
+  await page.goto("/?view=account", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: /^enregistrés$/i }).click();
+  await expect(page.getByRole("heading", { name: /mes essentiels|my essentials/i })).toBeVisible();
+  await expect(page.getByText(/synchronisé au compte|synced to account/i)).toBeVisible();
+  await expect(page.getByRole("tab", { name: /mes favoris/i })).toContainText("1");
+  await expect(page.getByRole("img", { name: "Attiéké frais" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+
+  const savedSearch = page.getByLabel(/rechercher dans mes produits favoris|search favourite products/i);
+  await savedSearch.fill("manioc introuvable");
+  await expect(page.getByRole("heading", { name: /aucun produit trouvé|no product found/i })).toBeVisible();
+  await page.getByRole("button", { name: /effacer la recherche|clear search/i }).first().click();
+  await expect(page.getByRole("img", { name: "Attiéké frais" })).toBeVisible();
+
+  await page.getByRole("tab", { name: /recettes sauvegardées|saved recipes/i }).click();
+  await expect(page.getByText("Kedjenou de poulet", { exact: true })).toBeVisible();
+  const recipeImage = page.getByRole("img", { name: "Kedjenou de poulet" });
+  await expect(recipeImage).toBeVisible();
+  await expect.poll(() => recipeImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => {
+      const heading = document.querySelector("#account-saved-title");
+      if (!heading) return;
+      const offset = window.innerWidth < 768 ? 124 : 84;
+      window.scrollTo({ top: Math.max(0, heading.getBoundingClientRect().top + window.scrollY - offset), behavior: "instant" });
+    });
+    await page.screenshot({ path: `output/playwright/audit/saved-library-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await page.getByRole("button", { name: /retirer kedjenou de poulet des recettes sauvegardées|remove kedjenou de poulet from saved recipes/i }).click();
+  await expect(page.getByText(/sauvegardez une recette|save a recipe/i)).toBeVisible();
+  await expect.poll(() => savedState.recipeIds).toEqual([]);
+  await expect(page.getByText(/synchronisé au compte|synced to account/i)).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("checkout compares delivery services and protects the cold chain", async ({ page }) => {
   const customer = { id: "customer-checkout", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
   const quoteRequests: Array<Record<string, unknown>> = [];

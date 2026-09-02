@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Locale } from "./i18n";
+import { reconcileSavedLibrary } from "./saved-library";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -81,6 +82,8 @@ export interface Customer {
   preferredLang?: Locale;
 }
 
+export type SavedSyncStatus = "idle" | "syncing" | "synced" | "error";
+
 /* ------------------------------------------------------------------ */
 /* Store                                                               */
 /* ------------------------------------------------------------------ */
@@ -119,6 +122,10 @@ interface AppState {
   // saved recipes
   savedRecipes: string[];
   toggleSavedRecipe: (recipeId: string) => void;
+  savedSyncStatus: SavedSyncStatus;
+  savedOwnerId: string | null;
+  mergeSavedItems: (productIds: string[], recipeIds: string[]) => void;
+  syncSavedItems: () => Promise<boolean>;
 
   // recently viewed
   recentlyViewed: string[];
@@ -133,12 +140,14 @@ interface AppState {
   addresses: Address[];
   setAddresses: (addresses: Address[]) => void;
 
-  // toast notification helper (resolved on mount)
+  // client hydration state
   _hydrated: boolean;
   setHydrated: (v: boolean) => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+let savedSyncTimer: ReturnType<typeof setTimeout> | null = null;
+let savedStateRevision = 0;
 
 export const useStore = create<AppState>()(
   persist(
@@ -229,20 +238,84 @@ export const useStore = create<AppState>()(
       setCoupon: (c) => set({ coupon: c }),
 
       favorites: [],
-      toggleFavorite: (productId) =>
+      toggleFavorite: (productId) => {
+        savedStateRevision += 1;
         set((s) => ({
           favorites: s.favorites.includes(productId)
             ? s.favorites.filter((f) => f !== productId)
             : [...s.favorites, productId],
-        })),
+          savedSyncStatus: s.customer ? "syncing" : "idle",
+        }));
+        scheduleSavedSync(() => get().syncSavedItems(), Boolean(get().customer));
+      },
 
       savedRecipes: [],
-      toggleSavedRecipe: (recipeId) =>
+      toggleSavedRecipe: (recipeId) => {
+        savedStateRevision += 1;
         set((s) => ({
           savedRecipes: s.savedRecipes.includes(recipeId)
             ? s.savedRecipes.filter((r) => r !== recipeId)
             : [...s.savedRecipes, recipeId],
-        })),
+          savedSyncStatus: s.customer ? "syncing" : "idle",
+        }));
+        scheduleSavedSync(() => get().syncSavedItems(), Boolean(get().customer));
+      },
+      savedSyncStatus: "idle",
+      savedOwnerId: null,
+      mergeSavedItems: (productIds, recipeIds) => {
+        const current = get();
+        const ownedByCurrentCustomer = Boolean(current.customer && current.savedOwnerId === current.customer.id);
+        const preservePendingChanges = ownedByCurrentCustomer && current.savedSyncStatus === "syncing";
+        const reconciled = reconcileSavedLibrary({
+          remote: { productIds, recipeIds },
+          local: { productIds: current.favorites, recipeIds: current.savedRecipes },
+          ownedByCurrentCustomer,
+          preservePendingChanges,
+        });
+        const favorites = reconciled.productIds;
+        const savedRecipes = reconciled.recipeIds;
+        const changed = favorites.join("\0") !== current.favorites.join("\0") || savedRecipes.join("\0") !== current.savedRecipes.join("\0");
+        const needsServerSync = reconciled.needsServerSync;
+        if (changed) savedStateRevision += 1;
+        set({
+          favorites,
+          savedRecipes,
+          savedOwnerId: current.customer && !needsServerSync ? current.customer.id : current.savedOwnerId,
+          savedSyncStatus: current.customer ? (needsServerSync ? "syncing" : "synced") : "idle",
+        });
+        scheduleSavedSync(() => get().syncSavedItems(), Boolean(current.customer && needsServerSync));
+      },
+      syncSavedItems: async () => {
+        const state = get();
+        if (!state.customer || typeof window === "undefined") {
+          set({ savedSyncStatus: "idle" });
+          return false;
+        }
+        const revision = savedStateRevision;
+        set({ savedSyncStatus: "syncing" });
+        try {
+          const response = await fetch("/api/customer/saved", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productIds: state.favorites, recipeIds: state.savedRecipes }),
+            signal: AbortSignal.timeout(6_000),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+          if (revision === savedStateRevision) {
+            set({
+              favorites: Array.isArray(payload.productIds) ? payload.productIds : state.favorites,
+              savedRecipes: Array.isArray(payload.recipeIds) ? payload.recipeIds : state.savedRecipes,
+              savedOwnerId: state.customer.id,
+              savedSyncStatus: "synced",
+            });
+          }
+          return true;
+        } catch {
+          if (revision === savedStateRevision) set({ savedSyncStatus: "error" });
+          return false;
+        }
+      },
 
       recentlyViewed: [],
       pushRecentlyViewed: (productId) =>
@@ -252,7 +325,12 @@ export const useStore = create<AppState>()(
 
       customer: null,
       setCustomer: (customer) => set({ customer }),
-      logout: () => set({ customer: null, addresses: [] }),
+      logout: () => {
+        if (savedSyncTimer) clearTimeout(savedSyncTimer);
+        savedSyncTimer = null;
+        savedStateRevision += 1;
+        set({ customer: null, addresses: [], favorites: [], savedRecipes: [], savedOwnerId: null, savedSyncStatus: "idle" });
+      },
 
       addresses: [],
       setAddresses: (addresses) => set({ addresses }),
@@ -268,6 +346,7 @@ export const useStore = create<AppState>()(
         cart: s.cart,
         favorites: s.favorites,
         savedRecipes: s.savedRecipes,
+        savedOwnerId: s.savedOwnerId,
         recentlyViewed: s.recentlyViewed,
         customer: s.customer,
         addresses: s.addresses,
@@ -299,3 +378,12 @@ export const cartThermalSplit = (cart: CartItem[]) => {
   cart.forEach((c) => set.add(c.thermalClass));
   return Array.from(set);
 };
+
+function scheduleSavedSync(sync: () => Promise<boolean>, enabled: boolean) {
+  if (!enabled || typeof window === "undefined") return;
+  if (savedSyncTimer) clearTimeout(savedSyncTimer);
+  savedSyncTimer = setTimeout(() => {
+    savedSyncTimer = null;
+    void sync();
+  }, 450);
+}

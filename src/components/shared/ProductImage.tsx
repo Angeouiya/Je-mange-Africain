@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 /** Product visual with a real photo first and a branded fallback for resilience. */
 export function ProductImage({
   src,
+  fallbackSrc = "/hero-feast-v2.webp",
   alt = "",
   emoji = "🍲",
   color = "#D65A32",
@@ -16,6 +17,7 @@ export function ProductImage({
   priority = false,
 }: {
   src?: string | null;
+  fallbackSrc?: string | null;
   alt?: string;
   emoji?: string;
   color?: string;
@@ -24,7 +26,7 @@ export function ProductImage({
   rounded?: string;
   priority?: boolean;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [failedSources, setFailedSources] = useState<string[]>([]);
   const sizes: Record<string, string> = {
     sm: "h-16 w-16",
     md: "h-32 w-32",
@@ -43,11 +45,12 @@ export function ProductImage({
     lg: "text-7xl",
     xl: "text-8xl",
   };
-  const showPhoto = Boolean(src && !failed);
+  const activeSource = [src, fallbackSrc].find((candidate): candidate is string => Boolean(candidate && !failedSources.includes(candidate)));
+  const showPhoto = Boolean(activeSource);
 
   useEffect(() => {
-    setFailed(false);
-  }, [src]);
+    setFailedSources([]);
+  }, [fallbackSrc, src]);
 
   return (
     <div
@@ -59,13 +62,13 @@ export function ProductImage({
       {showPhoto && (
         <>
           <Image
-            src={src!}
+            src={activeSource!}
             alt={alt}
             fill
             sizes={imageSizes[size]}
             priority={priority}
             className="object-cover transition duration-500 group-hover:scale-[1.04]"
-            onError={() => setFailed(true)}
+            onError={() => setFailedSources((current) => activeSource && !current.includes(activeSource) ? [...current, activeSource] : current)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-charcoal/35 via-transparent to-white/10" />
         </>
@@ -78,7 +81,7 @@ export function ProductImage({
           transition={{ type: "spring", stiffness: 200, damping: 18 }}
           style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))" }}
         >
-          {emoji}
+          {emoji || "🍲"}
         </motion.span>
       )}
     </div>

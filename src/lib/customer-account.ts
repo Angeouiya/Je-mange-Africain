@@ -66,6 +66,8 @@ export async function loadCustomerAccount(session: CustomerSession, createMissin
       phone: address.phone || "",
       isDefault: address.isDefault,
     })),
+    favoriteProductIds: directory.customer.favorites.map((favorite) => favorite.productId),
+    savedRecipeIds: directory.customer.savedRecipes.map((savedRecipe) => savedRecipe.recipeId),
   };
 }
 
@@ -76,6 +78,8 @@ async function findDirectory(email: string) {
       customer: {
         include: {
           addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
+          favorites: { where: { product: { status: "published" } }, orderBy: { createdAt: "desc" }, select: { productId: true } },
+          savedRecipes: { where: { recipe: { status: "published" } }, orderBy: { createdAt: "desc" }, select: { recipeId: true } },
         },
       },
     },

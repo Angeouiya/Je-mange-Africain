@@ -1,12 +1,15 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AtSign,
+  ArrowUpDown,
   Bookmark,
   BriefcaseBusiness,
   Check,
   ChefHat,
+  Cloud,
+  CloudOff,
   Heart,
   Home,
   Languages,
@@ -20,12 +23,14 @@ import {
   Phone,
   Plus,
   Save,
+  Search,
   Settings,
   ShieldCheck,
   Star,
   Trash2,
   User,
   Wallet,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -34,8 +39,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ProductCard } from "@/components/shared/ProductCard";
-import { RecipeCard } from "@/components/shared/RecipeCard";
+import { ProductCard, type ProductListItem } from "@/components/shared/ProductCard";
+import { RecipeCard, type RecipeListItem } from "@/components/shared/RecipeCard";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { dict } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
@@ -48,6 +53,8 @@ type RequestStatus = "idle" | "busy" | "success" | "error";
 type AccountResponse = {
   customer: NonNullable<ReturnType<typeof useStore.getState>["customer"]>;
   addresses: Address[];
+  favoriteProductIds?: string[];
+  savedRecipeIds?: string[];
 };
 
 const countries = ["France", "Belgique", "Allemagne", "Pays-Bas", "Luxembourg"];
@@ -60,6 +67,7 @@ export function AccountWorkspace() {
   const addresses = useStore((state) => state.addresses);
   const setAddresses = useStore((state) => state.setAddresses);
   const setCustomer = useStore((state) => state.setCustomer);
+  const mergeSavedItems = useStore((state) => state.mergeSavedItems);
   const setLocale = useStore((state) => state.setLocale);
   const navigate = useStore((state) => state.navigate);
   const params = useStore((state) => state.params);
@@ -76,6 +84,7 @@ export function AccountWorkspace() {
   const [addressForm, setAddressForm] = useState(() => blankAddress(customer));
   const [addressStatus, setAddressStatus] = useState<RequestStatus>("idle");
   const [addressMessage, setAddressMessage] = useState("");
+  const contentRef = useRef<HTMLElement>(null);
   const { data: accountData, loading: accountLoading } = useFetch<AccountResponse>(`/api/customer/account`, [customer.id]);
   const { data: orderData } = useFetch(customer ? `/api/orders?locale=${locale}` : null, [customer.id, locale]);
 
@@ -88,7 +97,8 @@ export function AccountWorkspace() {
     if (!accountData?.customer) return;
     setCustomer(accountData.customer);
     setAddresses(accountData.addresses || []);
-  }, [accountData, setAddresses, setCustomer]);
+    mergeSavedItems(accountData.favoriteProductIds || [], accountData.savedRecipeIds || []);
+  }, [accountData, mergeSavedItems, setAddresses, setCustomer]);
 
   useEffect(() => {
     setProfile({ firstName: customer.firstName, lastName: customer.lastName, phone: customer.phone });
@@ -102,6 +112,14 @@ export function AccountWorkspace() {
   ];
   const orderCount = orderData?.orders?.length || 0;
   const defaultAddress = useMemo(() => addresses.find((address) => address.isDefault) || addresses[0], [addresses]);
+
+  const selectSection = (nextSection: AccountSection) => {
+    setSection(nextSection);
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      requestAnimationFrame(() => contentRef.current?.scrollIntoView({ behavior, block: "start" }));
+    }
+  };
 
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
@@ -215,11 +233,11 @@ export function AccountWorkspace() {
         {nav.map((item) => {
           const Icon = item.icon;
           const active = section === item.id;
-          return <button key={item.id} type="button" onClick={() => setSection(item.id)} aria-current={active ? "page" : undefined} className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 text-[9px] font-bold transition sm:flex-row sm:gap-2 sm:text-xs ${active ? "bg-charcoal text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}><Icon className="h-4 w-4 shrink-0" /><span className="max-w-full truncate">{item.label}</span>{item.id === "addresses" && addresses.length ? <span className={`absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded px-1 text-[8px] ${active ? "bg-gold text-charcoal" : "bg-terre/10 text-terre"}`}>{addresses.length}</span> : null}</button>;
+          return <button key={item.id} type="button" onClick={() => selectSection(item.id)} aria-current={active ? "page" : undefined} className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 text-[9px] font-bold transition sm:flex-row sm:gap-2 sm:text-xs ${active ? "bg-charcoal text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}><Icon className="h-4 w-4 shrink-0" /><span className="max-w-full truncate">{item.label}</span>{item.id === "addresses" && addresses.length ? <span className={`absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded px-1 text-[8px] ${active ? "bg-gold text-charcoal" : "bg-terre/10 text-terre"}`}>{addresses.length}</span> : null}</button>;
         })}
       </nav>
 
-      <main className="py-6">
+      <main ref={contentRef} className="scroll-mt-32 py-6">
         {section === "profile" ? (
           <section aria-labelledby="account-profile-title">
             <SectionHeading eyebrow={locale === "fr" ? "Identité et avantages" : "Identity and benefits"} title={locale === "fr" ? "Mon profil" : "My profile"} description={locale === "fr" ? "Les coordonnées utilisées pour votre compte, vos factures et le suivi de livraison." : "Contact details used for your account, invoices and delivery tracking."} id="account-profile-title" />
@@ -306,11 +324,94 @@ function AddressEditor({ open, onOpenChange, locale, address, setAddress, editin
 function SavedSection({ locale, savedTab, setSavedTab, favorites, savedRecipes }: { locale: "fr" | "en"; savedTab: "products" | "recipes"; setSavedTab: (tab: "products" | "recipes") => void; favorites: string[]; savedRecipes: string[] }) {
   const t = dict[locale];
   const navigate = useStore((state) => state.navigate);
-  const { data: catalogue } = useFetch(`/api/catalog?locale=${locale}&pageSize=100`, [locale]);
-  const { data: recipeData } = useFetch(`/api/recipes?locale=${locale}`, [locale]);
-  const products = (catalogue?.products || []).filter((product: { id: string }) => favorites.includes(product.id));
-  const recipes = (recipeData?.recipes || []).filter((recipe: { id: string }) => savedRecipes.includes(recipe.id));
-  return <section aria-labelledby="account-saved-title"><SectionHeading eyebrow={locale === "fr" ? "Ma sélection" : "My selection"} title={locale === "fr" ? "Éléments enregistrés" : "Saved items"} description={locale === "fr" ? "Retrouvez les produits et recettes que vous avez mis de côté." : "Find the products and recipes you saved for later."} id="account-saved-title" /><div className="mt-5 inline-flex rounded-lg border border-border bg-white p-1" role="tablist" aria-label={locale === "fr" ? "Type d'éléments enregistrés" : "Saved item type"}><button type="button" role="tab" aria-selected={savedTab === "products"} onClick={() => setSavedTab("products")} className={`h-9 rounded-md px-3 text-xs font-bold ${savedTab === "products" ? "bg-charcoal text-white" : "text-muted-foreground"}`}>{t.account.favorites} <span className="ml-1 opacity-65">{favorites.length}</span></button><button type="button" role="tab" aria-selected={savedTab === "recipes"} onClick={() => setSavedTab("recipes")} className={`h-9 rounded-md px-3 text-xs font-bold ${savedTab === "recipes" ? "bg-charcoal text-white" : "text-muted-foreground"}`}>{t.account.savedRecipes} <span className="ml-1 opacity-65">{savedRecipes.length}</span></button></div>{savedTab === "products" ? (products.length ? <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{products.map((product: any, index: number) => <ProductCard key={product.id} product={product} index={index} compact />)}</div> : <EmptyFeature icon={Heart} title={t.account.favorites} description={locale === "fr" ? "Ajoutez des produits depuis le catalogue pour les retrouver ici." : "Save products from the catalogue to find them here."} actionLabel={locale === "fr" ? "Parcourir le catalogue" : "Browse catalogue"} onAction={() => navigate("catalog")} />) : (recipes.length ? <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{recipes.map((recipe: any, index: number) => <RecipeCard key={recipe.id} recipe={recipe} index={index} />)}</div> : <EmptyFeature icon={ChefHat} title={t.account.savedRecipes} description={locale === "fr" ? "Enregistrez une recette pour la retrouver rapidement et préparer son panier." : "Save a recipe to find it quickly and prepare its basket."} actionLabel={locale === "fr" ? "Découvrir les recettes" : "Discover recipes"} onAction={() => navigate("recipes")} />)}</section>;
+  const savedSyncStatus = useStore((state) => state.savedSyncStatus);
+  const syncSavedItems = useStore((state) => state.syncSavedItems);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"recent" | "name" | "country">("recent");
+  const { data: catalogue, loading: productsLoading, error: productsError, refetch: refetchProducts } = useFetch<{ products: ProductListItem[] }>(`/api/catalog?locale=${locale}&pageSize=100`, [locale]);
+  const { data: recipeData, loading: recipesLoading, error: recipesError, refetch: refetchRecipes } = useFetch<{ recipes: RecipeListItem[] }>(`/api/recipes?locale=${locale}`, [locale]);
+  const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+  const products = useMemo(() => orderSavedItems(
+    (catalogue?.products || []).filter((product) => favorites.includes(product.id) && savedItemMatches(product.name, product.traditionalName, product.country, normalizedQuery, locale)),
+    favorites,
+    sort,
+    locale,
+  ), [catalogue?.products, favorites, locale, normalizedQuery, sort]);
+  const recipes = useMemo(() => orderSavedItems(
+    (recipeData?.recipes || []).filter((recipe) => savedRecipes.includes(recipe.id) && savedItemMatches(recipe.title, recipe.country, recipe.category, normalizedQuery, locale)),
+    savedRecipes,
+    sort,
+    locale,
+  ), [locale, normalizedQuery, recipeData?.recipes, savedRecipes, sort]);
+  const loading = savedTab === "products" ? productsLoading : recipesLoading;
+  const error = savedTab === "products" ? productsError : recipesError;
+  const total = favorites.length + savedRecipes.length;
+
+  return (
+    <section aria-labelledby="account-saved-title">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <SectionHeading
+          eyebrow={locale === "fr" ? "Bibliothèque personnelle" : "Personal library"}
+          title={locale === "fr" ? "Mes essentiels" : "My essentials"}
+          description={locale === "fr" ? "Produits préférés et recettes à cuisiner, disponibles sur tous vos appareils." : "Favourite products and recipes to cook, available across your devices."}
+          id="account-saved-title"
+        />
+        <SavedSyncIndicator locale={locale} status={savedSyncStatus} onRetry={() => void syncSavedItems()} />
+      </div>
+
+      <div className="mt-6 grid grid-cols-3 divide-x divide-border border-y border-border bg-muted/20 py-4">
+        <SavedMetric value={total} label={locale === "fr" ? "éléments" : "items"} />
+        <SavedMetric value={favorites.length} label={locale === "fr" ? "produits" : "products"} />
+        <SavedMetric value={savedRecipes.length} label={locale === "fr" ? "recettes" : "recipes"} />
+      </div>
+
+      <div className="mt-5 border-y border-border bg-white py-4">
+        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label={locale === "fr" ? "Type d'éléments enregistrés" : "Saved item type"}>
+          <button id="saved-products-tab" type="button" role="tab" aria-controls="saved-products-panel" aria-selected={savedTab === "products"} onClick={() => setSavedTab("products")} className={`flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-md px-2 text-xs font-bold transition ${savedTab === "products" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground hover:text-charcoal"}`}><Heart className={`h-4 w-4 shrink-0 ${savedTab === "products" ? "fill-terre text-terre" : ""}`} /><span className="truncate">{t.account.favorites}</span><span className="rounded bg-charcoal/5 px-1.5 py-0.5 text-[9px]">{favorites.length}</span></button>
+          <button id="saved-recipes-tab" type="button" role="tab" aria-label={`${t.account.savedRecipes}, ${savedRecipes.length}`} aria-controls="saved-recipes-panel" aria-selected={savedTab === "recipes"} onClick={() => setSavedTab("recipes")} className={`flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-md px-2 text-xs font-bold transition ${savedTab === "recipes" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground hover:text-charcoal"}`}><ChefHat className={`h-4 w-4 shrink-0 ${savedTab === "recipes" ? "text-forest" : ""}`} /><span className="sm:hidden">{locale === "fr" ? "Mes recettes" : "Recipes"}</span><span className="hidden truncate sm:inline">{t.account.savedRecipes}</span><span className="rounded bg-charcoal/5 px-1.5 py-0.5 text-[9px]">{savedRecipes.length}</span></button>
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem]">
+          <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={savedTab === "products" ? (locale === "fr" ? "Rechercher dans mes produits favoris" : "Search favourite products") : (locale === "fr" ? "Rechercher dans mes recettes sauvegardées" : "Search saved recipes")} placeholder={savedTab === "products" ? (locale === "fr" ? "Rechercher un produit..." : "Search a product...") : (locale === "fr" ? "Rechercher une recette..." : "Search a recipe...")} className="pl-9 pr-10" />{query ? <button type="button" onClick={() => setQuery("")} aria-label={locale === "fr" ? "Effacer la recherche" : "Clear search"} className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-charcoal"><X className="h-4 w-4" /></button> : null}</div>
+          <div className="relative"><ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} aria-label={locale === "fr" ? "Trier les éléments enregistrés" : "Sort saved items"} className="h-10 w-full rounded-md border border-input bg-white pl-9 pr-3 text-xs font-bold text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20"><option value="recent">{locale === "fr" ? "Ajout récent" : "Recently added"}</option><option value="name">{locale === "fr" ? "Nom A–Z" : "Name A–Z"}</option><option value="country">{locale === "fr" ? "Pays" : "Country"}</option></select></div>
+        </div>
+      </div>
+
+      <div id={savedTab === "products" ? "saved-products-panel" : "saved-recipes-panel"} role="tabpanel" aria-labelledby={savedTab === "products" ? "saved-products-tab" : "saved-recipes-tab"}>
+        {loading ? <div role="status" className="grid grid-cols-2 gap-3 py-5 sm:grid-cols-3 lg:grid-cols-4" aria-label={locale === "fr" ? "Chargement de la sélection" : "Loading saved items"}>{Array.from({ length: 4 }).map((_, index) => <div key={index} className="aspect-[3/4] animate-pulse rounded-lg bg-muted" />)}</div> : null}
+        {!loading && error ? <div className="py-10 text-center"><CloudOff className="mx-auto h-8 w-8 text-destructive/70" /><h3 className="mt-3 text-sm font-black text-charcoal">{locale === "fr" ? "Sélection momentanément indisponible" : "Saved items temporarily unavailable"}</h3><Button type="button" variant="outline" size="sm" onClick={savedTab === "products" ? refetchProducts : refetchRecipes} className="mt-4">{locale === "fr" ? "Réessayer" : "Retry"}</Button></div> : null}
+        {!loading && !error && savedTab === "products" && products.length ? <div className="grid grid-cols-2 gap-3 py-5 sm:grid-cols-3 lg:grid-cols-4">{products.map((product, index) => <ProductCard key={product.id} product={product} index={index} compact />)}</div> : null}
+        {!loading && !error && savedTab === "recipes" && recipes.length ? <div className="grid gap-4 py-5 sm:grid-cols-2 lg:grid-cols-3">{recipes.map((recipe, index) => <RecipeCard key={recipe.id} recipe={recipe} index={index} />)}</div> : null}
+        {!loading && !error && savedTab === "products" && !products.length ? <EmptyFeature icon={normalizedQuery ? Search : Heart} title={normalizedQuery ? (locale === "fr" ? "Aucun produit trouvé" : "No product found") : t.account.favorites} description={normalizedQuery ? (locale === "fr" ? "Essayez un autre nom, pays ou type de produit." : "Try another name, country or product type.") : (locale === "fr" ? "Ajoutez des produits depuis le catalogue pour les retrouver ici." : "Save products from the catalogue to find them here.")} actionLabel={normalizedQuery ? (locale === "fr" ? "Effacer la recherche" : "Clear search") : (locale === "fr" ? "Parcourir le catalogue" : "Browse catalogue")} onAction={normalizedQuery ? () => setQuery("") : () => navigate("catalog")} /> : null}
+        {!loading && !error && savedTab === "recipes" && !recipes.length ? <EmptyFeature icon={normalizedQuery ? Search : ChefHat} title={normalizedQuery ? (locale === "fr" ? "Aucune recette trouvée" : "No recipe found") : t.account.savedRecipes} description={normalizedQuery ? (locale === "fr" ? "Essayez un autre nom, pays ou type de recette." : "Try another name, country or recipe type.") : (locale === "fr" ? "Sauvegardez une recette pour la retrouver rapidement et préparer son panier." : "Save a recipe to find it quickly and prepare its basket.")} actionLabel={normalizedQuery ? (locale === "fr" ? "Effacer la recherche" : "Clear search") : (locale === "fr" ? "Découvrir les recettes" : "Discover recipes")} onAction={normalizedQuery ? () => setQuery("") : () => navigate("recipes")} /> : null}
+      </div>
+    </section>
+  );
+}
+
+function SavedMetric({ value, label }: { value: number; label: string }) {
+  return <div className="px-2 text-center"><strong className="block text-xl font-black text-charcoal">{value}</strong><span className="mt-0.5 block text-[9px] font-bold uppercase text-muted-foreground">{label}</span></div>;
+}
+
+function SavedSyncIndicator({ locale, status, onRetry }: { locale: "fr" | "en"; status: ReturnType<typeof useStore.getState>["savedSyncStatus"]; onRetry: () => void }) {
+  if (status === "error") return <button type="button" onClick={onRetry} className="inline-flex min-h-9 w-fit items-center gap-2 rounded-md border border-destructive/20 bg-red-50 px-3 text-[10px] font-bold text-destructive"><CloudOff className="h-3.5 w-3.5" />{locale === "fr" ? "Réessayer la synchronisation" : "Retry sync"}</button>;
+  if (status === "syncing") return <span role="status" className="inline-flex min-h-9 w-fit items-center gap-2 rounded-md border border-border bg-white px-3 text-[10px] font-bold text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />{locale === "fr" ? "Synchronisation..." : "Syncing..."}</span>;
+  if (status === "idle") return <span role="status" className="inline-flex min-h-9 w-fit items-center gap-2 rounded-md border border-border bg-white px-3 text-[10px] font-bold text-muted-foreground"><Cloud className="h-3.5 w-3.5" />{locale === "fr" ? "Préparation de la synchronisation" : "Preparing sync"}</span>;
+  return <span role="status" className="inline-flex min-h-9 w-fit items-center gap-2 rounded-md border border-forest/20 bg-forest/[0.045] px-3 text-[10px] font-bold text-forest"><Cloud className="h-3.5 w-3.5" />{locale === "fr" ? "Synchronisé au compte" : "Synced to account"}</span>;
+}
+
+function savedItemMatches(primary: string | undefined, secondary: string | undefined, tertiary: string | undefined, query: string, locale: "fr" | "en") {
+  if (!query) return true;
+  return [primary, secondary, tertiary].some((value) => String(value || "").toLocaleLowerCase(locale).includes(query));
+}
+
+function orderSavedItems<T extends { id: string; country?: string; name?: string; title?: string }>(items: T[], ids: string[], sort: "recent" | "name" | "country", locale: "fr" | "en") {
+  const rank = sort === "recent" ? new Map(ids.map((id, index) => [id, index])) : null;
+  return [...items].sort((a, b) => {
+    if (rank) return (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER);
+    if (sort === "country") return String(a.country || "").localeCompare(String(b.country || ""), locale);
+    return String(a.name || a.title || "").localeCompare(String(b.name || b.title || ""), locale);
+  });
 }
 
 function SettingRow({ icon: Icon, title, description, children }: { icon: LucideIcon; title: string; description: string; children: React.ReactNode }) {

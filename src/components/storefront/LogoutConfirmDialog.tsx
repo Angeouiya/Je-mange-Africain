@@ -18,11 +18,14 @@ import { useStore } from "@/lib/store";
 export function LogoutConfirmDialog({ children }: { children: ReactNode }) {
   const locale = useStore((state) => state.locale);
   const clearCustomer = useStore((state) => state.logout);
+  const syncSavedItems = useStore((state) => state.syncSavedItems);
+  const savedSyncStatus = useStore((state) => state.savedSyncStatus);
   const navigate = useStore((state) => state.navigate);
   const [busy, setBusy] = useState(false);
 
   const confirmLogout = async () => {
     setBusy(true);
+    if (savedSyncStatus === "syncing" || savedSyncStatus === "error") await syncSavedItems();
     await fetch("/api/auth/customer/session", { method: "DELETE" }).catch(() => undefined);
     clearCustomer();
     navigate("home");

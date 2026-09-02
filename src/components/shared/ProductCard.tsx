@@ -51,6 +51,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
   const discountPercent = getDiscountPercent(product.price, product.promoPrice);
   const saving = product.promoPrice ? product.price - product.promoPrice : 0;
   const photoUrl = product.imageUrl || product.photoUrl || getProductPhoto(product);
+  const fallbackPhotoUrl = getProductPhoto({ ...product, imageUrl: null, photoUrl: null });
   const commercialLine = getProductCommercialLine(product, locale);
   const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
   const outOfStock = product.stockQty <= 0;
@@ -94,6 +95,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
         <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-[4/3]" : "aspect-[4/3]"}`}>
           <ProductImage
             src={photoUrl}
+            fallbackSrc={fallbackPhotoUrl}
             alt={product.name}
             emoji={product.imageEmoji}
             color={product.imageColor}

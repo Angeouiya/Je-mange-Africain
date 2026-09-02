@@ -30,6 +30,7 @@ export function AccountView() {
   const customer = useStore((s) => s.customer);
   const setCustomer = useStore((s) => s.setCustomer);
   const setAddresses = useStore((s) => s.setAddresses);
+  const mergeSavedItems = useStore((s) => s.mergeSavedItems);
   const navigate = useStore((s) => s.navigate);
   const params = useStore((s) => s.params);
   const t = dict[locale];
@@ -77,6 +78,7 @@ export function AccountView() {
     }
     setCustomer(payload.customer);
     setAddresses(payload.addresses || []);
+    mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
     setAuthStatus("idle");
     if (params.returnView) navigate(params.returnView);
   };
@@ -104,6 +106,7 @@ export function AccountView() {
     if (payload.customer) {
       setCustomer(payload.customer);
       setAddresses(payload.addresses || []);
+      mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
       setAuthStatus("idle");
       if (params.returnView) navigate(params.returnView);
       return;

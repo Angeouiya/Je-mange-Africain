@@ -30,6 +30,7 @@ export default function Page() {
 
   useEffect(() => {
     setMounted(true);
+    const sessionSubject = useStore.getState().customer?.id || null;
     const searchParams = new URLSearchParams(window.location.search);
     const requestedView = searchParams.get("view");
     if (requestedView === "recipe-config" && searchParams.get("recipeId")) {
@@ -42,12 +43,27 @@ export default function Page() {
       navigate(requestedView as "catalog" | "recipes" | "orders" | "account");
     }
     fetch("/api/auth/customer/session", { cache: "no-store" })
-      .then(async (response) => response.ok ? response.json() : null)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Session HTTP ${response.status}`);
+        return response.json();
+      })
       .then((payload) => {
         const state = useStore.getState();
-        state.setCustomer(payload?.customer || null);
-        if (!payload?.customer) state.setAddresses([]);
-        else if (Array.isArray(payload.addresses)) state.setAddresses(payload.addresses);
+        const currentSubject = state.customer?.id || null;
+        const responseSubject = payload?.customer?.id || null;
+        if (currentSubject !== sessionSubject && currentSubject !== responseSubject) return;
+        if (!payload?.customer) {
+          if (state.customer) state.logout();
+          else {
+            state.setCustomer(null);
+            state.setAddresses([]);
+          }
+          return;
+        }
+        if (sessionSubject && sessionSubject !== responseSubject) state.logout();
+        state.setCustomer(payload.customer);
+        if (Array.isArray(payload.addresses)) state.setAddresses(payload.addresses);
+        state.mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
       })
       .catch(() => undefined);
   }, [navigate]);

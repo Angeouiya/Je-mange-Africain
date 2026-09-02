@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Clock, Users, Flame, ChevronRight, Star } from "lucide-react";
+import { Bookmark, Clock, Users, Flame, ChevronRight, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductImage } from "./ProductImage";
@@ -29,10 +29,13 @@ export interface RecipeListItem {
 export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; index?: number }) {
   const locale = useStore((s) => s.locale);
   const navigate = useStore((s) => s.navigate);
+  const savedRecipes = useStore((s) => s.savedRecipes);
+  const toggleSavedRecipe = useStore((s) => s.toggleSavedRecipe);
   const t = dict[locale];
 
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
   const photoUrl = recipe.imageUrl || getRecipePhoto(recipe);
+  const isSaved = savedRecipes.includes(recipe.id);
 
   return (
     <motion.div
@@ -44,6 +47,7 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
       <div className="relative flex aspect-[16/10] items-center justify-center bg-muted/40">
         <ProductImage
           src={photoUrl}
+          fallbackSrc="/hero-feast-v2.webp"
           alt={recipe.title}
           emoji={recipe.imageEmoji}
           color={recipe.imageColor}
@@ -55,7 +59,19 @@ export function RecipeCard({ recipe, index = 0 }: { recipe: RecipeListItem; inde
         {recipe.isPopular && (
           <Badge className="absolute left-3 top-3 border-0 bg-terre text-cream shadow-sm"><Star className="mr-1 h-3 w-3 fill-current" /> {t.recipes.popular}</Badge>
         )}
-        <Badge variant="outline" className="absolute right-3 top-3 bg-white/80 backdrop-blur">{recipe.country}</Badge>
+        <Badge variant="outline" className="absolute bottom-3 left-3 max-w-[calc(100%-4.5rem)] truncate bg-white/90 backdrop-blur">{recipe.country}</Badge>
+        <button
+          type="button"
+          onClick={() => toggleSavedRecipe(recipe.id)}
+          aria-pressed={isSaved}
+          aria-label={isSaved
+            ? (locale === "fr" ? `Retirer ${recipe.title} des recettes sauvegardées` : `Remove ${recipe.title} from saved recipes`)
+            : (locale === "fr" ? `Sauvegarder la recette ${recipe.title}` : `Save the ${recipe.title} recipe`)}
+          title={isSaved ? (locale === "fr" ? "Retirer" : "Remove") : (locale === "fr" ? "Sauvegarder" : "Save")}
+          className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-md border border-black/10 bg-white/95 text-charcoal shadow-sm backdrop-blur transition hover:border-terre/35 hover:text-terre"
+        >
+          <Bookmark className={`h-4 w-4 ${isSaved ? "fill-terre text-terre" : ""}`} />
+        </button>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <h3 className="font-display text-lg font-semibold leading-tight text-charcoal">{recipe.title}</h3>

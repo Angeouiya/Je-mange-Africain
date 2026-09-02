@@ -87,6 +87,7 @@ model Customer {
   orders        Order[]
   tickets       SupportTicket[]
   favorites     Favorite[]
+  savedRecipes  SavedRecipe[]
 }
 
 model Address {
@@ -114,6 +115,17 @@ model Favorite {
   createdAt  DateTime @default(now())
 
   @@unique([customerId, productId])
+}
+
+model SavedRecipe {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  recipeId   String
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, recipeId])
 }
 
 /**
@@ -285,6 +297,7 @@ model Recipe {
   updatedAt     DateTime            @updatedAt
   translations  RecipeTranslation[]
   ingredients   RecipeIngredient[]
+  savedBy       SavedRecipe[]
 }
 
 model RecipeTranslation {
