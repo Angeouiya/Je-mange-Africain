@@ -364,6 +364,7 @@ async function mockAdminApi(page: Page) {
     else if (path === "/api/admin/push" && request.method() === "POST") payload = { campaign: { id: "push-2" }, delivery: { total: 184, sent: 184, failed: 0, configured: true } };
     else if (path === "/api/admin/push") payload = {
       activeSubscriptions: 1284,
+      configured: true,
       audiences: { all: 1284, signed_in: 932, guests: 352, ambassador: 184, active: 516, at_risk: 126, new: 106 },
       recent: [{ id: "push-1", titleFr: "Le marché du week-end", bodyFr: "Votre sélection ivoirienne est disponible.", sent: true, createdAt: now, type: "promotion", url: "/?view=catalog", audience: "all", recipientCount: 1268, deliveredCount: 1249, failedCount: 19 }],
     };
@@ -1135,6 +1136,9 @@ test("push campaigns target a measured audience and preview both languages", asy
   await page.goto("/admin#campaigns", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Composer, vérifier, diffuser" })).toBeVisible();
   await expect(page.locator('img[src*="notification-icon-burgundy"]').first()).toBeVisible();
+  const readiness = page.getByTestId("campaign-readiness");
+  await expect(readiness.getByText("2 contrôles sur 4")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Vérifier puis diffuser" })).toBeDisabled();
   await page.getByLabel("Titre français").fill("Les saveurs du week-end");
   await page.getByLabel("Message français").fill("Découvrez une sélection ivoirienne préparée pour vous.");
   if ((page.viewportSize()?.width || 0) < 768) {
@@ -1144,8 +1148,14 @@ test("push campaigns target a measured audience and preview both languages", asy
   await page.getByLabel("English message").fill("Discover an Ivorian selection prepared for you.");
   await page.getByLabel("Audience", { exact: true }).selectOption("ambassador");
   await expect(page.getByText("184 appareil(s) ciblé(s)")).toBeVisible();
+  await expect(readiness.getByText("4 contrôles sur 4")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Vérifier puis diffuser" })).toBeEnabled();
   await page.getByLabel("Langue de l’aperçu").getByRole("button", { name: "en", exact: true }).click();
   await expect(page.getByText("Weekend flavours")).toBeVisible();
+  const history = page.getByRole("region", { name: "Résultats récents" });
+  await expect(history.getByText("98,5 %", { exact: true }).first()).toBeVisible();
+  await expect(history.getByText("1 249", { exact: true })).toBeVisible();
+  await expect(history.getByTestId("push-history-row")).toHaveCount(1);
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
@@ -1161,6 +1171,7 @@ test("push campaigns target a measured audience and preview both languages", asy
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+  await expectBrandSafeUiColors(page);
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);

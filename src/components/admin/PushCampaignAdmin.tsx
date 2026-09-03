@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { BellRing, Check, Globe2, History, Languages, LoaderCircle, Send, Smartphone, Target, UsersRound } from "lucide-react";
+import { BellRing, Check, CheckCircle2, CircleDashed, Globe2, History, Languages, LoaderCircle, Send, Smartphone, Target, TrendingUp, UsersRound } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPrimitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useFetch } from "@/lib/use-fetch";
-import type { PushAudience, PushAudienceCounts } from "@/lib/push-audience";
+import { aggregatePushDelivery, pushCampaignReadiness, pushDeliveryPerformance, type PushAudience, type PushAudienceCounts } from "@/lib/push-audience";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,10 +23,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+type RecentPushCampaign = {
+  id: string;
+  titleFr: string;
+  bodyFr: string;
+  sent: boolean;
+  createdAt: string;
+  type: string;
+  url: string;
+  audience: PushAudience;
+  recipientCount: number;
+  deliveredCount: number;
+  failedCount: number;
+};
+
 type PushDashboard = {
   activeSubscriptions: number;
+  configured: boolean;
   audiences: PushAudienceCounts;
-  recent: Array<{ id: string; titleFr: string; bodyFr: string; sent: boolean; createdAt: string; type: string; url: string; audience: PushAudience; recipientCount: number; deliveredCount: number; failedCount: number }>;
+  recent: RecentPushCampaign[];
 };
 
 type CampaignDraft = {
@@ -83,7 +98,6 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
     }
   };
 
-  const valid = campaign.titleFr.trim().length >= 3 && campaign.titleEn.trim().length >= 3 && campaign.bodyFr.trim().length >= 8 && campaign.bodyEn.trim().length >= 8;
   const destinations = [
     { value: "/", label: locale === "fr" ? "Accueil client" : "Customer home" },
     { value: "/?view=catalog", label: locale === "fr" ? "Catalogue" : "Catalog" },
@@ -108,6 +122,8 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
     fr: campaign.titleFr.trim().length >= 3 && campaign.bodyFr.trim().length >= 8,
     en: campaign.titleEn.trim().length >= 3 && campaign.bodyEn.trim().length >= 8,
   };
+  const readiness = pushCampaignReadiness(campaign, audienceCount, data?.configured === true);
+  const recentPerformance = aggregatePushDelivery(data?.recent || []);
 
   return (
     <div className="space-y-6">
@@ -121,13 +137,15 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
         action={<Badge variant="outline" className="h-9 border-burgundy/30 bg-burgundy/5 px-3 text-burgundy"><Smartphone className="mr-1.5 h-3.5 w-3.5" /> {loading ? "…" : data?.activeSubscriptions || 0} {locale === "fr" ? "appareils joignables" : "reachable devices"}</Badge>}
       />
 
+      <CampaignReadiness readiness={readiness} locale={locale} />
+
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_23rem]">
         <div className="min-w-0">
           <section className="border-y border-charcoal/8 bg-white px-4 py-5 sm:px-5" aria-labelledby="campaign-message-title">
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-terre text-white"><Globe2 className="h-4 w-4" /></span><div><h3 id="campaign-message-title" className="text-sm font-black text-charcoal">{locale === "fr" ? "Message bilingue" : "Bilingual message"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Les deux versions sont obligatoires avant diffusion." : "Both versions are required before delivery."}</p></div></div>
             <div className="mt-4 grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/45 p-1 sm:hidden" role="tablist" aria-label={locale === "fr" ? "Langue du message" : "Message language"}>
               {(["fr", "en"] as const).map((language) => (
-                <button key={language} type="button" role="tab" aria-selected={editorLocale === language} aria-controls={`campaign-language-${language}`} onClick={() => setEditorLocale(language)} className={`flex h-10 items-center justify-center gap-2 rounded-md text-xs font-black transition ${editorLocale === language ? "bg-charcoal text-white shadow-sm" : "text-muted-foreground"}`}>
+                <button key={language} type="button" role="tab" aria-selected={editorLocale === language} aria-controls={`campaign-language-${language}`} onClick={() => setEditorLocale(language)} className={`flex h-10 items-center justify-center gap-2 rounded-md text-xs font-black transition ${editorLocale === language ? "bg-terre text-white shadow-sm" : "text-muted-foreground"}`}>
                   <span>{language.toUpperCase()}</span>
                   <span className="font-semibold">{language === "fr" ? "Français" : "English"}</span>
                   {localeReady[language] ? <span title={locale === "fr" ? "Version complète" : "Version complete"} className={`grid h-4 w-4 place-items-center rounded-full ${editorLocale === language ? "bg-gold text-charcoal" : "bg-burgundy text-white"}`}><Check className="h-2.5 w-2.5" /></span> : <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-terre/55" />}
@@ -159,7 +177,7 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
             <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal"><UsersRound className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-black text-charcoal">{audienceCount.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB")} {locale === "fr" ? "appareil(s) ciblé(s)" : "targeted device(s)"}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{selectedAudience.label} · {destinationLabel(campaign.url)}</p></div></div>
 
             <AlertDialog>
-              <AlertDialogTrigger asChild><Button disabled={!valid || sending} className="mt-5 h-11 w-full bg-terre text-white hover:bg-terre-dark sm:w-auto">{sending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{sending ? (locale === "fr" ? "Diffusion..." : "Delivering...") : (locale === "fr" ? "Vérifier puis diffuser" : "Review and deliver")}</Button></AlertDialogTrigger>
+              <AlertDialogTrigger asChild><Button disabled={!readiness.ready || sending} className="mt-5 h-11 w-full bg-terre text-white hover:bg-terre-dark sm:w-auto">{sending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{sending ? (locale === "fr" ? "Diffusion..." : "Delivering...") : (locale === "fr" ? "Vérifier puis diffuser" : "Review and deliver")}</Button></AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader><AlertDialogTitle>{locale === "fr" ? "Diffuser cette campagne maintenant ?" : "Deliver this campaign now?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? `Le message sera envoyé aux ${audienceCount} appareil(s) de l’audience « ${selectedAudience.label} ». Chaque appareil recevra automatiquement la version française ou anglaise.` : `The message will be sent to ${audienceCount} device(s) in “${selectedAudience.label}”. Each device automatically receives the French or English version.`}</AlertDialogDescription></AlertDialogHeader>
                 <div className="border-y border-border bg-muted/45 px-3 py-3 text-xs"><p className="font-black text-charcoal">{campaign.titleFr}</p><p className="mt-1 leading-5 text-muted-foreground">{campaign.bodyFr}</p></div>
@@ -170,20 +188,122 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
           </section>
         </div>
 
-        <aside className="h-fit bg-charcoal p-5 text-white xl:sticky xl:top-24">
-          <div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-black uppercase text-gold">{locale === "fr" ? "Aperçu appareil" : "Device preview"}</p><h3 className="mt-1 text-sm font-black">Notification mobile</h3></div><div className="inline-flex rounded-md bg-white/8 p-1" aria-label={locale === "fr" ? "Langue de l’aperçu" : "Preview language"}>{(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => setPreviewLocale(language)} aria-pressed={previewLocale === language} className={`h-7 rounded px-2 text-[9px] font-black uppercase ${previewLocale === language ? "bg-white text-charcoal" : "text-white/75"}`}>{language}</button>)}</div></div>
-          <div className="mx-auto mt-5 max-w-[19rem] rounded-[1.75rem] border-[5px] border-burgundy-dark bg-[#E9E9E9] px-3 pb-16 pt-7 shadow-2xl">
-            <div className="mx-auto mb-5 h-1.5 w-16 rounded-full bg-burgundy-dark/80" />
-            <div className="flex gap-3 rounded-lg bg-white p-3 text-charcoal shadow-xl">
+        <aside className="h-fit border-y border-charcoal/8 bg-white px-4 py-5 sm:px-5 xl:sticky xl:top-24">
+          <div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-black uppercase text-terre">{locale === "fr" ? "Aperçu appareil" : "Device preview"}</p><h3 className="mt-1 text-sm font-black text-charcoal">Notification mobile</h3></div><div className="inline-flex rounded-md border border-burgundy/15 bg-burgundy/5 p-1" aria-label={locale === "fr" ? "Langue de l’aperçu" : "Preview language"}>{(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => setPreviewLocale(language)} aria-pressed={previewLocale === language} className={`h-7 rounded px-2 text-[9px] font-black uppercase transition ${previewLocale === language ? "bg-burgundy text-white shadow-sm" : "text-burgundy"}`}>{language}</button>)}</div></div>
+          <div className="mx-auto mt-4 max-w-[19rem] rounded-[1.75rem] border-[5px] border-burgundy/30 bg-[#F7F1EE] px-3 pb-12 pt-6 shadow-[0_18px_40px_rgba(90,38,50,0.12)]">
+            <div className="mx-auto mb-5 h-1.5 w-16 rounded-full bg-burgundy/65" />
+            <div className="flex gap-3 rounded-lg border border-burgundy/10 bg-white p-3 text-charcoal shadow-[0_10px_24px_rgba(90,38,50,0.10)]">
               <Image src="/brand/notification-icon-burgundy.png" alt="" width={44} height={44} className="h-11 w-11 rounded-lg object-cover" />
               <div className="min-w-0 flex-1"><div className="flex items-start gap-2"><p className="flex-1 truncate text-xs font-extrabold">{previewTitle || "Je mange Africain"}</p><span className="text-[9px] text-muted-foreground">{previewLocale === "fr" ? "maintenant" : "now"}</span></div><p className="mt-1 break-words text-[11px] leading-5 text-muted-foreground">{previewBody || (previewLocale === "fr" ? "Votre message apparaîtra ici avant toute diffusion." : "Your message will appear here before delivery.")}</p></div>
             </div>
           </div>
-          <div className="mt-5 border-t border-white/10 pt-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-gold" /><h3 className="text-xs font-black">{locale === "fr" ? "Derniers envois" : "Recent sends"}</h3></div><div className="mt-2 divide-y divide-white/10">{data?.recent?.length ? data.recent.slice(0, 5).map((item) => <div key={item.id} className="flex items-start gap-2 py-3"><BellRing className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" /><div className="min-w-0 flex-1"><p className="truncate text-[11px] font-bold">{item.titleFr}</p><p className="mt-0.5 truncate text-[9px] text-white/65">{item.bodyFr}</p><p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] font-bold text-gold/80"><span className="inline-flex items-center gap-1"><Target className="h-2.5 w-2.5" />{destinationLabel(item.url)}</span><span className="inline-flex items-center gap-1"><Languages className="h-2.5 w-2.5" />FR/EN</span></p><p className="mt-1 text-[9px] text-white/65">{item.deliveredCount || 0}/{item.recipientCount || 0} {locale === "fr" ? "livrées" : "delivered"}</p></div><span aria-hidden="true" className={`mt-1 h-2 w-2 shrink-0 rounded-full ${item.sent ? "bg-burgundy" : "bg-white/25"}`} /></div>) : <p className="py-5 text-center text-[10px] text-white/65">{locale === "fr" ? "Aucun envoi" : "No campaigns yet"}</p>}</div></div>
+          <CampaignHistory campaigns={data?.recent || []} performance={recentPerformance} destinationLabel={destinationLabel} locale={locale} />
         </aside>
       </div>
     </div>
   );
+}
+
+function CampaignReadiness({ readiness, locale }: { readiness: ReturnType<typeof pushCampaignReadiness>; locale: "fr" | "en" }) {
+  const items: Array<{ key: keyof typeof readiness.checks; label: string }> = [
+    { key: "french", label: locale === "fr" ? "Message français" : "French message" },
+    { key: "english", label: locale === "fr" ? "Message anglais" : "English message" },
+    { key: "audience", label: locale === "fr" ? "Audience joignable" : "Reachable audience" },
+    { key: "channel", label: locale === "fr" ? "Canal push actif" : "Push channel active" },
+  ];
+
+  return (
+    <section className="border-y border-burgundy/15 bg-white px-4 py-4 sm:px-5" aria-labelledby="campaign-readiness-title" data-testid="campaign-readiness">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${readiness.ready ? "bg-burgundy text-white" : "bg-gold/20 text-terre"}`}>
+            {readiness.ready ? <CheckCircle2 className="h-4 w-4" /> : <CircleDashed className="h-4 w-4" />}
+          </span>
+          <div>
+            <h2 id="campaign-readiness-title" className="text-sm font-black text-charcoal">{locale === "fr" ? "Préparation de la diffusion" : "Delivery readiness"}</h2>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">{readiness.ready ? (locale === "fr" ? "La campagne peut être vérifiée avant envoi." : "The campaign can be reviewed before delivery.") : (locale === "fr" ? "Complétez les contrôles manquants avant l’envoi." : "Complete the missing checks before delivery.")}</p>
+          </div>
+        </div>
+        <p className="text-xs font-black text-burgundy">{readiness.completed} {locale === "fr" ? "contrôles sur" : "checks out of"} {readiness.total}</p>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+        {items.map((item) => (
+          <div key={item.key} className="flex min-w-0 items-center gap-2 text-[10px] font-bold">
+            {readiness.checks[item.key] ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-burgundy" /> : <CircleDashed className="h-3.5 w-3.5 shrink-0 text-terre/55" />}
+            <span className={readiness.checks[item.key] ? "text-charcoal" : "text-muted-foreground"}>{item.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-burgundy/10" role="progressbar" aria-label={locale === "fr" ? "Progression de la préparation" : "Readiness progress"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={readiness.percentage}>
+        <span className="block h-full rounded-full bg-terre transition-[width] duration-300" style={{ width: `${readiness.percentage}%` }} />
+      </div>
+    </section>
+  );
+}
+
+function CampaignHistory({ campaigns, performance, destinationLabel, locale }: { campaigns: RecentPushCampaign[]; performance: ReturnType<typeof aggregatePushDelivery>; destinationLabel: (url: string) => string; locale: "fr" | "en" }) {
+  const numberLocale = locale === "fr" ? "fr-FR" : "en-GB";
+
+  return (
+    <section className="mt-5 border-t border-burgundy/15 pt-4" aria-labelledby="campaign-history-title">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2"><History className="h-4 w-4 text-terre" /><h3 id="campaign-history-title" className="text-xs font-black text-charcoal">{locale === "fr" ? "Résultats récents" : "Recent results"}</h3></div>
+        <span className="text-[9px] font-black uppercase text-burgundy">{campaigns.length} {locale === "fr" ? "campagne(s)" : "campaign(s)"}</span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 divide-x divide-burgundy/10 border-y border-burgundy/10 py-3 text-center">
+        <CampaignMetric value={`${performance.deliveryRate.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} %`} label={locale === "fr" ? "Délivrance" : "Delivery"} />
+        <CampaignMetric value={performance.delivered.toLocaleString(numberLocale)} label={locale === "fr" ? "Remis" : "Delivered"} />
+        <CampaignMetric value={performance.failed.toLocaleString(numberLocale)} label={locale === "fr" ? "Échecs" : "Failed"} />
+      </div>
+
+      <div className="divide-y divide-burgundy/10">
+        {campaigns.length ? campaigns.slice(0, 5).map((item) => {
+          const itemPerformance = pushDeliveryPerformance(item);
+          const stateLabel = {
+            delivered: locale === "fr" ? "Remise complète" : "Fully delivered",
+            partial: locale === "fr" ? "Remise partielle" : "Partially delivered",
+            failed: locale === "fr" ? "Échec" : "Failed",
+            not_sent: locale === "fr" ? "Non diffusée" : "Not delivered",
+            empty: locale === "fr" ? "Sans destinataire" : "No recipients",
+          }[itemPerformance.state];
+          const stateClass = itemPerformance.state === "delivered"
+            ? "border-burgundy/20 bg-burgundy/5 text-burgundy"
+            : itemPerformance.state === "partial"
+              ? "border-gold/35 bg-gold/10 text-terre-dark"
+              : "border-destructive/20 bg-destructive/[0.05] text-destructive";
+
+          return (
+            <article key={item.id} className="py-3" data-testid="push-history-row">
+              <div className="flex items-start gap-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-gold/15 text-terre"><BellRing className="h-3.5 w-3.5" /></span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                    <p className="min-w-0 truncate text-[11px] font-black text-charcoal">{item.titleFr}</p>
+                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[8px] font-black uppercase ${stateClass}`}>{stateLabel}</span>
+                  </div>
+                  <p className="mt-0.5 truncate text-[9px] text-muted-foreground">{item.bodyFr}</p>
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] font-bold text-burgundy">
+                    <span className="inline-flex items-center gap-1"><Target className="h-2.5 w-2.5" />{destinationLabel(item.url)}</span>
+                    <span className="inline-flex items-center gap-1"><Languages className="h-2.5 w-2.5" />FR/EN</span>
+                    <span className="inline-flex items-center gap-1"><TrendingUp className="h-2.5 w-2.5" />{itemPerformance.deliveryRate.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} %</span>
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-burgundy/10" aria-hidden="true"><span className="block h-full rounded-full bg-terre" style={{ width: `${itemPerformance.deliveryRate}%` }} /></div>
+                    <span className="shrink-0 text-[9px] text-muted-foreground">{itemPerformance.delivered.toLocaleString(numberLocale)}/{itemPerformance.recipients.toLocaleString(numberLocale)}</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        }) : <p className="py-5 text-center text-[10px] text-muted-foreground">{locale === "fr" ? "Aucune campagne diffusée" : "No campaigns delivered yet"}</p>}
+      </div>
+    </section>
+  );
+}
+
+function CampaignMetric({ value, label }: { value: string; label: string }) {
+  return <div className="px-2"><p className="text-sm font-black text-charcoal">{value}</p><p className="mt-0.5 text-[8px] font-bold uppercase text-muted-foreground">{label}</p></div>;
 }
 
 function CampaignField({ id, label, value, onChange, maxLength, multiline = false }: { id: string; label: string; value: string; onChange: (value: string) => void; maxLength: number; multiline?: boolean }) {

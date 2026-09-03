@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
-import { broadcastLocalizedPush, getPushAudienceCounts } from "@/lib/push-server";
+import { broadcastLocalizedPush, getPushAudienceCounts, isPushConfigured } from "@/lib/push-server";
 import { PUSH_AUDIENCES } from "@/lib/push-audience";
 import { db } from "@/lib/db";
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     getPushAudienceCounts(),
     db.notification.findMany({ where: { channel: "push" }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
-  return NextResponse.json({ activeSubscriptions: audiences.all, audiences, recent });
+  return NextResponse.json({ activeSubscriptions: audiences.all, configured: isPushConfigured(), audiences, recent });
 }
 
 export async function POST(request: NextRequest) {
