@@ -795,6 +795,12 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/préparation|preparation/i);
   await expect(page.getByText(/ingrédients nécessaires|ingredients needed/i)).toBeVisible();
   await expect(page.getByText(/coût total|total cost/i)).toBeVisible();
+  if (isMobile) {
+    await expect(page.getByTestId("recipe-live-summary")).toBeVisible();
+    await expect(page.getByTestId("recipe-live-summary")).toContainText(/au total|total/i);
+  } else {
+    await expect(page.getByTestId("recipe-live-summary")).toBeHidden();
+  }
 
   const remove = page.getByRole("button", { name: /retirer de la recette|remove from recipe/i }).first();
   await remove.click();
@@ -807,6 +813,10 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   expect(await replacement.locator("option").count()).toBeGreaterThan(1);
   await replacement.selectOption({ index: 1 });
   await expect(page.getByText(/remplace |replaces /i).first()).toBeVisible();
+  const preparationList = page.locator("#recipe-preparation ol");
+  await expect(preparationList).toContainText(/Égousi|Egusi/i);
+  await expect(preparationList).not.toContainText(/Pâte d'arachide|Peanut paste/i);
+  await expect(page.locator("#recipe-preparation")).toContainText(/adaptée|adapted/i);
 
   const firstStep = page.locator("#recipe-preparation ol button").first();
   await expect(firstStep).toBeVisible();

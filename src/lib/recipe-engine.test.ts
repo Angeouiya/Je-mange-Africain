@@ -19,12 +19,27 @@ const ingredient = {
   variants: [{ id: "rice-500", label: "500 g", weightGrams: 500, volumeMl: 0, price: 4, isDefault: true }],
 };
 
+const egusi = {
+  id: "egusi",
+  traditionalName: "Egusi",
+  imageEmoji: "",
+  imageUrl: "/products/egousi.webp",
+  imageColor: "",
+  thermalClass: "AMBIANT",
+  stockQty: 12,
+  reservedQty: 0,
+  categoryId: "staples",
+  categorySlug: "feculents",
+  translations: [{ locale: "fr", name: "Égousi" }, { locale: "en", name: "Egusi seeds" }],
+  variants: [{ id: "egusi-300", label: "300 g", weightGrams: 300, volumeMl: 0, price: 6.2, isDefault: true }],
+};
+
 const context = {
   recipeId: "riz-sauce",
   baseServings: 4,
-  steps: { fr: ["Cuire le riz."], en: ["Cook the rice."] },
+  steps: { fr: ["Rincer le riz parfumé.", "Cuire le riz parfumé."], en: ["Rinse the fragrant rice.", "Cook the fragrant rice."] },
   rawIngredients: [ingredient],
-  allProductsForSubstitute: [{ ...ingredient.product, variants: ingredient.variants }],
+  allProductsForSubstitute: [{ ...ingredient.product, variants: ingredient.variants }, egusi],
 };
 
 describe("computeRecipe", () => {
@@ -59,6 +74,25 @@ describe("computeRecipe", () => {
     }, context);
     expect(result.ingredients[0]).toMatchObject({ removed: true, removalReason: "excluded", packs: 0, lineTotal: 0 });
     expect(result.totalCost).toBe(0);
+    expect(result.steps).toEqual({ fr: [], en: [] });
+  });
+
+  it("rewrites preparation steps when an ingredient is replaced", () => {
+    const result = computeRecipe({
+      servings: 4,
+      adults: 4,
+      children: 0,
+      portion: "normal",
+      kplo: false,
+      spiceLevel: "medium",
+      formula: "standard",
+      haveAtHome: [],
+      replacements: { "rice-line": "egusi" },
+    }, context);
+
+    expect(result.ingredients[0]).toMatchObject({ productId: "egusi", isReplacement: true, originalNameFr: "Riz parfumé", nameFr: "Égousi" });
+    expect(result.steps.fr).toEqual(["Rincer l’égousi.", "Cuire l’égousi."]);
+    expect(result.steps.en).toEqual(["Rinse the egusi seeds.", "Cook the egusi seeds."]);
   });
 });
 

@@ -218,6 +218,55 @@ function isCompatibleReplacement(role: string, original: { categoryId: string },
   return candidate.categoryId === original.categoryId;
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function matchInitialCase(source: string, replacement: string, locale: Locale) {
+  const sourceLetter = source.match(/\p{L}/u)?.[0];
+  const replacementLetterIndex = replacement.search(/\p{L}/u);
+  if (!sourceLetter || replacementLetterIndex < 0) return replacement;
+  const replacementLetter = replacement[replacementLetterIndex];
+  const casedLetter = sourceLetter === sourceLetter.toLocaleUpperCase(locale)
+    ? replacementLetter.toLocaleUpperCase(locale)
+    : replacementLetter.toLocaleLowerCase(locale);
+  return `${replacement.slice(0, replacementLetterIndex)}${casedLetter}${replacement.slice(replacementLetterIndex + 1)}`;
+}
+
+function replaceIngredientInStep(step: string, originalName: string, replacementName: string, locale: Locale) {
+  const original = originalName.trim();
+  const replacement = replacementName.trim();
+  if (!original || !replacement) return step;
+
+  const replaced = step.replace(new RegExp(escapeRegExp(original), "giu"), (match) => matchInitialCase(match, replacement, locale));
+  if (locale !== "fr") return replaced;
+
+  const startsWithVowel = "(?=[aàâäeéèêëiîïoôöuùûüy])";
+  return replaced
+    .replace(new RegExp(`\\b(?:la|le)\\s+${startsWithVowel}`, "giu"), "l’")
+    .replace(new RegExp(`\\bdu\\s+${startsWithVowel}`, "giu"), "de l’")
+    .replace(new RegExp(`\\bau\\s+${startsWithVowel}`, "giu"), "à l’");
+}
+
+function adaptRecipeSteps(steps: string[], ingredients: EngineIngredient[], locale: Locale) {
+  const replacements = ingredients.filter((ingredient) => ingredient.isReplacement);
+  const removedNames = ingredients
+    .filter((ingredient) => ingredient.removalReason === "excluded" || ingredient.removalReason === "protein-none")
+    .flatMap((ingredient) => locale === "fr"
+      ? [ingredient.originalNameFr, ingredient.nameFr]
+      : [ingredient.originalNameEn, ingredient.nameEn])
+    .filter(Boolean);
+
+  return steps
+    .map((step) => replacements.reduce((adapted, ingredient) => replaceIngredientInStep(
+      adapted,
+      locale === "fr" ? ingredient.originalNameFr : ingredient.originalNameEn,
+      locale === "fr" ? ingredient.nameFr : ingredient.nameEn,
+      locale,
+    ), step))
+    .filter((step) => !removedNames.some((name) => new RegExp(escapeRegExp(name), "iu").test(step)));
+}
+
 export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineResult {
   const { recipeId, baseServings, steps, rawIngredients, allProductsForSubstitute } = ctx;
 
@@ -416,6 +465,10 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
   const costPerPerson = input.servings > 0 ? totalCost / input.servings : totalCost;
   const unavailableCount = ingredients.filter((i) => !i.available && !i.removed).length;
   const leftoverCount = ingredients.filter((i) => i.leftover > 0 && !i.removed).length;
+  const adaptedSteps = {
+    fr: adaptRecipeSteps(steps.fr, ingredients, "fr"),
+    en: adaptRecipeSteps(steps.en, ingredients, "en"),
+  };
 
   return {
     recipeId,
@@ -430,7 +483,7 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
     totalWeightGrams: Math.round(totalWeightGrams),
     thermalSplit,
     packageCount: thermalSplit.length || 1,
-    steps,
+    steps: adaptedSteps,
     unavailableCount,
     leftoverCount,
   };

@@ -281,6 +281,18 @@ export function RecipeConfiguratorView() {
         <RecipeFlowLink href="#recipe-preparation" icon={Sparkles} number="3" label={locale === "fr" ? "Préparation" : "Preparation"} />
       </nav>
 
+      {calc ? (
+        <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-y border-charcoal/10 py-3 lg:hidden" data-testid="recipe-live-summary">
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-black uppercase text-muted-foreground">{servings} {t.config.peopleUnit} · {purchasableCount} {locale === "fr" ? "produits" : "products"}</p>
+            <p className="mt-0.5 text-sm font-bold text-charcoal"><span aria-live="polite" className="text-xl font-black text-terre">{formatPrice(calc.totalCost, locale)}</span> <span className="text-[10px] font-semibold text-muted-foreground">{locale === "fr" ? "au total" : "total"}</span></p>
+          </div>
+          <Button onClick={addAllToCart} disabled={purchasableCount === 0 || calcLoading} className="h-10 bg-terre px-4 text-cream hover:bg-terre-dark" aria-label={t.config.addAllToCart}>
+            <ShoppingCart className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Ajouter" : "Add"}
+          </Button>
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         {/* LEFT: config form */}
         <aside id="recipe-settings" className="scroll-mt-24 lg:sticky lg:top-24 lg:self-start">
@@ -463,7 +475,7 @@ export function RecipeConfiguratorView() {
               <Accordion type="single" collapsible defaultValue="steps" className="rounded-md border border-charcoal/10 bg-white px-2 md:rounded-lg">
                 <AccordionItem value="steps" className="border-0">
                   <AccordionTrigger className="px-3 text-sm font-bold text-charcoal">
-                    <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-gold" /> {locale === "fr" ? "Étapes de préparation" : "Preparation steps"} · {preparationSteps.length}</span>
+                    <span className="inline-flex min-w-0 items-center gap-2"><Sparkles className="h-4 w-4 shrink-0 text-gold" /><span className="truncate">{locale === "fr" ? "Étapes de préparation" : "Preparation steps"} · {preparationSteps.length}</span>{preparationAdjustments.length > 0 ? <span className="shrink-0 rounded bg-gold/15 px-1.5 py-0.5 text-[9px] font-black uppercase text-charcoal">{locale === "fr" ? "Adaptée" : "Adapted"}</span> : null}</span>
                   </AccordionTrigger>
                   <AccordionContent className="px-3 pb-3">
                     <div className="mb-3 flex items-center gap-3 border-b border-border pb-3">
