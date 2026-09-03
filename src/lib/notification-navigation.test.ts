@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseNotificationDestination } from "./notification-navigation";
+import { groupNotificationsByDay, notificationDateBucket, parseNotificationDestination } from "./notification-navigation";
 
 describe("parseNotificationDestination", () => {
   it("maps an order notification to the protected tracking view", () => {
@@ -17,5 +17,24 @@ describe("parseNotificationDestination", () => {
     expect(parseNotificationDestination("/admin")).toBeNull();
     expect(parseNotificationDestination("/?view=unknown")).toBeNull();
     expect(parseNotificationDestination("//example.com/?view=catalog")).toBeNull();
+  });
+
+  it("classifies activity by the customer local calendar", () => {
+    const now = "2026-09-03T12:00:00.000Z";
+    expect(notificationDateBucket("2026-09-03T08:00:00.000Z", now)).toBe("today");
+    expect(notificationDateBucket("2026-09-02T20:00:00.000Z", now)).toBe("yesterday");
+    expect(notificationDateBucket("2026-08-29T20:00:00.000Z", now)).toBe("earlier");
+    expect(notificationDateBucket("invalid", now)).toBe("earlier");
+  });
+
+  it("preserves notification order while omitting empty day groups", () => {
+    const notifications = [
+      { id: "today", createdAt: "2026-09-03T08:00:00.000Z" },
+      { id: "older", createdAt: "2026-08-29T20:00:00.000Z" },
+    ];
+    expect(groupNotificationsByDay(notifications, "2026-09-03T12:00:00.000Z")).toEqual([
+      { key: "today", notifications: [notifications[0]] },
+      { key: "earlier", notifications: [notifications[1]] },
+    ]);
   });
 });

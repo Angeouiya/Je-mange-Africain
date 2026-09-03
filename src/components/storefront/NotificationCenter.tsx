@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateTime } from "@/lib/format";
-import { parseNotificationDestination } from "@/lib/notification-navigation";
+import { groupNotificationsByDay, parseNotificationDestination, type NotificationDateBucket } from "@/lib/notification-navigation";
 import { useFetch } from "@/lib/use-fetch";
 import { useStore } from "@/lib/store";
 
@@ -32,7 +32,7 @@ const iconByType = {
   order: PackageCheck,
   promotion: Percent,
 };
-const notificationFilterOrder = ["order", "recipe", "promotion"] as const;
+const notificationFilterOrder = ["unread", "order", "recipe", "promotion"] as const;
 type NotificationFilter = "all" | (typeof notificationFilterOrder)[number];
 
 function decodeApplicationKey(value: string) {
@@ -294,6 +294,7 @@ function NotificationPanel({
   onRetry: () => void;
 }) {
   const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>("all");
+  const readIdSet = useMemo(() => new Set(readIds), [readIds]);
   const notificationCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const notification of notifications) {
@@ -302,19 +303,26 @@ function NotificationPanel({
     return counts;
   }, [notifications]);
   const availableFilters = useMemo(
-    () => notificationFilterOrder.filter((type) => notificationCounts.has(type)),
-    [notificationCounts]
+    () => notificationFilterOrder.filter((type) => type === "unread" ? unread > 0 : notificationCounts.has(type)),
+    [notificationCounts, unread]
   );
   const activeFilter = selectedFilter === "all" || availableFilters.includes(selectedFilter) ? selectedFilter : "all";
   const filteredNotifications = useMemo(
-    () => activeFilter === "all" ? notifications : notifications.filter((notification) => notification.type === activeFilter),
-    [activeFilter, notifications]
+    () => activeFilter === "all" ? notifications : activeFilter === "unread" ? notifications.filter((notification) => !readIdSet.has(notification.id)) : notifications.filter((notification) => notification.type === activeFilter),
+    [activeFilter, notifications, readIdSet]
   );
+  const notificationGroups = useMemo(() => groupNotificationsByDay(filteredNotifications), [filteredNotifications]);
   const filterLabel = (filter: NotificationFilter) => {
     if (filter === "all") return locale === "fr" ? "Toutes" : "All";
+    if (filter === "unread") return locale === "fr" ? "Non lues" : "Unread";
     if (filter === "order") return locale === "fr" ? "Commandes" : "Orders";
     if (filter === "recipe") return locale === "fr" ? "Recettes" : "Recipes";
     return locale === "fr" ? "Offres" : "Offers";
+  };
+  const dayLabel = (bucket: NotificationDateBucket) => {
+    if (bucket === "today") return locale === "fr" ? "Aujourd’hui" : "Today";
+    if (bucket === "yesterday") return locale === "fr" ? "Hier" : "Yesterday";
+    return locale === "fr" ? "Plus tôt" : "Earlier";
   };
 
   return (
@@ -347,9 +355,9 @@ function NotificationPanel({
 
       {!loading && !error && notifications.length > 0 ? (
         <div className="shrink-0 border-b border-border px-3 py-2.5">
-          <div role="tablist" aria-label={locale === "fr" ? "Filtrer les notifications" : "Filter notifications"} className="flex gap-1 overflow-x-auto overscroll-x-contain">
+          <div role="tablist" aria-label={locale === "fr" ? "Filtrer les notifications" : "Filter notifications"} className="grid grid-cols-2 gap-1 sm:grid-cols-4">
             {(["all", ...availableFilters] as NotificationFilter[]).map((filter) => {
-              const count = filter === "all" ? notifications.length : notificationCounts.get(filter) || 0;
+              const count = filter === "all" ? notifications.length : filter === "unread" ? unread : notificationCounts.get(filter) || 0;
               const isActive = activeFilter === filter;
               return (
                 <button
@@ -359,7 +367,7 @@ function NotificationPanel({
                   aria-selected={isActive}
                   aria-controls="notification-activity-list"
                   onClick={() => setSelectedFilter(filter)}
-                  className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md px-3 text-[11px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/45 ${isActive ? "bg-charcoal text-white" : "bg-muted/55 text-muted-foreground hover:bg-cream hover:text-charcoal"}`}
+                  className={`inline-flex min-h-9 min-w-0 items-center justify-center gap-2 rounded-md px-2 text-[11px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/45 ${isActive ? "bg-burgundy text-white" : "bg-muted/55 text-muted-foreground hover:bg-cream hover:text-charcoal"}`}
                 >
                   {filterLabel(filter)}
                   <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[9px] ${isActive ? "bg-white/15 text-white" : "bg-white text-charcoal"}`}>{count}</span>
@@ -375,23 +383,36 @@ function NotificationPanel({
         {!loading && error ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><ShieldAlert className="mx-auto h-7 w-7 text-destructive" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Notifications indisponibles" : "Notifications unavailable"}</p><Button type="button" variant="link" size="sm" onClick={onRetry} className="mt-1 text-terre">{locale === "fr" ? "Réessayer" : "Retry"}</Button></div></div> : null}
         {!loading && !error && !notifications.length ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><Inbox className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Aucune notification" : "No notifications"}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les actualités de vos commandes et offres apparaîtront ici." : "Order and offer updates will appear here."}</p></div></div> : null}
         {!loading && !error && notifications.length > 0 && !filteredNotifications.length ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><Inbox className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Aucune activité dans cette catégorie" : "No activity in this category"}</p><button type="button" onClick={() => setSelectedFilter("all")} className="mt-2 min-h-9 rounded-md px-3 text-xs font-bold text-terre hover:bg-terre/5">{locale === "fr" ? "Voir toutes les notifications" : "View all notifications"}</button></div></div> : null}
-        {!loading && !error ? filteredNotifications.map((notification) => {
-          const Icon = iconByType[notification.type as keyof typeof iconByType] || Bell;
-          const isRead = readIds.includes(notification.id);
-          const typeLabel = notification.type === "order" ? (locale === "fr" ? "Commande" : "Order") : notification.type === "recipe" ? (locale === "fr" ? "Recette" : "Recipe") : notification.type === "promotion" ? (locale === "fr" ? "Offre" : "Offer") : (locale === "fr" ? "Information" : "Information");
-          return (
-            <button key={notification.id} type="button" onClick={() => onOpenNotification(notification)} className={`group flex w-full gap-3 border-b border-border/70 px-4 py-3.5 text-left transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none ${isRead ? "bg-white" : "bg-terre/[0.035]"}`}>
-              <span className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-lg ${isRead ? "bg-muted text-muted-foreground" : "bg-terre/10 text-terre"}`}><Icon className="h-4 w-4" /></span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-start gap-2"><span className="flex-1 text-xs font-black leading-5 text-charcoal">{notification.title}</span>{!isRead ? <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-terre" /> : null}</span>
-                <span className="mt-0.5 block text-[11px] leading-5 text-muted-foreground">{notification.body}</span>
-                <span className="mt-1.5 flex items-center gap-2 text-[9px] font-bold uppercase text-muted-foreground"><span>{typeLabel}</span><span aria-hidden="true">·</span><time dateTime={notification.createdAt}>{formatDateTime(notification.createdAt, locale)}</time></span>
-              </span>
-              <ArrowRight className="mt-3 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-terre" aria-hidden="true" />
-            </button>
-          );
-        }) : null}
+        {!loading && !error ? notificationGroups.map((group) => (
+          <div key={group.key}>
+            <p className="border-b border-burgundy/10 bg-cream/45 px-4 py-1.5 text-[9px] font-black uppercase text-burgundy">{dayLabel(group.key)}</p>
+            {group.notifications.map((notification) => <NotificationActivityRow key={notification.id} notification={notification} isRead={readIdSet.has(notification.id)} locale={locale} onOpen={onOpenNotification} />)}
+          </div>
+        )) : null}
       </div>
     </div>
+  );
+}
+
+function NotificationActivityRow({ notification, isRead, locale, onOpen }: { notification: WebNotification; isRead: boolean; locale: "fr" | "en"; onOpen: (notification: WebNotification) => void }) {
+  const Icon = iconByType[notification.type as keyof typeof iconByType] || Bell;
+  const typeLabel = notification.type === "order"
+    ? (locale === "fr" ? "Commande" : "Order")
+    : notification.type === "recipe"
+      ? (locale === "fr" ? "Recette" : "Recipe")
+      : notification.type === "promotion"
+        ? (locale === "fr" ? "Offre" : "Offer")
+        : (locale === "fr" ? "Information" : "Information");
+
+  return (
+    <button type="button" onClick={() => onOpen(notification)} className={`group flex w-full gap-3 border-b border-border/70 px-4 py-3.5 text-left transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none ${isRead ? "bg-white" : "bg-terre/[0.035]"}`}>
+      <span className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-lg ${isRead ? "bg-muted text-muted-foreground" : "bg-terre/10 text-terre"}`}><Icon className="h-4 w-4" /></span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-start gap-2"><span className="flex-1 text-xs font-black leading-5 text-charcoal">{notification.title}</span>{!isRead ? <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-terre" /> : null}</span>
+        <span className="mt-0.5 block text-[11px] leading-5 text-muted-foreground">{notification.body}</span>
+        <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] font-bold uppercase text-muted-foreground"><span>{typeLabel}</span><span aria-hidden="true">·</span><time dateTime={notification.createdAt}>{formatDateTime(notification.createdAt, locale)}</time></span>
+      </span>
+      <ArrowRight className="mt-3 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-terre" aria-hidden="true" />
+    </button>
   );
 }

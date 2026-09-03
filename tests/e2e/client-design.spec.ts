@@ -221,13 +221,16 @@ test("the wholesale market applies volume pricing and preserves case quantities 
 });
 
 test("global search and notifications navigate to useful client destinations", async ({ page }) => {
+  const current = new Date();
+  const todayAtNoon = new Date(current.getFullYear(), current.getMonth(), current.getDate(), 12).toISOString();
+  const yesterdayAtNoon = new Date(current.getFullYear(), current.getMonth(), current.getDate() - 1, 12).toISOString();
   await page.route("**/api/push/config", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: false, publicKey: null }) }));
   await page.route("**/api/notifications?*", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
     body: JSON.stringify({ notifications: [
-      { id: "notice-order", type: "order", title: "Votre commande avance", body: "JMA-260902-0098 est en cours de livraison.", url: "/?view=orders", createdAt: "2026-09-02T10:00:00.000Z" },
-      { id: "notice-recipe", type: "recipe", title: "Une nouvelle recette", body: "Découvrez le kedjenou de poulet.", url: "/?view=recipes&recipeMode=library&query=kedjenou", createdAt: "2026-09-01T09:00:00.000Z" },
+      { id: "notice-order", type: "order", title: "Votre commande avance", body: "JMA-260902-0098 est en cours de livraison.", url: "/?view=orders", createdAt: todayAtNoon },
+      { id: "notice-recipe", type: "recipe", title: "Une nouvelle recette", body: "Découvrez le kedjenou de poulet.", url: "/?view=recipes&recipeMode=library&query=kedjenou", createdAt: yesterdayAtNoon },
     ] }),
   }));
   await page.route("**/api/search?*", (route) => route.fulfill({
@@ -254,6 +257,12 @@ test("global search and notifications navigate to useful client destinations", a
   await expect(page.getByRole("button", { name: /actualiser les notifications|refresh notifications/i })).toBeVisible();
   const notificationFilters = page.getByRole("tablist", { name: /filtrer les notifications|filter notifications/i });
   await expect(notificationFilters).toBeVisible();
+  await expectNoHorizontalOverflow(page, notificationFilters);
+  await notificationFilters.getByRole("tab", { name: /non lues 2|unread 2/i }).click();
+  await expect(page.getByText(/aujourd’hui|today/i)).toBeVisible();
+  await expect(page.getByText(/hier|yesterday/i)).toBeVisible();
+  await expect(page.getByText("Votre commande avance")).toBeVisible();
+  await expect(page.getByText("Une nouvelle recette")).toBeVisible();
   await notificationFilters.getByRole("tab", { name: /recettes 1|recipes 1/i }).click();
   await expect(page.getByText("Une nouvelle recette")).toBeVisible();
   await expect(page.getByText("Votre commande avance")).toBeHidden();
@@ -261,6 +270,7 @@ test("global search and notifications navigate to useful client destinations", a
   await expect(page.getByText("Votre commande avance")).toBeVisible();
   await expect(page.getByText(/commande|order/i).last()).toBeVisible();
   await expectNoHorizontalOverflow(page);
+  await expectBrandSafeUiColors(page);
   await expectNoSeriousA11yViolations(page);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/notifications-center-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
