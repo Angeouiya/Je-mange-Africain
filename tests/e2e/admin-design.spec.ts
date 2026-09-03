@@ -922,6 +922,47 @@ test("the recipe register stays compact and exposes operational readiness", asyn
   }
 });
 
+test("the advertising desk plans placements without oversized cards", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#advertising", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Régie publicitaire" })).toBeVisible();
+  await expect(page.getByTestId("advertising-metrics")).toContainText(/1\s*en cours/i);
+  const register = page.getByTestId("advertising-register");
+  const row = register.getByTestId("advertising-row").first();
+  await expect(row).toContainText("Saveurs de Côte d'Ivoire");
+  await expect(row).toContainText(/en cours/i);
+  await expect(row).toContainText(/catalogue client/i);
+  const artwork = row.getByRole("img", { name: "Table de plats ivoiriens" });
+  await expect(artwork).toBeVisible();
+  await expect.poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+  const rowBox = await row.boundingBox();
+  expect(rowBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(mobile ? 160 : 132);
+
+  const filters = page.getByTestId("advertising-filters");
+  await filters.getByRole("button", { name: /planifiées/i }).click();
+  await expect(page.getByText("Aucune affiche dans cette sélection")).toBeVisible();
+  await filters.getByRole("button", { name: /en cours/i }).click();
+  await expect(row).toBeVisible();
+  const placement = filters.getByLabel("Filtrer par emplacement");
+  await placement.selectOption("catalog");
+  await expect(page.getByText("Aucune affiche dans cette sélection")).toBeVisible();
+  await placement.selectOption("home");
+  await expect(row).toBeVisible();
+  await expect.poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+
+  await expectBrandSafeUiColors(page);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `advertising-register-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+});
+
 test("professional creation studios remain fully English and use brand-safe recipe colours", async ({ page }) => {
   test.setTimeout(150_000);
   const mobile = (page.viewportSize()?.width || 0) < 768;

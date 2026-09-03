@@ -28,3 +28,29 @@ export const advertisementData = (input: z.infer<typeof AdvertisementInput>) => 
   startsAt: input.startsAt ? new Date(input.startsAt) : null,
   endsAt: input.endsAt ? new Date(input.endsAt) : null,
 });
+
+export type AdvertisementLifecycle = "active" | "scheduled" | "draft" | "expired" | "archived";
+
+type AdvertisementSchedule = {
+  status: "draft" | "published" | "archived";
+  startsAt?: string | Date | null;
+  endsAt?: string | Date | null;
+};
+
+function validTime(value?: string | Date | null) {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
+export function advertisementLifecycle(advertisement: AdvertisementSchedule, now: string | Date = new Date()): AdvertisementLifecycle {
+  if (advertisement.status === "draft") return "draft";
+  if (advertisement.status === "archived") return "archived";
+
+  const currentTime = validTime(now) ?? Date.now();
+  const startsAt = validTime(advertisement.startsAt);
+  const endsAt = validTime(advertisement.endsAt);
+  if (endsAt !== null && endsAt <= currentTime) return "expired";
+  if (startsAt !== null && startsAt > currentTime) return "scheduled";
+  return "active";
+}
