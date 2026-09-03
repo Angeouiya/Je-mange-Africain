@@ -321,7 +321,7 @@ export function AdminView({
               {section === "catalog" ? <OfferSection locale={locale} workspace="products" /> : null}
               {section === "recipes" ? <OfferSection locale={locale} workspace="recipes" /> : null}
               {section === "orders" ? <OrdersSection locale={locale} canUpdate={hasAdminPermission(adminRole, "orders", "update")} /> : null}
-              {section === "inventory" ? <InventorySection locale={locale} /> : null}
+              {section === "inventory" ? <InventorySection locale={locale} canCreate={hasAdminPermission(adminRole, "stock", "create")} canUpdate={hasAdminPermission(adminRole, "stock", "update")} /> : null}
               {section === "customers" ? <CustomersSection locale={locale} canUpdate={hasAdminPermission(adminRole, "customers", "update")} /> : null}
               {section === "campaigns" ? <PushCampaignAdmin locale={locale} /> : null}
               {section === "advertising" ? <AdvertisingSection locale={locale} /> : null}

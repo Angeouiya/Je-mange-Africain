@@ -12,7 +12,7 @@ type GovernanceTab = "audit" | "workspace";
 
 function actionLabel(action: string, isFr: boolean) {
   const labels: Record<string, [string, string]> = {
-    price_change: ["Modification de prix", "Price change"], stock_change: ["Mouvement de stock", "Stock movement"], order_created: ["Création de commande", "Order created"], recipe_create: ["Création de recette", "Recipe created"], recipe_change: ["Modification de recette", "Recipe change"], product_create: ["Création de produit", "Product created"], product_created: ["Création de produit", "Product created"], push_campaign_sent: ["Diffusion d'une campagne", "Campaign sent"],
+    price_change: ["Modification de prix", "Price change"], stock_change: ["Mouvement de stock", "Stock movement"], batch_create: ["Réception de lot", "Batch receipt"], stock_adjustment: ["Ajustement de lot", "Batch adjustment"], batch_status_change: ["Décision sanitaire", "Safety decision"], order_created: ["Création de commande", "Order created"], recipe_create: ["Création de recette", "Recipe created"], recipe_change: ["Modification de recette", "Recipe change"], product_create: ["Création de produit", "Product created"], product_created: ["Création de produit", "Product created"], push_campaign_sent: ["Diffusion d'une campagne", "Campaign sent"],
   };
   return (labels[action] || [action.replaceAll("_", " "), action.replaceAll("_", " ")])[isFr ? 0 : 1];
 }

@@ -156,13 +156,54 @@ export type InventoryBatch = {
   lotNumber: string;
   productId: string;
   productName: string;
+  productSku?: string;
+  productImageUrl?: string | null;
+  productImageColor?: string;
+  thermalClass?: "AMBIANT" | "REFRIGERATED" | "FROZEN";
   quantity: number;
   reserved: number;
   expiryDate?: string | null;
   receiptDate: string;
   costPrice: number;
-  status: string;
+  status: "active" | "blocked" | "recalled" | "expired";
+  warehouseId?: string;
   warehouse?: string | null;
+};
+
+export type InventoryProductOption = {
+  id: string;
+  name: string;
+  sku: string;
+  imageUrl?: string | null;
+  imageColor?: string;
+  thermalClass: "AMBIANT" | "REFRIGERATED" | "FROZEN";
+  stockQty: number;
+};
+
+export type InventoryWarehouseOption = {
+  id: string;
+  name: string;
+  city: string;
+  supports: Array<"AMBIANT" | "REFRIGERATED" | "FROZEN">;
+};
+
+export type InventoryMovement = {
+  id: string;
+  batchId?: string | null;
+  lotNumber?: string | null;
+  productName: string;
+  warehouse: string;
+  type: string;
+  quantity: number;
+  reason?: string | null;
+  createdAt: string;
+};
+
+export type InventoryPayload = {
+  batches: InventoryBatch[];
+  products?: InventoryProductOption[];
+  warehouses?: InventoryWarehouseOption[];
+  movements?: InventoryMovement[];
 };
 
 export type AuditEntry = {

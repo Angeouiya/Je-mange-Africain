@@ -58,6 +58,32 @@ const profitabilityRow = {
   orders: 284,
 };
 
+const inventoryBatch = {
+  id: "batch-1",
+  lotNumber: "ATT-2608-FR",
+  productId: "product-1",
+  productName: "Attiéké frais",
+  productSku: "JMA-ATT-500",
+  productImageUrl: "/products/attieke.webp",
+  productImageColor: "#F2A900",
+  thermalClass: "REFRIGERATED",
+  quantity: 120,
+  reserved: 36,
+  expiryDate: "2026-09-12T00:00:00.000Z",
+  receiptDate: "2026-08-29T00:00:00.000Z",
+  costPrice: 2.8,
+  status: "active",
+  warehouseId: "warehouse-1",
+  warehouse: "Paris Nord",
+};
+
+const inventoryPayload = {
+  batches: [inventoryBatch],
+  products: [{ id: "product-1", name: "Attiéké frais", sku: "JMA-ATT-500", imageUrl: "/products/attieke.webp", imageColor: "#F2A900", thermalClass: "REFRIGERATED", stockQty: 84 }],
+  warehouses: [{ id: "warehouse-1", name: "Paris Nord", city: "Paris", supports: ["AMBIANT", "REFRIGERATED", "FROZEN"] }],
+  movements: [{ id: "movement-1", batchId: "batch-1", lotNumber: "ATT-2608-FR", productName: "Attiéké frais", warehouse: "Paris Nord", type: "receipt", quantity: 120, reason: "Arrivage Abidjan", createdAt: now }],
+};
+
 async function expectBrandSafeUiColors(page: Page) {
   const forbiddenStyles = await page.locator("body").evaluate((body) => {
     const ignoredTags = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS"]);
@@ -130,7 +156,14 @@ async function mockAdminApi(page: Page) {
       recipes: [{ id: "recipe-1", title: "Attiéké poisson braisé", description: "Le grand classique ivoirien, composé avec des produits disponibles.", country: "Côte d'Ivoire", category: "Plats", difficulty: "intermediate", timeMinutes: 55, baseServings: 4, imageColor: "#D65A32", imageEmoji: "", imageUrl: "/recipes/attieke-poisson.webp", isPopular: true, isNew: false, isRecommended: true, status: "published", ingredientCount: 8 }],
     };
     else if (path === "/api/orders") payload = { orders: [order] };
-    else if (path === "/api/admin/stock") payload = { batches: [{ id: "batch-1", lotNumber: "ATT-2608-FR", productId: "product-1", productName: "Attiéké frais", quantity: 120, reserved: 36, expiryDate: "2026-09-12T00:00:00.000Z", receiptDate: "2026-08-29T00:00:00.000Z", costPrice: 2.8, status: "active", warehouse: "Paris Nord" }] };
+    else if (path === "/api/admin/stock" && request.method() === "POST") payload = { batch: { id: "batch-2", lotNumber: "ATT-2609-FR" } };
+    else if (path === "/api/admin/stock/batch-1" && request.method() === "PATCH") {
+      const body = request.postDataJSON() as { action: "adjust" | "status"; direction?: "increase" | "decrease"; quantity?: number; status?: string };
+      payload = body.action === "adjust"
+        ? { batch: { id: "batch-1", quantity: inventoryBatch.quantity + (body.direction === "decrease" ? -(body.quantity || 0) : body.quantity || 0), status: inventoryBatch.status }, movement: { quantity: body.quantity || 0 } }
+        : { batch: { id: "batch-1", quantity: inventoryBatch.quantity, status: body.status }, movement: { quantity: -inventoryBatch.quantity } };
+    }
+    else if (path === "/api/admin/stock") payload = inventoryPayload;
     else if (path === "/api/admin/customers/customer-1" && request.method() === "PATCH") payload = { notes: "Cliente fidèle, préfère les produits frais ivoiriens.", updatedAt: now };
     else if (path === "/api/admin/customers/customer-1") payload = {
       customer: { id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", updatedAt: now, addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador", notes: "Privilégie les créneaux de livraison du samedi." },
@@ -274,6 +307,84 @@ test("admin searches report, filter and clear results consistently", async ({ pa
   await page.getByRole("button", { name: "Effacer la recherche" }).click();
   await expect(paymentSearch).toHaveValue("");
   await expect(page.getByText("pi_jma_260902", { exact: true })).toBeVisible();
+});
+
+test("the inventory desk receives, values and secures a traceable batch", async ({ page }) => {
+  test.setTimeout(120_000);
+  const receiptPayloads: Array<Record<string, unknown>> = [];
+  const mutationPayloads: Array<Record<string, unknown>> = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/admin/stock" && request.method() === "POST") receiptPayloads.push(request.postDataJSON());
+    if (path === "/api/admin/stock/batch-1" && request.method() === "PATCH") mutationPayloads.push(request.postDataJSON());
+  });
+  await mockAdminApi(page);
+  await page.goto("/admin#inventory", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Inventaire piloté par les lots" })).toBeVisible();
+  await expect(page.getByText("Valeur brute disponible")).toBeVisible();
+  await expect(page.getByText("Derniers mouvements")).toBeVisible();
+  const productImages = page.getByRole("img", { name: "Attiéké frais" });
+  await expect(productImages.first()).toBeVisible();
+  expect(await productImages.first().evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+
+  await page.getByRole("button", { name: "Réceptionner un lot" }).click();
+  const receiptDialog = page.getByRole("dialog", { name: "Réceptionner un lot traçable" });
+  await expect(receiptDialog).toBeVisible();
+  await expect(receiptDialog.getByText("Produit et destination")).toBeVisible();
+  await expect(receiptDialog.getByText("Identité et calendrier")).toBeVisible();
+  await expect(receiptDialog.getByText("Quantité, valeur et disponibilité")).toBeVisible();
+  await receiptDialog.getByLabel("Numéro de lot").fill("ATT-2609-FR");
+  await receiptDialog.getByLabel("Quantité physique").fill("48");
+  await receiptDialog.getByLabel("Coût brut unitaire (€)").fill("2.95");
+  await receiptDialog.getByLabel("Motif ou référence de réception").fill("Bon fournisseur ABJ-2609");
+  await expect(receiptDialog.getByText("141,60 €", { exact: true })).toBeVisible();
+  expect(await receiptDialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  const receiptAccessibility = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const receiptBlocking = receiptAccessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(receiptBlocking, receiptBlocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `inventory-receipt-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await receiptDialog.getByRole("button", { name: "Enregistrer la réception" }).click();
+  await expect(receiptDialog).toBeHidden();
+  await expect.poll(() => receiptPayloads.length).toBe(1);
+  expect(receiptPayloads[0]).toMatchObject({ productId: "product-1", warehouseId: "warehouse-1", lotNumber: "ATT-2609-FR", quantity: "48", costPrice: "2.95", status: "active" });
+
+  await page.getByRole("button", { name: "Gérer" }).first().click();
+  const controlDialog = page.getByRole("dialog", { name: "Attiéké frais" });
+  await expect(controlDialog).toBeVisible();
+  await expect(controlDialog.getByText("ATT-2608-FR · Paris Nord")).toBeVisible();
+  await expect(controlDialog.getByText("84", { exact: true })).toBeVisible();
+  await controlDialog.getByLabel("Quantité d'ajustement").fill("6");
+  await controlDialog.getByLabel("Motif du mouvement").fill("Comptage physique du matin");
+  await controlDialog.getByRole("button", { name: "Appliquer" }).click();
+  await expect(controlDialog.getByRole("status")).toContainText("stock vendable");
+  await expect.poll(() => mutationPayloads.length).toBe(1);
+  expect(mutationPayloads[0]).toMatchObject({ action: "adjust", direction: "increase", quantity: 6 });
+
+  await controlDialog.getByLabel("Motif obligatoire de la décision").fill("Contrôle qualité complémentaire");
+  await controlDialog.getByRole("button", { name: "Bloquer temporairement" }).click();
+  const confirmation = page.getByRole("alertdialog", { name: "Bloquer temporairement ?" });
+  await expect(confirmation).toContainText("retirées de la vente");
+  await confirmation.getByRole("button", { name: "Confirmer la décision" }).click();
+  await expect.poll(() => mutationPayloads.length).toBe(2);
+  expect(mutationPayloads[1]).toMatchObject({ action: "status", status: "blocked", reason: "Contrôle qualité complémentaire" });
+  await expect(controlDialog.getByRole("status")).toContainText("disponibilité");
+
+  const overflow = await controlDialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `inventory-control-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
 });
 
 test("the professional console remains separate from the customer storefront", async ({ page }) => {
