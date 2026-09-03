@@ -435,6 +435,11 @@ test("every professional workspace has a clear purpose and stays inside the view
   await expect(page.locator("header h1")).toBeVisible();
 
   const mobile = (page.viewportSize()?.width || 0) < 768;
+  if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
+  const sidebar = page.getByTestId("admin-sidebar");
+  await expect(sidebar).toBeVisible();
+  await expect.poll(() => sidebar.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 252, 250)");
+  if (mobile) await sidebar.getByRole("button", { name: "Fermer la navigation" }).click();
   for (const section of sections) {
     if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
     const navigation = page.getByRole("navigation", { name: "Navigation professionnelle" });

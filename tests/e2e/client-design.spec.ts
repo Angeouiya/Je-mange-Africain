@@ -79,6 +79,11 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   const categoryBox = await categoryHeading.boundingBox();
   expect(categoryBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(page.viewportSize()?.height || 0);
   const isMobile = (page.viewportSize()?.width || 0) < 768;
+  if (!isMobile) {
+    const sidebar = page.getByTestId("client-sidebar");
+    await expect(sidebar).toBeVisible();
+    await expect.poll(() => sidebar.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 252, 250)");
+  }
   const heroBox = await page.getByTestId("home-hero").boundingBox();
   if (isMobile) expect(heroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(300);
   else expect(heroBox?.height || 0).toBeGreaterThanOrEqual(440);

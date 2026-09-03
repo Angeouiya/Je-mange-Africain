@@ -220,14 +220,15 @@ export function AdminView({
   return (
     <div className="min-h-dvh bg-white text-charcoal md:flex">
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[18.5rem] transform flex-col border-r border-white/8 bg-charcoal text-white shadow-2xl transition-transform duration-300 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:shadow-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        data-testid="admin-sidebar"
+        className={`fixed inset-y-0 left-0 z-50 flex w-[18.5rem] transform flex-col border-r border-burgundy/10 bg-[#FFFCFA] text-charcoal shadow-2xl transition-transform duration-300 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:shadow-[12px_0_36px_-32px_rgba(90,38,50,0.35)] ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-hidden={!isDesktop && !sidebarOpen}
         inert={!isDesktop && !sidebarOpen ? true : undefined}
       >
         <div className="african-kente-stripe h-[3px] shrink-0" />
         <div className="flex items-center justify-between px-5 py-5">
-          <BrandLockup context="admin" compact inverse locale={locale} />
-          <button type="button" onClick={() => setSidebarOpen(false)} className="grid h-10 w-10 place-items-center rounded-md text-cream/70 hover:bg-white/8 hover:text-white md:hidden" aria-label={isFr ? "Fermer la navigation" : "Close navigation"}>
+          <BrandLockup context="admin" compact locale={locale} />
+          <button type="button" onClick={() => setSidebarOpen(false)} className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy md:hidden" aria-label={isFr ? "Fermer la navigation" : "Close navigation"}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -236,9 +237,9 @@ export function AdminView({
           {availableGroups.map((group, groupIndex) => (
             <div key={group.labelFr} className="mt-4 first:mt-1">
               <div className="flex items-center gap-2 px-3">
-                <span className="text-[9px] font-black tabular-nums text-gold">{String(groupIndex + 1).padStart(2, "0")}</span>
-                <p className="text-[9px] font-extrabold uppercase text-white/70">{isFr ? group.labelFr : group.labelEn}</p>
-                <span className="ml-auto text-[8px] font-bold uppercase text-white/58">{isFr ? group.verbFr : group.verbEn}</span>
+                <span className="text-[9px] font-black tabular-nums text-terre">{String(groupIndex + 1).padStart(2, "0")}</span>
+                <p className="text-[9px] font-extrabold uppercase text-burgundy">{isFr ? group.labelFr : group.labelEn}</p>
+                <span className="ml-auto text-[8px] font-bold uppercase text-terre">{isFr ? group.verbFr : group.verbEn}</span>
               </div>
               <div className="mt-1.5 space-y-1">
                 {group.items.map((item) => {
@@ -250,17 +251,17 @@ export function AdminView({
                       type="button"
                       onClick={() => selectSection(item.id)}
                       aria-current={active ? "page" : undefined}
-                      className={`group relative flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-left transition-all ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-cream/72 hover:bg-white/7 hover:text-white"}`}
+                      className={`group relative flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-left transition-all ${active ? "bg-white text-charcoal shadow-[0_8px_22px_-18px_rgba(90,38,50,0.5)]" : "border-transparent text-charcoal hover:bg-burgundy/[0.045]"}`}
                       style={active ? { borderLeftColor: item.accent } : undefined}
                     >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-colors" style={{ backgroundColor: active ? item.accent : `${item.accent}2B`, color: active ? getBrandAccentForeground(item.accent) : BRAND_COLORS.cream }}>
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-colors" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : getReadableBrandAccent(item.accent) }}>
                         <item.icon className="h-[18px] w-[18px]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
-                        <span className={`mt-0.5 block line-clamp-2 text-[9px] leading-4 ${active ? "text-charcoal/72" : "text-white/62"}`}>{isFr ? item.purposeFr : item.purposeEn}</span>
+                        <span className="mt-0.5 block line-clamp-2 text-[9px] leading-4 text-muted-foreground">{isFr ? item.purposeFr : item.purposeEn}</span>
                       </span>
-                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: active ? getReadableBrandAccent(item.accent) : BRAND_COLORS.gold }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: getReadableBrandAccent(item.accent) }}>{item.marker}</span> : <ChevronRight className="h-4 w-4 text-cream/20" />}
+                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: getReadableBrandAccent(item.accent) }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: getReadableBrandAccent(item.accent) }}>{item.marker}</span> : <ChevronRight className="h-4 w-4 text-charcoal/20" />}
                     </button>
                   );
                 })}
@@ -269,24 +270,24 @@ export function AdminView({
           ))}
         </nav>
 
-        <div className="border-t border-white/8 p-3">
-          <div className="mb-2 flex items-center gap-3 rounded-md bg-white/[0.045] px-3 py-2.5">
+        <div className="border-t border-burgundy/10 bg-white/70 p-3">
+          <div className="mb-2 flex items-center gap-3 rounded-md bg-burgundy/5 px-3 py-2.5">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy text-xs font-black text-white">{(adminEmail || "J").slice(0, 1).toUpperCase()}</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[11px] font-bold text-white">{adminEmail || (isFr ? "Session professionnelle" : "Professional session")}</p>
-              <p className="mt-0.5 truncate text-[9px] uppercase text-white/62">{adminRole ? adminRole.replaceAll("_", " ") : (isFr ? "Exploitation" : "Operations")}</p>
+              <p className="truncate text-[11px] font-bold text-charcoal">{adminEmail || (isFr ? "Session professionnelle" : "Professional session")}</p>
+              <p className="mt-0.5 truncate text-[9px] uppercase text-muted-foreground">{adminRole ? adminRole.replaceAll("_", " ") : (isFr ? "Exploitation" : "Operations")}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-1 rounded-md bg-white/[0.035] p-1" aria-label={isFr ? "Langue" : "Language"}>
-            {(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => onLocaleChange(language)} aria-pressed={locale === language} className={`h-8 rounded text-[10px] font-extrabold uppercase ${locale === language ? "bg-white text-charcoal" : "text-cream/65 hover:text-white"}`}>{language}</button>)}
+          <div className="grid grid-cols-2 gap-1 rounded-md border border-burgundy/10 bg-burgundy/[0.035] p-1" aria-label={isFr ? "Langue" : "Language"}>
+            {(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => onLocaleChange(language)} aria-pressed={locale === language} className={`h-8 rounded text-[10px] font-extrabold uppercase transition ${locale === language ? "bg-burgundy text-white shadow-sm" : "text-muted-foreground hover:bg-white hover:text-burgundy"}`}>{language}</button>)}
           </div>
           <div className="mt-1 grid grid-cols-2 gap-1">
-            <Button type="button" variant="ghost" onClick={() => window.location.assign("https://je-mange-africain.com")} className="h-9 justify-start px-2 text-[10px] text-cream/55 hover:bg-white/8 hover:text-white">
+            <Button type="button" variant="ghost" onClick={() => window.location.assign("https://je-mange-africain.com")} className="h-9 justify-start px-2 text-[10px] text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy">
               <Store className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Boutique" : "Store"}
             </Button>
             {onLogout ? (
               <AlertDialog>
-                <AlertDialogTrigger asChild><Button type="button" variant="ghost" className="h-9 justify-start px-2 text-[10px] text-cream/55 hover:bg-white/8 hover:text-white"><LogOut className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Quitter" : "Sign out"}</Button></AlertDialogTrigger>
+                <AlertDialogTrigger asChild><Button type="button" variant="ghost" className="h-9 justify-start px-2 text-[10px] text-terre hover:bg-terre/5"><LogOut className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Quitter" : "Sign out"}</Button></AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>{isFr ? "Fermer la session professionnelle ?" : "Close the professional session?"}</AlertDialogTitle>
