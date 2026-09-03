@@ -139,6 +139,39 @@ export type AdminCustomer = {
   segment: "ambassador" | "active" | "at_risk" | "new";
 };
 
+export type AdminCustomerPortfolioPayload = {
+  generatedAt: string;
+  customers: AdminCustomer[];
+  summary: {
+    total: number;
+    lifetimeValue: number;
+    averageCustomerValue: number;
+    averageBasket: number;
+    totalOrders: number;
+    repeatCustomers: number;
+    repeatRate: number;
+    profileCoverageRate: number;
+    savedIntentRate: number;
+    openTickets: number;
+    atRiskValue: number;
+    actionable: number;
+    segments: Record<AdminCustomer["segment"], number>;
+    markets: number;
+    languages: { fr: number; en: number; other: number };
+  };
+  actions: Array<{
+    id: string;
+    customerId: string;
+    customerName: string;
+    kind: "support" | "reengage" | "activate" | "complete_profile" | "reward";
+    level: "critical" | "attention" | "opportunity";
+    score: number;
+    count: number;
+    value: number;
+    daysSinceActivity: number | null;
+  }>;
+};
+
 export type AdminCustomerDetail = {
   customer: AdminCustomer & {
     notes: string;

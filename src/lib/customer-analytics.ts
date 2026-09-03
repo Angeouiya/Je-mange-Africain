@@ -1,4 +1,4 @@
-export const NON_COMMERCIAL_ORDER_STATUSES = ["cart", "cancelled"] as const;
+export const NON_COMMERCIAL_ORDER_STATUSES = ["cart", "cancelled", "failed", "refunded"] as const;
 
 export type CustomerSegment = "ambassador" | "active" | "at_risk" | "new";
 

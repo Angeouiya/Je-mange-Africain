@@ -79,6 +79,44 @@ const order = {
   ],
 };
 
+const customerRecords = [
+  { id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador" },
+  { id: "customer-2", email: "idrissa@example.be", name: "Idrissa Traoré", phone: "+32 470 00 00 00", city: "Bruxelles", country: "Belgique", orders: 9, loyalty: 920, walletCredit: 0, preferredLang: "fr", lifetimeValue: 612, averageBasket: 68, lastOrderAt: "2026-05-01T10:00:00.000Z", joinedAt: "2024-10-08T10:00:00.000Z", addresses: 1, favorites: 1, savedRecipes: 0, openTickets: 0, segment: "at_risk" },
+  { id: "customer-3", email: "awa@example.fr", name: "Awa Diop", phone: "+33 7 00 00 00 00", city: "Lyon", country: "France", orders: 0, loyalty: 80, walletCredit: 0, preferredLang: "fr", lifetimeValue: 0, averageBasket: 0, lastOrderAt: null, joinedAt: "2026-08-01T10:00:00.000Z", addresses: 1, favorites: 0, savedRecipes: 0, openTickets: 0, segment: "new" },
+  { id: "customer-4", email: "chiamaka@example.co.uk", name: "Chiamaka Okafor", phone: "+44 7700 900000", city: "London", country: "Royaume-Uni", orders: 3, loyalty: 360, walletCredit: 5, preferredLang: "en", lifetimeValue: 138, averageBasket: 46, lastOrderAt: "2026-08-29T10:00:00.000Z", joinedAt: "2026-03-11T10:00:00.000Z", addresses: 1, favorites: 2, savedRecipes: 1, openTickets: 0, segment: "active" },
+  { id: "customer-5", email: "mariam@example.de", name: "Mariam Diallo", phone: "+49 151 000000", city: "Berlin", country: "Allemagne", orders: 6, loyalty: 1720, walletCredit: 18, preferredLang: "en", lifetimeValue: 380, averageBasket: 63.33, lastOrderAt: "2026-08-30T10:00:00.000Z", joinedAt: "2025-08-20T10:00:00.000Z", addresses: 1, favorites: 1, savedRecipes: 2, openTickets: 0, segment: "ambassador" },
+  { id: "customer-6", email: "koffi@example.fr", name: "Koffi N'Guessan", phone: null, city: "Marseille", country: "France", orders: 1, loyalty: 120, walletCredit: 0, preferredLang: "fr", lifetimeValue: 62, averageBasket: 62, lastOrderAt: "2026-08-25T10:00:00.000Z", joinedAt: "2026-07-15T10:00:00.000Z", addresses: 0, favorites: 0, savedRecipes: 0, openTickets: 0, segment: "active" },
+] as const;
+
+const customerPortfolioPayload = {
+  generatedAt: now,
+  customers: customerRecords,
+  summary: {
+    total: 6,
+    lifetimeValue: 1618.4,
+    averageCustomerValue: 269.73,
+    averageBasket: 59.94,
+    totalOrders: 27,
+    repeatCustomers: 4,
+    repeatRate: 80,
+    profileCoverageRate: 83.3,
+    savedIntentRate: 66.7,
+    openTickets: 1,
+    atRiskValue: 612,
+    actionable: 4,
+    segments: { ambassador: 2, active: 2, at_risk: 1, new: 1 },
+    markets: 4,
+    languages: { fr: 4, en: 2, other: 0 },
+  },
+  actions: [
+    { id: "support:customer-1", customerId: "customer-1", customerName: "Aminata Koné", kind: "support", level: "critical", score: 524.2, count: 1, value: 426.4, daysSinceActivity: 1 },
+    { id: "reengage:customer-2", customerId: "customer-2", customerName: "Idrissa Traoré", kind: "reengage", level: "attention", score: 406.1, count: 9, value: 612, daysSinceActivity: 125 },
+    { id: "activate:customer-3", customerId: "customer-3", customerName: "Awa Diop", kind: "activate", level: "attention", score: 303.3, count: 0, value: 0, daysSinceActivity: 33 },
+    { id: "complete:customer-6", customerId: "customer-6", customerName: "Koffi N'Guessan", kind: "complete_profile", level: "attention", score: 200.6, count: 0, value: 62, daysSinceActivity: 9 },
+    { id: "reward:customer-5", customerId: "customer-5", customerName: "Mariam Diallo", kind: "reward", level: "opportunity", score: 102.3, count: 6, value: 380, daysSinceActivity: 4 },
+  ],
+};
+
 const profitabilityRow = {
   id: "attieke",
   label: "Attiéké frais",
@@ -322,7 +360,7 @@ async function mockAdminApi(page: Page) {
       savedRecipes: [{ id: "saved-1", recipeId: "recipe-1", title: "Attiéké poisson braisé", country: "Côte d'Ivoire", imageUrl: "/recipes/attieke-poisson.webp" }],
       tickets: [{ id: "ticket-1", number: "SUP-260901", subject: "Précision sur mon créneau de livraison", priority: "normal", status: "open", assignee: "Service client", updatedAt: now }],
     };
-    else if (path === "/api/admin/customers") payload = { customers: [{ id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador" }] };
+    else if (path === "/api/admin/customers") payload = customerPortfolioPayload;
     else if (path === "/api/admin/push" && request.method() === "POST") payload = { campaign: { id: "push-2" }, delivery: { total: 184, sent: 184, failed: 0, configured: true } };
     else if (path === "/api/admin/push") payload = {
       activeSubscriptions: 1284,
@@ -638,11 +676,11 @@ test("the team cockpit grants least-privilege access and documents sensitive dec
 test("admin searches report, filter and clear results consistently", async ({ page }) => {
   await mockAdminApi(page);
   const cases = [
-    { hash: "catalog", heading: "Ce qui est réellement vendu", label: "Rechercher un produit", visible: "Attiéké frais" },
-    { hash: "recipes", heading: "Construire des recettes achetables", label: "Rechercher une recette", visible: "Attiéké poisson braisé" },
-    { hash: "orders", heading: "Du paiement jusqu'à la porte", label: "Rechercher une commande", visible: "JMA-260902-0142" },
-    { hash: "inventory", heading: "Inventaire piloté par les lots", label: "Rechercher un lot", visible: "ATT-2608-FR" },
-    { hash: "customers", heading: "Piloter chaque relation", label: "Rechercher un client", visible: "Aminata Koné" },
+    { hash: "catalog", heading: "Ce qui est réellement vendu", label: "Rechercher un produit", visible: "Attiéké frais", total: 1 },
+    { hash: "recipes", heading: "Construire des recettes achetables", label: "Rechercher une recette", visible: "Attiéké poisson braisé", total: 1 },
+    { hash: "orders", heading: "Du paiement jusqu'à la porte", label: "Rechercher une commande", visible: "JMA-260902-0142", total: 1 },
+    { hash: "inventory", heading: "Inventaire piloté par les lots", label: "Rechercher un lot", visible: "ATT-2608-FR", total: 1 },
+    { hash: "customers", heading: "Piloter chaque relation", label: "Rechercher un client", visible: "Aminata Koné", total: 6 },
   ] as const;
 
   for (const item of cases) {
@@ -650,11 +688,11 @@ test("admin searches report, filter and clear results consistently", async ({ pa
     await expect(page.getByRole("heading", { name: item.heading })).toBeVisible();
     const field = page.getByRole("searchbox", { name: item.label });
     await field.fill("aucun-résultat");
-    await expect(page.getByTestId("admin-search-field")).toContainText("0 résultats sur 1");
+    await expect(page.getByTestId("admin-search-field")).toContainText(`0 résultats sur ${item.total}`);
     await page.getByRole("button", { name: "Effacer la recherche" }).click();
     await expect(field).toHaveValue("");
     await expect(page.getByText(item.visible, { exact: false }).filter({ visible: true }).first()).toBeVisible();
-    await expect(page.getByTestId("admin-search-field")).toContainText("1 résultat sur 1");
+    await expect(page.getByTestId("admin-search-field")).toContainText(`${item.total} résultat${item.total === 1 ? "" : "s"} sur ${item.total}`);
   }
 
   await page.goto("/admin#finance", { waitUntil: "domcontentloaded" });
@@ -952,10 +990,38 @@ test("the customer workspace provides a complete and auditable relationship view
   await mockAdminApi(page);
   await page.goto("/admin#customers", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Piloter chaque relation" })).toBeVisible();
-  await expect(page.getByText("426,40 €", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("80 %", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Composition du portefeuille" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Prochaines attentions" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Ouvrir le profil de Idrissa Traoré/ })).toBeVisible();
+  await expect(page.getByText("426,40 €", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+
+  await page.getByRole("tab", { name: /À relancer/ }).click();
+  await expect(page.getByRole("button", { name: "Ouvrir le profil de Idrissa Traoré" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ouvrir le profil de Aminata Koné" })).toBeHidden();
+  await page.getByRole("tab", { name: /^Tous/ }).click();
+
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exporter" }).click();
+  expect((await download).suggestedFilename()).toBe("je-mange-africain-clients.csv");
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `customers-portfolio-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: true });
+  }
+
+  const workspaceOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(workspaceOverflow).toBeLessThanOrEqual(1);
+  const workspaceA11y = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(workspaceA11y.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+
   await page.getByRole("button", { name: "Ouvrir le profil de Aminata Koné" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Aminata Koné" });
+  await expect(dialog.getByRole("link", { name: "Envoyer un e-mail à Aminata Koné" })).toHaveAttribute("href", "mailto:aminata@example.fr");
+  await expect(dialog.getByRole("link", { name: "Appeler Aminata Koné" })).toHaveAttribute("href", "tel:+33600000000");
   await expect(dialog.getByText("Produits les plus achetés")).toBeVisible();
   await expect(dialog.getByText("Attiéké poisson braisé")).toBeVisible();
   await dialog.getByRole("tab", { name: /Commandes/ }).click();
@@ -978,6 +1044,14 @@ test("the customer workspace provides a complete and auditable relationship view
   const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+
+  await page.getByRole("button", { name: "Fermer" }).click();
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+  if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
+  await page.getByRole("button", { name: "en", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Portfolio composition" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Next attentions" })).toBeVisible();
+  await expect(page.getByText("Relationship priority", { exact: true })).toBeVisible();
 });
 
 test("push campaigns target a measured audience and preview both languages", async ({ page }) => {

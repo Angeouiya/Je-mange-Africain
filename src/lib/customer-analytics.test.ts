@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { customerSegment } from "@/lib/customer-analytics";
+import { customerSegment, NON_COMMERCIAL_ORDER_STATUSES } from "@/lib/customer-analytics";
 
 const now = new Date("2026-09-02T12:00:00.000Z");
 
 describe("customerSegment", () => {
+  it("excludes non-commercial outcomes from relationship value", () => {
+    expect(NON_COMMERCIAL_ORDER_STATUSES).toEqual(["cart", "cancelled", "failed", "refunded"]);
+  });
+
   it("identifies profiles that have not purchased yet", () => {
     expect(customerSegment({ orders: 0, lifetimeValue: 0, loyalty: 0, now })).toBe("new");
   });

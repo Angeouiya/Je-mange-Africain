@@ -7,6 +7,7 @@ import {
   Clock3,
   Heart,
   Languages,
+  Mail,
   MapPin,
   NotebookPen,
   PackageCheck,
@@ -105,15 +106,15 @@ function CustomerProfileContent({ summary, locale, canUpdate }: { summary: Admin
     <>
       <DialogHeader className="border-b border-border bg-white px-4 py-4 pr-14 sm:px-6 sm:py-5">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-charcoal text-xs font-black text-white sm:h-12 sm:w-12 sm:text-sm">{initials(customer.name)}</span>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-terre text-xs font-black text-white sm:h-12 sm:w-12 sm:text-sm">{initials(customer.name)}</span>
           <div className="min-w-0 flex-1 text-left">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <DialogTitle className="min-w-0 truncate text-lg sm:text-xl">{customer.name}</DialogTitle>
               <Badge variant="outline" className={customer.segment === "at_risk" ? "border-destructive/25 bg-destructive/[0.06] text-destructive" : customer.segment === "ambassador" ? "border-gold/35 bg-gold/10 text-charcoal" : "border-border bg-white text-muted-foreground"}>{segmentLabel(customer.segment, isFr)}</Badge>
             </div>
             <DialogDescription className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-              <span className="truncate">{customer.email}</span>
-              {customer.phone ? <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{customer.phone}</span> : null}
+              <a href={`mailto:${customer.email}`} className="inline-flex min-w-0 items-center gap-1 truncate transition hover:text-terre" aria-label={`${isFr ? "Envoyer un e-mail à" : "Email"} ${customer.name}`}><Mail className="h-3 w-3 shrink-0" />{customer.email}</a>
+              {customer.phone ? <a href={`tel:${customer.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-1 transition hover:text-terre" aria-label={`${isFr ? "Appeler" : "Call"} ${customer.name}`}><Phone className="h-3 w-3" />{customer.phone}</a> : null}
             </DialogDescription>
           </div>
         </div>
@@ -176,7 +177,7 @@ function CustomerProfileContent({ summary, locale, canUpdate }: { summary: Admin
 
                 <section className="mt-6" aria-labelledby="support-title"><div className="flex items-center gap-2"><TicketCheck className="h-4 w-4 text-forest" /><h3 id="support-title" className="text-sm font-black text-charcoal">{isFr ? "Demandes de support" : "Support requests"}</h3><span className="text-[10px] font-bold text-muted-foreground">{data.tickets.length}</span></div>{data.tickets.length ? <div className="mt-3 divide-y divide-charcoal/8 border-y border-charcoal/8">{data.tickets.map((ticket) => <div key={ticket.id} className="flex items-start gap-3 py-3"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-xs font-black">{ticket.number}</p><Badge variant="outline" className={ticket.status === "open" ? "border-gold/40 bg-gold/[0.09] text-charcoal" : "border-border text-muted-foreground"}>{ticketLabel(ticket.status, isFr)}</Badge>{["high", "urgent"].includes(ticket.priority) ? <Badge variant="outline" className="border-destructive/25 bg-destructive/[0.06] text-destructive">{ticketLabel(ticket.priority, isFr)}</Badge> : null}</div><p className="mt-1 text-xs text-charcoal">{ticket.subject}</p><p className="mt-1 text-[10px] text-muted-foreground">{formatDateTime(ticket.updatedAt, locale)}{ticket.assignee ? ` · ${ticket.assignee}` : ""}</p></div></div>)}</div> : <p className="mt-3 border-y border-charcoal/8 py-4 text-xs text-muted-foreground">{isFr ? "Aucune demande de support." : "No support requests."}</p>}</section>
 
-                <section className="mt-6 border-t border-charcoal/8 pt-5" aria-labelledby="notes-title"><div className="flex items-center gap-2"><NotebookPen className="h-4 w-4 text-terre" /><h3 id="notes-title" className="text-sm font-black text-charcoal">{isFr ? "Notes internes" : "Internal notes"}</h3></div><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{isFr ? "Visible uniquement par l’équipe autorisée. Chaque modification est inscrite au journal d’audit." : "Visible only to authorized team members. Every change is recorded in the audit log."}</p><Textarea value={notes} onChange={(event) => { setDraftNotes(event.target.value); setSaveState("idle"); }} disabled={!canUpdate} maxLength={2000} aria-label={isFr ? "Notes internes sur le client" : "Internal customer notes"} placeholder={isFr ? "Contexte utile pour le service client…" : "Useful context for customer service…"} className="mt-3 min-h-28 resize-y bg-white" /><div className="mt-2 flex flex-wrap items-center justify-between gap-3"><span className={`text-[10px] font-bold ${saveState === "error" ? "text-destructive" : saveState === "saved" ? "text-forest" : "text-muted-foreground"}`} role="status">{saveState === "saving" ? (isFr ? "Enregistrement…" : "Saving…") : saveState === "saved" ? (isFr ? "Note enregistrée et auditée" : "Note saved and audited") : saveState === "error" ? (isFr ? "La note n’a pas pu être enregistrée" : "The note could not be saved") : !canUpdate ? (isFr ? "Accès en lecture seule" : "Read-only access") : `${notes.length}/2000`}</span>{canUpdate ? <Button type="button" size="sm" onClick={saveNotes} disabled={saveState === "saving" || saveState === "saved" || notes === data.customer.notes} className="bg-charcoal text-white hover:bg-forest-dark">{isFr ? "Enregistrer la note" : "Save note"}</Button> : null}</div></section>
+                <section className="mt-6 border-t border-charcoal/8 pt-5" aria-labelledby="notes-title"><div className="flex items-center gap-2"><NotebookPen className="h-4 w-4 text-terre" /><h3 id="notes-title" className="text-sm font-black text-charcoal">{isFr ? "Notes internes" : "Internal notes"}</h3></div><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{isFr ? "Visible uniquement par l'équipe autorisée. Chaque modification est inscrite au journal d'audit." : "Visible only to authorized team members. Every change is recorded in the audit log."}</p><Textarea value={notes} onChange={(event) => { setDraftNotes(event.target.value); setSaveState("idle"); }} disabled={!canUpdate} maxLength={2000} aria-label={isFr ? "Notes internes sur le client" : "Internal customer notes"} placeholder={isFr ? "Contexte utile pour le service client…" : "Useful context for customer service…"} className="mt-3 min-h-28 resize-y bg-white" /><div className="mt-2 flex flex-wrap items-center justify-between gap-3"><span className={`text-[10px] font-bold ${saveState === "error" ? "text-destructive" : saveState === "saved" ? "text-forest" : "text-muted-foreground"}`} role="status">{saveState === "saving" ? (isFr ? "Enregistrement…" : "Saving…") : saveState === "saved" ? (isFr ? "Note enregistrée et auditée" : "Note saved and audited") : saveState === "error" ? (isFr ? "La note n'a pas pu être enregistrée" : "The note could not be saved") : !canUpdate ? (isFr ? "Accès en lecture seule" : "Read-only access") : `${notes.length}/2000`}</span>{canUpdate ? <Button type="button" size="sm" onClick={saveNotes} disabled={saveState === "saving" || saveState === "saved" || notes === data.customer.notes} className="bg-terre text-white hover:bg-terre-dark disabled:!bg-[#EDE8E5] disabled:!text-[#65555A]">{isFr ? "Enregistrer la note" : "Save note"}</Button> : null}</div></section>
               </div>
             ) : null}
           </div>
@@ -194,7 +195,7 @@ function InterestList({ items, empty }: { items: Array<{ id: string; label: stri
 export function CustomerProfileDialog({ selectedCustomer, onClose, locale, canUpdate }: { selectedCustomer: AdminCustomer | null; onClose: () => void; locale: "fr" | "en"; canUpdate: boolean }) {
   return (
     <Dialog open={Boolean(selectedCustomer)} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="h-[calc(100svh-1rem)] max-w-[calc(100%-1rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden bg-white p-0 sm:h-auto sm:max-h-[calc(100vh-3rem)] sm:max-w-4xl">
+      <DialogContent closeLabel={locale === "fr" ? "Fermer" : "Close"} className="h-[calc(100svh-1rem)] max-w-[calc(100%-1rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden bg-white p-0 sm:h-auto sm:max-h-[calc(100vh-3rem)] sm:max-w-4xl">
         {selectedCustomer ? <CustomerProfileContent key={`${selectedCustomer.id}-${locale}`} summary={selectedCustomer} locale={locale} canUpdate={canUpdate} /> : null}
       </DialogContent>
     </Dialog>
