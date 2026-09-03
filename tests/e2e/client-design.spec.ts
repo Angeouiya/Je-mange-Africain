@@ -701,7 +701,10 @@ test("checkout compares delivery services and protects the cold chain", async ({
         locale: "fr",
         cart: [{ id: "line-frozen", productId: "product-frozen", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", unitPrice: 8.5, unitLabel: "500 g", packWeightGrams: 500, thermalClass: "FROZEN", imageUrl: "/products/gombo.webp", qty: 2, maxStock: 40 }],
         customer: persistedCustomer,
-        addresses: [{ id: "address-checkout", label: "Domicile", firstName: "Awa", lastName: "Traoré", street: "12 rue de la Gare", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678" }],
+        addresses: [
+          { id: "address-checkout", label: "Domicile", firstName: "Awa", lastName: "Traoré", street: "12 rue de la Gare", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678", isDefault: true },
+          { id: "address-office", label: "Bureau", firstName: "Awa", lastName: "Traoré", street: "8 Alexanderplatz", postalCode: "10178", city: "Berlin", country: "Allemagne", phone: "+49301234567" },
+        ],
         favorites: [], savedRecipes: [], recentlyViewed: [], country: "Belgique", postalCode: "1000", coupon: null,
       },
       version: 0,
@@ -750,19 +753,36 @@ test("checkout compares delivery services and protects the cold chain", async ({
     await expectLoadedProductImages(orderSummary.getByRole("img", { name: /gombo surgelé|frozen okra/i }), 1);
   }
   await expect(page.getByLabel(/pays de livraison|delivery country/i)).toHaveValue("France");
+  await expect(page.getByRole("heading", { name: /coordonnées de contact|contact details/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /adresse de livraison|delivery address/i })).toBeVisible();
+  const savedAddress = page.getByLabel(/utiliser une adresse enregistrée|use a saved address/i);
+  await expect(savedAddress).toHaveValue("address-checkout");
+  await savedAddress.selectOption("address-office");
+  await expect(page.getByLabel(/^adresse$|^street address$/i)).toHaveValue("8 Alexanderplatz");
+  await expect(page.getByLabel(/pays de livraison|delivery country/i)).toHaveValue("Allemagne");
+  await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Allemagne");
   const standard = page.getByRole("radio", { name: /standard/i });
   const express = page.getByRole("radio", { name: /express/i });
   const relay = page.getByRole("radio", { name: /relais|collection point/i });
   await expect(standard).toBeChecked();
   await expect(relay).toBeDisabled();
   await expect(page.getByText(/indisponible avec les produits frais ou surgelés|unavailable for chilled or frozen products/i)).toBeVisible();
+  const deliveryPromise = page.getByTestId("delivery-promise");
+  await expect(deliveryPromise).toContainText(/arrivée estimée|estimated arrival/i);
+  await expect(deliveryPromise).toContainText("Chrono Frais");
+  await expect(deliveryPromise).toContainText(/1 colis|1 parcel/i);
+  await expect(deliveryPromise).toContainText(/froid suivi|cold chain/i);
+  const deliveryOptions = page.getByRole("radiogroup", { name: /mode de livraison|delivery option/i });
+  const optionColumns = await deliveryOptions.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(optionColumns).toBe(isMobile ? 1 : 3);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     await page.screenshot({ path: `output/playwright/audit/checkout-overview-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
   await express.check();
   await expect(express).toBeChecked();
-  await expect(page.getByText(/flotte interne jma · 12 à 24 h|flotte interne jma · 12-24 h/i)).toBeVisible();
+  await expect(deliveryPromise).toContainText("Flotte interne JMA");
+  await expect(deliveryOptions).toContainText(/12 à 24 h|12-24 h/i);
 
   await page.getByLabel(/pays de livraison|delivery country/i).selectOption("Belgique");
   await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Belgique");

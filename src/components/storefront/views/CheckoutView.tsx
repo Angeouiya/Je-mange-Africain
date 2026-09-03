@@ -4,13 +4,14 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
-import { Check, ChevronDown, CreditCard, Loader2, Lock, LogIn, MapPinned, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
+import { CalendarRange, Check, ChevronDown, ContactRound, CreditCard, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Snowflake, Truck, Zap, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { formatEstimatedArrival } from "@/lib/delivery-experience";
 import { formatPrice, formatWeight, thermalLabel } from "@/lib/format";
 import { dict } from "@/lib/i18n";
 import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStore } from "@/lib/store";
@@ -59,6 +60,7 @@ export function CheckoutView() {
   const [paymentError, setPaymentError] = useState("");
   const [intent, setIntent] = useState<IntentResponse | null>(null);
   const address = addresses.find((item) => item.isDefault) || addresses[0];
+  const [selectedAddressId, setSelectedAddressId] = useState(address?.id || "custom");
   const [form, setForm] = useState({
     firstName: address?.firstName || customer?.firstName || "",
     lastName: address?.lastName || customer?.lastName || "",
@@ -74,6 +76,41 @@ export function CheckoutView() {
   const [shipLoading, setShipLoading] = useState(false);
   const [promotion, setPromotion] = useState<{ discount: number; freeShipping?: boolean } | null>(null);
   const [promotionLoading, setPromotionLoading] = useState(false);
+
+  const updateForm = (field: keyof typeof form, value: string) => {
+    setSelectedAddressId("custom");
+    setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const chooseAddress = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    if (addressId === "custom") {
+      setForm((current) => ({
+        ...current,
+        firstName: customer?.firstName || current.firstName,
+        lastName: customer?.lastName || current.lastName,
+        email: customer?.email || current.email,
+        phone: customer?.phone || current.phone,
+        street: "",
+        postalCode: "",
+        city: "",
+      }));
+      return;
+    }
+    const selected = addresses.find((item) => item.id === addressId);
+    if (!selected) return;
+    setForm((current) => ({
+      ...current,
+      firstName: selected.firstName,
+      lastName: selected.lastName,
+      email: customer?.email || current.email,
+      phone: selected.phone || customer?.phone || "",
+      street: selected.street,
+      postalCode: selected.postalCode,
+      city: selected.city,
+      country: selected.country,
+    }));
+  };
 
   const subtotal = cartSubtotal(cart);
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -289,31 +326,48 @@ export function CheckoutView() {
 
           <div className="rounded-lg border border-charcoal/10 bg-white p-4 sm:p-6">
             {step === 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t.checkout.firstName} value={form.firstName} onChange={(value) => setForm({ ...form, firstName: value })} autoComplete="given-name" />
-              <Field label={t.checkout.lastName} value={form.lastName} onChange={(value) => setForm({ ...form, lastName: value })} autoComplete="family-name" />
-            </div>
-            <Field label={t.checkout.email} type="email" value={form.email} onChange={(value) => setForm({ ...form, email: value })} autoComplete="email" />
-            <Field label={t.checkout.phone} type="tel" value={form.phone} onChange={(value) => setForm({ ...form, phone: value })} autoComplete="tel" />
-            <Field label={t.checkout.street} value={form.street} onChange={(value) => setForm({ ...form, street: value })} autoComplete="street-address" />
-            <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3">
-              <Field label={t.checkout.postalCode} value={form.postalCode} onChange={(value) => setForm({ ...form, postalCode: value })} autoComplete="postal-code" />
-              <Field label={t.checkout.city} value={form.city} onChange={(value) => setForm({ ...form, city: value })} autoComplete="address-level2" />
-            </div>
-            <div>
-              <Label htmlFor="checkout-country" className="mb-1.5 block text-xs font-semibold text-charcoal">{locale === "fr" ? "Pays de livraison" : "Delivery country"}</Label>
-              <select id="checkout-country" value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} autoComplete="country-name" className="h-11 w-full rounded-md border border-charcoal/12 bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">
-                <option value="France">France</option>
-                <option value="Belgique">{locale === "fr" ? "Belgique" : "Belgium"}</option>
-                <option value="Allemagne">{locale === "fr" ? "Allemagne" : "Germany"}</option>
-                <option value="Pays-Bas">{locale === "fr" ? "Pays-Bas" : "Netherlands"}</option>
-                <option value="Luxembourg">Luxembourg</option>
-              </select>
-            </div>
-            <div>
-              <div className="mb-2 flex items-end justify-between gap-3"><Label className="block text-xs font-semibold text-charcoal">{t.checkout.deliverySlot}</Label>{shipLoading ? <span role="status" className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />{locale === "fr" ? "Calcul en cours" : "Calculating"}</span> : null}</div>
-              <RadioGroup value={slot} onValueChange={(value) => setSlot(value as DeliveryService)} className="space-y-2">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <section aria-labelledby="checkout-contact-title">
+              <CheckoutSectionHeading id="checkout-contact-title" icon={ContactRound} eyebrow={locale === "fr" ? "Destinataire" : "Recipient"} title={locale === "fr" ? "Coordonnées de contact" : "Contact details"} />
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Field label={t.checkout.firstName} value={form.firstName} onChange={(value) => updateForm("firstName", value)} autoComplete="given-name" />
+                <Field label={t.checkout.lastName} value={form.lastName} onChange={(value) => updateForm("lastName", value)} autoComplete="family-name" />
+                <div className="col-span-2 sm:col-span-1"><Field label={t.checkout.email} type="email" value={form.email} onChange={(value) => updateForm("email", value)} autoComplete="email" /></div>
+                <div className="col-span-2 sm:col-span-1"><Field label={t.checkout.phone} type="tel" value={form.phone} onChange={(value) => updateForm("phone", value)} autoComplete="tel" /></div>
+              </div>
+            </section>
+
+            <section className="border-t border-border pt-5" aria-labelledby="checkout-address-title">
+              <CheckoutSectionHeading id="checkout-address-title" icon={MapPinCheck} eyebrow={locale === "fr" ? "Destination" : "Destination"} title={locale === "fr" ? "Adresse de livraison" : "Delivery address"} />
+              {addresses.length ? (
+                <div className="mt-3">
+                  <Label htmlFor="checkout-saved-address" className="mb-1.5 block text-xs font-semibold text-charcoal">{locale === "fr" ? "Utiliser une adresse enregistrée" : "Use a saved address"}</Label>
+                  <select id="checkout-saved-address" value={selectedAddressId} onChange={(event) => chooseAddress(event.target.value)} className="h-11 w-full rounded-md border border-charcoal/12 bg-white px-3 text-sm font-semibold text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">
+                    {addresses.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.city}, {item.country}</option>)}
+                    <option value="custom">{selectedAddressId === "custom" && form.street.trim() ? (locale === "fr" ? "Adresse modifiée pour cette commande" : "Address changed for this order") : (locale === "fr" ? "Saisir une nouvelle adresse" : "Enter a new address")}</option>
+                  </select>
+                </div>
+              ) : null}
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-[0.7fr_1.1fr_1fr]">
+                <div className="col-span-2 sm:col-span-3"><Field label={t.checkout.street} value={form.street} onChange={(value) => updateForm("street", value)} autoComplete="street-address" /></div>
+                <Field label={t.checkout.postalCode} value={form.postalCode} onChange={(value) => updateForm("postalCode", value)} autoComplete="postal-code" />
+                <Field label={t.checkout.city} value={form.city} onChange={(value) => updateForm("city", value)} autoComplete="address-level2" />
+                <div className="col-span-2 sm:col-span-1">
+                  <Label htmlFor="checkout-country" className="mb-1.5 block text-xs font-semibold text-charcoal">{locale === "fr" ? "Pays de livraison" : "Delivery country"}</Label>
+                  <select id="checkout-country" value={form.country} onChange={(event) => updateForm("country", event.target.value)} autoComplete="country-name" className="h-11 w-full rounded-md border border-charcoal/12 bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">
+                    <option value="France">France</option>
+                    <option value="Belgique">{locale === "fr" ? "Belgique" : "Belgium"}</option>
+                    <option value="Allemagne">{locale === "fr" ? "Allemagne" : "Germany"}</option>
+                    <option value="Pays-Bas">{locale === "fr" ? "Pays-Bas" : "Netherlands"}</option>
+                    <option value="Luxembourg">Luxembourg</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section className="border-t border-border pt-5" aria-labelledby="checkout-service-title">
+              <div className="flex items-end justify-between gap-3"><CheckoutSectionHeading id="checkout-service-title" icon={Truck} eyebrow={locale === "fr" ? "Acheminement" : "Fulfilment"} title={t.checkout.deliverySlot} />{shipLoading ? <span role="status" className="inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />{locale === "fr" ? "Calcul en cours" : "Calculating"}</span> : null}</div>
+              <RadioGroup value={slot} onValueChange={(value) => setSlot(value as DeliveryService)} className="mt-3 grid gap-2 md:grid-cols-3" aria-labelledby="checkout-service-title">
                 {([
                   ["standard", t.checkout.standard, Truck],
                   ["express", t.checkout.express, Zap],
@@ -322,16 +376,17 @@ export function CheckoutView() {
                   const quote = shipQuote?.options.find((option) => option.service === value);
                   const unavailable = quote?.available === false;
                   return (
-                    <label key={value} className={`grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border p-3 transition ${unavailable ? "cursor-not-allowed border-border bg-muted/35" : "cursor-pointer border-border has-[:checked]:border-terre has-[:checked]:bg-terre/[0.045]"}`}>
-                      <RadioGroupItem value={value} disabled={unavailable} />
-                      <span className="grid h-9 w-9 place-items-center rounded-md bg-charcoal/5 text-terre"><Icon className="h-4 w-4" /></span>
-                      <span className="min-w-0"><span className="flex flex-wrap items-center gap-1.5 text-xs font-extrabold text-charcoal">{label}{value === "standard" ? <span className="rounded bg-burgundy/10 px-1.5 py-0.5 text-[8px] uppercase text-burgundy">{locale === "fr" ? "Recommandé" : "Recommended"}</span> : null}</span><span className={`mt-1 block truncate text-[10px] ${unavailable ? "text-charcoal/70" : "text-muted-foreground"}`}>{unavailable ? (locale === "fr" ? "Indisponible avec les produits frais ou surgelés" : "Unavailable for chilled or frozen products") : quote ? `${quote.carrier} · ${formatDeliveryWindow(quote, locale)}` : (locale === "fr" ? "Estimation du transporteur" : "Carrier estimate")}</span></span>
+                    <label key={value} className={`grid min-h-[5.25rem] grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border p-3 transition md:grid-cols-[auto_1fr_auto] md:items-start ${unavailable ? "cursor-not-allowed border-border bg-muted/35" : "cursor-pointer border-border has-[:checked]:border-terre has-[:checked]:bg-terre/[0.045]"}`}>
+                      <RadioGroupItem value={value} disabled={unavailable} className="md:mt-1" />
+                      <span className="grid h-9 w-9 place-items-center rounded-md bg-charcoal/5 text-terre md:hidden"><Icon className="h-4 w-4" /></span>
+                      <span className="min-w-0"><span className="flex flex-wrap items-center gap-1.5 text-xs font-extrabold text-charcoal">{label}{value === "standard" ? <span className="rounded bg-burgundy/10 px-1.5 py-0.5 text-[8px] uppercase text-burgundy">{locale === "fr" ? "Recommandé" : "Recommended"}</span> : null}</span><span className={`mt-1 block text-[10px] leading-4 ${unavailable ? "text-charcoal/70" : "text-muted-foreground"}`}>{unavailable ? (locale === "fr" ? "Indisponible avec les produits frais ou surgelés" : "Unavailable for chilled or frozen products") : quote ? <>{quote.carrier}<br />{formatDeliveryWindow(quote, locale)}</> : (locale === "fr" ? "Estimation du transporteur" : "Carrier estimate")}</span></span>
                       <span className="text-right text-xs font-black tabular-nums text-charcoal">{unavailable ? "-" : quote ? formatPrice(quote.fee, locale) : "…"}</span>
                     </label>
                   );
                 })}
               </RadioGroup>
-            </div>
+              {selectedShipping?.available ? <DeliveryPromise quote={selectedShipping} locale={locale} thermal={thermal} /> : null}
+            </section>
             {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
             <Button onClick={preparePayment} disabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise} aria-describedby={!stripePromise ? "checkout-payment-unavailable" : undefined} className="w-full bg-terre text-cream hover:bg-terre-dark">
               {preparingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.loading}</> : !stripePromise ? (locale === "fr" ? "Paiement indisponible" : "Payment unavailable") : t.next}
@@ -489,6 +544,28 @@ function Field({ label, value, onChange, type = "text", autoComplete }: { label:
 
 function PriceLine({ label, value, accent = false, muted = false }: { label: string; value: string; accent?: boolean; muted?: boolean }) {
   return <div className={`flex items-start justify-between gap-3 ${accent ? "text-burgundy" : muted ? "text-muted-foreground" : ""}`}><span>{label}</span><span className="max-w-[55%] text-right">{value}</span></div>;
+}
+
+function CheckoutSectionHeading({ id, icon: Icon, eyebrow, title }: { id: string; icon: LucideIcon; eyebrow: string; title: string }) {
+  return <div className="flex min-w-0 items-center gap-2.5"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-terre/[0.08] text-terre"><Icon className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[8px] font-black uppercase text-terre">{eyebrow}</p><h2 id={id} className="truncate text-sm font-black text-charcoal">{title}</h2></div></div>;
+}
+
+function DeliveryPromise({ quote, locale, thermal }: { quote: DeliveryOption; locale: "fr" | "en"; thermal: string[] }) {
+  const coldChain = thermal.some((item) => item === "FROZEN" || item === "REFRIGERATED");
+  return (
+    <div className="mt-4 border-y border-charcoal/10 py-3" aria-live="polite" data-testid="delivery-promise">
+      <div className="flex items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-gold/[0.14] text-terre"><CalendarRange className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[9px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Arrivée estimée" : "Estimated arrival"}</p><p className="mt-0.5 text-xs font-black text-charcoal">{formatEstimatedArrival(quote, locale)}</p></div></div>
+      <div className="mt-3 grid grid-cols-3 divide-x divide-charcoal/10 border-t border-charcoal/8 pt-3">
+        <DeliveryFact icon={Truck} label={locale === "fr" ? "Transporteur" : "Carrier"} value={quote.carrier} />
+        <DeliveryFact icon={PackageCheck} label={locale === "fr" ? "Expédition" : "Shipment"} value={`${quote.packages} ${locale === "fr" ? `colis` : quote.packages === 1 ? "parcel" : "parcels"}`} />
+        <DeliveryFact icon={coldChain ? Snowflake : ShieldCheck} label={locale === "fr" ? "Protection" : "Protection"} value={coldChain ? (locale === "fr" ? "Froid suivi" : "Cold chain") : (locale === "fr" ? "Scellé" : "Sealed")} />
+      </div>
+    </div>
+  );
+}
+
+function DeliveryFact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+  return <div className="min-w-0 px-2 first:pl-0 last:pr-0"><p className="flex items-center gap-1 text-[8px] font-black uppercase text-muted-foreground"><Icon className="h-3 w-3 shrink-0 text-terre" />{label}</p><p className="mt-1 truncate text-[9px] font-bold text-charcoal sm:text-[10px]">{value}</p></div>;
 }
 
 function deliveryServiceLabel(service: DeliveryService, locale: "fr" | "en") {
