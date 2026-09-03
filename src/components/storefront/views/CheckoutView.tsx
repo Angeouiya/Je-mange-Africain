@@ -4,13 +4,14 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
-import { CalendarRange, Check, ChevronDown, ContactRound, CreditCard, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Snowflake, Truck, Zap, type LucideIcon } from "lucide-react";
+import { ArrowLeft, CalendarRange, Check, ChevronDown, ChevronRight, ContactRound, CreditCard, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Snowflake, Truck, Zap, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { formatEstimatedArrival } from "@/lib/delivery-experience";
 import { formatPrice, formatWeight, thermalLabel } from "@/lib/format";
 import { dict } from "@/lib/i18n";
@@ -297,7 +298,7 @@ export function CheckoutView() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 pb-36 pt-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="cart" className="mb-4" />
       <h1 className="jma-section-title mb-5">{t.checkout.title}</h1>
       <div className="mb-6 flex items-center gap-1.5" aria-label={locale === "fr" ? "Progression du paiement" : "Checkout progress"}>
@@ -388,7 +389,7 @@ export function CheckoutView() {
               {selectedShipping?.available ? <DeliveryPromise quote={selectedShipping} locale={locale} thermal={thermal} /> : null}
             </section>
             {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
-            <Button onClick={preparePayment} disabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise} aria-describedby={!stripePromise ? "checkout-payment-unavailable" : undefined} className="w-full bg-terre text-cream hover:bg-terre-dark">
+            <Button onClick={preparePayment} disabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise} aria-describedby={!stripePromise ? "checkout-payment-unavailable" : undefined} className="hidden w-full bg-terre text-cream hover:bg-terre-dark lg:flex">
               {preparingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.loading}</> : !stripePromise ? (locale === "fr" ? "Paiement indisponible" : "Payment unavailable") : t.next}
             </Button>
             {!stripePromise ? <div id="checkout-payment-unavailable" className="flex items-start gap-3 rounded-lg border border-gold/35 bg-gold/[0.08] p-3 text-charcoal"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-terre"><Lock className="h-3.5 w-3.5" /></span><div><p className="text-xs font-extrabold">{locale === "fr" ? "Paiement momentanément indisponible" : "Payment temporarily unavailable"}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Votre panier reste enregistré. Vous pourrez reprendre cette commande dès le retour du service." : "Your basket remains saved. You can resume this order as soon as the service returns."}</p></div></div> : null}
@@ -406,6 +407,26 @@ export function CheckoutView() {
           <CheckoutBasketPreview cart={cart} locale={locale} subtotal={subtotal} promoDiscount={promoDiscount} shipping={shipFee} total={displayTotal} shippingLoading={shipLoading || promotionLoading} />
         </aside>
       </div>
+      {step === 0 ? (
+        <CheckoutMobileDock
+          stepLabel={locale === "fr" ? "Livraison · 1/3" : "Delivery · 1/3"}
+          statusLabel={!stripePromise
+            ? (locale === "fr" ? "Stripe indisponible" : "Stripe unavailable")
+            : shipLoading || promotionLoading
+              ? (locale === "fr" ? "Calcul en cours" : "Calculating")
+              : !canContinue
+                ? (locale === "fr" ? "Adresse à compléter" : "Address incomplete")
+                : selectedShipping?.carrier || (locale === "fr" ? "Livraison sélectionnée" : "Delivery selected")}
+          amount={displayTotal}
+          locale={locale}
+          primaryLabel={preparingPayment ? t.loading : !stripePromise ? (locale === "fr" ? "Paiement indisponible" : "Payment unavailable") : (locale === "fr" ? "Continuer" : "Continue")}
+          primaryIcon={!stripePromise ? Lock : preparingPayment ? Loader2 : ChevronRight}
+          primaryIconSpins={preparingPayment}
+          onPrimary={preparePayment}
+          primaryDisabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise}
+          describedBy={!stripePromise ? "checkout-payment-unavailable" : undefined}
+        />
+      ) : null}
     </div>
   );
 }
@@ -523,7 +544,7 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
       </div>
       {step === 2 ? review : null}
       {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
-      <div className="flex gap-2">
+      <div className="hidden gap-2 lg:flex">
         <Button variant="outline" onClick={() => setStep(step === 1 ? 0 : 1)} disabled={processing} className="flex-1">{t.previous}</Button>
         {step === 1 ? (
           <Button onClick={reviewPayment} disabled={!stripe || !elements} className="flex-1 bg-terre text-cream hover:bg-terre-dark">{t.next}</Button>
@@ -533,7 +554,51 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
           </Button>
         )}
       </div>
+      <CheckoutMobileDock
+        stepLabel={step === 1 ? (locale === "fr" ? "Paiement · 2/3" : "Payment · 2/3") : (locale === "fr" ? "Vérification · 3/3" : "Review · 3/3")}
+        statusLabel={step === 1 ? (locale === "fr" ? "Sécurisé par Stripe" : "Secured by Stripe") : (locale === "fr" ? "Prêt à confirmer" : "Ready to confirm")}
+        amount={amount}
+        locale={locale}
+        onBack={() => setStep(step === 1 ? 0 : 1)}
+        backDisabled={processing || confirming}
+        primaryLabel={step === 1 ? t.next : t.checkout.placeOrder.replace("{amount}", amount.toFixed(2))}
+        primaryIcon={step === 1 ? ChevronRight : processing || confirming ? Loader2 : CreditCard}
+        primaryIconSpins={step !== 1 && (processing || confirming)}
+        onPrimary={step === 1 ? reviewPayment : confirm}
+        primaryDisabled={step === 1 ? !stripe || !elements : processing || confirming || !stripe || !elements}
+      />
     </motion.div>
+  );
+}
+
+function CheckoutMobileDock({ stepLabel, statusLabel, amount, locale, primaryLabel, primaryIcon: PrimaryIcon, primaryIconSpins = false, onPrimary, primaryDisabled, describedBy, onBack, backDisabled = false }: {
+  stepLabel: string;
+  statusLabel: string;
+  amount: number;
+  locale: "fr" | "en";
+  primaryLabel: string;
+  primaryIcon: LucideIcon;
+  primaryIconSpins?: boolean;
+  onPrimary: () => void;
+  primaryDisabled: boolean;
+  describedBy?: string;
+  onBack?: () => void;
+  backDisabled?: boolean;
+}) {
+  return (
+    <MobileActionDock testId="checkout-action-dock">
+      <div className="mx-auto flex max-w-xl items-center gap-2">
+        {onBack ? <Button type="button" variant="outline" size="icon" onClick={onBack} disabled={backDisabled} aria-label={dict[locale].previous} className="h-11 w-11 shrink-0 border-charcoal/12 bg-white"><ArrowLeft className="h-4 w-4" /></Button> : null}
+        <div className="w-28 min-w-0 shrink-0" aria-live="polite">
+          <p className="break-words text-[8px] font-black uppercase leading-3 text-terre">{stepLabel}</p>
+          <p className="break-words text-[9px] leading-3 text-muted-foreground">{statusLabel}</p>
+          <p className="mt-0.5 text-sm font-black tabular-nums text-charcoal">{formatPrice(amount, locale)}</p>
+        </div>
+        <Button type="button" onClick={onPrimary} disabled={primaryDisabled} aria-describedby={describedBy} className={`h-11 min-w-0 flex-1 justify-between gap-2 px-3 text-xs disabled:opacity-100 ${primaryDisabled ? "border border-charcoal/10 bg-[#EDE8E5] text-[#65555A] shadow-none" : "bg-terre text-cream hover:bg-terre-dark"}`}>
+          <span className="min-w-0 text-center leading-tight">{primaryLabel}</span><PrimaryIcon className={`h-4 w-4 shrink-0 ${primaryIconSpins ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+    </MobileActionDock>
   );
 }
 

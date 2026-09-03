@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 
 export function CartView() {
   const locale = useStore((s) => s.locale);
@@ -164,7 +165,7 @@ export function CartView() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 pb-36 pt-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-2" />
       <div className="mb-5 flex items-end justify-between gap-4 border-b border-charcoal/10 pb-4">
         <div><p className="jma-eyebrow">{locale === "fr" ? "Votre sélection" : "Your selection"}</p><h1 className="jma-section-title mt-1">{t.cart.title}</h1></div>
@@ -251,13 +252,25 @@ export function CartView() {
               <span className="text-2xl font-extrabold text-terre">{formatPrice(total, locale)}</span>
             </div>
 
-            <Button onClick={proceed} size="lg" className="mt-3 w-full bg-terre text-cream hover:bg-terre-dark shadow-md">
+            <Button onClick={proceed} size="lg" className="mt-3 hidden w-full bg-terre text-cream shadow-md hover:bg-terre-dark lg:flex">
               {t.cart.checkout} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
-            <p className="mt-2 text-center text-[10px] text-muted-foreground">{t.checkout.securePayment}</p>
+            <p className="mt-2 hidden text-center text-[10px] text-muted-foreground lg:block">{t.checkout.securePayment}</p>
           </div>
         </aside>
       </div>
+
+      <MobileActionDock testId="cart-checkout-dock">
+        <div className="mx-auto flex max-w-xl items-center gap-3">
+          <div className="min-w-0 shrink-0">
+            <p className="text-[8px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Total, livraison incluse" : "Total, delivery included"}</p>
+            <p className="mt-0.5 text-lg font-black tabular-nums text-terre">{shipLoading ? "…" : formatPrice(total, locale)}</p>
+          </div>
+          <Button onClick={proceed} size="lg" aria-label={`${t.cart.checkout}, ${formatPrice(total, locale)}`} className="h-11 min-w-0 flex-1 justify-between bg-terre px-3 text-cream shadow-md hover:bg-terre-dark">
+            <span className="min-w-0 text-center leading-tight">{t.cart.checkout}</span><ChevronRight className="h-4 w-4 shrink-0" />
+          </Button>
+        </div>
+      </MobileActionDock>
     </div>
   );
 }

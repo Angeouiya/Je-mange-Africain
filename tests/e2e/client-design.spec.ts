@@ -383,7 +383,9 @@ test("product details stay bounded and preserve real visual identification in th
   const largerVariant = page.getByRole("button", { name: /Pot 800 g/i });
   await expect(largerVariant).toContainText(/9,90\s*€/);
   await largerVariant.click();
-  const addToCart = page.getByRole("button", { name: /ajouter au panier|add to cart/i }).first();
+  const addToCart = isMobile
+    ? purchaseDock.getByRole("button", { name: /ajouter au panier|add to cart/i })
+    : page.getByRole("button", { name: /ajouter au panier|add to cart/i }).first();
   await expect(addToCart).toContainText(/9,90\s*€/);
   await addToCart.click();
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
@@ -795,10 +797,21 @@ test("checkout compares delivery services and protects the cold chain", async ({
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
   await expect.poll(() => quoteRequests[0]?.country).toBe("Belgique");
   expect(quoteRequests[0]?.postalCode).toBe("1000");
   await expect(page.getByText("1000 · Belgique", { exact: true })).toBeVisible();
   await expectLoadedProductImages(page.getByRole("img", { name: /gombo surgelé|frozen okra/i }), 1);
+  const cartDock = page.getByTestId("cart-checkout-dock");
+  if (isMobile) {
+    await expect(cartDock).toBeVisible();
+    await expect(cartDock).toContainText(/25,50\s*€/);
+    const cartDockBox = await cartDock.boundingBox();
+    const navigationBox = await page.getByTestId("mobile-navigation").boundingBox();
+    expect(Math.abs((cartDockBox?.y || 0) + (cartDockBox?.height || 0) - (navigationBox?.y || 0))).toBeLessThanOrEqual(2);
+  } else {
+    await expect(cartDock).toBeHidden();
+  }
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/cart-filled-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
   }
@@ -812,8 +825,13 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await page.getByRole("button", { name: /passer la commande|place order/i }).click();
 
   await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
-  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  const checkoutDock = page.getByTestId("checkout-action-dock");
   if (isMobile) {
+    await expect(checkoutDock).toBeVisible();
+    await expect(checkoutDock).toContainText(/25,50\s*€/);
+    const checkoutDockBox = await checkoutDock.boundingBox();
+    const navigationBox = await page.getByTestId("mobile-navigation").boundingBox();
+    expect(Math.abs((checkoutDockBox?.y || 0) + (checkoutDockBox?.height || 0) - (navigationBox?.y || 0))).toBeLessThanOrEqual(2);
     const orderSummary = page.locator("details").filter({ hasText: /votre commande|your order/i });
     await expect(orderSummary).toBeVisible();
     await orderSummary.locator("summary").click();
@@ -855,6 +873,7 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expect(express).toBeChecked();
   await expect(deliveryPromise).toContainText("Flotte interne JMA");
   await expect(deliveryOptions).toContainText(/12 à 24 h|12-24 h/i);
+  if (isMobile) await expect(checkoutDock).toContainText(/29,90\s*€/);
 
   await page.getByLabel(/pays de livraison|delivery country/i).selectOption("Belgique");
   await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Belgique");

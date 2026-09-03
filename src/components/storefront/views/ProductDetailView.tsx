@@ -11,6 +11,7 @@ import { ProductCard } from "@/components/shared/ProductCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
+import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { useStore } from "@/lib/store";
 import { dict, type Locale } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
@@ -363,9 +364,9 @@ function PurchaseControls({ productName, qty, maxQty, onQtyChange, onAdd, outOfS
 
   if (!mobile) return <div className="hidden min-w-0 md:flex">{controls}</div>;
   return (
-    <div data-testid="product-purchase-dock" className="fixed inset-x-0 z-30 border-t border-burgundy/12 bg-white/96 px-3 py-2 shadow-[0_-16px_36px_-28px_rgba(90,38,50,0.7)] backdrop-blur-xl md:hidden" style={{ bottom: "calc(2.5rem + max(env(safe-area-inset-bottom), 0.75rem) + 1px)" }}>
+    <MobileActionDock testId="product-purchase-dock">
       {controls}
-    </div>
+    </MobileActionDock>
   );
 }
 
