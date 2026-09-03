@@ -292,7 +292,7 @@ test("the product workspace edits bilingual content and calculates the customer 
   const dialog = page.getByRole("dialog", { name: "Modifier la fiche produit" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Nom commercial français")).toHaveValue("Attiéké frais");
-  await expect(dialog.getByLabel("English product name")).toHaveValue("Fresh attieke");
+  await expect(dialog.getByLabel("Nom commercial anglais")).toHaveValue("Fresh attieke");
   await dialog.getByLabel("Coût brut d'achat (€)").fill("3.20");
   await dialog.getByLabel("Marge bénéficiaire (€)").fill("1.80");
   await expect(dialog.getByText("5,00 €", { exact: true })).toBeVisible();
@@ -317,6 +317,75 @@ test("the product workspace edits bilingual content and calculates the customer 
   const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+});
+
+test("professional creation studios remain fully English and use brand-safe recipe colours", async ({ page }) => {
+  test.setTimeout(150_000);
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+  const screenshotDirectory = join(process.cwd(), "output", "playwright", "admin-review");
+  if (process.env.ADMIN_SCREENSHOTS) mkdirSync(screenshotDirectory, { recursive: true });
+  await page.addInitScript(() => localStorage.setItem("jma-admin-locale", "en"));
+  await mockAdminApi(page);
+
+  await page.goto("/admin#catalog", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "What is actually sold" })).toBeVisible();
+  await page.getByRole("button", { name: "New product" }).click();
+  const productDialog = page.getByRole("dialog", { name: "Register a product" });
+  await expect(productDialog.getByLabel("French product name")).toBeVisible();
+  await expect(productDialog.getByLabel("French description")).toBeVisible();
+  await expect(productDialog.getByLabel("Thermal class").locator("option")).toHaveText(["Ambient", "Refrigerated", "Frozen"]);
+  await expect(productDialog.getByLabel("Storage").locator("option")).toHaveText(["Dry", "Fresh", "Refrigerated", "Frozen", "Smoked", "Dried", "Preserved"]);
+  expect(await productDialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  if (process.env.ADMIN_SCREENSHOTS) await page.screenshot({ path: join(screenshotDirectory, `product-studio-en-${mobile ? "mobile" : "desktop"}.png`) });
+  await page.keyboard.press("Escape");
+
+  await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Build shoppable recipes" })).toBeVisible();
+  await page.getByRole("button", { name: "New recipe" }).click();
+  const recipeDialog = page.getByRole("dialog", { name: "Compose a shoppable recipe" });
+  await expect(recipeDialog.getByLabel("French title")).toBeVisible();
+  await expect(recipeDialog.getByLabel("French description")).toBeVisible();
+  const palette = recipeDialog.getByRole("group", { name: "Recipe colour palette" });
+  await expect(palette.getByRole("button")).toHaveCount(5);
+  await expect(palette.getByRole("button", { name: "Burgundy" })).toHaveAttribute("aria-pressed", "true");
+  const recipeColours = await palette.getByRole("button").evaluateAll((buttons) => buttons.map((button) => getComputedStyle(button).backgroundColor));
+  for (const colour of recipeColours) {
+    const values = colour.match(/\d+/g)?.slice(0, 3).map(Number) || [];
+    expect(values[1] || 0).not.toBeGreaterThan(Math.max(values[0] || 0, values[2] || 0) * 1.08);
+  }
+  const paletteBox = await palette.boundingBox();
+  const publishingBox = await recipeDialog.getByLabel("Publishing status").boundingBox();
+  const controlsOverlap = Boolean(paletteBox && publishingBox
+    && paletteBox.x < publishingBox.x + publishingBox.width
+    && paletteBox.x + paletteBox.width > publishingBox.x
+    && paletteBox.y < publishingBox.y + publishingBox.height
+    && paletteBox.y + paletteBox.height > publishingBox.y);
+  expect(controlsOverlap).toBe(false);
+  expect(await recipeDialog.getByLabel("Unit 1").locator("option").allTextContents()).toEqual(expect.arrayContaining(["piece", "tbsp", "tsp"]));
+  expect(await recipeDialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    await palette.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(screenshotDirectory, `recipe-studio-en-${mobile ? "mobile" : "desktop"}.png`) });
+  }
+  await page.keyboard.press("Escape");
+
+  await page.goto("/admin#advertising", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Advertising desk" })).toBeVisible();
+  await page.getByRole("button", { name: "New artwork" }).click();
+  const advertisingDialog = page.getByRole("dialog", { name: "Compose advertising artwork" });
+  await expect(advertisingDialog.getByLabel("French title")).toBeVisible();
+  await expect(advertisingDialog.getByLabel("French alternative text")).toBeVisible();
+  await expect(advertisingDialog.getByLabel("Placement").locator("option")).toHaveText(["Home", "Catalogue", "Recipes", "Checkout"]);
+  await expect(advertisingDialog.getByLabel("Status").locator("option")).toHaveText(["Draft", "Publish", "Disable"]);
+  await expect(advertisingDialog.getByRole("button", { name: "Save" })).toBeDisabled();
+  await advertisingDialog.getByLabel("Starts").fill("2026-09-04T12:00");
+  await advertisingDialog.getByLabel("Ends").fill("2026-09-03T12:00");
+  await expect(advertisingDialog.getByRole("alert")).toHaveText("The end date must be later than the start date.");
+
+  const overflow = await advertisingDialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  await expectBrandSafeUiColors(page);
+  if (process.env.ADMIN_SCREENSHOTS) await page.screenshot({ path: join(screenshotDirectory, `advertising-studio-en-${mobile ? "mobile" : "desktop"}.png`) });
 });
 
 test("the order workspace saves logistics and confirms each sensitive advancement", async ({ page }) => {

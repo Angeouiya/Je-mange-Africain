@@ -195,12 +195,12 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
         }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Enregistrement impossible.");
+      if (!response.ok) throw new Error(payload.error || (locale === "fr" ? "Enregistrement impossible." : "Unable to save product."));
       setDraft(draftFor());
       setOpen(false);
       onCreated();
     } catch (cause) {
-      setSubmitError(cause instanceof Error ? cause.message : "Enregistrement impossible.");
+      setSubmitError(cause instanceof Error ? cause.message : (locale === "fr" ? "Enregistrement impossible." : "Unable to save product."));
     } finally {
       setSubmitting(false);
     }
@@ -221,8 +221,8 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
           <div className="grid gap-7 px-5 py-6 sm:px-7 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nom commercial français" required><Input value={draft.nameFr} onChange={(event) => update("nameFr", event.target.value)} placeholder="Attiéké frais premium" /></Field>
-                <Field label="English product name" required><Input value={draft.nameEn} onChange={(event) => update("nameEn", event.target.value)} placeholder="Premium fresh attieke" /></Field>
+                <Field label={locale === "fr" ? "Nom commercial français" : "French product name"} required><Input value={draft.nameFr} onChange={(event) => update("nameFr", event.target.value)} placeholder="Attiéké frais premium" /></Field>
+                <Field label={locale === "fr" ? "Nom commercial anglais" : "English product name"} required><Input value={draft.nameEn} onChange={(event) => update("nameEn", event.target.value)} placeholder="Premium fresh attieke" /></Field>
                 <Field label={locale === "fr" ? "Nom traditionnel" : "Traditional name"} required><Input value={draft.traditionalName} onChange={(event) => update("traditionalName", event.target.value)} placeholder="Attiéké" /></Field>
                 <Field label="SKU" required><Input value={draft.sku} onChange={(event) => update("sku", event.target.value.toUpperCase())} placeholder="JMA-ATT-001" /></Field>
                 <Field label={locale === "fr" ? "Catégorie" : "Category"} required>
@@ -236,8 +236,8 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Description française" required><Textarea value={draft.descriptionFr} onChange={(event) => update("descriptionFr", event.target.value)} rows={5} placeholder="Origine, goût, texture, usage et conservation..." /></Field>
-                <Field label="English description" required><Textarea value={draft.descriptionEn} onChange={(event) => update("descriptionEn", event.target.value)} rows={5} placeholder="Origin, flavour, texture, use and storage..." /></Field>
+                <Field label={locale === "fr" ? "Description française" : "French description"} required><Textarea value={draft.descriptionFr} onChange={(event) => update("descriptionFr", event.target.value)} rows={5} placeholder="Origine, goût, texture, usage et conservation..." /></Field>
+                <Field label={locale === "fr" ? "Description anglaise" : "English description"} required><Textarea value={draft.descriptionEn} onChange={(event) => update("descriptionEn", event.target.value)} rows={5} placeholder="Origin, flavour, texture, use and storage..." /></Field>
               </div>
 
               <section className="overflow-hidden rounded-lg border border-terre/20 bg-terre/[0.035]">
@@ -246,8 +246,8 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
                   <div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Construction du prix" : "Price composition"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Ces données restent internes. Le client voit uniquement le prix de vente calculé." : "These values remain internal. Customers only see the calculated selling price."}</p></div>
                 </div>
                 <div className="grid gap-4 p-4 sm:grid-cols-[1fr_1fr_1.05fr]">
-                  <Field label={locale === "fr" ? "Coût brut d'achat (€)" : "Gross purchase cost (€)"} required><Input type="number" inputMode="decimal" min="0.01" max="10000" step="0.01" value={draft.costPrice} onChange={(event) => update("costPrice", event.target.value)} placeholder="1,80" /></Field>
-                  <Field label={locale === "fr" ? "Marge bénéficiaire (€)" : "Profit margin (€)"} required><Input type="number" inputMode="decimal" min="0" max="10000" step="0.01" value={draft.profitMargin} onChange={(event) => update("profitMargin", event.target.value)} placeholder="1,20" /></Field>
+                  <Field label={locale === "fr" ? "Coût brut d'achat (€)" : "Gross purchase cost (€)"} required><Input type="number" inputMode="decimal" min="0.01" max="10000" step="0.01" value={draft.costPrice} onChange={(event) => update("costPrice", event.target.value)} placeholder={locale === "fr" ? "1,80" : "1.80"} /></Field>
+                  <Field label={locale === "fr" ? "Marge bénéficiaire (€)" : "Profit margin (€)"} required><Input type="number" inputMode="decimal" min="0" max="10000" step="0.01" value={draft.profitMargin} onChange={(event) => update("profitMargin", event.target.value)} placeholder={locale === "fr" ? "1,20" : "1.20"} /></Field>
                   <div className="rounded-md bg-charcoal px-4 py-3 text-white" aria-live="polite">
                     <p className="text-[10px] font-bold uppercase text-white/60">{locale === "fr" ? "Prix affiché au client" : "Customer price"}</p>
                     <p className="mt-1 text-2xl font-black text-gold">{salePrice.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
@@ -308,13 +308,13 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={locale === "fr" ? "Chaîne thermique" : "Thermal class"}>
-                  <select value={draft.thermalClass} onChange={(event) => update("thermalClass", event.target.value as ProductDraft["thermalClass"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
-                    <option value="AMBIANT">Ambiant</option><option value="REFRIGERATED">Réfrigéré</option><option value="FROZEN">Surgelé</option>
+                  <select aria-label={locale === "fr" ? "Chaîne thermique" : "Thermal class"} value={draft.thermalClass} onChange={(event) => update("thermalClass", event.target.value as ProductDraft["thermalClass"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
+                    <option value="AMBIANT">{locale === "fr" ? "Ambiant" : "Ambient"}</option><option value="REFRIGERATED">{locale === "fr" ? "Réfrigéré" : "Refrigerated"}</option><option value="FROZEN">{locale === "fr" ? "Surgelé" : "Frozen"}</option>
                   </select>
                 </Field>
                 <Field label={locale === "fr" ? "Conservation" : "Storage"}>
-                  <select value={draft.storageType} onChange={(event) => update("storageType", event.target.value as ProductDraft["storageType"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
-                    <option value="SEC">Sec</option><option value="FRAIS">Frais</option><option value="REFRIGERE">Réfrigéré</option><option value="SURGELE">Surgelé</option><option value="FUME">Fumé</option><option value="SECHE">Séché</option><option value="CONSERVE">Conserve</option>
+                  <select aria-label={locale === "fr" ? "Conservation" : "Storage"} value={draft.storageType} onChange={(event) => update("storageType", event.target.value as ProductDraft["storageType"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
+                    <option value="SEC">{locale === "fr" ? "Sec" : "Dry"}</option><option value="FRAIS">{locale === "fr" ? "Frais" : "Fresh"}</option><option value="REFRIGERE">{locale === "fr" ? "Réfrigéré" : "Refrigerated"}</option><option value="SURGELE">{locale === "fr" ? "Surgelé" : "Frozen"}</option><option value="FUME">{locale === "fr" ? "Fumé" : "Smoked"}</option><option value="SECHE">{locale === "fr" ? "Séché" : "Dried"}</option><option value="CONSERVE">{locale === "fr" ? "Conserve" : "Preserved"}</option>
                   </select>
                 </Field>
               </div>
@@ -323,7 +323,7 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
                   <option value="published">{locale === "fr" ? "Publié dans la boutique" : "Published in store"}</option><option value="draft">{locale === "fr" ? "Brouillon interne" : "Internal draft"}</option><option value="archived">{locale === "fr" ? "Désactivé" : "Disabled"}</option>
                 </select>
               </Field>
-              <Field label={locale === "fr" ? "Alias de recherche" : "Search aliases"}><Input value={draft.aliases} onChange={(event) => update("aliases", event.target.value)} placeholder="atchéké, couscous de manioc" /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Séparez les variantes par une virgule." : "Separate variants with commas."}</p></Field>
+              <Field label={locale === "fr" ? "Alias de recherche" : "Search aliases"}><Input value={draft.aliases} onChange={(event) => update("aliases", event.target.value)} placeholder={locale === "fr" ? "atchéké, couscous de manioc" : "attieke, cassava couscous"} /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Séparez les variantes par une virgule." : "Separate variants with commas."}</p></Field>
             </div>
 
             <aside className="h-fit space-y-5 lg:sticky lg:top-4">

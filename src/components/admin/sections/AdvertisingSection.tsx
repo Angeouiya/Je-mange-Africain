@@ -33,6 +33,10 @@ type Advertisement = {
 };
 
 const statusStyle: Record<string, string> = { published: "border-forest/25 bg-forest/5 text-forest", draft: "border-amber-300 bg-amber-50 text-amber-800", archived: "border-charcoal/15 bg-charcoal/5 text-charcoal" };
+const placementLabels = {
+  fr: { home: "Accueil", catalog: "Catalogue", recipes: "Recettes", checkout: "Paiement" },
+  en: { home: "Home", catalog: "Catalogue", recipes: "Recipes", checkout: "Checkout" },
+} as const;
 
 export default function AdvertisingSection({ locale }: { locale: "fr" | "en" }) {
   const isFr = locale === "fr";
@@ -48,7 +52,7 @@ export default function AdvertisingSection({ locale }: { locale: "fr" | "en" }) 
 
     <div data-testid="advertising-metrics" className="grid grid-cols-3 border-y border-charcoal/8 bg-charcoal px-2 py-3 text-white sm:px-5 sm:py-4 [&>*+*]:border-l [&>*+*]:border-white/10"><Metric value={advertisements.length} label={isFr ? "affiches enregistrées" : "saved ads"} /><Metric value={published} label={isFr ? "actives ou planifiées" : "active or scheduled"} /><Metric value={new Set(advertisements.map((item) => item.placement)).size} label={isFr ? "emplacements utilisés" : "placements used"} /></div>
 
-    {advertisements.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{advertisements.map((advertisement) => <article key={advertisement.id} className="overflow-hidden rounded-lg border border-charcoal/8 bg-white [contain-intrinsic-size:360px] [content-visibility:auto]"><div className="relative aspect-[16/8] overflow-hidden bg-muted"><Image src={advertisement.imageUrl} alt={isFr ? advertisement.imageAltFr : advertisement.imageAltEn} fill sizes="(max-width: 768px) 100vw, 480px" className="object-cover" /><div className="absolute inset-x-0 bottom-0 bg-charcoal/80 px-3 py-2 text-white backdrop-blur-sm"><p className="truncate text-xs font-black">{isFr ? advertisement.titleFr : advertisement.titleEn}</p></div><Badge variant="outline" className={`absolute left-3 top-3 ${statusStyle[advertisement.status]}`}>{advertisement.status === "published" ? (isFr ? "Publiée" : "Published") : advertisement.status === "draft" ? (isFr ? "Brouillon" : "Draft") : (isFr ? "Désactivée" : "Disabled")}</Badge></div><div className="p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-black uppercase text-terre">{advertisement.placement} · P{advertisement.priority}</p><p className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">{(isFr ? advertisement.bodyFr : advertisement.bodyEn) || (isFr ? "Aucun texte secondaire" : "No secondary copy")}</p></div><Eye className="h-4 w-4 shrink-0 text-muted-foreground" /></div><div className="mt-3 border-y border-border py-2 text-[10px] text-muted-foreground"><CalendarClock className="mr-1 inline h-3.5 w-3.5" />{scheduleLabel(advertisement, locale)}</div><div className="mt-3 flex justify-between gap-2"><AdvertisementEditor locale={locale} advertisement={advertisement} onSaved={request.refetch} /><DeleteAdvertisement locale={locale} advertisement={advertisement} onDeleted={request.refetch} /></div></div></article>)}</div> : <AdminEmptyState icon={<Megaphone className="h-5 w-5" />} title={isFr ? "Aucune campagne visuelle" : "No visual campaign"} description={isFr ? "Créez la première affiche pour l'accueil, le catalogue, les recettes ou le paiement." : "Create the first artwork for home, catalogue, recipes or checkout."} />}
+    {advertisements.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{advertisements.map((advertisement) => <article key={advertisement.id} className="overflow-hidden rounded-lg border border-charcoal/8 bg-white [contain-intrinsic-size:360px] [content-visibility:auto]"><div className="relative aspect-[16/8] overflow-hidden bg-muted"><Image src={advertisement.imageUrl} alt={isFr ? advertisement.imageAltFr : advertisement.imageAltEn} fill sizes="(max-width: 768px) 100vw, 480px" className="object-cover" /><div className="absolute inset-x-0 bottom-0 bg-charcoal/80 px-3 py-2 text-white backdrop-blur-sm"><p className="truncate text-xs font-black">{isFr ? advertisement.titleFr : advertisement.titleEn}</p></div><Badge variant="outline" className={`absolute left-3 top-3 ${statusStyle[advertisement.status]}`}>{advertisement.status === "published" ? (isFr ? "Publiée" : "Published") : advertisement.status === "draft" ? (isFr ? "Brouillon" : "Draft") : (isFr ? "Désactivée" : "Disabled")}</Badge></div><div className="p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-black uppercase text-terre">{placementLabels[locale][advertisement.placement]} · P{advertisement.priority}</p><p className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">{(isFr ? advertisement.bodyFr : advertisement.bodyEn) || (isFr ? "Aucun texte secondaire" : "No secondary copy")}</p></div><Eye className="h-4 w-4 shrink-0 text-muted-foreground" /></div><div className="mt-3 border-y border-border py-2 text-[10px] text-muted-foreground"><CalendarClock className="mr-1 inline h-3.5 w-3.5" />{scheduleLabel(advertisement, locale)}</div><div className="mt-3 flex justify-between gap-2"><AdvertisementEditor locale={locale} advertisement={advertisement} onSaved={request.refetch} /><DeleteAdvertisement locale={locale} advertisement={advertisement} onDeleted={request.refetch} /></div></div></article>)}</div> : <AdminEmptyState icon={<Megaphone className="h-5 w-5" />} title={isFr ? "Aucune campagne visuelle" : "No visual campaign"} description={isFr ? "Créez la première affiche pour l'accueil, le catalogue, les recettes ou le paiement." : "Create the first artwork for home, catalogue, recipes or checkout."} />}
   </div>;
 }
 
@@ -70,6 +74,16 @@ function AdvertisementEditor({ locale, advertisement, onSaved }: { locale: "fr" 
   const [draft, setDraft] = useState(() => advertisement ? { ...advertisement, bodyFr: advertisement.bodyFr || "", bodyEn: advertisement.bodyEn || "", priority: String(advertisement.priority), startsAt: toLocalDate(advertisement.startsAt), endsAt: toLocalDate(advertisement.endsAt) } : blank);
   const update = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value }));
   const reset = () => setDraft(advertisement ? { ...advertisement, bodyFr: advertisement.bodyFr || "", bodyEn: advertisement.bodyEn || "", priority: String(advertisement.priority), startsAt: toLocalDate(advertisement.startsAt), endsAt: toLocalDate(advertisement.endsAt) } : blank);
+  const dateRangeValid = !draft.startsAt || !draft.endsAt || new Date(draft.endsAt).getTime() > new Date(draft.startsAt).getTime();
+  const complete = Boolean(
+    draft.imageUrl
+    && draft.titleFr.trim()
+    && draft.titleEn.trim()
+    && draft.imageAltFr.trim()
+    && draft.imageAltEn.trim()
+    && draft.linkUrl.trim()
+    && dateRangeValid
+  );
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -84,10 +98,62 @@ function AdvertisementEditor({ locale, advertisement, onSaved }: { locale: "fr" 
     finally { setSaving(false); }
   };
 
-  return <Dialog open={open} onOpenChange={(nextOpen) => { if (saving) return; setOpen(nextOpen); if (nextOpen) { reset(); setError(""); } }}><DialogTrigger asChild>{advertisement ? <Button variant="outline" size="sm"><Pencil className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Modifier" : "Edit"}</Button> : <Button size="sm" className="bg-terre text-white hover:bg-terre-dark"><ImagePlus className="mr-1.5 h-4 w-4" />{isFr ? "Nouvelle affiche" : "New artwork"}</Button>}</DialogTrigger><DialogContent className="max-h-[94dvh] overflow-y-auto p-0 sm:max-w-5xl"><form onSubmit={submit}><DialogHeader className="border-b border-border px-5 py-5 sm:px-6"><DialogTitle>{advertisement ? (isFr ? "Modifier l'affiche" : "Edit artwork") : (isFr ? "Composer une affiche publicitaire" : "Compose advertising artwork")}</DialogTitle><DialogDescription>{isFr ? "Le visuel, les deux langues, la destination et le calendrier sont contrôlés avant diffusion." : "Artwork, both languages, destination and schedule are checked before publishing."}</DialogDescription></DialogHeader><div className="grid gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]"><MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="advertisement" locale={locale} label={isFr ? "Affiche publicitaire" : "Advertising artwork"} aspect="landscape" required /><div className="space-y-4"><div className="grid gap-4 sm:grid-cols-2"><AdField label="Titre français"><Input value={draft.titleFr} onChange={(event) => update("titleFr", event.target.value)} /></AdField><AdField label="English title"><Input value={draft.titleEn} onChange={(event) => update("titleEn", event.target.value)} /></AdField><AdField label="Texte français"><Textarea value={draft.bodyFr} onChange={(event) => update("bodyFr", event.target.value)} rows={3} /></AdField><AdField label="English copy"><Textarea value={draft.bodyEn} onChange={(event) => update("bodyEn", event.target.value)} rows={3} /></AdField><AdField label="Texte alternatif français"><Input value={draft.imageAltFr} onChange={(event) => update("imageAltFr", event.target.value)} /></AdField><AdField label="English alternative text"><Input value={draft.imageAltEn} onChange={(event) => update("imageAltEn", event.target.value)} /></AdField></div><div className="grid gap-4 sm:grid-cols-3"><AdField label={isFr ? "Emplacement" : "Placement"}><select value={draft.placement} onChange={(event) => update("placement", event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="home">Accueil</option><option value="catalog">Catalogue</option><option value="recipes">Recettes</option><option value="checkout">Paiement</option></select></AdField><AdField label={isFr ? "État" : "Status"}><select value={draft.status} onChange={(event) => update("status", event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="draft">Brouillon</option><option value="published">Publier</option><option value="archived">Désactiver</option></select></AdField><AdField label={isFr ? "Priorité" : "Priority"}><Input type="number" min="0" max="100" value={draft.priority} onChange={(event) => update("priority", event.target.value)} /></AdField></div><AdField label={isFr ? "Destination au clic" : "Click destination"}><Input value={draft.linkUrl} onChange={(event) => update("linkUrl", event.target.value)} placeholder="/?view=recipes" /></AdField><div className="grid gap-4 sm:grid-cols-2"><AdField label={isFr ? "Début" : "Starts"}><Input type="datetime-local" value={draft.startsAt} onChange={(event) => update("startsAt", event.target.value)} /></AdField><AdField label={isFr ? "Fin" : "Ends"}><Input type="datetime-local" value={draft.endsAt} onChange={(event) => update("endsAt", event.target.value)} /></AdField></div></div></div>{error ? <p role="alert" className="mx-5 border-y border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 sm:mx-6">{error}</p> : null}<DialogFooter className="border-t border-border px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={saving || !draft.imageUrl} className="bg-terre text-white hover:bg-terre-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer" : "Save"}</Button></DialogFooter></form></DialogContent></Dialog>;
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (saving) return; setOpen(nextOpen); if (nextOpen) { reset(); setError(""); } }}>
+      <DialogTrigger asChild>
+        {advertisement ? <Button variant="outline" size="sm"><Pencil className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Modifier" : "Edit"}</Button> : <Button size="sm" className="bg-terre text-white hover:bg-terre-dark"><ImagePlus className="mr-1.5 h-4 w-4" />{isFr ? "Nouvelle affiche" : "New artwork"}</Button>}
+      </DialogTrigger>
+      <DialogContent className="max-h-[94dvh] overflow-y-auto p-0 sm:max-w-5xl">
+        <form onSubmit={submit}>
+          <DialogHeader className="border-b border-border px-5 py-5 sm:px-6">
+            <DialogTitle>{advertisement ? (isFr ? "Modifier l'affiche" : "Edit artwork") : (isFr ? "Composer une affiche publicitaire" : "Compose advertising artwork")}</DialogTitle>
+            <DialogDescription>{isFr ? "Le visuel, les deux langues, la destination et le calendrier sont contrôlés avant diffusion." : "Artwork, both languages, destination and schedule are checked before publishing."}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="advertisement" locale={locale} label={isFr ? "Affiche publicitaire" : "Advertising artwork"} aspect="landscape" required />
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <AdField label={isFr ? "Titre français" : "French title"} required><Input required value={draft.titleFr} onChange={(event) => update("titleFr", event.target.value)} /></AdField>
+                <AdField label={isFr ? "Titre anglais" : "English title"} required><Input required value={draft.titleEn} onChange={(event) => update("titleEn", event.target.value)} /></AdField>
+                <AdField label={isFr ? "Texte français" : "French copy"}><Textarea value={draft.bodyFr} onChange={(event) => update("bodyFr", event.target.value)} rows={3} /></AdField>
+                <AdField label={isFr ? "Texte anglais" : "English copy"}><Textarea value={draft.bodyEn} onChange={(event) => update("bodyEn", event.target.value)} rows={3} /></AdField>
+                <AdField label={isFr ? "Texte alternatif français" : "French alternative text"} required><Input required value={draft.imageAltFr} onChange={(event) => update("imageAltFr", event.target.value)} /></AdField>
+                <AdField label={isFr ? "Texte alternatif anglais" : "English alternative text"} required><Input required value={draft.imageAltEn} onChange={(event) => update("imageAltEn", event.target.value)} /></AdField>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <AdField label={isFr ? "Emplacement" : "Placement"}>
+                  <select value={draft.placement} onChange={(event) => update("placement", event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                    {(Object.keys(placementLabels[locale]) as Advertisement["placement"][]).map((placement) => <option key={placement} value={placement}>{placementLabels[locale][placement]}</option>)}
+                  </select>
+                </AdField>
+                <AdField label={isFr ? "État" : "Status"}>
+                  <select value={draft.status} onChange={(event) => update("status", event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="draft">{isFr ? "Brouillon" : "Draft"}</option><option value="published">{isFr ? "Publier" : "Publish"}</option><option value="archived">{isFr ? "Désactiver" : "Disable"}</option>
+                  </select>
+                </AdField>
+                <AdField label={isFr ? "Priorité" : "Priority"}><Input type="number" min="0" max="100" value={draft.priority} onChange={(event) => update("priority", event.target.value)} /></AdField>
+              </div>
+              <AdField label={isFr ? "Destination au clic" : "Click destination"} required><Input required value={draft.linkUrl} onChange={(event) => update("linkUrl", event.target.value)} placeholder="/?view=recipes" /></AdField>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <AdField label={isFr ? "Début" : "Starts"}><Input type="datetime-local" value={draft.startsAt} onChange={(event) => update("startsAt", event.target.value)} /></AdField>
+                <AdField label={isFr ? "Fin" : "Ends"}><Input type="datetime-local" value={draft.endsAt} onChange={(event) => update("endsAt", event.target.value)} /></AdField>
+              </div>
+              {!dateRangeValid ? <p role="alert" className="border-y border-destructive/20 bg-destructive/5 px-3 py-2 text-[11px] font-semibold text-destructive">{isFr ? "La date de fin doit être postérieure à la date de début." : "The end date must be later than the start date."}</p> : null}
+            </div>
+          </div>
+          {error ? <p role="alert" className="mx-5 border-y border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 sm:mx-6">{error}</p> : null}
+          <DialogFooter className="border-t border-border px-5 py-4 sm:px-6">
+            <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{complete ? (isFr ? "Prête à enregistrer" : "Ready to save") : (isFr ? "Complétez les champs obligatoires" : "Complete the required fields")}</p>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>
+            <Button type="submit" disabled={saving || !complete} className="bg-terre text-white hover:bg-terre-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer" : "Save"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-function AdField({ label, children }: { label: string; children: React.ReactNode }) { return <Label className="block space-y-1.5"><span className="block">{label}</span>{children}</Label>; }
+function AdField({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) { return <Label className="block space-y-1.5"><span className="block">{label}{required ? <span className="ml-1 text-terre">*</span> : null}</span>{children}</Label>; }
 
 function DeleteAdvertisement({ locale, advertisement, onDeleted }: { locale: "fr" | "en"; advertisement: Advertisement; onDeleted: () => void }) {
   const isFr = locale === "fr"; const [busy, setBusy] = useState(false); const [error, setError] = useState("");
