@@ -259,7 +259,7 @@ function MarketPulse({ deals, news, locale }: { deals: any[]; news: any[]; local
         ) : null}
 
         <div className="flex flex-col border-t border-charcoal/8 lg:border-l lg:border-t-0">
-          <div className="flex items-center gap-3 border-b border-charcoal/8 px-4 py-4 sm:px-5"><span className="grid h-9 w-9 place-items-center rounded-md bg-gold/18 text-amber-800"><PackageOpen className="h-4 w-4" /></span><div><h3 className="text-sm font-black text-charcoal">{locale === "fr" ? "Arrivages récents" : "Recent arrivals"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Nouveaux formats et produits à découvrir" : "New products and pack sizes to discover"}</p></div></div>
+          <div className="flex items-center gap-3 border-b border-charcoal/8 px-4 py-4 sm:px-5"><span className="grid h-9 w-9 place-items-center rounded-md bg-gold/18 text-charcoal"><PackageOpen className="h-4 w-4" /></span><div><h3 className="text-sm font-black text-charcoal">{locale === "fr" ? "Arrivages récents" : "Recent arrivals"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Nouveaux formats et produits à découvrir" : "New products and pack sizes to discover"}</p></div></div>
           <div className="flex-1 divide-y divide-border">
             {arrivals.map((product) => (
               <button key={product.id} type="button" onClick={() => navigate("product", { productId: product.id })} className="group grid w-full grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/45 sm:px-5">

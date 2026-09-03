@@ -36,7 +36,7 @@ export default function OverviewSection({ locale, onNavigate }: { locale: "fr" |
       label: isFr ? "Lots proches de l'échéance" : "Batches nearing expiry",
       detail: isFr ? "Priorité FEFO sur les prochaines préparations" : "FEFO priority for upcoming fulfilment",
       value: kpis.expiringSoon,
-      color: kpis.expiringSoon ? "text-amber-700 bg-amber-100" : "text-forest bg-forest/10",
+      color: kpis.expiringSoon ? "text-charcoal bg-gold/20" : "text-forest bg-forest/10",
       target: "inventory" as const,
     },
   ];

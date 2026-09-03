@@ -287,7 +287,7 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
                       </div>
                       <div className="rounded-md bg-charcoal px-4 py-3 text-white" aria-live="polite">
                         <p className="text-[10px] font-bold uppercase text-white/60">{locale === "fr" ? "Marge par colis" : "Margin per case"}</p>
-                        <p className={`mt-1 text-xl font-black ${wholesaleMargin >= 0 ? "text-gold" : "text-red-300"}`}>{wholesaleMargin.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
+                        <p className={`mt-1 text-xl font-black ${wholesaleMargin >= 0 ? "text-gold" : "text-cream"}`}>{wholesaleMargin.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
                         <p className="mt-1 text-[10px] text-white/60">{locale === "fr" ? "Coût brut du colis" : "Gross case cost"} · {wholesalePackCost.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
                       </div>
                     </div>

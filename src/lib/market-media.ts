@@ -1,3 +1,5 @@
+import { BRAND_ACCENT_COLORS, BRAND_COLORS } from "@/lib/brand-colors";
+
 export type MarketLocale = "fr" | "en";
 
 type CategoryLike = {
@@ -141,20 +143,28 @@ const norm = (value?: string | null) =>
 const mediaKey = (value?: string | null) =>
   norm(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-const BRAND_FALLBACK_COLOR = "#8A3042";
+const BRAND_FALLBACK_COLOR = BRAND_COLORS.burgundy;
 
-/** Keeps legacy or user-provided green accents out of the storefront palette. */
+/** Keeps chromatic media accents inside the logo palette while preserving neutral surfaces. */
 export function getBrandAccentColor(color?: string | null) {
   const match = color?.trim().match(/^#([0-9a-f]{6})$/i);
-  if (!match) return color || BRAND_FALLBACK_COLOR;
+  if (!match) return BRAND_FALLBACK_COLOR;
 
   const value = Number.parseInt(match[1], 16);
   const red = (value >> 16) & 255;
   const green = (value >> 8) & 255;
   const blue = value & 255;
-  const readsAsGreen = green > red * 1.08 && green > blue * 1.08;
+  const chroma = Math.max(red, green, blue) - Math.min(red, green, blue);
+  if (chroma <= 28) return Math.max(red, green, blue) < 64 ? BRAND_COLORS.charcoal : color!;
 
-  return readsAsGreen ? BRAND_FALLBACK_COLOR : color!;
+  return BRAND_ACCENT_COLORS.reduce((closest, candidate) => {
+    const candidateValue = Number.parseInt(candidate.slice(1), 16);
+    const candidateRed = (candidateValue >> 16) & 255;
+    const candidateGreen = (candidateValue >> 8) & 255;
+    const candidateBlue = candidateValue & 255;
+    const distance = (red - candidateRed) ** 2 + (green - candidateGreen) ** 2 + (blue - candidateBlue) ** 2;
+    return distance < closest.distance ? { color: candidate, distance } : closest;
+  }, { color: BRAND_FALLBACK_COLOR as string, distance: Number.POSITIVE_INFINITY }).color;
 }
 
 function categorySlug(subject: MarketSubject | CategoryLike | string) {

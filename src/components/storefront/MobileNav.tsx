@@ -6,6 +6,7 @@ import { useStore, ViewId, cartCount } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
+import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 
 export function MobileNav() {
   const locale = useStore((s) => s.locale);
@@ -18,11 +19,11 @@ export function MobileNav() {
 
   type ClientNavItem = { id: ViewId; label: string; desktopLabel: string; purpose: string; icon: LucideIcon; accent: string };
   const publicItems: ClientNavItem[] = [
-    { id: "home", label: t.mobileNav.home, desktopLabel: locale === "fr" ? "Découvrir" : "Discover", purpose: locale === "fr" ? "Sélections et nouveautés" : "Selections and new arrivals", icon: Home, accent: "#B74325" },
-    { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: LayoutGrid, accent: "#8A3042" },
-    { id: "wholesale", label: locale === "fr" ? "Gros" : "Wholesale", desktopLabel: locale === "fr" ? "Marché de gros" : "Wholesale market", purpose: locale === "fr" ? "Cartons, lots et prix dégressifs" : "Cases, lots and tiered prices", icon: Boxes, accent: "#8A5A24" },
-    { id: "recipes", label: t.mobileNav.recipes, desktopLabel: locale === "fr" ? "Cuisiner une recette" : "Cook a recipe", purpose: locale === "fr" ? "Personnaliser puis composer le panier" : "Customise and build the basket", icon: ChefHat, accent: "#805C00" },
-    { id: "cart", label: t.mobileNav.cart, desktopLabel: locale === "fr" ? "Finaliser le panier" : "Complete basket", purpose: locale === "fr" ? "Quantités, livraison et total" : "Quantities, delivery and total", icon: ShoppingBag, accent: "#326B8A" },
+    { id: "home", label: t.mobileNav.home, desktopLabel: locale === "fr" ? "Découvrir" : "Discover", purpose: locale === "fr" ? "Sélections et nouveautés" : "Selections and new arrivals", icon: Home, accent: BRAND_COLORS.earth },
+    { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: LayoutGrid, accent: BRAND_COLORS.burgundy },
+    { id: "wholesale", label: locale === "fr" ? "Gros" : "Wholesale", desktopLabel: locale === "fr" ? "Marché de gros" : "Wholesale market", purpose: locale === "fr" ? "Cartons, lots et prix dégressifs" : "Cases, lots and tiered prices", icon: Boxes, accent: BRAND_COLORS.terracotta },
+    { id: "recipes", label: t.mobileNav.recipes, desktopLabel: locale === "fr" ? "Cuisiner une recette" : "Cook a recipe", purpose: locale === "fr" ? "Personnaliser puis composer le panier" : "Customise and build the basket", icon: ChefHat, accent: BRAND_COLORS.gold },
+    { id: "cart", label: t.mobileNav.cart, desktopLabel: locale === "fr" ? "Finaliser le panier" : "Complete basket", purpose: locale === "fr" ? "Quantités, livraison et total" : "Quantities, delivery and total", icon: ShoppingBag, accent: BRAND_COLORS.chilli },
   ];
   const accountItem = {
     id: "account" as ViewId,
@@ -30,7 +31,7 @@ export function MobileNav() {
     desktopLabel: customer ? (locale === "fr" ? "Mon espace" : "My account") : t.nav.login,
     purpose: customer ? (locale === "fr" ? "Profil et préférences" : "Profile and preferences") : (locale === "fr" ? "Accéder à vos services" : "Access your services"),
     icon: customer ? User : LogIn,
-    accent: "#9A4E63",
+    accent: BRAND_COLORS.warmCoral,
   };
   const mobileItems = [...publicItems.filter((item) => item.id !== "wholesale"), accountItem];
   const desktopGroups: Array<{ label: string; intent: string; items: ClientNavItem[] }> = [
@@ -40,7 +41,7 @@ export function MobileNav() {
       intent: locale === "fr" ? "Finaliser" : "Complete",
       items: [
         publicItems.find((item) => item.id === "cart")!,
-        ...(customer ? [{ id: "orders" as ViewId, label: t.orders.title, desktopLabel: locale === "fr" ? "Suivre mes commandes" : "Track my orders", purpose: locale === "fr" ? "Statut, colis et livraison" : "Status, parcels and delivery", icon: ClipboardList, accent: "#6C5D7B" }] : []),
+        ...(customer ? [{ id: "orders" as ViewId, label: t.orders.title, desktopLabel: locale === "fr" ? "Suivre mes commandes" : "Track my orders", purpose: locale === "fr" ? "Statut, colis et livraison" : "Status, parcels and delivery", icon: ClipboardList, accent: BRAND_COLORS.deepEarth }] : []),
       ],
     },
   ];
@@ -94,7 +95,7 @@ export function MobileNav() {
               const active = isActive(item.id);
               return (
                 <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} className={`flex min-h-[3.25rem] w-full items-center gap-3 rounded-md border-l-2 px-3 text-left transition ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-white/72 hover:bg-white/7 hover:text-white"}`} style={active ? { borderLeftColor: item.accent } : undefined}>
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: active ? item.accent : `${item.accent}28` }}><Icon className="h-4 w-4" /></span>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: active ? item.accent : `${item.accent}28`, color: active ? getBrandAccentForeground(item.accent) : BRAND_COLORS.cream }}><Icon className="h-4 w-4" /></span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold">{item.desktopLabel}</span><span className={`mt-0.5 block truncate text-[9px] ${active ? "text-charcoal/72" : "text-white/62"}`}>{item.purpose}</span></span>
                   {item.id === "cart" && count > 0 ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-extrabold text-charcoal">{count}</span> : null}
                 </button>
@@ -114,7 +115,7 @@ export function MobileNav() {
           <button onClick={() => navigate("info", { infoPage: "help" })} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-white/70 hover:bg-white/8 hover:text-white"><LifeBuoy className="h-4 w-4" /> {t.nav.help}</button>
           {customer ? (
             <LogoutConfirmDialog>
-              <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-red-200 hover:bg-red-500/10 hover:text-red-100"><LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
+              <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-cream/70 hover:bg-destructive/15 hover:text-cream"><LogOut className="h-4 w-4 text-gold" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
             </LogoutConfirmDialog>
           ) : null}
         </div>

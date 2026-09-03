@@ -55,7 +55,7 @@ export default function PasswordResetPage() {
         </div>
 
         {!accessToken && status !== "success" ? (
-          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">Ce lien est incomplet ou a expiré. Demandez un nouvel e-mail depuis l'espace de connexion.</div>
+          <div className="mt-6 rounded-md border border-destructive/25 bg-destructive/[0.06] p-3 text-sm text-destructive">Ce lien est incomplet ou a expiré. Demandez un nouvel e-mail depuis l'espace de connexion.</div>
         ) : status === "success" ? (
           <div className="mt-6 space-y-4">
             <div className="flex gap-3 rounded-lg border border-forest/25 bg-forest/5 p-4 text-sm text-forest"><CheckCircle2 className="h-5 w-5 shrink-0" /><p>{message}</p></div>
@@ -65,7 +65,7 @@ export default function PasswordResetPage() {
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div><Label htmlFor="new-password">Nouveau mot de passe</Label><Input id="new-password" type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required /></div>
             <div><Label htmlFor="confirm-password">Confirmer le mot de passe</Label><Input id="confirm-password" type="password" autoComplete="new-password" minLength={8} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></div>
-            {status === "error" ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{message}</p> : null}
+            {status === "error" ? <p role="alert" className="rounded-md border border-destructive/25 bg-destructive/[0.06] p-3 text-sm text-destructive">{message}</p> : null}
             <Button type="submit" disabled={status === "busy"} className="w-full bg-terre text-cream hover:bg-terre-dark">{status === "busy" ? "Modification..." : "Modifier le mot de passe"}</Button>
           </form>
         )}

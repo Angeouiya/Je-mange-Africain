@@ -237,7 +237,7 @@ export function CartView() {
               <Row label={t.cart.totalWeight} value={formatWeight(weight, locale)} />
               <Row label={t.cart.vat} value={formatPrice(vat, locale)} className="text-muted-foreground" />
               <Row label={t.cart.shipping} value={shipLoading ? t.loading : shipFee === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipFee, locale)} />
-              <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-gold/30 bg-gold/[0.08] p-2 text-xs text-charcoal">
                 <Truck className="h-3.5 w-3.5" />
                 <span>{t.cart.thermalSplit.replace("{n}", String(thermal.length || 1))}</span>
               </div>

@@ -37,7 +37,7 @@ export function LogoutConfirmDialog({ children }: { children: ReactNode }) {
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <span className="mb-1 grid h-11 w-11 place-items-center rounded-lg bg-red-50 text-destructive"><ShieldAlert className="h-5 w-5" /></span>
+          <span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><ShieldAlert className="h-5 w-5" /></span>
           <AlertDialogTitle>{locale === "fr" ? "Se déconnecter ?" : "Sign out?"}</AlertDialogTitle>
           <AlertDialogDescription>
             {locale === "fr"

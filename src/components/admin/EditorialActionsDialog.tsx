@@ -93,11 +93,11 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
                 <Flag checked={draft.isRecommended} onChange={(isRecommended) => setDraft((current) => ({ ...current, isRecommended }))} label={isFr ? "Marquer comme recommandé" : "Mark as recommended"} />
                 <Flag checked={kind === "product" ? draft.isBestseller : draft.isPopular} onChange={(checked) => setDraft((current) => kind === "product" ? { ...current, isBestseller: checked } : { ...current, isPopular: checked })} label={isFr ? "Marquer comme populaire" : "Mark as popular"} />
               </div>
-              <div className="border-l-2 border-amber-400 bg-amber-50 px-3 py-2 text-[10px] leading-5 text-amber-900"><Archive className="mr-1 inline h-3.5 w-3.5" />{isFr ? "Désactiver retire le contenu de la boutique tout en conservant son historique." : "Disabling removes the content from the store while preserving its history."}</div>
-              <Button type="button" variant="ghost" onClick={() => setConfirmDelete(true)} className="w-full justify-start text-destructive hover:bg-red-50 hover:text-destructive"><Trash2 className="mr-2 h-4 w-4" />{isFr ? "Supprimer définitivement" : "Delete permanently"}</Button>
+              <div className="border-l-2 border-gold bg-gold/[0.09] px-3 py-2 text-[10px] leading-5 text-charcoal"><Archive className="mr-1 inline h-3.5 w-3.5 text-terre" />{isFr ? "Désactiver retire le contenu de la boutique tout en conservant son historique." : "Disabling removes the content from the store while preserving its history."}</div>
+              <Button type="button" variant="ghost" onClick={() => setConfirmDelete(true)} className="w-full justify-start text-destructive hover:bg-destructive/[0.06] hover:text-destructive"><Trash2 className="mr-2 h-4 w-4" />{isFr ? "Supprimer définitivement" : "Delete permanently"}</Button>
             </div>
           </div>
-          {error ? <p role="alert" className="mx-5 border-y border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-800 sm:mx-6">{error}</p> : null}
+          {error ? <p role="alert" className="mx-5 border-y border-destructive/25 bg-destructive/[0.06] px-3 py-2 text-xs leading-5 text-destructive sm:mx-6">{error}</p> : null}
           <DialogFooter className="border-t border-border px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="button" onClick={() => void save()} disabled={saving || !draft.imageUrl} className="bg-forest text-white hover:bg-forest-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer" : "Save"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>

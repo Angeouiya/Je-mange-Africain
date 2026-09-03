@@ -55,7 +55,7 @@ export function OrderConfirmationView() {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-800">
+      <div className="mt-4 flex items-center justify-center gap-2 rounded-md border border-terre/20 bg-terre/[0.07] p-3 text-sm text-terre">
         <Truck className="h-4 w-4" />
         {t.orders.estimatedDelivery} : {order.shipments?.[0] ? formatDate(order.shipments[0].estimatedDelivery, locale) : "48-72 h"}
       </div>

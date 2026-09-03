@@ -69,8 +69,9 @@ async function expectBrandSafeUiColors(page: Page) {
       const alpha = match[4] === undefined ? 1 : Number(match[4]);
       if (alpha === 0) return false;
       const isGreen = green > red * 1.08 && green > blue * 1.08;
+      const isCoolBlue = blue > red * 1.08 && blue > green * 1.05;
       const isNearBlack = red < 20 && green < 20 && blue < 20;
-      return isGreen || isNearBlack;
+      return isGreen || isCoolBlue || isNearBlack;
     };
 
     return [...body.querySelectorAll<HTMLElement>("*")]
@@ -84,7 +85,7 @@ async function expectBrandSafeUiColors(page: Page) {
       .slice(0, 20);
   });
 
-  expect(forbiddenStyles, `green or black UI styles remain: ${JSON.stringify(forbiddenStyles)}`).toEqual([]);
+  expect(forbiddenStyles, `off-brand green, blue or black UI styles remain: ${JSON.stringify(forbiddenStyles)}`).toEqual([]);
 }
 
 async function mockAdminApi(page: Page) {

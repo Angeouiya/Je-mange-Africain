@@ -70,7 +70,7 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
     <div className="space-y-6">
       <AdminPageHeader
         variant="flow"
-        accent="#326B8A"
+        accent="#B9472B"
         icon={<ClipboardList className="h-5 w-5" />}
         eyebrow={isFr ? "Exécution des commandes" : "Order execution"}
         title={isFr ? "Du paiement jusqu'à la porte" : "From payment to the doorstep"}
@@ -81,7 +81,7 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
         {([
           [Clock3, isFr ? "À valider" : "To validate", counts.validate, "text-terre"],
           [PackageCheck, isFr ? "En préparation" : "Packing", counts.prepare, "text-gold"],
-          [Truck, isFr ? "En livraison" : "Delivering", counts.deliver, "text-blue-700"],
+          [Truck, isFr ? "En livraison" : "Delivering", counts.deliver, "text-terre"],
           [CheckCircle2, isFr ? "Clôturées" : "Closed", counts.closed, "text-forest"],
         ] as const).map(([Icon, label, value, color], index) => <div key={label} className={`flex items-center gap-3 p-3 sm:p-4 ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "sm:border-r" : "sm:border-r-0"} sm:border-b-0`}><Icon className={`h-5 w-5 ${color}`} /><div><p className="text-xl font-black tabular-nums">{value}</p><p className="text-[10px] font-bold text-muted-foreground">{label}</p></div></div>)}
       </div>

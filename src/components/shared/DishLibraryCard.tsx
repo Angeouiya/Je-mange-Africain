@@ -136,7 +136,7 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
             </div>
 
             {dish.allergens.length > 0 ? (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+              <div className="flex items-start gap-2 rounded-md border border-gold/40 bg-gold/[0.09] p-3 text-xs leading-5 text-charcoal">
                 <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
                 <span><strong>{locale === "fr" ? "Allergènes à contrôler :" : "Allergens to check:"}</strong> {dish.allergens.join(", ")}. {locale === "fr" ? "Vérifiez toujours les étiquettes des produits utilisés." : "Always check the labels of the products used."}</span>
               </div>

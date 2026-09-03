@@ -507,5 +507,5 @@ function formatDeliveryWindow(quote: { minDelayHours: number; maxDelayHours: num
 }
 
 function ErrorMessage({ children }: { children: ReactNode }) {
-  return <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-800">{children}</p>;
+  return <p role="alert" className="rounded-md border border-destructive/25 bg-destructive/[0.06] p-3 text-xs leading-5 text-destructive">{children}</p>;
 }

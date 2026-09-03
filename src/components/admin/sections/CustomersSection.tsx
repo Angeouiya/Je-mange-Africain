@@ -20,9 +20,9 @@ function initials(name: string) {
 
 function segmentDetails(segment: AdminCustomer["segment"], isFr: boolean) {
   const details = {
-    ambassador: { label: isFr ? "Ambassadeur" : "Ambassador", className: "border-gold/35 bg-gold/10 text-amber-800" },
+    ambassador: { label: isFr ? "Ambassadeur" : "Ambassador", className: "border-gold/35 bg-gold/10 text-charcoal" },
     active: { label: isFr ? "Actif" : "Active", className: "border-forest/20 bg-forest/5 text-forest" },
-    at_risk: { label: isFr ? "À relancer" : "Re-engage", className: "border-red-200 bg-red-50 text-red-700" },
+    at_risk: { label: isFr ? "À relancer" : "Re-engage", className: "border-destructive/25 bg-destructive/[0.06] text-destructive" },
     new: { label: isFr ? "À activer" : "To activate", className: "border-border bg-white text-muted-foreground" },
   };
   return details[segment];
@@ -64,7 +64,7 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
     <div className="space-y-6">
       <AdminPageHeader
         variant="workspace"
-        accent="#9A4E63"
+        accent="#E66A3A"
         icon={<UsersRound className="h-5 w-5" />}
         eyebrow={isFr ? "Relation client" : "Customer relationship"}
         title={isFr ? "Piloter chaque relation" : "Steer every relationship"}
@@ -74,8 +74,8 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
       <dl className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <Metric icon={<UsersRound className="h-4 w-4" />} iconClass="bg-terre/10 text-terre" value={customers.length.toLocaleString(isFr ? "fr-FR" : "en-GB")} label={isFr ? "profils clients" : "customer profiles"} />
         <Metric icon={<ArrowUpRight className="h-4 w-4" />} iconClass="bg-forest/10 text-forest" value={formatPrice(totalRevenue, locale)} label={isFr ? "valeur cumulée" : "lifetime value"} />
-        <Metric icon={<Crown className="h-4 w-4" />} iconClass="bg-gold/15 text-amber-700" value={ambassadors.length.toLocaleString(isFr ? "fr-FR" : "en-GB")} label={isFr ? "ambassadeurs" : "ambassadors"} />
-        <Metric icon={<CircleAlert className="h-4 w-4" />} iconClass="bg-red-50 text-red-700" value={atRisk.length.toLocaleString(isFr ? "fr-FR" : "en-GB")} label={isFr ? "relations à relancer" : "customers to re-engage"} />
+        <Metric icon={<Crown className="h-4 w-4" />} iconClass="bg-gold/15 text-charcoal" value={ambassadors.length.toLocaleString(isFr ? "fr-FR" : "en-GB")} label={isFr ? "ambassadeurs" : "ambassadors"} />
+        <Metric icon={<CircleAlert className="h-4 w-4" />} iconClass="bg-destructive/[0.07] text-destructive" value={atRisk.length.toLocaleString(isFr ? "fr-FR" : "en-GB")} label={isFr ? "relations à relancer" : "customers to re-engage"} />
       </dl>
 
       <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
@@ -108,7 +108,7 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
                 <div className="flex min-w-0 items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-charcoal text-xs font-black text-white">{initials(customer.name)}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-charcoal">{customer.name}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{customer.email}</p></div><Badge variant="outline" className={segment.className}>{segment.label}</Badge></div>
                 <div className="mt-4 flex items-end justify-between gap-3 border-t border-charcoal/8 pt-3"><div className="min-w-0"><p className="text-[9px] font-extrabold uppercase text-muted-foreground">{isFr ? "Valeur client" : "Lifetime value"}</p><p className="mt-1 truncate text-lg font-black tabular-nums text-charcoal">{formatPrice(customer.lifetimeValue, locale)}</p></div><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal transition group-hover:bg-charcoal group-hover:text-white"><ArrowUpRight className="h-4 w-4" /></span></div>
                 <dl className="mt-3 grid grid-cols-3 divide-x divide-charcoal/8 text-center"><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Commandes" : "Orders"}</dt><dd className="mt-0.5 text-xs font-black tabular-nums">{customer.orders}</dd></div><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Panier moy." : "Avg. basket"}</dt><dd className="mt-0.5 truncate text-xs font-black tabular-nums">{formatPrice(customer.averageBasket, locale)}</dd></div><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Dernier achat" : "Last order"}</dt><dd className="mt-0.5 truncate text-[10px] font-black">{customer.lastOrderAt ? formatDate(customer.lastOrderAt, locale) : "—"}</dd></div></dl>
-                <div className="mt-3 flex min-w-0 items-center justify-between gap-3 border-t border-charcoal/8 pt-3 text-[10px] text-muted-foreground"><span className="truncate">{customer.city}, {customer.country}</span>{customer.openTickets ? <span className="shrink-0 font-bold text-red-700">{customer.openTickets} {isFr ? "demande(s)" : "request(s)"}</span> : <span className="shrink-0">{customer.favorites + customer.savedRecipes} {isFr ? "envies" : "saved"}</span>}</div>
+                <div className="mt-3 flex min-w-0 items-center justify-between gap-3 border-t border-charcoal/8 pt-3 text-[10px] text-muted-foreground"><span className="truncate">{customer.city}, {customer.country}</span>{customer.openTickets ? <span className="shrink-0 font-bold text-destructive">{customer.openTickets} {isFr ? "demande(s)" : "request(s)"}</span> : <span className="shrink-0">{customer.favorites + customer.savedRecipes} {isFr ? "envies" : "saved"}</span>}</div>
               </button>
             );
           })}

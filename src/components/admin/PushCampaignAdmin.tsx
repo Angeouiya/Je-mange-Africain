@@ -113,7 +113,7 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
     <div className="space-y-6">
       <AdminPageHeader
         variant="flow"
-        accent="#925018"
+        accent="#F2A900"
         icon={<BellRing className="h-5 w-5" />}
         eyebrow={locale === "fr" ? "Engagement mobile" : "Mobile engagement"}
         title={locale === "fr" ? "Composer, vérifier, diffuser" : "Compose, verify, deliver"}
@@ -166,7 +166,7 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
                 <AlertDialogFooter><AlertDialogCancel>{locale === "fr" ? "Revenir à l'édition" : "Return to editing"}</AlertDialogCancel><AlertDialogAction onClick={sendCampaign} className="bg-terre text-white hover:bg-terre-dark"><Send className="mr-2 h-4 w-4" /> {locale === "fr" ? "Confirmer la diffusion" : "Confirm delivery"}</AlertDialogAction></AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            {result ? <p role={result.type === "error" ? "alert" : "status"} className={`mt-3 border-y px-3 py-3 text-xs ${result.type === "success" ? "border-forest/25 bg-forest/5 text-forest" : "border-red-200 bg-red-50 text-red-800"}`}>{result.message}</p> : null}
+            {result ? <p role={result.type === "error" ? "alert" : "status"} className={`mt-3 border-y px-3 py-3 text-xs ${result.type === "success" ? "border-forest/25 bg-forest/5 text-forest" : "border-destructive/25 bg-destructive/[0.06] text-destructive"}`}>{result.message}</p> : null}
           </section>
         </div>
 

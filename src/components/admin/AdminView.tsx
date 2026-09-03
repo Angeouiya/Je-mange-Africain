@@ -41,6 +41,7 @@ import { AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import type { AdminSectionId, DashboardPayload } from "@/components/admin/admin-types";
 import { useFetch } from "@/lib/use-fetch";
 import { hasAdminPermission, type AdminModule } from "@/lib/admin-permissions";
+import { BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
 
 const OverviewSection = dynamic(() => import("@/components/admin/sections/OverviewSection"), { loading: () => <AdminSectionLoading /> });
 const OfferSection = dynamic(() => import("@/components/admin/sections/OfferSection"), { loading: () => <AdminSectionLoading /> });
@@ -74,7 +75,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Décider",
     verbEn: "Decide",
     items: [
-      { id: "overview", module: "dashboard", icon: BarChart3, marker: "01", accent: "#D65A32", labelFr: "Décider aujourd'hui", labelEn: "Decide today", mobileFr: "Cockpit", mobileEn: "Cockpit", purposeFr: "Alertes, arbitrages et prochaines actions", purposeEn: "Alerts, decisions and next actions" },
+      { id: "overview", module: "dashboard", icon: BarChart3, marker: "01", accent: BRAND_COLORS.terracotta, labelFr: "Décider aujourd'hui", labelEn: "Decide today", mobileFr: "Cockpit", mobileEn: "Cockpit", purposeFr: "Alertes, arbitrages et prochaines actions", purposeEn: "Alerts, decisions and next actions" },
     ],
   },
   {
@@ -83,8 +84,8 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Construire",
     verbEn: "Build",
     items: [
-      { id: "catalog", module: "catalog", icon: PackageSearch, marker: "02", accent: "#8A3042", labelFr: "Produits vendus", labelEn: "Products for sale", mobileFr: "Produits", mobileEn: "Products", purposeFr: "Images, prix public, marge et statut", purposeEn: "Images, public price, margin and status" },
-      { id: "recipes", module: "recipes", icon: ChefHat, marker: "03", accent: "#D39B24", labelFr: "Recettes achetables", labelEn: "Shoppable recipes", mobileFr: "Recettes", mobileEn: "Recipes", purposeFr: "Composition, substitutions et préparation", purposeEn: "Composition, substitutions and method" },
+      { id: "catalog", module: "catalog", icon: PackageSearch, marker: "02", accent: BRAND_COLORS.burgundy, labelFr: "Produits vendus", labelEn: "Products for sale", mobileFr: "Produits", mobileEn: "Products", purposeFr: "Images, prix public, marge et statut", purposeEn: "Images, public price, margin and status" },
+      { id: "recipes", module: "recipes", icon: ChefHat, marker: "03", accent: BRAND_COLORS.gold, labelFr: "Recettes achetables", labelEn: "Shoppable recipes", mobileFr: "Recettes", mobileEn: "Recipes", purposeFr: "Composition, substitutions et préparation", purposeEn: "Composition, substitutions and method" },
     ],
   },
   {
@@ -93,8 +94,8 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Opérer",
     verbEn: "Operate",
     items: [
-      { id: "orders", module: "orders", icon: ClipboardList, marker: "04", accent: "#326B8A", labelFr: "Orchestrer les commandes", labelEn: "Orchestrate orders", mobileFr: "Commandes", mobileEn: "Orders", purposeFr: "Valider, préparer et remettre au transporteur", purposeEn: "Validate, pack and hand over to carrier" },
-      { id: "inventory", module: "stock", icon: Boxes, marker: "05", accent: "#9A4E63", labelFr: "Tracer les lots", labelEn: "Trace batches", mobileFr: "Lots", mobileEn: "Batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
+      { id: "orders", module: "orders", icon: ClipboardList, marker: "04", accent: BRAND_COLORS.earth, labelFr: "Orchestrer les commandes", labelEn: "Orchestrate orders", mobileFr: "Commandes", mobileEn: "Orders", purposeFr: "Valider, préparer et remettre au transporteur", purposeEn: "Validate, pack and hand over to carrier" },
+      { id: "inventory", module: "stock", icon: Boxes, marker: "05", accent: BRAND_COLORS.chilli, labelFr: "Tracer les lots", labelEn: "Trace batches", mobileFr: "Lots", mobileEn: "Batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
     ],
   },
   {
@@ -103,9 +104,9 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Engager",
     verbEn: "Engage",
     items: [
-      { id: "customers", module: "customers", icon: UsersRound, marker: "06", accent: "#9A4E63", labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
-      { id: "campaigns", module: "marketing", icon: BellRing, marker: "07", accent: "#925018", labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
-      { id: "advertising", module: "marketing", icon: Megaphone, marker: "08", accent: "#C54F36", labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
+      { id: "customers", module: "customers", icon: UsersRound, marker: "06", accent: BRAND_COLORS.warmCoral, labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
+      { id: "campaigns", module: "marketing", icon: BellRing, marker: "07", accent: BRAND_COLORS.gold, labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
+      { id: "advertising", module: "marketing", icon: Megaphone, marker: "08", accent: BRAND_COLORS.terracotta, labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
     ],
   },
   {
@@ -114,9 +115,9 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Contrôler",
     verbEn: "Control",
     items: [
-      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "09", accent: "#8A3042", labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
-      { id: "governance", module: "audit", icon: Fingerprint, marker: "10", accent: "#55524A", labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
-      { id: "team", module: "team", icon: UserRoundCog, marker: "11", accent: "#6C5D7B", labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
+      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "09", accent: BRAND_COLORS.burgundy, labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
+      { id: "governance", module: "audit", icon: Fingerprint, marker: "10", accent: BRAND_COLORS.deepEarth, labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
+      { id: "team", module: "team", icon: UserRoundCog, marker: "11", accent: BRAND_COLORS.chilli, labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
     ],
   },
 ];
@@ -252,14 +253,14 @@ export function AdminView({
                       className={`group relative flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-left transition-all ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-cream/72 hover:bg-white/7 hover:text-white"}`}
                       style={active ? { borderLeftColor: item.accent } : undefined}
                     >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white transition-colors" style={{ backgroundColor: active ? item.accent : `${item.accent}2B` }}>
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-colors" style={{ backgroundColor: active ? item.accent : `${item.accent}2B`, color: active ? getBrandAccentForeground(item.accent) : BRAND_COLORS.cream }}>
                         <item.icon className="h-[18px] w-[18px]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
                         <span className={`mt-0.5 block line-clamp-2 text-[9px] leading-4 ${active ? "text-charcoal/72" : "text-white/62"}`}>{isFr ? item.purposeFr : item.purposeEn}</span>
                       </span>
-                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: active ? item.accent : "#F2A900" }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: item.accent }}>{item.marker}</span> : <ChevronRight className="h-4 w-4 text-cream/20" />}
+                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: active ? getReadableBrandAccent(item.accent) : BRAND_COLORS.gold }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: getReadableBrandAccent(item.accent) }}>{item.marker}</span> : <ChevronRight className="h-4 w-4 text-cream/20" />}
                     </button>
                   );
                 })}

@@ -19,9 +19,9 @@ const icon: Record<string, ReactNode> = {
 };
 
 const colors: Record<string, string> = {
-  FROZEN: "bg-blue-50 text-blue-700 border-blue-200",
-  REFRIGERATED: "bg-rose-50 text-rose-800 border-rose-200",
-  AMBIANT: "bg-amber-50 text-amber-700 border-amber-200",
+  FROZEN: "bg-forest/10 text-forest border-forest/25",
+  REFRIGERATED: "bg-terre/10 text-terre border-terre/25",
+  AMBIANT: "bg-gold/15 text-charcoal border-gold/35",
 };
 
 const labels: Record<string, { fr: string; en: string }> = {

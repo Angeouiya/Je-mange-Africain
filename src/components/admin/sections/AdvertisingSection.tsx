@@ -32,7 +32,7 @@ type Advertisement = {
   endsAt?: string | null;
 };
 
-const statusStyle: Record<string, string> = { published: "border-forest/25 bg-forest/5 text-forest", draft: "border-amber-300 bg-amber-50 text-amber-800", archived: "border-charcoal/15 bg-charcoal/5 text-charcoal" };
+const statusStyle: Record<string, string> = { published: "border-forest/25 bg-forest/5 text-forest", draft: "border-gold/40 bg-gold/[0.09] text-charcoal", archived: "border-charcoal/15 bg-charcoal/5 text-charcoal" };
 const placementLabels = {
   fr: { home: "Accueil", catalog: "Catalogue", recipes: "Recettes", checkout: "Paiement" },
   en: { home: "Home", catalog: "Catalogue", recipes: "Recipes", checkout: "Checkout" },
@@ -48,7 +48,7 @@ export default function AdvertisingSection({ locale }: { locale: "fr" | "en" }) 
   if (request.error && !request.data) return <AdminErrorState message={request.error} onRetry={request.refetch} />;
 
   return <div className="space-y-6">
-    <AdminPageHeader variant="workspace" accent="#C54F36" icon={<Megaphone className="h-5 w-5" />} eyebrow={isFr ? "Visibilité commerciale" : "Commercial visibility"} title={isFr ? "Régie publicitaire" : "Advertising desk"} description={isFr ? "Créez des affiches bilingues, choisissez leur emplacement et leur calendrier, puis contrôlez exactement ce qui est visible dans l'application client." : "Create bilingual artwork, choose its placement and schedule, then control exactly what appears in the customer app."} action={<AdvertisementEditor locale={locale} onSaved={request.refetch} />} />
+    <AdminPageHeader variant="workspace" accent="#D65A32" icon={<Megaphone className="h-5 w-5" />} eyebrow={isFr ? "Visibilité commerciale" : "Commercial visibility"} title={isFr ? "Régie publicitaire" : "Advertising desk"} description={isFr ? "Créez des affiches bilingues, choisissez leur emplacement et leur calendrier, puis contrôlez exactement ce qui est visible dans l'application client." : "Create bilingual artwork, choose its placement and schedule, then control exactly what appears in the customer app."} action={<AdvertisementEditor locale={locale} onSaved={request.refetch} />} />
 
     <div data-testid="advertising-metrics" className="grid grid-cols-3 border-y border-charcoal/8 bg-charcoal px-2 py-3 text-white sm:px-5 sm:py-4 [&>*+*]:border-l [&>*+*]:border-white/10"><Metric value={advertisements.length} label={isFr ? "affiches enregistrées" : "saved ads"} /><Metric value={published} label={isFr ? "actives ou planifiées" : "active or scheduled"} /><Metric value={new Set(advertisements.map((item) => item.placement)).size} label={isFr ? "emplacements utilisés" : "placements used"} /></div>
 
@@ -141,7 +141,7 @@ function AdvertisementEditor({ locale, advertisement, onSaved }: { locale: "fr" 
               {!dateRangeValid ? <p role="alert" className="border-y border-destructive/20 bg-destructive/5 px-3 py-2 text-[11px] font-semibold text-destructive">{isFr ? "La date de fin doit être postérieure à la date de début." : "The end date must be later than the start date."}</p> : null}
             </div>
           </div>
-          {error ? <p role="alert" className="mx-5 border-y border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 sm:mx-6">{error}</p> : null}
+          {error ? <p role="alert" className="mx-5 border-y border-destructive/25 bg-destructive/[0.06] px-3 py-2 text-xs text-destructive sm:mx-6">{error}</p> : null}
           <DialogFooter className="border-t border-border px-5 py-4 sm:px-6">
             <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{complete ? (isFr ? "Prête à enregistrer" : "Ready to save") : (isFr ? "Complétez les champs obligatoires" : "Complete the required fields")}</p>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>

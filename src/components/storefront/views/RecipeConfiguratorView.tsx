@@ -384,7 +384,7 @@ export function RecipeConfiguratorView() {
                 </Button>
               )}
             </div>
-            {calcError ? <div role="alert" className="border-b border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800">{calcError}</div> : null}
+            {calcError ? <div role="alert" className="border-b border-destructive/25 bg-destructive/[0.06] px-4 py-3 text-xs text-destructive">{calcError}</div> : null}
             <div className="divide-y divide-border">
               {calc?.ingredients.map((ing) => (
                 <IngredientRow
@@ -431,13 +431,13 @@ export function RecipeConfiguratorView() {
               </div>
 
               {calc.unavailableCount > 0 && (
-                <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
+                <div className="mt-3 flex items-start gap-2 rounded-md border border-gold/30 bg-gold/[0.08] p-2 text-xs text-charcoal">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>{locale === "fr" ? `${calc.unavailableCount} produit(s) indisponible(s) — substituts proposés.` : `${calc.unavailableCount} product(s) unavailable — substitutes suggested.`}</span>
                 </div>
               )}
               {calc.leftoverCount > 0 && (
-                <div className="mt-2 flex items-start gap-2 rounded-lg bg-blue-50 p-2 text-xs text-blue-800">
+                <div className="mt-2 flex items-start gap-2 rounded-md border border-forest/20 bg-forest/[0.06] p-2 text-xs text-forest">
                   <Package className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>{locale === "fr" ? `${calc.leftoverCount} produit(s) génèrent un reste réutilisable.` : `${calc.leftoverCount} product(s) yield reusable leftovers.`}</span>
                 </div>
@@ -554,8 +554,8 @@ function CounterField({ label, value, onChange, max, locale }: { label: string; 
 function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePantry, onReplace }: { ing: any; locale: string; onPackDelta: (delta: number) => void; onToggleExcluded: () => void; onTogglePantry: () => void; onReplace: (productId: string) => void }) {
   const t = dict[locale as "fr" | "en"];
   const roleColor: Record<string, string> = {
-    protein: "bg-red-100 text-red-700", base: "bg-amber-100 text-amber-700", aromatic: "bg-gold/15 text-amber-800",
-    spice: "bg-orange-100 text-orange-700", fat: "bg-yellow-100 text-yellow-700", side: "bg-blue-100 text-blue-700", optional: "bg-gray-100 text-gray-600",
+    protein: "bg-destructive/10 text-destructive", base: "bg-gold/15 text-charcoal", aromatic: "bg-terre/10 text-terre",
+    spice: "bg-terre/10 text-terre", fat: "bg-gold/15 text-charcoal", side: "bg-forest/10 text-forest", optional: "bg-muted text-muted-foreground",
   };
   const roleLabel: Record<string, [string, string]> = {
     protein: ["Protéine", "Protein"], base: ["Base", "Base"], aromatic: ["Aromate", "Aromatic"], spice: ["Épice", "Spice"], fat: ["Matière grasse", "Fat"], side: ["Accompagnement", "Side"], optional: ["Optionnel", "Optional"],
@@ -578,7 +578,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
         <div className="min-w-0 flex-1">
           <p className={`truncate text-sm font-semibold ${ing.removed ? "text-muted-foreground line-through" : "text-charcoal"}`}>{localizedName}</p>
           <div className="flex flex-wrap items-center gap-1">
-            <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-medium ${roleColor[ing.role] || "bg-gray-100 text-gray-600"}`}>
+            <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-medium ${roleColor[ing.role] || "bg-muted text-muted-foreground"}`}>
               {(roleLabel[ing.role] || ["", ""])[locale === "en" ? 1 : 0]}
             </span>
             {ing.optional && <span className="text-[9px] text-muted-foreground">· {t.config.ingredient}</span>}
@@ -645,15 +645,15 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
             {ing.available ? (
               <Badge variant="outline" className="h-10 w-full justify-center border-forest/40 bg-forest/5 text-forest"><Check className="mr-1 h-3 w-3" /> {t.config.inStockOk} · {ing.stockQty}</Badge>
             ) : ing.substituteName ? (
-              <button type="button" onClick={() => onReplace(ing.substituteProductId)} className="flex h-10 w-full items-center justify-center rounded-md border border-amber-400 bg-amber-50 px-2 text-[10px] font-bold text-amber-800"><RefreshCw className="mr-1 h-3 w-3" /> {locale === "fr" ? `Utiliser ${ing.substituteName}` : `Use ${ing.substituteName}`}</button>
+              <button type="button" onClick={() => onReplace(ing.substituteProductId)} className="flex h-10 w-full items-center justify-center rounded-md border border-gold/45 bg-gold/[0.09] px-2 text-[10px] font-bold text-charcoal"><RefreshCw className="mr-1 h-3 w-3 text-terre" /> {locale === "fr" ? `Utiliser ${ing.substituteName}` : `Use ${ing.substituteName}`}</button>
             ) : (
-              <Badge variant="outline" className="h-10 w-full justify-center border-destructive/40 bg-red-50 text-destructive">{t.config.unavailable}</Badge>
+              <Badge variant="outline" className="h-10 w-full justify-center border-destructive/40 bg-destructive/[0.06] text-destructive">{t.config.unavailable}</Badge>
             )}
           </div> : <div className="flex h-10 items-center text-[10px] text-muted-foreground">{locale === "fr" ? "Aucun achat pour cette ligne" : "No purchase for this line"}</div>}
         </div>
       </details>
 
-      {!ing.removed && ing.leftover > 0 ? <p className="text-[10px] text-blue-700">{t.config.leftover} : {formatQty(ing.leftover, ing.leftoverUnit || (ing.neededUnit === "L" ? "ml" : "g"), locale as any)} · {ing.packLabel}</p> : null}
+      {!ing.removed && ing.leftover > 0 ? <p className="text-[10px] text-forest">{t.config.leftover} : {formatQty(ing.leftover, ing.leftoverUnit || (ing.neededUnit === "L" ? "ml" : "g"), locale as any)} · {ing.packLabel}</p> : null}
     </div>
   );
 }

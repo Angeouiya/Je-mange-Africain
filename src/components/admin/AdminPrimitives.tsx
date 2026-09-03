@@ -4,6 +4,7 @@ import { useId, type ReactNode } from "react";
 import { AlertCircle, LoaderCircle, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
 
 export function AdminPageHeader({
   eyebrow,
@@ -22,12 +23,15 @@ export function AdminPageHeader({
   variant?: "command" | "workspace" | "flow" | "control";
   accent?: string;
 }) {
+  const readableAccent = getReadableBrandAccent(accent);
+  const accentForeground = getBrandAccentForeground(accent);
+
   if (variant === "command") {
     return (
       <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 border-y border-white/8 bg-charcoal px-4 py-4 text-white sm:-mx-6 sm:px-6 sm:py-6 lg:-mx-8 lg:px-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
           <div className="flex max-w-3xl items-start gap-3 sm:gap-4">
-            {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:h-11 sm:w-11" style={{ backgroundColor: accent }}>{icon}</span> : null}
+            {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md sm:h-11 sm:w-11" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
             <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase text-gold sm:text-[10px]">{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.4rem] font-semibold leading-tight sm:mt-1.5 sm:text-4xl">{title}</h2><p className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-white/70 sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6 sm:text-white/58">{description}</p></div>
           </div>
           {action ? <div className="shrink-0">{action}</div> : null}
@@ -40,8 +44,8 @@ export function AdminPageHeader({
     return (
       <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 flex flex-col gap-3 border-y border-charcoal/8 bg-white px-4 py-4 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5 lg:-mx-8 lg:px-8">
         <div className="flex max-w-3xl items-start gap-3 sm:items-center sm:gap-4">
-          {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:h-12 sm:w-12" style={{ backgroundColor: accent }}>{icon}</span> : null}
-          <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase sm:text-[10px]" style={{ color: accent }}>{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
+          {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md sm:h-12 sm:w-12" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
+          <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase sm:text-[10px]" style={{ color: readableAccent }}>{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
@@ -52,7 +56,7 @@ export function AdminPageHeader({
     return (
       <div data-testid="admin-page-header" data-variant={variant} className="flex flex-col gap-3 border-l-[3px] bg-white/55 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:border-l-4 sm:px-5 sm:py-4" style={{ borderLeftColor: accent }}>
         <div className="flex max-w-3xl items-start gap-3">
-          {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border" style={{ color: accent, borderColor: `${accent}25`, backgroundColor: `${accent}0D` }}>{icon}</span> : null}
+          {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border" style={{ color: readableAccent, borderColor: `${accent}25`, backgroundColor: `${accent}0D` }}>{icon}</span> : null}
           <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase text-muted-foreground">{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p className="mt-1 line-clamp-3 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-1.5 sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
@@ -63,9 +67,9 @@ export function AdminPageHeader({
   return (
     <div data-testid="admin-page-header" data-variant={variant} className="flex flex-col gap-3 border-b border-charcoal/8 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
       <div className="flex max-w-3xl items-start gap-3 sm:gap-4">
-        {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:h-11 sm:w-11" style={{ backgroundColor: accent }}>{icon}</span> : null}
+        {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md sm:h-11 sm:w-11" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
         <div className="min-w-0">
-          <p className="text-[9px] font-extrabold uppercase sm:text-[11px]" style={{ color: accent }}>{eyebrow}</p>
+          <p className="text-[9px] font-extrabold uppercase sm:text-[11px]" style={{ color: readableAccent }}>{eyebrow}</p>
           <h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1.5 sm:text-[32px]">{title}</h2>
           <p className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6">{description}</p>
         </div>

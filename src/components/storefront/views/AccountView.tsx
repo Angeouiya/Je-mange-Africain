@@ -251,7 +251,7 @@ function PasswordInput({ id, label, autoComplete, value, onChange, locale }: { i
 function AuthMessage({ status, message, successIcon = false }: { status: "idle" | "busy" | "error" | "success"; message: string; successIcon?: boolean }) {
   if (!message || status === "idle" || status === "busy") return null;
   const success = status === "success";
-  return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-lg border p-3 text-xs leading-relaxed ${success ? "border-forest/25 bg-forest/5 text-forest" : "border-red-200 bg-red-50 text-red-800"}`}>{success && successIcon ? <MailCheck className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
+  return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-md border p-3 text-xs leading-relaxed ${success ? "border-forest/25 bg-forest/5 text-forest" : "border-destructive/25 bg-destructive/[0.06] text-destructive"}`}>{success && successIcon ? <MailCheck className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
 }
 
 function resolveAuthError(error: unknown, locale: "fr" | "en", fallbackFr: string, fallbackEn: string) {

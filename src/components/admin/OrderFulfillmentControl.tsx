@@ -253,7 +253,7 @@ export function OrderFulfillmentControl({
             </div>
           </div>
 
-          {result ? <div role={result.type === "error" ? "alert" : "status"} className={`mt-4 flex items-center gap-2 border-y px-3 py-3 text-xs font-bold ${result.type === "success" ? "border-forest/25 bg-forest/5 text-forest" : "border-red-200 bg-red-50 text-red-800"}`}>{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : result.type === "success" ? <CheckCircle2 className="h-4 w-4" /> : <LockKeyhole className="h-4 w-4" />}{result.message}</div> : null}
+          {result ? <div role={result.type === "error" ? "alert" : "status"} className={`mt-4 flex items-center gap-2 border-y px-3 py-3 text-xs font-bold ${result.type === "success" ? "border-forest/25 bg-forest/5 text-forest" : "border-destructive/25 bg-destructive/[0.06] text-destructive"}`}>{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : result.type === "success" ? <CheckCircle2 className="h-4 w-4" /> : <LockKeyhole className="h-4 w-4" />}{result.message}</div> : null}
           {saving ? <p role="status" className="mt-3 flex items-center gap-2 text-[10px] font-bold text-muted-foreground"><LoaderCircle className="h-3.5 w-3.5 animate-spin" />{isFr ? "Synchronisation de la commande…" : "Synchronising order…"}</p> : null}
         </div>
       )}

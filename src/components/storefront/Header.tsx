@@ -96,7 +96,7 @@ export function Header() {
               </button>
               {customer ? (
                 <LogoutConfirmDialog>
-                  <button type="button" className="flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-destructive hover:bg-red-50">
+                  <button type="button" className="flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-destructive hover:bg-destructive/[0.06]">
                     <LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}
                   </button>
                 </LogoutConfirmDialog>

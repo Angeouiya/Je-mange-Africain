@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
 import { getBrandAccentColor, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 
 describe("market media", () => {
@@ -30,10 +31,22 @@ describe("market media", () => {
     expect(getRecipePhoto({ slug: "mafe", imageUrl: "https://cdn.example.com/mafe.webp" })).toBe("https://cdn.example.com/mafe.webp");
   });
 
-  it("removes green accents while preserving the logo palette", () => {
+  it("normalizes chromatic accents to the logo palette and preserves neutrals", () => {
     expect(getBrandAccentColor("#3F681C")).toBe("#8A3042");
     expect(getBrandAccentColor("#16a34a")).toBe("#8A3042");
+    expect(getBrandAccentColor("#326B8A")).toBe("#8A3042");
+    expect(getBrandAccentColor("#6C5D7B")).toBe("#8A3042");
     expect(getBrandAccentColor("#D65A32")).toBe("#D65A32");
     expect(getBrandAccentColor("#F2A900")).toBe("#F2A900");
+    expect(getBrandAccentColor("#F7F4F3")).toBe("#F7F4F3");
+    expect(getBrandAccentColor("#000000")).toBe("#3F2930");
+    expect(getBrandAccentColor("green")).toBe("#8A3042");
+  });
+
+  it("pairs light logo accents with accessible foreground colors", () => {
+    expect(getReadableBrandAccent(BRAND_COLORS.gold)).toBe(BRAND_COLORS.deepEarth);
+    expect(getReadableBrandAccent(BRAND_COLORS.burgundy)).toBe(BRAND_COLORS.burgundy);
+    expect(getBrandAccentForeground(BRAND_COLORS.gold)).toBe(BRAND_COLORS.charcoal);
+    expect(getBrandAccentForeground(BRAND_COLORS.earth)).toBe(BRAND_COLORS.cream);
   });
 });

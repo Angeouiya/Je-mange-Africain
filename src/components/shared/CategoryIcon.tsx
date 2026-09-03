@@ -15,11 +15,11 @@ const categoryIcons = {
 
 const categoryColors: Record<string, string> = {
   manioc: "#D65A32",
-  farines: "#C88A00",
-  viandes: "#B9382B",
+  farines: "#F2A900",
+  viandes: "#C92A3E",
   poissons: "#A73E22",
   legumes: "#8A3042",
-  sauces: "#C34B29",
+  sauces: "#D65A32",
   legumineuses: "#8A3042",
   boissons: "#C92A3E",
 };
