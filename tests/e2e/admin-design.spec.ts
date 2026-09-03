@@ -178,6 +178,30 @@ const auditPayload = {
   ],
 };
 
+const teamRoleCatalog = [
+  { id: "super_admin", assignable: false, permissions: { dashboard: ["read", "create", "update", "delete"], catalog: ["read", "create", "update", "delete"], recipes: ["read", "create", "update", "delete"], orders: ["read", "create", "update", "delete"], stock: ["read", "create", "update", "delete"], customers: ["read", "create", "update", "delete"], marketing: ["read", "create", "update", "delete"], finance: ["read", "create", "update", "delete"], audit: ["read", "create", "update", "delete"], team: ["read", "create", "update", "delete"] } },
+  { id: "marketing", assignable: true, permissions: { dashboard: ["read"], catalog: ["read"], recipes: ["read"], customers: ["read"], marketing: ["read", "create", "update", "delete"] } },
+  { id: "logistics", assignable: true, permissions: { dashboard: ["read"], orders: ["read", "update"], customers: ["read"] } },
+  { id: "accounting", assignable: true, permissions: { dashboard: ["read"], orders: ["read"], stock: ["read"], finance: ["read", "update"], audit: ["read"] } },
+  { id: "support", assignable: true, permissions: { dashboard: ["read"], orders: ["read"], customers: ["read", "update"] } },
+  { id: "catalog_manager", assignable: true, permissions: { dashboard: ["read"], catalog: ["read", "create", "update", "delete"], recipes: ["read"], stock: ["read"] } },
+];
+
+const teamPayload = {
+  roles: teamRoleCatalog.filter((role) => role.assignable),
+  roleCatalog: teamRoleCatalog,
+  modules: ["dashboard", "catalog", "recipes", "orders", "stock", "customers", "marketing", "finance", "audit", "team"],
+  actions: ["read", "create", "update", "delete"],
+  summary: { total: 5, active: 3, invited: 1, suspended: 1, protected: 1, delegatedRoles: 2, coveredModules: 6, totalModules: 10, recentlyActive: 2, dormant: 0 },
+  members: [
+    { id: "super-1", email: "direction@je-mange-africain.com", firstName: "Ange", lastName: "OUIYA", role: "super_admin", status: "active", lastSignInAt: now, createdAt: "2025-08-12T09:00:00.000Z", invitedBy: null, permissions: teamRoleCatalog[0].permissions, current: true, protected: true },
+    { id: "member-1", email: "marketing@je-mange-africain.com", firstName: "Mariam", lastName: "Diallo", role: "marketing", status: "active", lastSignInAt: now, createdAt: "2026-03-14T09:00:00.000Z", invitedBy: "direction@je-mange-africain.com", permissions: teamRoleCatalog[1].permissions },
+    { id: "member-2", email: "logistique@je-mange-africain.com", firstName: "Idrissa", lastName: "Koné", role: "logistics", status: "active", lastSignInAt: "2026-08-30T14:20:00.000Z", createdAt: "2026-04-05T11:00:00.000Z", invitedBy: "direction@je-mange-africain.com", permissions: teamRoleCatalog[2].permissions },
+    { id: "member-3", email: "compta@je-mange-africain.com", firstName: "Awa", lastName: "Traoré", role: "accounting", status: "invited", lastSignInAt: null, createdAt: "2026-09-01T08:00:00.000Z", invitedBy: "direction@je-mange-africain.com", permissions: teamRoleCatalog[3].permissions },
+    { id: "member-4", email: "support@je-mange-africain.com", firstName: "Léa", lastName: "Mensah", role: "support", status: "suspended", lastSignInAt: "2026-06-01T10:00:00.000Z", createdAt: "2026-01-18T10:00:00.000Z", invitedBy: "direction@je-mange-africain.com", permissions: teamRoleCatalog[4].permissions },
+  ],
+};
+
 async function expectBrandSafeUiColors(page: Page) {
   const forbiddenStyles = await page.locator("body").evaluate((body) => {
     const ignoredTags = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS"]);
@@ -281,10 +305,10 @@ async function mockAdminApi(page: Page) {
     else if (path === "/api/admin/audit") payload = auditPayload;
     else if (path === "/api/categories") payload = { categories: [{ id: "cat-1", name: "Féculents et farines" }, { id: "cat-2", name: "Épices" }] };
     else if (path === "/api/brands") payload = { brands: [{ id: "brand-1", name: "Je mange Africain" }] };
-    else if (path === "/api/admin/team") payload = {
-      roles: [{ id: "marketing", permissions: { dashboard: ["read"], catalog: ["read"], recipes: ["read"], customers: ["read"], marketing: ["read", "create", "update", "delete"] } }],
-      members: [{ id: "member-1", email: "marketing@je-mange-africain.com", firstName: "Mariam", lastName: "Diallo", role: "marketing", status: "active", lastSignInAt: now, createdAt: now, permissions: { dashboard: ["read"], catalog: ["read"], recipes: ["read"], customers: ["read"], marketing: ["read", "create", "update", "delete"] } }],
-    };
+    else if (path.startsWith("/api/admin/team/") && request.method() === "PATCH") payload = { member: { id: path.split("/").at(-1), ...request.postDataJSON() } };
+    else if (path.startsWith("/api/admin/team/") && request.method() === "DELETE") payload = { ok: true };
+    else if (path === "/api/admin/team" && request.method() === "POST") payload = { member: { id: "member-new", ...request.postDataJSON(), status: "invited" } };
+    else if (path === "/api/admin/team") payload = teamPayload;
     else payload = {};
 
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
@@ -418,6 +442,123 @@ test("the audit center qualifies, filters and exports operational evidence", asy
   await expect(page.getByText("Féculents et farines · Épices", { exact: true })).toBeVisible();
   await expect.poll(() => requestedReferencePaths.size).toBe(2);
   expect(referenceRequests).toBeGreaterThanOrEqual(2);
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+});
+
+test("the team cockpit grants least-privilege access and documents sensitive decisions", async ({ page }) => {
+  test.setTimeout(150_000);
+  const mutations: Array<{ method: string; path: string; body: Record<string, unknown> }> = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/api/admin/team") && request.method() !== "GET") mutations.push({ method: request.method(), path, body: request.postDataJSON() || {} });
+  });
+  await mockAdminApi(page);
+  await page.goto("/admin#team", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByText("Couverture déléguée", { exact: true })).toBeVisible();
+  await expect(page.getByText("6/10", { exact: true })).toBeVisible();
+  await expect(page.getByText(/1 invitation en attente · 1 compte suspendu/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Inviter un membre" }).click();
+  const inviteDialog = page.getByRole("dialog", { name: "Créer un accès professionnel" });
+  const inviteAction = inviteDialog.getByRole("button", { name: "Envoyer l'invitation" });
+  await expect(inviteAction).toBeDisabled();
+  await inviteDialog.getByLabel("Prénom").fill("Fatou");
+  await inviteDialog.getByRole("textbox", { name: "Nom", exact: true }).fill("Ndiaye");
+  await inviteDialog.getByLabel("E-mail").fill("fatou@je-mange-africain.com");
+  await inviteDialog.getByLabel("Rôle attribué").selectOption("catalog_manager");
+  await expect(inviteDialog.getByRole("heading", { name: "Responsable catalogue" })).toBeVisible();
+  await expect(inviteDialog.getByText("Supprimer", { exact: true })).toBeVisible();
+  await expect(inviteAction).toBeEnabled();
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `team-invite-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await inviteAction.click();
+  await expect(inviteDialog).toBeHidden();
+  await expect.poll(() => mutations.filter((item) => item.method === "POST").length).toBe(1);
+  expect(mutations.find((item) => item.method === "POST")?.body).toMatchObject({ email: "fatou@je-mange-africain.com", firstName: "Fatou", lastName: "Ndiaye", role: "catalog_manager" });
+
+  const search = page.getByRole("searchbox", { name: "Rechercher un membre" });
+  await search.fill("Idrissa");
+  await expect(page.getByTestId("admin-search-field")).toContainText("1 résultat sur 5");
+  await page.getByRole("button", { name: "Gérer les accès de Idrissa Koné" }).click();
+  const accessDialog = page.getByRole("dialog", { name: "Idrissa Koné" });
+  await expect(accessDialog).toContainText("Logistique");
+  await expect(accessDialog).toContainText("direction@je-mange-africain.com");
+  await accessDialog.getByLabel("Nouveau rôle").selectOption("support");
+  await accessDialog.getByLabel("Motif obligatoire").fill("Renfort temporaire du service client");
+  await expect(accessDialog.getByText("Relation client", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `team-access-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+
+  await accessDialog.getByRole("button", { name: "Enregistrer le nouveau rôle" }).click();
+  await expect(accessDialog).toBeHidden();
+  await expect.poll(() => mutations.filter((item) => item.method === "PATCH").length).toBe(1);
+  expect(mutations.find((item) => item.method === "PATCH")?.body).toMatchObject({ role: "support", status: "active", reason: "Renfort temporaire du service client" });
+
+  await page.getByRole("button", { name: "Réinitialiser" }).click();
+  await page.getByRole("button", { name: "Gérer les accès de Mariam Diallo" }).click();
+  const mariamDialog = page.getByRole("dialog", { name: "Mariam Diallo" });
+  await mariamDialog.getByRole("button", { name: "Suspendre le compte" }).click();
+  const suspension = page.getByRole("alertdialog", { name: "Suspendre immédiatement cet accès ?" });
+  await suspension.getByLabel("Motif obligatoire").fill("Revue de sécurité du compte");
+  await suspension.getByRole("button", { name: "Confirmer la décision" }).click();
+  await expect.poll(() => mutations.filter((item) => item.method === "PATCH").length).toBe(2);
+  expect(mutations.filter((item) => item.method === "PATCH")[1].body).toMatchObject({ role: "marketing", status: "suspended", reason: "Revue de sécurité du compte" });
+
+  await page.getByRole("button", { name: "Gérer les accès de Ange OUIYA" }).click();
+  const protectedDialog = page.getByRole("dialog", { name: "Ange OUIYA" });
+  await expect(protectedDialog.getByRole("heading", { name: "Compte de gouvernance protégé" })).toBeVisible();
+  await expect(protectedDialog.getByRole("button", { name: "Suspendre le compte" })).toHaveCount(0);
+  await protectedDialog.getByRole("button", { name: "Fermer", exact: true }).last().click();
+
+  await page.getByRole("button", { name: "Gérer les accès de Awa Traoré" }).click();
+  const awaDialog = page.getByRole("dialog", { name: "Awa Traoré" });
+  await awaDialog.getByRole("button", { name: "Supprimer l'accès" }).click();
+  const deletion = page.getByRole("alertdialog", { name: "Supprimer ce compte professionnel ?" });
+  await deletion.getByLabel("Motif obligatoire").fill("Invitation créée pour le mauvais compte");
+  await deletion.getByRole("button", { name: "Supprimer définitivement" }).click();
+  await expect.poll(() => mutations.filter((item) => item.method === "DELETE").length).toBe(1);
+  expect(mutations.find((item) => item.method === "DELETE")?.body).toMatchObject({ reason: "Invitation créée pour le mauvais compte" });
+
+  await page.getByRole("tab", { name: /Matrice des rôles/ }).click();
+  const mobileRoleSelect = page.getByLabel("Rôle à inspecter");
+  if (await mobileRoleSelect.isVisible()) await mobileRoleSelect.selectOption("accounting");
+  else await page.getByRole("button", { name: /Comptabilité/ }).click();
+  await expect(page.getByRole("heading", { name: "Comptabilité" })).toBeVisible();
+  await expect(page.getByText("Accès effectifs par espace")).toBeVisible();
+  await expect(page.getByText("Aucun accès").first()).toBeVisible();
+  await expect(page.getByText("Modifier", { exact: true })).toBeVisible();
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `team-matrix-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+
+  await page.getByRole("tab", { name: /Identités/ }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exporter" }).click();
+  expect((await download).suggestedFilename()).toBe("je-mange-africain-equipe.csv");
+
+  await page.evaluate(() => localStorage.setItem("jma-admin-locale", "en"));
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Professional team" })).toBeVisible();
+  await expect(page.getByText("Delegated coverage", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: /Role matrix/ }).click();
+  await expect(page.getByText("Effective access by workspace")).toBeVisible();
+  await expect(page.getByText("Anything not shown is denied.")).toBeVisible();
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
