@@ -12,7 +12,7 @@ import { RecipeCard } from "@/components/shared/RecipeCard";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { useStore } from "@/lib/store";
-import { dict } from "@/lib/i18n";
+import { dict, type Locale } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
 import { getDiscountPercent, getProductCommercialLine, getProductGallery } from "@/lib/market-media";
@@ -115,7 +115,7 @@ export function ProductDetailView() {
         image={heroPhoto}
         structuredData={productStructuredData}
       />
-      <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 py-4 md:px-7 md:py-10 lg:px-8">
+      <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-28 pt-4 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-3 md:mb-4" />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
@@ -217,19 +217,33 @@ export function ProductDetailView() {
           )}
 
           {/* qty + add */}
-          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap">
-            <div className="inline-flex shrink-0 items-center rounded-lg border border-border">
-              <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} className="grid h-10 w-10 place-items-center rounded-md hover:bg-muted" aria-label={locale === "fr" ? `Diminuer la quantité de ${product.name}` : `Decrease ${product.name} quantity`}><Minus className="h-4 w-4" /></button>
-              <span className="min-w-10 text-center font-semibold tabular-nums">{qty}</span>
-              <button type="button" onClick={() => setQty(Math.min(product.stockQty || 99, qty + 1))} className="grid h-10 w-10 place-items-center rounded-md hover:bg-muted" aria-label={locale === "fr" ? `Augmenter la quantité de ${product.name}` : `Increase ${product.name} quantity`}><Plus className="h-4 w-4" /></button>
-            </div>
-            <Button onClick={handleAdd} disabled={outOfStock} size="lg" className="order-last w-full justify-between gap-3 whitespace-normal bg-terre px-4 text-center leading-tight text-cream shadow-md hover:bg-terre-dark sm:order-none sm:min-w-0 sm:flex-1">
-              <span className="inline-flex items-center"><Plus className="mr-1.5 h-4 w-4" />{t.product.addToCart}</span><span className="shrink-0 border-l border-white/25 pl-3 font-black tabular-nums">{formatPrice(lineTotal, locale)}</span>
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => toggleFavorite(product.id)} aria-pressed={isFav} aria-label={isFav ? (locale === "fr" ? `Retirer ${product.name} des favoris` : `Remove ${product.name} from favourites`) : (locale === "fr" ? `Ajouter ${product.name} aux favoris` : `Add ${product.name} to favourites`)} className="ml-auto h-11 w-11 shrink-0 sm:ml-0">
-              <Heart className={`h-5 w-5 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />
-            </Button>
-          </div>
+          <PurchaseControls
+            productName={product.name}
+            qty={qty}
+            maxQty={product.stockQty || 99}
+            onQtyChange={setQty}
+            onAdd={handleAdd}
+            outOfStock={outOfStock}
+            addLabel={t.product.addToCart}
+            lineTotal={lineTotal}
+            isFavourite={isFav}
+            onToggleFavourite={() => toggleFavorite(product.id)}
+            locale={locale}
+          />
+          <PurchaseControls
+            mobile
+            productName={product.name}
+            qty={qty}
+            maxQty={product.stockQty || 99}
+            onQtyChange={setQty}
+            onAdd={handleAdd}
+            outOfStock={outOfStock}
+            addLabel={t.product.addToCart}
+            lineTotal={lineTotal}
+            isFavourite={isFav}
+            onToggleFavourite={() => toggleFavorite(product.id)}
+            locale={locale}
+          />
 
           {/* trust badges */}
           <div className="grid min-w-0 grid-cols-3 gap-2 border-t border-border pt-4 text-center">
@@ -316,6 +330,45 @@ export function ProductDetailView() {
   );
 }
 
+function PurchaseControls({ productName, qty, maxQty, onQtyChange, onAdd, outOfStock, addLabel, lineTotal, isFavourite, onToggleFavourite, locale, mobile = false }: {
+  productName: string;
+  qty: number;
+  maxQty: number;
+  onQtyChange: (quantity: number) => void;
+  onAdd: () => void;
+  outOfStock: boolean;
+  addLabel: string;
+  lineTotal: number;
+  isFavourite: boolean;
+  onToggleFavourite: () => void;
+  locale: Locale;
+  mobile?: boolean;
+}) {
+  const controls = (
+    <div className={`flex min-w-0 items-center gap-2 ${mobile ? "mx-auto max-w-xl" : "w-full"}`}>
+      <div className="inline-flex shrink-0 items-center rounded-md border border-charcoal/12 bg-white">
+        <button type="button" onClick={() => onQtyChange(Math.max(1, qty - 1))} disabled={qty <= 1} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Diminuer la quantité de ${productName}` : `Decrease ${productName} quantity`}><Minus className="h-4 w-4" /></button>
+        <span className={`${mobile ? "min-w-7" : "min-w-10"} text-center text-sm font-black tabular-nums text-charcoal`}>{qty}</span>
+        <button type="button" onClick={() => onQtyChange(Math.min(Math.max(1, maxQty), qty + 1))} disabled={outOfStock || qty >= maxQty} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Augmenter la quantité de ${productName}` : `Increase ${productName} quantity`}><Plus className="h-4 w-4" /></button>
+      </div>
+      <Button onClick={onAdd} disabled={outOfStock} size="lg" aria-label={`${addLabel}, ${formatPrice(lineTotal, locale)}`} className={`${mobile ? "h-11 px-3 text-xs" : "h-11 px-4 text-sm"} min-w-0 flex-1 justify-between gap-2 whitespace-normal bg-terre text-center leading-tight text-cream shadow-md hover:bg-terre-dark`}>
+        <span className="inline-flex min-w-0 items-center"><Plus className="mr-1 h-4 w-4 shrink-0" />{mobile ? (locale === "fr" ? "Ajouter" : "Add") : addLabel}</span>
+        <span className="shrink-0 border-l border-white/25 pl-2 font-black tabular-nums">{formatPrice(lineTotal, locale)}</span>
+      </Button>
+      <Button variant="outline" size="icon" onClick={onToggleFavourite} aria-pressed={isFavourite} aria-label={isFavourite ? (locale === "fr" ? `Retirer ${productName} des favoris` : `Remove ${productName} from favourites`) : (locale === "fr" ? `Ajouter ${productName} aux favoris` : `Add ${productName} to favourites`)} className={`${mobile ? "h-10 w-10" : "h-11 w-11"} shrink-0 border-charcoal/12 bg-white`}>
+        <Heart className={`h-5 w-5 ${isFavourite ? "fill-terre text-terre" : "text-charcoal"}`} />
+      </Button>
+    </div>
+  );
+
+  if (!mobile) return <div className="hidden min-w-0 md:flex">{controls}</div>;
+  return (
+    <div data-testid="product-purchase-dock" className="fixed inset-x-0 z-30 border-t border-burgundy/12 bg-white/96 px-3 py-2 shadow-[0_-16px_36px_-28px_rgba(90,38,50,0.7)] backdrop-blur-xl md:hidden" style={{ bottom: "calc(2.5rem + max(env(safe-area-inset-bottom), 0.75rem) + 1px)" }}>
+      {controls}
+    </div>
+  );
+}
+
 function ProductFact({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
     <div className="min-w-0 border-l-2 border-terre/15 pl-2.5">
@@ -332,5 +385,3 @@ function nutriLabel(k: string, locale: Locale) {
   };
   return (map[k] || [k, k])[locale === "en" ? 1 : 0];
 }
-
-import type { Locale } from "@/lib/i18n";

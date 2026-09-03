@@ -123,6 +123,19 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/catalog-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
+  if (isMobile) {
+    await page.getByRole("button", { name: /filtres/i }).click();
+    const filtersDialog = page.getByRole("dialog");
+    await filtersDialog.getByRole("button", { name: /manioc & dérivés|cassava & derivatives/i }).click();
+    await filtersDialog.getByRole("button", { name: /voir \d+ produits|view \d+ products/i }).click();
+    await expect(page.getByRole("button", { name: /filtres, 1|filters, 1/i })).toBeVisible();
+  } else {
+    await page.getByTestId("catalog-filter-sidebar").getByRole("button", { name: /manioc & dérivés|cassava & derivatives/i }).click();
+  }
+  const clearCategoryFilter = page.getByRole("button", { name: /retirer le filtre manioc & dérivés|remove cassava & derivatives filter/i });
+  await expect(clearCategoryFilter).toBeVisible();
+  await clearCategoryFilter.click();
+  if (isMobile) await expect(page.getByRole("button", { name: /^filtres$|^filters$/i })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
 
@@ -341,9 +354,26 @@ test("product details stay bounded and preserve real visual identification in th
   await expect(page.getByRole("tab", { name: /nutrition/i })).toBeVisible();
   await expect(page.getByRole("tab", { name: /préparation|preparation/i })).toBeVisible();
   await expect(page.getByRole("tab", { name: /conservation|storage/i })).toBeVisible();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  const purchaseDock = page.getByTestId("product-purchase-dock");
+  if (isMobile) {
+    await expect(purchaseDock).toBeVisible();
+    const dockBox = await purchaseDock.boundingBox();
+    const navigationBox = await page.getByTestId("mobile-navigation").boundingBox();
+    expect(Math.abs((dockBox?.y || 0) + (dockBox?.height || 0) - (navigationBox?.y || 0))).toBeLessThanOrEqual(2);
+  } else {
+    await expect(purchaseDock).toBeHidden();
+  }
   await expectNoHorizontalOverflow(page);
+  const relatedRecipesHeading = page.getByRole("heading", { name: /recettes associées|related recipes/i });
+  if (await relatedRecipesHeading.count()) {
+    await relatedRecipesHeading.scrollIntoViewIfNeeded();
+    const relatedRecipeImage = relatedRecipesHeading.locator("xpath=following-sibling::*[1]").getByRole("img").first();
+    await expect(relatedRecipeImage).toBeVisible();
+    await expect.poll(() => relatedRecipeImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  }
   if (process.env.CLIENT_SCREENSHOTS) {
-    await page.screenshot({ path: `output/playwright/audit/product-detail-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+    await page.screenshot({ path: `output/playwright/audit/product-detail-${isMobile ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
   }
 
   await page.reload({ waitUntil: "domcontentloaded" });
