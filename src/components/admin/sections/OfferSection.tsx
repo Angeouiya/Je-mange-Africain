@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpen, ChefHat, Clock3, Package, Sparkles } from "lucide-react";
+import { BookOpen, BookOpenCheck, ChefHat, ChevronRight, Clock3, Package, Sparkles, UsersRound } from "lucide-react";
 import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { ProductCreateDialog } from "@/components/admin/ProductCreateDialog";
 import { RecipeCreateDialog } from "@/components/admin/RecipeCreateDialog";
@@ -16,13 +16,14 @@ import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { EditorialActionsDialog } from "@/components/admin/EditorialActionsDialog";
 
 type Product = { id: string; name: string; nameFr: string; nameEn: string; descriptionFr: string; descriptionEn: string; traditionalName: string; sku: string; categoryId: string; packaging: string; costPrice?: number | null; profitMargin?: number | null; costSource?: "recorded" | "estimated"; price: number; promoPrice?: number | null; isWholesale?: boolean; wholesalePackLabel?: string | null; wholesaleUnitsPerPack?: number; wholesaleMinPacks?: number; wholesalePrice?: number | null; wholesaleTier2MinPacks?: number | null; wholesaleTier2Price?: number | null; wholesaleTier3MinPacks?: number | null; wholesaleTier3Price?: number | null; stockQty: number; alertThreshold?: number; netWeightGrams: number; imageColor: string; imageEmoji: string; imageUrl?: string | null; galleryUrls?: string[]; aliases?: string[]; isNew?: boolean; isRecommended?: boolean; isBestseller?: boolean; status?: "draft" | "published" | "archived"; thermalClass: "AMBIANT" | "REFRIGERATED" | "FROZEN"; storageType: "SEC" | "FRAIS" | "REFRIGERE" | "SURGELE" | "FUME" | "SECHE" | "CONSERVE"; country: string };
-type Recipe = { id: string; title: string; description?: string; country: string; category: string; difficulty: string; timeMinutes: number; baseServings: number; imageColor: string; imageEmoji: string; imageUrl?: string | null; galleryUrls?: string[]; isPopular: boolean; isNew?: boolean; isRecommended?: boolean; status?: string; ingredientCount: number };
+type Recipe = { id: string; title: string; description?: string; country: string; category: string; difficulty: string; timeMinutes: number; baseServings: number; imageColor: string; imageEmoji: string; imageUrl?: string | null; galleryUrls?: string[]; isPopular: boolean; isNew?: boolean; isRecommended?: boolean; status?: string; ingredientCount: number; requiredIngredientCount?: number; availableIngredientCount?: number; stockCoverageRate?: number; needsAttention?: boolean; stepCount?: number; updatedAt?: string };
 type RecipeDetails = Recipe & { steps: string[]; ingredients: Array<{ recipeIngredientId: string; quantityPerBase: number; unit: string; optional: boolean; product: { id: string; traditionalName: string; emoji: string; imageUrl?: string | null; color?: string; nameFr: string; nameEn: string; stockQty: number } }> };
 
 export default function OfferSection({ locale, workspace }: { locale: "fr" | "en"; workspace: "products" | "recipes" }) {
   const isFr = locale === "fr";
   const [query, setQuery] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [recipeFilter, setRecipeFilter] = useState<"all" | "published" | "draft" | "attention">("all");
   const productsRequest = useFetch<{ products: Product[]; total: number }>(workspace === "products" ? `/api/admin/products?locale=${locale}` : null, [locale, workspace]);
   const recipesRequest = useFetch<{ recipes: Recipe[] }>(workspace === "recipes" ? `/api/admin/recipes?locale=${locale}` : null, [locale, workspace]);
   const recipeDetailsRequest = useFetch<RecipeDetails>(selectedRecipe ? `/api/admin/recipes/${selectedRecipe.id}?locale=${locale}` : null, [selectedRecipe?.id, locale]);
@@ -31,7 +32,18 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
   const recipes = recipesRequest.data?.recipes || [];
   const normalizedQuery = normalize(query);
   const filteredProducts = useMemo(() => products.filter((product) => normalize(`${product.name} ${product.traditionalName} ${product.sku} ${product.country}`).includes(normalizedQuery)), [products, normalizedQuery]);
-  const filteredRecipes = useMemo(() => recipes.filter((recipe) => normalize(`${recipe.title} ${recipe.country} ${recipe.category}`).includes(normalizedQuery)), [recipes, normalizedQuery]);
+  const recipeStats = useMemo(() => ({
+    published: recipes.filter((recipe) => recipe.status === "published").length,
+    draft: recipes.filter((recipe) => recipe.status === "draft").length,
+    ready: recipes.filter((recipe) => !(recipe.needsAttention ?? ((recipe.stockCoverageRate ?? 100) < 100))).length,
+    attention: recipes.filter((recipe) => recipe.needsAttention ?? ((recipe.stockCoverageRate ?? 100) < 100)).length,
+  }), [recipes]);
+  const filteredRecipes = useMemo(() => recipes.filter((recipe) => {
+    const matchesQuery = normalize(`${recipe.title} ${recipe.country} ${recipe.category}`).includes(normalizedQuery);
+    const needsAttention = recipe.needsAttention ?? ((recipe.stockCoverageRate ?? 100) < 100);
+    const matchesFilter = recipeFilter === "all" || (recipeFilter === "attention" ? needsAttention : recipe.status === recipeFilter);
+    return matchesQuery && matchesFilter;
+  }), [recipes, normalizedQuery, recipeFilter]);
 
   const activeRequest = workspace === "products" ? productsRequest : recipesRequest;
   if (activeRequest.loading && !activeRequest.data) return <AdminSectionLoading label={isFr ? "Ouverture de l'offre" : "Opening offer workspace"} />;
@@ -49,8 +61,8 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         action={workspace === "products" ? <ProductCreateDialog locale={locale} onCreated={productsRequest.refetch} /> : <RecipeCreateDialog locale={locale} onCreated={recipesRequest.refetch} />}
       />
 
-      <div className="flex flex-col gap-2 border-y border-charcoal/8 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-        <div><p className="text-[10px] font-extrabold uppercase text-muted-foreground">{workspace === "products" ? (isFr ? "Catalogue actif" : "Active catalogue") : (isFr ? "Recettes publiées" : "Published recipes")}</p><p className="mt-0.5 text-lg font-black tabular-nums text-charcoal">{workspace === "products" ? products.length : recipes.length}</p></div>
+      <div className="flex flex-col gap-3 border-y border-charcoal/8 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        {workspace === "products" ? <div><p className="text-[10px] font-extrabold uppercase text-muted-foreground">{isFr ? "Catalogue actif" : "Active catalogue"}</p><p className="mt-0.5 text-lg font-black tabular-nums text-charcoal">{products.length}</p></div> : <div className="grid grid-cols-3 divide-x divide-charcoal/8"><RecipeRegisterMetric label={isFr ? "Publiées" : "Published"} value={recipeStats.published} /><RecipeRegisterMetric label={isFr ? "Prêtes" : "Ready"} value={recipeStats.ready} /><RecipeRegisterMetric label={isFr ? "À vérifier" : "Review"} value={recipeStats.attention} attention={recipeStats.attention > 0} /></div>}
         <AdminSearchField
           value={query}
           onChange={setQuery}
@@ -63,6 +75,13 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
           className="w-full sm:max-w-sm"
         />
       </div>
+
+      {workspace === "recipes" ? <div className="flex min-w-0 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={isFr ? "Filtrer le registre des recettes" : "Filter recipe register"}>
+        <RecipeFilterButton active={recipeFilter === "all"} onClick={() => setRecipeFilter("all")}>{isFr ? "Toutes" : "All"} · {recipes.length}</RecipeFilterButton>
+        <RecipeFilterButton active={recipeFilter === "published"} onClick={() => setRecipeFilter("published")}>{isFr ? "Publiées" : "Published"} · {recipeStats.published}</RecipeFilterButton>
+        <RecipeFilterButton active={recipeFilter === "draft"} onClick={() => setRecipeFilter("draft")}>{isFr ? "Brouillons" : "Drafts"} · {recipeStats.draft}</RecipeFilterButton>
+        <RecipeFilterButton active={recipeFilter === "attention"} onClick={() => setRecipeFilter("attention")}>{isFr ? "À vérifier" : "Review"} · {recipeStats.attention}</RecipeFilterButton>
+      </div> : null}
 
       {workspace === "products" ? (
         filteredProducts.length ? (
@@ -90,16 +109,9 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         ) : <AdminEmptyState icon={<Package className="h-5 w-5" />} title={isFr ? "Aucun produit trouvé" : "No products found"} description={isFr ? "Modifiez la recherche ou enregistrez un nouveau produit." : "Change the search or add a new product."} />
       ) : (
         filteredRecipes.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {filteredRecipes.map((recipe, index) => (
-              <article key={recipe.id} className="group relative overflow-hidden rounded-lg border border-charcoal/8 bg-white transition [contain-intrinsic-size:320px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg">
-                <button type="button" onClick={() => setSelectedRecipe(recipe)} className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-terre">
-                  <div className="relative aspect-[16/7] overflow-hidden"><ProductImage src={recipe.imageUrl || getRecipePhoto(recipe)} alt={recipe.title} emoji={recipe.imageEmoji} color={recipe.imageColor} size="lg" className="h-full w-full" rounded="rounded-none" priority={index === 0} /><div className="absolute right-3 top-3 flex max-w-[72%] flex-wrap justify-end gap-1">{recipe.status === "draft" ? <Badge variant="outline" className="border-charcoal/15 bg-white text-charcoal">{isFr ? "Brouillon" : "Draft"}</Badge> : null}{recipe.isNew ? <Badge className="border-0 bg-gold text-charcoal">{isFr ? "Nouveau" : "New"}</Badge> : null}{recipe.isRecommended ? <Badge className="border-0 bg-burgundy text-white">{isFr ? "Recommandé" : "Recommended"}</Badge> : null}{recipe.isPopular ? <Badge className="border-0 bg-charcoal text-white"><Sparkles className="mr-1 h-3 w-3" /> {isFr ? "Populaire" : "Popular"}</Badge> : null}</div></div>
-                  <div className="p-4"><p className="text-[10px] font-extrabold uppercase text-terre">{recipe.country} · {recipe.category}</p><h3 className="mt-1.5 truncate text-sm font-black text-charcoal">{recipe.title}</h3><p className="mt-2 line-clamp-2 min-h-10 text-[11px] leading-5 text-muted-foreground">{recipe.description}</p><div className="mt-3 flex items-center gap-3 border-t border-charcoal/8 pt-3 text-[10px] font-bold text-muted-foreground"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" /> {recipe.timeMinutes} min</span><span className="flex items-center gap-1"><ChefHat className="h-3.5 w-3.5" /> {recipe.ingredientCount} {isFr ? "ingr." : "ingr."}</span></div></div>
-                </button>
-                <div className="absolute left-3 top-3 z-10"><EditorialActionsDialog kind="recipe" entity={recipe} locale={locale} onUpdated={recipesRequest.refetch} /></div>
-              </article>
-            ))}
+          <div className="overflow-hidden rounded-lg border border-charcoal/8 bg-white" data-testid="admin-recipe-register">
+            <div className="hidden overflow-x-auto md:block"><Table><TableHeader><TableRow><TableHead>{isFr ? "Recette" : "Recipe"}</TableHead><TableHead>{isFr ? "Publication" : "Publication"}</TableHead><TableHead>{isFr ? "Couverture ingrédients" : "Ingredient coverage"}</TableHead><TableHead>{isFr ? "Format" : "Format"}</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader><TableBody>{filteredRecipes.map((recipe, index) => <TableRow key={recipe.id} data-testid="admin-recipe-row"><TableCell><button type="button" onClick={() => setSelectedRecipe(recipe)} aria-label={isFr ? `Inspecter ${recipe.title}` : `Inspect ${recipe.title}`} className="flex max-w-md items-center gap-3 text-left"><ProductImage src={recipe.imageUrl || getRecipePhoto(recipe)} alt={recipe.title} emoji={recipe.imageEmoji} color={recipe.imageColor} size="sm" className="h-12 w-16 shrink-0" rounded="rounded-md" priority={index === 0} /><span className="min-w-0"><span className="block truncate text-xs font-black text-charcoal">{recipe.title}</span><span className="mt-0.5 block truncate text-[9px] font-bold uppercase text-terre">{recipe.country} · {recipe.category}</span><span className="mt-1 block truncate text-[10px] text-muted-foreground">{recipe.description}</span></span></button></TableCell><TableCell><RecipeStatusBadge recipe={recipe} locale={locale} /></TableCell><TableCell><RecipeCoverage recipe={recipe} locale={locale} /></TableCell><TableCell><RecipeFormat recipe={recipe} locale={locale} /></TableCell><TableCell><div className="flex justify-end gap-1"><button type="button" onClick={() => setSelectedRecipe(recipe)} aria-label={isFr ? `Voir la fiche ${recipe.title}` : `View ${recipe.title}`} className="grid h-9 w-9 place-items-center rounded-md border border-border text-terre transition hover:border-terre"><ChevronRight className="h-4 w-4" /></button><EditorialActionsDialog kind="recipe" entity={recipe} locale={locale} onUpdated={recipesRequest.refetch} /></div></TableCell></TableRow>)}</TableBody></Table></div>
+            <div className="divide-y divide-border md:hidden">{filteredRecipes.map((recipe, index) => <article key={recipe.id} className="p-3 [contain-intrinsic-size:142px] [content-visibility:auto]" data-testid="admin-recipe-row"><div className="flex items-start gap-3"><button type="button" onClick={() => setSelectedRecipe(recipe)} aria-label={isFr ? `Inspecter ${recipe.title}` : `Inspect ${recipe.title}`} className="flex min-w-0 flex-1 items-start gap-3 text-left"><ProductImage src={recipe.imageUrl || getRecipePhoto(recipe)} alt={recipe.title} emoji={recipe.imageEmoji} color={recipe.imageColor} size="sm" className="h-16 w-20 shrink-0" rounded="rounded-md" priority={index === 0} /><span className="min-w-0 flex-1"><span className="block truncate text-[9px] font-black uppercase text-terre">{recipe.country} · {recipe.category}</span><span className="mt-1 block line-clamp-2 text-sm font-black leading-4 text-charcoal">{recipe.title}</span><span className="mt-1 block line-clamp-1 text-[10px] text-muted-foreground">{recipe.description}</span></span></button><EditorialActionsDialog kind="recipe" entity={recipe} locale={locale} onUpdated={recipesRequest.refetch} /></div><div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-t border-charcoal/8 pt-3"><RecipeStatusBadge recipe={recipe} locale={locale} compact /><RecipeCoverage recipe={recipe} locale={locale} compact /><RecipeFormat recipe={recipe} locale={locale} compact /></div></article>)}</div>
           </div>
         ) : <AdminEmptyState icon={<BookOpen className="h-5 w-5" />} title={isFr ? "Aucune recette trouvée" : "No recipes found"} description={isFr ? "Essayez un plat, un pays ou une catégorie différente." : "Try another dish, country or category."} />
       )}
@@ -114,11 +126,41 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
           {recipeDetailsRequest.loading ? <AdminSectionLoading label={isFr ? "Lecture de la recette" : "Reading recipe"} /> : recipeDetailsRequest.data ? (
             <div className="grid gap-6 px-5 py-6 md:grid-cols-[0.82fr_1.18fr] sm:px-6">
               <section><h4 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Ingrédients liés" : "Linked ingredients"}</h4><div className="mt-3 divide-y divide-border border-y border-border">{recipeDetailsRequest.data.ingredients.map((ingredient) => <div key={ingredient.recipeIngredientId} className="flex items-center gap-3 py-3"><ProductImage src={ingredient.product.imageUrl} alt={isFr ? ingredient.product.nameFr : ingredient.product.nameEn} emoji={ingredient.product.emoji} color={ingredient.product.color} size="sm" className="h-9 w-9 shrink-0" rounded="rounded-md" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{isFr ? ingredient.product.nameFr : ingredient.product.nameEn}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{ingredient.quantityPerBase} {ingredient.unit}{ingredient.optional ? ` · ${isFr ? "optionnel" : "optional"}` : ""}</p></div><span className={`text-[10px] font-bold ${ingredient.product.stockQty > 0 ? "text-burgundy" : "text-destructive"}`}>{ingredient.product.stockQty} {isFr ? "dispo." : "avail."}</span></div>)}</div></section>
-              <section><h4 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Préparation publiée" : "Published preparation"}</h4><ol className="mt-3 space-y-3">{recipeDetailsRequest.data.steps.map((step, index) => <li key={`${index}-${step}`} className="flex gap-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-charcoal text-[10px] font-black text-white">{index + 1}</span><p className="pt-1 text-xs leading-5 text-charcoal">{step}</p></li>)}</ol></section>
+              <section><h4 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Préparation publiée" : "Published preparation"}</h4><ol className="mt-3 space-y-3">{recipeDetailsRequest.data.steps.map((step, index) => <li key={`${index}-${step}`} className="flex gap-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-terre text-[10px] font-black text-white">{index + 1}</span><p className="pt-1 text-xs leading-5 text-charcoal">{step}</p></li>)}</ol></section>
             </div>
           ) : <AdminErrorState message={recipeDetailsRequest.error} onRetry={recipeDetailsRequest.refetch} />}
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+function RecipeRegisterMetric({ label, value, attention = false }: { label: string; value: number; attention?: boolean }) {
+  return <div className="min-w-[4.5rem] px-3 first:pl-0"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className={`mt-0.5 text-base font-black tabular-nums ${attention ? "text-destructive" : "text-charcoal"}`}>{value}</p></div>;
+}
+
+function RecipeFilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-md border px-3 py-2 text-[10px] font-black transition ${active ? "border-burgundy bg-burgundy text-white" : "border-border bg-white text-charcoal hover:border-burgundy/30"}`}>{children}</button>;
+}
+
+function RecipeStatusBadge({ recipe, locale, compact = false }: { recipe: Recipe; locale: "fr" | "en"; compact?: boolean }) {
+  if (recipe.status === "draft") return <Badge variant="outline" className="border-gold/50 bg-gold/[0.09] text-[9px] text-charcoal">{locale === "fr" ? "Brouillon" : "Draft"}</Badge>;
+  if (recipe.status === "archived") return <Badge variant="outline" className="border-charcoal/15 bg-white text-[9px] text-muted-foreground">{locale === "fr" ? "Archivée" : "Archived"}</Badge>;
+  if (compact) {
+    const highlights = Number(Boolean(recipe.isNew)) + Number(Boolean(recipe.isRecommended)) + Number(Boolean(recipe.isPopular));
+    return <div className="flex flex-col items-start gap-1"><Badge variant="outline" className="border-burgundy/25 bg-burgundy/[0.04] text-[9px] text-burgundy">{locale === "fr" ? "Publiée" : "Published"}</Badge>{highlights > 0 ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-[8px] font-bold text-terre"><Sparkles className="h-3 w-3" />{highlights} {locale === "fr" ? "mise(s) en avant" : "highlight(s)"}</span> : null}</div>;
+  }
+  return <div className="flex flex-wrap gap-1"><Badge variant="outline" className="border-burgundy/25 bg-burgundy/[0.04] text-[9px] text-burgundy">{locale === "fr" ? "Publiée" : "Published"}</Badge>{recipe.isRecommended ? <Badge className="border-0 bg-burgundy text-[8px] text-white">{locale === "fr" ? "Recommandée" : "Recommended"}</Badge> : null}{recipe.isPopular ? <Badge variant="outline" className="border-terre/25 bg-terre/[0.05] text-[8px] text-terre"><Sparkles className="mr-1 h-3 w-3" />{locale === "fr" ? "Populaire" : "Popular"}</Badge> : null}</div>;
+}
+
+function RecipeCoverage({ recipe, locale, compact = false }: { recipe: Recipe; locale: "fr" | "en"; compact?: boolean }) {
+  const required = recipe.requiredIngredientCount ?? recipe.ingredientCount;
+  const available = recipe.availableIngredientCount ?? required;
+  const rate = recipe.stockCoverageRate ?? (required > 0 ? Math.round((available / required) * 100) : 0);
+  const attention = recipe.needsAttention ?? rate < 100;
+  return <div className={compact ? "min-w-0" : "w-36"}><div className="flex items-center justify-between gap-2 text-[9px] font-bold"><span className={`truncate ${attention ? "text-destructive" : "text-burgundy"}`}>{attention ? (locale === "fr" ? "Stock à compléter" : "Stock gap") : (locale === "fr" ? "Prête à vendre" : "Ready to sell")}</span><span className="shrink-0 tabular-nums text-charcoal">{available}/{required}</span></div><div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={rate} aria-label={locale === "fr" ? `Couverture ingrédients ${rate} %` : `Ingredient coverage ${rate}%`} className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${attention ? "bg-gold" : "bg-burgundy"}`} style={{ width: `${Math.max(0, Math.min(100, rate))}%` }} /></div></div>;
+}
+
+function RecipeFormat({ recipe, locale, compact = false }: { recipe: Recipe; locale: "fr" | "en"; compact?: boolean }) {
+  return <div className={`flex ${compact ? "flex-col items-end gap-0.5" : "flex-wrap gap-x-3 gap-y-1"} text-[9px] font-bold text-muted-foreground`}><span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />{recipe.timeMinutes} min</span><span className="inline-flex items-center gap-1"><UsersRound className="h-3 w-3" />{recipe.baseServings} {locale === "fr" ? "pers." : "people"}</span><span className="inline-flex items-center gap-1"><BookOpenCheck className="h-3 w-3" />{recipe.stepCount ?? "—"} {locale === "fr" ? "étapes" : "steps"}</span></div>;
 }

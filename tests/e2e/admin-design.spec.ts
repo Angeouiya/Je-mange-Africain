@@ -338,7 +338,7 @@ async function mockAdminApi(page: Page) {
       total: 1,
     };
     else if (path === "/api/admin/recipes") payload = {
-      recipes: [{ id: "recipe-1", title: "Attiéké poisson braisé", description: "Le grand classique ivoirien, composé avec des produits disponibles.", country: "Côte d'Ivoire", category: "Plats", difficulty: "intermediate", timeMinutes: 55, baseServings: 4, imageColor: "#D65A32", imageEmoji: "", imageUrl: "/recipes/attieke-poisson.webp", isPopular: true, isNew: false, isRecommended: true, status: "published", ingredientCount: 8 }],
+      recipes: [{ id: "recipe-1", title: "Attiéké poisson braisé", description: "Le grand classique ivoirien, composé avec des produits disponibles.", country: "Côte d'Ivoire", category: "Plats", difficulty: "intermediate", timeMinutes: 55, baseServings: 4, imageColor: "#D65A32", imageEmoji: "", imageUrl: "/recipes/attieke-poisson.webp", isPopular: true, isNew: false, isRecommended: true, status: "published", ingredientCount: 8, requiredIngredientCount: 8, availableIngredientCount: 7, stockCoverageRate: 88, needsAttention: true, stepCount: 5, updatedAt: now }],
     };
     else if (path === "/api/orders") payload = { orders: [order] };
     else if (path === "/api/admin/stock" && request.method() === "POST") payload = { batch: { id: "batch-2", lotNumber: "ATT-2609-FR" } };
@@ -885,6 +885,41 @@ test("the product workspace edits bilingual content and calculates the customer 
   const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+});
+
+test("the recipe register stays compact and exposes operational readiness", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Construire des recettes achetables" })).toBeVisible();
+  const register = page.getByTestId("admin-recipe-register");
+  const row = register.getByTestId("admin-recipe-row").filter({ visible: true }).first();
+  await expect(row).toContainText("Attiéké poisson braisé");
+  await expect(row).toContainText("7/8");
+  await expect(row).toContainText(/stock à compléter/i);
+  await expect(row).toContainText(/5 étapes/i);
+  await expect(row.getByRole("img", { name: "Attiéké poisson braisé" })).toBeVisible();
+
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+  const rowBox = await row.boundingBox();
+  expect(rowBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(mobile ? 180 : 100);
+
+  const filters = page.getByRole("group", { name: "Filtrer le registre des recettes" });
+  await filters.getByRole("button", { name: /à vérifier/i }).click();
+  await expect(row).toBeVisible();
+  await filters.getByRole("button", { name: /brouillons/i }).click();
+  await expect(page.getByText("Aucune recette trouvée")).toBeVisible();
+  await filters.getByRole("button", { name: /toutes/i }).click();
+  await expect(row).toBeVisible();
+
+  await expectBrandSafeUiColors(page);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `recipe-register-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
 });
 
 test("professional creation studios remain fully English and use brand-safe recipe colours", async ({ page }) => {

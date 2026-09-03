@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { normalize } from "@/lib/format";
 import { getBrandAccentColor, getRecipePhoto } from "@/lib/market-media";
+import { recipeStepCount, recipeStockReadiness } from "@/lib/recipe-operations";
 
 export const dynamic = "force-dynamic";
 
@@ -55,12 +56,16 @@ export async function GET(request: NextRequest) {
   const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
   const recipes = await db.recipe.findMany({
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
-    include: { translations: true, ingredients: true },
+    include: {
+      translations: true,
+      ingredients: { include: { product: { select: { stockQty: true, status: true } } } },
+    },
   });
 
   return NextResponse.json({
     recipes: recipes.map((recipe) => {
       const translation = recipe.translations.find((item) => item.locale === locale) || recipe.translations[0];
+      const readiness = recipeStockReadiness(recipe.ingredients);
       return {
         id: recipe.id,
         slug: recipe.slug,
@@ -78,6 +83,9 @@ export async function GET(request: NextRequest) {
         isRecommended: recipe.isRecommended,
         status: recipe.status,
         ingredientCount: recipe.ingredients.length,
+        stepCount: recipeStepCount(translation?.steps),
+        ...readiness,
+        updatedAt: recipe.updatedAt.toISOString(),
         title: translation?.title,
         description: translation?.description,
       };
