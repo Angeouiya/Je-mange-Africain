@@ -317,6 +317,14 @@ test("product details stay bounded and preserve real visual identification in th
   await expect(page.getByText(productName, { exact: true })).toBeVisible();
   await expect(page.getByText("Pot 800 g", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: productName })).toBeVisible();
+  await page.getByRole("button", { name: /passer la commande|checkout/i }).click();
+  await expect(page.getByRole("heading", { name: /connectez-vous avant de finaliser|sign in before checkout/i })).toBeVisible();
+  await page.locator("#main-content").getByRole("button", { name: /connexion|sign in/i }).click();
+  const checkoutAuth = page.getByRole("dialog");
+  await expect(checkoutAuth.getByText(/votre panier vous attend|your basket is waiting/i)).toBeVisible();
+  await checkoutAuth.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
+  await expect(page.getByRole("heading", { name: /mon panier|my cart/i })).toBeVisible();
+  await expect(page.getByText(productName, { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 
@@ -329,8 +337,15 @@ test("registration requires legal consent and two independently visible password
   await page.goto("/?view=account", { waitUntil: "domcontentloaded" });
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  if (!isMobile) {
+    const authVisual = dialog.getByTestId("customer-auth-visual");
+    await expect(authVisual).toBeVisible();
+    await expect.poll(() => authVisual.locator("img").first().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  }
+  await expect(dialog).not.toContainText(/console professionnelle|professional console|administration/i);
   if (process.env.CLIENT_SCREENSHOTS) {
-    await page.screenshot({ path: `output/playwright/audit/auth-login-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+    await page.screenshot({ path: `output/playwright/audit/auth-login-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
   const languageSwitch = dialog.getByRole("button", { name: /passer la plateforme en anglais/i });
   await expect(languageSwitch).toBeVisible();
@@ -389,6 +404,61 @@ test("registration requires legal consent and two independently visible password
   await page.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(page.getByRole("main")).toBeVisible();
+});
+
+test("password recovery remains bilingual, branded and independently visible", async ({ page }) => {
+  let resetPayload: { accessToken?: string; password?: string } | undefined;
+  await page.route("**/api/auth/customer/password", async (route) => {
+    if (route.request().method() !== "PUT") return route.continue();
+    resetPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
+  });
+
+  await page.goto("/auth/reset#access_token=reset-token", { waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { level: 1, name: "Nouveau mot de passe" })).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/console professionnelle|professional console|administration/i);
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  if (!isMobile) {
+    const authVisual = page.getByTestId("customer-auth-visual");
+    await expect(authVisual).toBeVisible();
+    await expect.poll(() => authVisual.locator("img").first().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  }
+
+  await page.getByRole("button", { name: /passer la plateforme en anglais/i }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "New password" })).toBeVisible();
+  await expect(page).toHaveTitle("New password | Je mange Africain");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator(".jma-skip-link")).toHaveText("Skip to main content");
+  const password = page.getByLabel("New password");
+  const confirmation = page.getByLabel("Confirm password");
+  const updateButton = page.getByRole("button", { name: "Update password" });
+  await expect(password).toHaveAttribute("type", "password");
+  await expect(confirmation).toHaveAttribute("type", "password");
+  await expect(updateButton).toBeDisabled();
+
+  const visibilityControls = page.getByRole("button", { name: "Show password" });
+  await expect(visibilityControls).toHaveCount(2);
+  await visibilityControls.first().click();
+  await expect(password).toHaveAttribute("type", "text");
+  await expect(confirmation).toHaveAttribute("type", "password");
+  await password.fill("secure-password");
+  await confirmation.fill("different-password");
+  await expect(page.getByText("Passwords do not match.")).toBeVisible();
+  await expect(updateButton).toBeDisabled();
+  await confirmation.fill("secure-password");
+  await expect(page.getByText("Passwords match.")).toBeVisible();
+  await expect(updateButton).toBeEnabled();
+  await updateButton.click();
+
+  await expect(page.getByText("Your password has been updated. Your account is ready.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in", exact: true })).toHaveAttribute("href", "/?view=account");
+  expect(resetPayload).toEqual({ accessToken: "reset-token", password: "secure-password" });
+  await expectNoHorizontalOverflow(page);
+  await expectBrandSafeUiAccents(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/auth-reset-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
 });
 
 test("public legal documents are bilingual, navigable and free of drafting notes", async ({ page }) => {

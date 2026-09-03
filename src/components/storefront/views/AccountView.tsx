@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { User, ArrowLeft, MailCheck, X, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { User, ArrowLeft, MailCheck, X, Eye, EyeOff, CheckCircle2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { BrandLockup } from "@/components/shared/BrandLockup";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LEGAL_PATHS } from "@/lib/legal";
 import { AccountWorkspace } from "@/components/storefront/account/AccountWorkspace";
+import { CustomerAuthVisualPanel } from "@/components/storefront/CustomerAuthVisualPanel";
 import { LanguageSwitch } from "@/components/shared/LanguageSwitch";
 
 type AuthMode = "login" | "register" | "forgot";
@@ -129,44 +130,55 @@ export function AccountView() {
   if (!customer) {
     return (
       <Dialog open onOpenChange={(open) => { if (!open && authStatus !== "busy") closeAuth(); }}>
-        <DialogContent showCloseButton={false} className="inset-0 left-0 top-0 z-[80] block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none border-0 bg-white p-0 shadow-none ring-0 data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:max-w-none">
-          <div className="african-kente-stripe sticky inset-x-0 top-0 z-10 h-[3px]" />
-          <div className="fixed left-4 top-4 z-20 sm:left-6 sm:top-6"><LanguageSwitch compact /></div>
+        <DialogContent showCloseButton={false} className="inset-0 left-0 top-0 z-[80] block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-0 bg-white p-0 shadow-none ring-0 data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:max-w-none">
+          <div className="african-kente-stripe fixed inset-x-0 top-0 z-30 h-[3px]" />
+          <div className="fixed left-4 top-4 z-30 sm:left-6 sm:top-6 lg:left-auto lg:right-20"><LanguageSwitch compact /></div>
           <DialogClose asChild>
-            <button type="button" disabled={authStatus === "busy"} className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-border bg-white text-charcoal shadow-sm transition hover:border-terre hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={locale === "fr" ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
+            <button type="button" disabled={authStatus === "busy"} className="fixed right-4 top-4 z-30 grid h-11 w-11 place-items-center rounded-full border border-border bg-white text-charcoal shadow-sm transition hover:border-terre hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={locale === "fr" ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
               <X className="h-5 w-5" />
             </button>
           </DialogClose>
-          <div className="mx-auto flex min-h-full w-full max-w-md items-start px-4 py-16 sm:items-center sm:py-12">
-        <section className="w-full rounded-lg bg-white p-5 sm:border sm:border-charcoal/10 sm:p-7 sm:shadow-[0_26px_70px_-52px_rgba(63,41,48,0.6)]">
-          <div className="mb-8 flex justify-center sm:justify-start">
+          <div className="grid h-full min-h-0 lg:grid-cols-[minmax(0,1.12fr)_minmax(31rem,0.88fr)]">
+            <CustomerAuthVisualPanel locale={locale} />
+
+            <div className="min-h-0 overflow-y-auto bg-white">
+              <div className="mx-auto flex min-h-full w-full max-w-[34rem] items-start px-4 pb-10 pt-20 sm:items-center sm:px-10 sm:py-16 lg:px-8 xl:px-10">
+        <section className="w-full bg-white p-1 sm:p-2">
+          <div className="mb-8 flex justify-center sm:justify-start lg:hidden">
             <BrandLockup size="large" locale={locale} />
           </div>
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-lg bg-terre/10"><User className="h-6 w-6 text-terre" /></div>
-            <div><DialogTitle id="customer-auth-title" className="font-display text-2xl font-semibold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</DialogTitle><DialogDescription className="text-xs">{locale === "fr" ? "Votre compte, simplement et en toute sécurité." : "Simple, secure access to your account."}</DialogDescription></div>
+            <div><p className="mb-1 text-[9px] font-black uppercase text-terre">{locale === "fr" ? "Espace client" : "Customer account"}</p><DialogTitle id="customer-auth-title" className="font-display text-[1.7rem] font-semibold text-charcoal">{authMode === "register" ? (locale === "fr" ? "Créer mon compte" : "Create my account") : authMode === "forgot" ? (locale === "fr" ? "Mot de passe oublié" : "Forgot password") : t.nav.login}</DialogTitle><DialogDescription className="mt-1 text-xs">{locale === "fr" ? "Votre compte, simplement et en toute sécurité." : "Simple, secure access to your account."}</DialogDescription></div>
           </div>
+
+          {params.returnView === "checkout" ? (
+            <div className="mt-5 flex items-start gap-3 rounded-lg border border-gold/35 bg-gold/10 p-3 text-charcoal">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-terre"><ShoppingBag className="h-4 w-4" /></span>
+              <div><p className="text-xs font-black">{locale === "fr" ? "Votre panier vous attend" : "Your basket is waiting"}</p><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Connectez-vous pour reprendre directement la livraison et le paiement." : "Sign in to continue directly with delivery and payment."}</p></div>
+            </div>
+          ) : null}
 
           {authMode !== "forgot" ? (
             <div className="mt-6 grid grid-cols-2 rounded-lg bg-muted p-1" role="tablist" aria-label={locale === "fr" ? "Accès au compte" : "Account access"}>
-              <button type="button" role="tab" aria-selected={authMode === "login"} onClick={() => changeAuthMode("login")} className={`min-h-10 rounded-md px-3 text-sm font-bold ${authMode === "login" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{locale === "fr" ? "Connexion" : "Sign in"}</button>
-              <button type="button" role="tab" aria-selected={authMode === "register"} onClick={() => changeAuthMode("register")} className={`min-h-10 rounded-md px-3 text-sm font-bold ${authMode === "register" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{locale === "fr" ? "Inscription" : "Register"}</button>
+              <button type="button" role="tab" aria-selected={authMode === "login"} onClick={() => changeAuthMode("login")} className={`min-h-11 rounded-md px-3 text-sm font-bold ${authMode === "login" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{locale === "fr" ? "Connexion" : "Sign in"}</button>
+              <button type="button" role="tab" aria-selected={authMode === "register"} onClick={() => changeAuthMode("register")} className={`min-h-11 rounded-md px-3 text-sm font-bold ${authMode === "register" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{locale === "fr" ? "Inscription" : "Register"}</button>
             </div>
           ) : null}
 
           {authMode === "login" ? (
             <form onSubmit={submitLogin} className="mt-5 space-y-4">
-              <div><Label htmlFor="customer-identifier" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "E-mail ou numéro de téléphone" : "Email or phone number"}</Label><Input id="customer-identifier" autoFocus autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={locale === "fr" ? "vous@exemple.fr ou +33..." : "you@example.com or +44..."} required /></div>
+              <div><Label htmlFor="customer-identifier" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "E-mail ou numéro de téléphone" : "Email or phone number"}</Label><Input id="customer-identifier" autoFocus autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={locale === "fr" ? "vous@exemple.fr ou +33..." : "you@example.com or +44..."} className="h-11" required /></div>
               <PasswordInput id="customer-password" label={locale === "fr" ? "Mot de passe" : "Password"} autoComplete="current-password" value={password} onChange={setPassword} locale={locale} />
               <button type="button" onClick={() => changeAuthMode("forgot")} className="text-xs font-bold text-terre hover:underline">{locale === "fr" ? "Mot de passe oublié ?" : "Forgot password?"}</button>
               <AuthMessage status={authStatus} message={authMessage} />
-              <Button type="submit" disabled={authStatus === "busy"} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Connexion..." : "Signing in...") : t.nav.login}</Button>
+              <Button type="submit" disabled={authStatus === "busy"} className="h-11 w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Connexion..." : "Signing in...") : t.nav.login}</Button>
             </form>
           ) : authMode === "register" ? (
             <form onSubmit={submitRegistration} className="mt-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="register-first-name" className="mb-1 block text-xs font-semibold">{t.checkout.firstName}</Label><Input id="register-first-name" autoFocus autoComplete="given-name" value={registration.firstName} onChange={(event) => setRegistration({ ...registration, firstName: event.target.value })} required /></div><div><Label htmlFor="register-last-name" className="mb-1 block text-xs font-semibold">{t.checkout.lastName}</Label><Input id="register-last-name" autoComplete="family-name" value={registration.lastName} onChange={(event) => setRegistration({ ...registration, lastName: event.target.value })} required /></div></div>
-              <div><Label htmlFor="register-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="register-email" type="email" autoComplete="email" value={registration.email} onChange={(event) => setRegistration({ ...registration, email: event.target.value })} required /></div>
-              <div><Label htmlFor="register-phone" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Numéro de téléphone" : "Phone number"}</Label><Input id="register-phone" type="tel" autoComplete="tel" value={registration.phone} onChange={(event) => setRegistration({ ...registration, phone: event.target.value })} placeholder={locale === "fr" ? "+33 6 00 00 00 00" : "+44 7 0000 0000"} required /></div>
+              <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="register-first-name" className="mb-1 block text-xs font-semibold">{t.checkout.firstName}</Label><Input id="register-first-name" autoFocus autoComplete="given-name" value={registration.firstName} onChange={(event) => setRegistration({ ...registration, firstName: event.target.value })} className="h-11" required /></div><div><Label htmlFor="register-last-name" className="mb-1 block text-xs font-semibold">{t.checkout.lastName}</Label><Input id="register-last-name" autoComplete="family-name" value={registration.lastName} onChange={(event) => setRegistration({ ...registration, lastName: event.target.value })} className="h-11" required /></div></div>
+              <div><Label htmlFor="register-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="register-email" type="email" autoComplete="email" value={registration.email} onChange={(event) => setRegistration({ ...registration, email: event.target.value })} className="h-11" required /></div>
+              <div><Label htmlFor="register-phone" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Numéro de téléphone" : "Phone number"}</Label><Input id="register-phone" type="tel" autoComplete="tel" value={registration.phone} onChange={(event) => setRegistration({ ...registration, phone: event.target.value })} placeholder={locale === "fr" ? "+33 6 00 00 00 00" : "+44 7 0000 0000"} className="h-11" required /></div>
               <PasswordInput id="register-password" label={locale === "fr" ? "Mot de passe (8 caractères minimum)" : "Password (8 characters minimum)"} autoComplete="new-password" value={registration.password} onChange={(value) => setRegistration({ ...registration, password: value })} locale={locale} />
               <PasswordInput id="register-confirm-password" label={locale === "fr" ? "Confirmer le mot de passe" : "Confirm password"} autoComplete="new-password" value={registration.confirmPassword} onChange={(value) => setRegistration({ ...registration, confirmPassword: value })} locale={locale} />
               {registration.confirmPassword ? <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-forest" : "text-destructive"}`}>{passwordsMatch ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}{passwordsMatch ? (locale === "fr" ? "Les mots de passe correspondent." : "Passwords match.") : (locale === "fr" ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
@@ -190,14 +202,14 @@ export function AccountView() {
                 />
               </div>
               <AuthMessage status={authStatus} message={authMessage} />
-              <Button type="submit" disabled={authStatus === "busy" || !registrationPasswordsReady || !registration.termsAccepted || !registration.privacyAccepted} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Création..." : "Creating...") : (locale === "fr" ? "Créer mon compte" : "Create my account")}</Button>
+              <Button type="submit" disabled={authStatus === "busy" || !registrationPasswordsReady || !registration.termsAccepted || !registration.privacyAccepted} className="h-11 w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Création..." : "Creating...") : (locale === "fr" ? "Créer mon compte" : "Create my account")}</Button>
             </form>
           ) : (
             <form onSubmit={submitRecovery} className="mt-5 space-y-4">
               <p className="text-sm leading-relaxed text-muted-foreground">{locale === "fr" ? "Saisissez l'e-mail utilisé lors de votre inscription. Nous vous enverrons un lien sécurisé pour choisir un nouveau mot de passe." : "Enter the email used to register. We will send a secure link to choose a new password."}</p>
-              <div><Label htmlFor="recovery-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="recovery-email" autoFocus type="email" autoComplete="email" value={identifier} onChange={(event) => setIdentifier(event.target.value)} required /></div>
+              <div><Label htmlFor="recovery-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="recovery-email" autoFocus type="email" autoComplete="email" value={identifier} onChange={(event) => setIdentifier(event.target.value)} className="h-11" required /></div>
               <AuthMessage status={authStatus} message={authMessage} successIcon />
-              <Button type="submit" disabled={authStatus === "busy" || authStatus === "success"} className="w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer le lien" : "Send reset link")}</Button>
+              <Button type="submit" disabled={authStatus === "busy" || authStatus === "success"} className="h-11 w-full bg-terre text-cream hover:bg-terre-dark">{authStatus === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer le lien" : "Send reset link")}</Button>
               <button type="button" onClick={() => changeAuthMode("login")} className="inline-flex items-center gap-1.5 text-xs font-bold text-charcoal hover:text-terre"><ArrowLeft className="h-3.5 w-3.5" /> {locale === "fr" ? "Retour à la connexion" : "Back to sign in"}</button>
             </form>
           )}
@@ -208,6 +220,8 @@ export function AccountView() {
             <a href={`${LEGAL_PATHS.privacy}?lang=${locale}`} target="_blank" rel="noreferrer" className="font-semibold text-terre hover:underline">{locale === "fr" ? "politique de confidentialité" : "privacy policy"}</a>.
           </p>
         </section>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -239,7 +253,7 @@ function PasswordInput({ id, label, autoComplete, value, onChange, locale }: { i
     <div>
       <Label htmlFor={id} className="mb-1 block text-xs font-semibold">{label}</Label>
       <div className="relative">
-        <Input id={id} type={visible ? "text" : "password"} autoComplete={autoComplete} minLength={8} value={value} onChange={(event) => onChange(event.target.value)} className="pr-11" required />
+        <Input id={id} type={visible ? "text" : "password"} autoComplete={autoComplete} minLength={8} value={value} onChange={(event) => onChange(event.target.value)} className="h-11 pr-11" required />
         <button type="button" onClick={() => setVisible((current) => !current)} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground transition hover:text-terre" aria-label={actionLabel} title={actionLabel}>
           {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
