@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
   Users, Clock, Flame, Minus, Plus, ShoppingCart, RotateCcw,
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
-  Trash2, Undo2, RefreshCw, House, ChevronDown,
+  Trash2, Undo2, RefreshCw, House, ChevronDown, ChefHat, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import { getRecipePhoto } from "@/lib/market-media";
 import { shareRecipe } from "@/lib/client-actions";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
+import { getPreparationProgress, togglePreparationStep } from "@/lib/recipe-preparation";
 
 interface CalcResult {
   ingredients: any[];
@@ -175,8 +176,6 @@ export function RecipeConfiguratorView() {
   const updateAdults = (value: number) => setAdults(Math.max(children === 0 ? 1 : 0, Math.min(24 - children, value)));
   const updateChildren = (value: number) => setChildren(Math.max(adults === 0 ? 1 : 0, Math.min(24 - adults, value)));
   const hasManualChoices = haveAtHome.length > 0 || excludedIngredients.length > 0 || Object.keys(replacements).length > 0 || Object.keys(packOverrides).length > 0 || adults !== (recipe?.baseServings || 4) || children !== 0 || portion !== "normal" || protein !== "recipe" || kplo || spiceLevel !== "medium" || formula !== "standard";
-  const toggleStep = (index: number) => setCompletedSteps((previous) => previous.includes(index) ? previous.filter((item) => item !== index) : [...previous, index]);
-
   const addAllToCart = () => {
     if (!calc || !recipe) return;
     const items = calc.ingredients
@@ -209,7 +208,18 @@ export function RecipeConfiguratorView() {
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
   const recipePhoto = getRecipePhoto(recipe);
   const preparationSteps = calc?.steps?.[locale as "fr" | "en"] || recipe.steps || [];
-  const completedStepCount = completedSteps.filter((index) => index < preparationSteps.length).length;
+  const preparationProgress = getPreparationProgress(preparationSteps.length, completedSteps);
+  const completedStepCount = preparationProgress.completedCount;
+  const currentPreparationStep = preparationProgress.nextStepIndex === null ? null : preparationSteps[preparationProgress.nextStepIndex];
+  const toggleStep = (index: number) => setCompletedSteps((previous) => togglePreparationStep(preparationSteps.length, previous, index));
+  const completeCurrentStep = () => {
+    if (preparationProgress.nextStepIndex === null) return;
+    setCompletedSteps((previous) => togglePreparationStep(preparationSteps.length, previous, preparationProgress.nextStepIndex!));
+  };
+  const undoLastStep = () => {
+    if (preparationProgress.lastCompletedStepIndex === null) return;
+    setCompletedSteps((previous) => previous.filter((index) => index !== preparationProgress.lastCompletedStepIndex));
+  };
   const preparationAdjustments = (calc?.ingredients || []).filter((ingredient) => ingredient.removalReason === "excluded" || ingredient.removalReason === "protein-none" || ingredient.isReplacement);
   const purchasableCount = (calc?.ingredients || []).filter((ingredient) => !ingredient.removed && ingredient.packs > 0 && ingredient.available).length;
   const canonicalPath = `/?view=recipe-config&recipeId=${encodeURIComponent(recipe.id)}`;
@@ -276,9 +286,9 @@ export function RecipeConfiguratorView() {
       </div>
 
       <nav aria-label={locale === "fr" ? "Parcours de la recette" : "Recipe journey"} className="mb-4 grid grid-cols-3 rounded-md border border-border bg-white p-1" data-testid="recipe-flow-nav">
-        <RecipeFlowLink href="#recipe-settings" icon={Sliders} number="1" label={locale === "fr" ? "Configurer" : "Configure"} />
-        <RecipeFlowLink href="#recipe-ingredients" icon={Package} number="2" label={locale === "fr" ? "Ingrédients" : "Ingredients"} />
-        <RecipeFlowLink href="#recipe-preparation" icon={Sparkles} number="3" label={locale === "fr" ? "Préparation" : "Preparation"} />
+        <RecipeFlowLink href="#recipe-settings" icon={Sliders} number="1" label={locale === "fr" ? "Configurer" : "Configure"} detail={`${servings} ${t.config.peopleUnit}`} />
+        <RecipeFlowLink href="#recipe-ingredients" icon={Package} number="2" label={locale === "fr" ? "Ingrédients" : "Ingredients"} detail={calcLoading ? (locale === "fr" ? "Actualisation…" : "Updating…") : `${purchasableCount} ${locale === "fr" ? "achats" : "items"}`} />
+        <RecipeFlowLink href="#recipe-preparation" icon={Sparkles} number="3" label={locale === "fr" ? "Préparation" : "Preparation"} detail={`${completedStepCount}/${preparationSteps.length} ${locale === "fr" ? "terminées" : "complete"}`} />
       </nav>
 
       {calc ? (
@@ -487,7 +497,7 @@ export function RecipeConfiguratorView() {
                         aria-label={locale === "fr" ? `${completedStepCount} étapes terminées sur ${preparationSteps.length}` : `${completedStepCount} of ${preparationSteps.length} steps completed`}
                         className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
                       >
-                        <div className="h-full rounded-full bg-burgundy transition-all" style={{ width: `${preparationSteps.length ? (completedStepCount / preparationSteps.length) * 100 : 0}%` }} />
+                        <div className="h-full rounded-full bg-burgundy transition-all" style={{ width: `${preparationProgress.progressPercent}%` }} />
                       </div>
                       <span className="text-xs font-bold text-burgundy">{completedStepCount}/{preparationSteps.length}</span>
                       {completedStepCount > 0 ? <button type="button" onClick={() => setCompletedSteps([])} className="inline-flex min-h-7 items-center px-1 text-xs font-semibold text-terre hover:underline">{locale === "fr" ? "Recommencer" : "Restart"}</button> : null}
@@ -506,9 +516,31 @@ export function RecipeConfiguratorView() {
                         </ul>
                       </div>
                     ) : null}
+                    <section className="mb-3 overflow-hidden border-y border-burgundy/15 bg-burgundy/[0.035]" data-testid="recipe-cooking-focus" aria-live="polite">
+                      <div className="flex items-start gap-3 px-3 py-3 md:px-4 md:py-4">
+                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${preparationProgress.isComplete ? "bg-burgundy text-white" : "bg-terre text-white"}`}>
+                          {preparationProgress.isComplete ? <Check className="h-5 w-5" /> : <ChefHat className="h-5 w-5" />}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[9px] font-black uppercase text-terre">{preparationProgress.isComplete ? (locale === "fr" ? "Service" : "Serving") : (locale === "fr" ? "À faire maintenant" : "Do this now")}</p>
+                          <h3 className="mt-0.5 text-sm font-black leading-5 text-charcoal">{preparationProgress.isComplete ? (locale === "fr" ? "Votre recette est prête à servir" : "Your recipe is ready to serve") : `${locale === "fr" ? "Étape" : "Step"} ${(preparationProgress.nextStepIndex || 0) + 1}`}</h3>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{preparationProgress.isComplete ? (locale === "fr" ? "Toutes les étapes sont terminées. Servez pendant que les textures et les arômes sont à leur meilleur." : "Every step is complete. Serve while textures and aromas are at their best.") : currentPreparationStep}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 divide-x divide-burgundy/10 border-y border-burgundy/10 bg-white/70 py-2 text-center">
+                        <PreparationMetric label={locale === "fr" ? "Table" : "Table"} value={`${servings} ${locale === "fr" ? "pers." : "people"}`} />
+                        <PreparationMetric label={locale === "fr" ? "Temps" : "Time"} value={`${recipe.timeMinutes} min`} />
+                        <PreparationMetric label={locale === "fr" ? "Progression" : "Progress"} value={`${preparationProgress.progressPercent} %`} />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 px-3 py-3 md:px-4">
+                        {!preparationProgress.isComplete ? <Button type="button" size="sm" onClick={completeCurrentStep} className="h-9 flex-1 bg-terre text-white hover:bg-terre-dark"><Check className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Terminer et continuer" : "Complete and continue"}<ArrowRight className="ml-1.5 h-4 w-4" /></Button> : <Button type="button" size="sm" onClick={() => setCompletedSteps([])} className="h-9 flex-1 bg-burgundy text-white hover:bg-burgundy-dark"><RotateCcw className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Refaire la préparation" : "Cook again"}</Button>}
+                        <Button type="button" size="sm" variant="outline" onClick={undoLastStep} disabled={preparationProgress.lastCompletedStepIndex === null} className="h-9 border-burgundy/20 px-3 text-burgundy" aria-label={locale === "fr" ? "Revenir d'une étape" : "Go back one step"}><Undo2 className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Revenir" : "Back"}</Button>
+                      </div>
+                    </section>
+                    <p className="px-1 pb-1 text-[9px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Plan complet" : "Full method"}</p>
                     <ol className="divide-y divide-border">
                       {preparationSteps.map((s: string, i: number) => (
-                        <li key={i} className="py-1">
+                        <li key={i} className={`border-l-2 py-1 transition ${preparationProgress.nextStepIndex === i ? "border-l-terre bg-terre/[0.035]" : "border-l-transparent"}`}>
                           <button type="button" onClick={() => toggleStep(i)} aria-pressed={completedSteps.includes(i)} aria-label={locale === "fr" ? `Étape ${i + 1} : ${s}` : `Step ${i + 1}: ${s}`} className="flex w-full gap-3 px-1 py-3 text-left text-sm text-charcoal transition hover:bg-muted/40">
                             <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${completedSteps.includes(i) ? "bg-burgundy text-white" : "bg-terre text-cream"}`}>
                               {completedSteps.includes(i) ? <Check className="h-4 w-4" /> : i + 1}
@@ -540,14 +572,18 @@ function RecipeMetric({ icon: Icon, label, value }: { icon: React.ComponentType<
   );
 }
 
-function RecipeFlowLink({ href, icon: Icon, number, label }: { href: string; icon: React.ComponentType<{ className?: string }>; number: string; label: string }) {
+function RecipeFlowLink({ href, icon: Icon, number, label, detail }: { href: string; icon: React.ComponentType<{ className?: string }>; number: string; label: string; detail: string }) {
   return (
-    <a href={href} className="flex min-w-0 items-center justify-center gap-1.5 rounded-sm px-1.5 py-2 text-[10px] font-bold text-charcoal transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/40 md:text-xs">
+    <a href={href} className="flex min-w-0 items-center justify-center gap-1.5 rounded-sm px-1.5 py-2 text-charcoal transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/40">
       <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-terre text-[9px] text-white">{number}</span>
-      <Icon className="hidden h-3.5 w-3.5 text-terre sm:block" />
-      <span className="truncate">{label}</span>
+      <Icon className="hidden h-3.5 w-3.5 shrink-0 text-terre sm:block" />
+      <span className="min-w-0"><span className="block truncate text-[10px] font-bold md:text-xs">{label}</span><span className="block truncate text-[8px] font-semibold text-muted-foreground md:text-[9px]">{detail}</span></span>
     </a>
   );
+}
+
+function PreparationMetric({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0 px-1.5"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className="mt-0.5 truncate text-[10px] font-extrabold text-charcoal md:text-xs">{value}</p></div>;
 }
 
 function CounterField({ label, value, onChange, max, locale }: { label: string; value: number; onChange: (value: number) => void; max: number; locale: "fr" | "en" }) {

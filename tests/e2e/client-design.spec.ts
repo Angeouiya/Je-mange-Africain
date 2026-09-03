@@ -829,6 +829,7 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/configurer|configure/i);
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/ingrédients|ingredients/i);
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/préparation|preparation/i);
+  await expect(page.getByTestId("recipe-flow-nav")).toContainText(/\d+\/\d+ (terminées|complete)/i);
   await expect(page.getByText(/ingrédients nécessaires|ingredients needed/i)).toBeVisible();
   await expect(page.getByText(/coût total|total cost/i)).toBeVisible();
   if (isMobile) {
@@ -854,12 +855,26 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(preparationList).not.toContainText(/Pâte d'arachide|Peanut paste/i);
   await expect(page.locator("#recipe-preparation")).toContainText(/adaptée|adapted/i);
 
+  const cookingFocus = page.getByTestId("recipe-cooking-focus");
+  await expect(cookingFocus).toContainText(/à faire maintenant|do this now/i);
+  await expect(cookingFocus).toContainText(/progression\s*0 %|progress\s*0 %/i);
+  const preparationProgress = page.locator("#recipe-preparation").getByRole("progressbar");
+  await expect(preparationProgress).toHaveAttribute("aria-valuenow", "0");
+  await cookingFocus.getByRole("button", { name: /terminer et continuer|complete and continue/i }).click();
+  await expect(preparationProgress).toHaveAttribute("aria-valuenow", "1");
+  await expect(cookingFocus).toContainText(/étape 2|step 2/i);
+  await cookingFocus.getByRole("button", { name: /revenir d'une étape|go back one step/i }).click();
+  await expect(preparationProgress).toHaveAttribute("aria-valuenow", "0");
+
   const firstStep = page.locator("#recipe-preparation ol button").first();
   await expect(firstStep).toBeVisible();
   await firstStep.click();
   await expect(firstStep).toHaveAttribute("aria-pressed", "true");
+  await expect(cookingFocus).toContainText(/étape 2|step 2/i);
+  await expectBrandSafeUiColors(page);
   if (process.env.CLIENT_SCREENSHOTS) {
-    await page.screenshot({ path: `output/playwright/audit/configurator-reference-${isMobile ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+    await cookingFocus.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `output/playwright/audit/configurator-cooking-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
