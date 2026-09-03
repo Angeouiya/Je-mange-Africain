@@ -880,25 +880,57 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-01T09:30:00.000Z", actor: null }, { status: "delivered", label: "Delivered", at: "2026-09-02T15:12:00.000Z", actor: null }],
     payments: [{ method: "Carte", status: "captured", amount: 45.9, reference: "pi_proof" }],
   };
+  const activeOrder = {
+    ...deliveredOrder,
+    id: "order-active",
+    number: "JMA-260903-0114",
+    status: "in_transit",
+    subtotal: 25.5,
+    shippingCost: 6.9,
+    vatAmount: 5.4,
+    total: 32.4,
+    weightGrams: 1500,
+    createdAt: "2026-09-03T08:10:00.000Z",
+    deliveryCity: "Bruxelles",
+    deliveryPostalCode: "1000",
+    deliveryCountry: "Belgique",
+    items: [{ id: "line-active", productId: "product-active", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", sku: "JMA-GOM-500", unitPrice: 8.5, currentUnitPrice: 8.5, qty: 3, lineTotal: 25.5, thermalClass: "FROZEN", imageUrl: "/products/gombo.webp", recipeId: null, recipeName: null, unitLabel: "Sachet 500 g", packWeightGrams: 500, maxStock: 18, purchasable: true }],
+    shipments: [{ id: "shipment-active", trackingNumber: "JMA-BE-260903-ACTIVE", thermalClass: "FROZEN", status: "in_transit", estimatedDelivery: "2026-09-05T12:00:00.000Z", actualDelivery: null, confirmCode: "5930", carrier: "Chrono Frais Europe", carrierName: "Chrono Frais Europe", trackingUrl: "https://track.example.com/{ref}", proofPhoto: null, signature: null }],
+    timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-03T08:10:00.000Z", actor: null }, { status: "in_transit", label: "In transit", at: "2026-09-03T14:20:00.000Z", actor: null }],
+    payments: [{ method: "Carte", status: "captured", amount: 32.4, reference: "pi_active" }],
+  };
 
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer: { id: "customer-proof", email: "aminata@example.fr", phone: "+33600000000", firstName: "Aminata", lastName: "Koné", role: "customer", loyaltyPoints: 200, walletCredit: 0 } }) }));
-  await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [deliveredOrder] }) }));
+  await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [deliveredOrder, activeOrder] }) }));
   await page.route("**/api/orders/order-delivered?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(deliveredOrder) }));
 
   await page.goto("/?view=orders", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /mes commandes|my orders/i })).toBeVisible();
+  const portfolio = page.getByTestId("orders-portfolio");
+  await expect(portfolio).toContainText(/en cours|active/i);
+  await expect(portfolio).toContainText(/livrées|delivered/i);
+  await expect(portfolio).toContainText(/78,30 €|€78\.30/);
+  await expect(page.getByTestId("order-focus")).toContainText("JMA-260903-0114");
+  await expect(page.getByTestId("order-progress-order-active").getByRole("progressbar")).toHaveAttribute("aria-valuenow", "76");
   await expect(page.getByLabel(/n° de commande ou produit|order number or product/i)).toBeVisible();
   await page.getByLabel(/n° de commande ou produit|order number or product/i).fill("attiéké");
   await expect(page.getByText("JMA-260902-0098")).toBeVisible();
   await page.getByLabel(/n° de commande ou produit|order number or product/i).fill("introuvable");
   await expect(page.getByText(/aucune commande ne correspond|no order matches/i)).toBeVisible();
   await page.getByRole("button", { name: /réinitialiser|reset/i }).click();
-  await page.getByRole("button", { name: /livrées|delivered/i }).click();
-  await expect(page.getByRole("button", { name: /livrées|delivered/i })).toHaveAttribute("aria-pressed", "true");
+  const deliveredFilter = page.getByRole("button", { name: /livrées|delivered/i });
+  await deliveredFilter.click();
+  await expect(deliveredFilter).toHaveAttribute("aria-pressed", "true");
+  await expect(deliveredFilter).toHaveCSS("background-color", "rgb(138, 48, 66)");
+  await expect(page.getByTestId("order-progress-order-delivered").getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
   await expectLoadedProductImages(page.getByRole("img", { name: /attiéké frais|fresh attieke|piment frais|fresh chilli/i }), 2);
   if (process.env.CLIENT_SCREENSHOTS) {
-    await page.screenshot({ path: `output/playwright/audit/orders-center-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await page.screenshot({ path: `output/playwright/audit/orders-center-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
   }
+  await expectNoHorizontalOverflow(page);
+  await expectBrandSafeUiColors(page);
+  await expectNoSeriousA11yViolations(page);
   await page.getByRole("button", { name: /recommander|reorder/i }).click();
   await expect(page.getByRole("alertdialog")).toContainText(/partiellement disponible|partially available/i);
   await page.getByRole("button", { name: /continuer|continue/i }).click();
@@ -907,7 +939,7 @@ test("delivered orders expose carrier tracking and proof without leaking interna
   await expect(page.locator("main")).not.toContainText(/piment frais|fresh chilli/i);
 
   await page.goto("/?view=orders", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: /^(suivre|track)$/i }).click();
+  await page.getByRole("button", { name: /^(suivre|track)$/i }).first().click();
   await expect(page.getByRole("heading", { name: "JMA-260902-0098" })).toBeVisible();
   await expect(page.getByText(/livraison standard|standard delivery/i).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /facture|invoice/i })).toBeVisible();
