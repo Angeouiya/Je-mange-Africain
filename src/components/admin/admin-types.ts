@@ -213,6 +213,27 @@ export type AuditEntry = {
   entityId?: string | null;
   reason?: string | null;
   actor?: string | null;
+  actorSource?: "identity" | "reason" | "system";
   ip?: string | null;
   createdAt: string;
+  risk?: "critical" | "attention" | "routine";
+  domain?: "access" | "stock" | "catalog" | "fulfillment" | "customers" | "marketing" | "finance" | "system";
+  changes?: Array<{ field: string; before: string | null; after: string | null; kind: "added" | "removed" | "changed" }>;
+  evidenceScore?: number;
+};
+
+export type AuditPayload = {
+  period: "24h" | "7d" | "30d" | "all";
+  generatedAt: string;
+  hasMore: boolean;
+  summary: {
+    total: number;
+    loaded: number;
+    actors: number;
+    risk: { critical: number; attention: number; routine: number };
+    domains: Record<string, number>;
+    evidenceRate: number;
+    networkRate: number;
+  };
+  logs: AuditEntry[];
 };

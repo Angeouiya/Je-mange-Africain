@@ -1,0 +1,23 @@
+"use client";
+
+import { BookOpenCheck, Fingerprint, Languages, ShieldCheck, Tags, UserCog } from "lucide-react";
+import { AdminErrorState, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
+import { Badge } from "@/components/ui/badge";
+import { useFetch } from "@/lib/use-fetch";
+
+export function GovernanceReferenceWorkspace({ locale, adminEmail, adminRole }: { locale: "fr" | "en"; adminEmail: string; adminRole: string }) {
+  const isFr = locale === "fr";
+  const categoriesRequest = useFetch<{ categories: Array<{ id: string; name: string }> }>(`/api/categories?locale=${locale}`, [locale]);
+  const brandsRequest = useFetch<{ brands: Array<{ id: string; name: string }> }>(`/api/brands?locale=${locale}`, [locale]);
+  if ((categoriesRequest.loading || brandsRequest.loading) && !categoriesRequest.data && !brandsRequest.data) return <AdminSectionLoading label={isFr ? "Lecture des référentiels publiés" : "Reading published reference data"} />;
+  if (categoriesRequest.error && brandsRequest.error) return <AdminErrorState message={categoriesRequest.error} onRetry={() => { categoriesRequest.refetch(); brandsRequest.refetch(); }} />;
+  const categories = categoriesRequest.data?.categories || [];
+  const brands = brandsRequest.data?.brands || [];
+  return <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <section className="overflow-hidden rounded-lg border border-charcoal/8 bg-white"><div className="border-b border-charcoal/8 bg-[#F8F7F4] px-5 py-4"><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Données structurantes" : "Structural data"}</p><h3 className="mt-1 text-sm font-black">{isFr ? "Référentiels publiés" : "Published reference data"}</h3><p className="mt-1 text-[11px] text-muted-foreground">{isFr ? "Ces sources organisent les fiches produit, les filtres et la recherche internationale." : "These sources organise product records, filters and international search."}</p></div><div className="divide-y divide-border"><ReferenceRow icon={Tags} tone="earth" label={isFr ? "Catégories commerciales" : "Commercial categories"} detail={categories.map((item) => item.name).join(" · ") || (isFr ? "Aucune catégorie publiée" : "No published category")} count={categories.length} /><ReferenceRow icon={BookOpenCheck} tone="gold" label={isFr ? "Marques actives" : "Active brands"} detail={brands.map((item) => item.name).join(" · ") || (isFr ? "Aucune marque publiée" : "No published brand")} count={brands.length} /><ReferenceRow icon={Languages} tone="burgundy" label={isFr ? "Langues d'exploitation" : "Operating languages"} detail="Français · English" count={2} /></div></section>
+    <aside className="h-fit overflow-hidden rounded-lg border border-charcoal/8 bg-white"><div className="bg-charcoal p-5 text-white"><ShieldCheck className="h-6 w-6 text-gold" /><h3 className="mt-4 text-lg font-black">{isFr ? "Session protégée" : "Protected session"}</h3><p className="mt-2 break-all text-xs leading-5 text-white/70">{adminEmail || (isFr ? "Compte professionnel" : "Professional account")}</p></div><div className="divide-y divide-border"><SessionFact icon={UserCog} label={isFr ? "Rôle de la session" : "Session role"} value={adminRole ? adminRole.replaceAll("_", " ") : (isFr ? "Exploitation" : "Operations")} /><SessionFact icon={Fingerprint} label={isFr ? "Contrôle des actions" : "Action control"} value={isFr ? "Journal d'audit actif" : "Audit log active"} /></div></aside>
+  </div>;
+}
+
+function ReferenceRow({ icon: Icon, tone, label, detail, count }: { icon: typeof Tags; tone: "earth" | "gold" | "burgundy"; label: string; detail: string; count: number }) { const style = tone === "earth" ? "bg-terre/10 text-terre" : tone === "gold" ? "bg-gold/20 text-charcoal" : "bg-forest/10 text-forest"; return <div className="flex items-center gap-3 px-4 py-4 sm:px-5"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${style}`}><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-extrabold">{label}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{detail}</p></div><Badge variant="outline" className="border-charcoal/10 text-xs font-black tabular-nums">{count}</Badge></div>; }
+function SessionFact({ icon: Icon, label, value }: { icon: typeof UserCog; label: string; value: string }) { return <div className="flex items-start gap-3 p-4"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-forest/[0.06] text-forest"><Icon className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[9px] font-bold text-muted-foreground">{label}</p><p className="mt-1 truncate text-xs font-black capitalize text-charcoal">{value}</p></div></div>; }

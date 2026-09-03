@@ -113,6 +113,71 @@ const inventoryPayload = {
   movements: [{ id: "movement-1", batchId: "batch-1", lotNumber: "ATT-2608-FR", productName: "Attiéké frais", warehouse: "Paris Nord", type: "receipt", quantity: 120, reason: "Arrivage Abidjan", createdAt: now }],
 };
 
+const auditPayload = {
+  period: "30d",
+  generatedAt: now,
+  hasMore: false,
+  summary: {
+    total: 3,
+    loaded: 3,
+    actors: 2,
+    risk: { critical: 2, attention: 1, routine: 0 },
+    domains: { access: 1, stock: 1, catalog: 1, fulfillment: 0, customers: 0, marketing: 0, finance: 0, system: 0 },
+    evidenceRate: 86.7,
+    networkRate: 66.7,
+  },
+  logs: [
+    {
+      id: "audit-1",
+      action: "price_change",
+      entityType: "product",
+      entityId: "product-1",
+      reason: "Mise à jour du coût fournisseur et de la marge cible.",
+      actor: "direction@je-mange-africain.com",
+      actorSource: "identity",
+      ip: "192.0.2.10",
+      risk: "attention",
+      domain: "catalog",
+      evidenceScore: 100,
+      changes: [
+        { field: "costPrice", before: "2.5", after: "2.8", kind: "changed" },
+        { field: "profitMargin", before: "1.9", after: "2.1", kind: "changed" },
+      ],
+      createdAt: now,
+    },
+    {
+      id: "audit-2",
+      action: "team_member_delete",
+      entityType: "team_member",
+      entityId: "member-2",
+      reason: "Accès retiré après le départ du collaborateur, par direction@je-mange-africain.com.",
+      actor: "direction@je-mange-africain.com",
+      actorSource: "reason",
+      ip: null,
+      risk: "critical",
+      domain: "access",
+      evidenceScore: 80,
+      changes: [{ field: "status", before: "active", after: "deleted", kind: "changed" }],
+      createdAt: "2026-09-02T08:45:00.000Z",
+    },
+    {
+      id: "audit-3",
+      action: "batch_status_change",
+      entityType: "inventory_batch",
+      entityId: "ATT-2608-FR",
+      reason: "Rappel préventif après contrôle qualité du lot.",
+      actor: "qualite@je-mange-africain.com",
+      actorSource: "identity",
+      ip: "192.0.2.18",
+      risk: "critical",
+      domain: "stock",
+      evidenceScore: 80,
+      changes: [{ field: "status", before: "active", after: "recalled", kind: "changed" }],
+      createdAt: "2026-09-02T08:15:00.000Z",
+    },
+  ],
+};
+
 async function expectBrandSafeUiColors(page: Page) {
   const forbiddenStyles = await page.locator("body").evaluate((body) => {
     const ignoredTags = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS"]);
@@ -213,7 +278,7 @@ async function mockAdminApi(page: Page) {
     };
     else if (path === "/api/admin/advertisements") payload = { advertisements: [{ id: "ad-1", placement: "home", titleFr: "Saveurs de Côte d'Ivoire", titleEn: "Flavours of Côte d'Ivoire", bodyFr: "Une sélection prête à cuisiner.", bodyEn: "A selection ready to cook.", imageUrl: "/hero-feast-v2.webp", imageAltFr: "Table de plats ivoiriens", imageAltEn: "Table of Ivorian dishes", linkUrl: "/?view=catalog", status: "published", priority: 1, startsAt: now, endsAt: "2026-09-30T23:59:59.000Z" }] };
     else if (path === "/api/admin/profitability") payload = profitabilityPayload;
-    else if (path === "/api/admin/audit") payload = { logs: [{ id: "audit-1", action: "price_change", entityType: "product", entityId: "product-1", reason: "Mise à jour du coût fournisseur et de la marge cible.", actor: "direction@je-mange-africain.com", ip: "192.0.2.10", createdAt: now }] };
+    else if (path === "/api/admin/audit") payload = auditPayload;
     else if (path === "/api/categories") payload = { categories: [{ id: "cat-1", name: "Féculents et farines" }, { id: "cat-2", name: "Épices" }] };
     else if (path === "/api/brands") payload = { brands: [{ id: "brand-1", name: "Je mange Africain" }] };
     else if (path === "/api/admin/team") payload = {
@@ -299,6 +364,66 @@ test("every professional workspace has a clear purpose and stays inside the view
       await page.screenshot({ path: join(directory, `${section.id}-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
     }
   }
+});
+
+test("the audit center qualifies, filters and exports operational evidence", async ({ page }) => {
+  await mockAdminApi(page);
+  let referenceRequests = 0;
+  const requestedReferencePaths = new Set<string>();
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/categories" || path === "/api/brands") {
+      referenceRequests += 1;
+      requestedReferencePaths.add(path);
+    }
+  });
+
+  await page.goto("/admin#governance", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Complétude moyenne", { exact: true })).toBeVisible();
+  await expect(page.getByText("86,7 %", { exact: true })).toBeVisible();
+  await expect(page.getByText(/2 actions sensibles figurent/)).toBeVisible();
+  expect(referenceRequests).toBe(0);
+
+  await page.getByLabel("Niveau de risque").selectOption("critical");
+  await expect(page.getByText("Suppression d'un accès", { exact: true })).toBeVisible();
+  await expect(page.getByText("Décision sanitaire", { exact: true })).toBeVisible();
+  await expect(page.getByText("Modification de prix", { exact: true })).toBeHidden();
+
+  const search = page.getByRole("searchbox", { name: "Rechercher dans le journal" });
+  await search.fill("ATT-2608-FR");
+  await expect(page.getByTestId("admin-search-field")).toContainText("1 résultat sur 3");
+  await page.getByRole("button", { name: /Décision sanitaire/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Décision sanitaire" })).toBeVisible();
+  await expect(dialog).toContainText("Identité liée");
+  await expect(dialog).toContainText("192.0.2.18");
+  await expect(dialog).toContainText("Avant et après");
+  await expect(dialog).toContainText("active");
+  await expect(dialog).toContainText("recalled");
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `governance-evidence-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+
+  await page.getByRole("button", { name: "Fermer" }).click();
+  await page.getByRole("button", { name: "Réinitialiser" }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exporter la vue" }).click();
+  expect((await download).suggestedFilename()).toBe("je-mange-africain-journal-audit.csv");
+
+  await page.getByRole("tab", { name: "Référentiels" }).click();
+  await expect(page.getByRole("heading", { name: "Référentiels publiés" })).toBeVisible();
+  await expect(page.getByText("Féculents et farines · Épices", { exact: true })).toBeVisible();
+  await expect.poll(() => requestedReferencePaths.size).toBe(2);
+  expect(referenceRequests).toBeGreaterThanOrEqual(2);
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await expectBrandSafeUiColors(page);
 });
 
 test("admin searches report, filter and clear results consistently", async ({ page }) => {
