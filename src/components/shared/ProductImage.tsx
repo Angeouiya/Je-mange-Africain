@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { getBrandAccentColor } from "@/lib/market-media";
+import { cn } from "@/lib/utils";
 
 /** Product visual with a real photo first and a branded fallback for resilience. */
 export function ProductImage({
@@ -56,7 +57,7 @@ export function ProductImage({
 
   return (
     <div
-      className={`relative flex items-center justify-center overflow-hidden ${rounded} ${sizes[size]} ${className}`}
+      className={cn("relative flex items-center justify-center overflow-hidden", rounded, sizes[size], className)}
       style={{
         background: `color-mix(in srgb, ${accentColor} 18%, white)`,
       }}

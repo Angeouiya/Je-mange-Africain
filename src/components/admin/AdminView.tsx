@@ -325,7 +325,7 @@ export function AdminView({
               {section === "customers" ? <CustomersSection locale={locale} canUpdate={hasAdminPermission(adminRole, "customers", "update")} /> : null}
               {section === "campaigns" ? <PushCampaignAdmin locale={locale} /> : null}
               {section === "advertising" ? <AdvertisingSection locale={locale} /> : null}
-              {section === "finance" ? <FinanceSection locale={locale} /> : null}
+              {section === "finance" ? <FinanceSection locale={locale} onNavigate={selectSection} /> : null}
               {section === "governance" ? <GovernanceSection locale={locale} adminEmail={adminEmail} adminRole={adminRole} /> : null}
               {section === "team" ? <TeamSection locale={locale} /> : null}
             </motion.div>

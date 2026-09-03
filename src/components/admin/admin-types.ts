@@ -74,7 +74,7 @@ export type AdminOrder = {
     signature?: string | null;
   }>;
   timeline: Array<{ status: string; label: string; at: string; actor?: string | null }>;
-  payments: Array<{ method: string; status: string; amount: number; reference?: string | null }>;
+  payments: Array<{ id?: string; method: string; status: string; amount: number; reference?: string | null; createdAt?: string }>;
 };
 
 export type AdminCustomer = {

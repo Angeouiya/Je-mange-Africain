@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
         proofPhoto: s.proofPhoto, signature: s.signature,
       })),
       timeline: o.timeline.map((e) => ({ status: e.status, label: e.label, at: e.at, actor: access.scope === "admin" ? e.actor : null })),
-      payments: o.payments.map((p) => ({ id: p.id, method: p.method, status: p.status, amount: Number(p.amount), reference: p.reference })),
+      payments: o.payments.map((p) => ({ id: p.id, method: p.method, status: p.status, amount: Number(p.amount), reference: p.reference, createdAt: p.createdAt })),
     })),
   });
 }

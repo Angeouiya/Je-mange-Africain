@@ -43,7 +43,11 @@ const order = {
   items: [{ id: "line-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 4.9, qty: 2, lineTotal: 9.8, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp" }],
   shipments: [{ id: "shipment-1", trackingNumber: "JMAFR260902", thermalClass: "REFRIGERATED", status: "preparing", estimatedDelivery: "2026-09-04T14:00:00.000Z", carrier: "Chronofresh" }],
   timeline: [{ status: "paymentConfirmed", label: "Paiement confirmé", at: now, actor: "Système" }, { status: "preparing", label: "Préparation lancée", at: "2026-09-02T10:00:00.000Z", actor: "Entrepôt Paris" }],
-  payments: [{ method: "Carte", status: "captured", amount: 48.7, reference: "pi_jma_260902" }],
+  payments: [
+    { id: "payment-1", method: "card", status: "captured", amount: 48.7, reference: "pi_jma_260902", createdAt: now },
+    { id: "payment-2", method: "apple_pay", status: "pending", amount: 32.4, reference: "pi_jma_pending", createdAt: "2026-09-02T09:35:00.000Z" },
+    { id: "payment-3", method: "card", status: "failed", amount: 64.9, reference: "pi_jma_failed", createdAt: "2026-09-02T09:40:00.000Z" },
+  ],
 };
 
 const profitabilityRow = {
@@ -56,6 +60,31 @@ const profitabilityRow = {
   marginRate: 42,
   units: 712,
   orders: 284,
+};
+
+const profitabilityPayload = {
+  period: "30d",
+  generatedAt: now,
+  general: { ...profitabilityRow, id: "general", label: "Ensemble de l'offre", secondary: null, revenue: 28742.4, grossCost: 16416.8, margin: 12325.6, units: 4260, orders: 1260, marginRate: 42.9, traceabilityRate: 86.4 },
+  categories: [
+    { ...profitabilityRow, contributionRate: 16.8 },
+    { ...profitabilityRow, id: "epices", label: "Épices et condiments", revenue: 3760, grossCost: 1880, margin: 1880, marginRate: 50, units: 594, orders: 238, contributionRate: 13.1 },
+  ],
+  lots: [
+    { ...profitabilityRow, id: "ATT-2608-FR", label: "ATT-2608-FR", secondary: "Attiéké frais · Paris Nord", contributionRate: 16.8 },
+    { ...profitabilityRow, id: "AKP-2608-CI", label: "AKP-2608-CI", secondary: "Akpi · Lyon Est", revenue: 2160, grossCost: 1120, margin: 1040, marginRate: 48.1, units: 288, orders: 146, contributionRate: 7.5 },
+  ],
+  topProducts: [
+    { ...profitabilityRow, id: "product-1", secondary: "JMA-ATT-500", contributionRate: 16.8, imageUrl: "/products/attieke.webp", imageColor: "#E9B949", country: "Côte d'Ivoire", stockQty: 16, reservedQty: 12, availableStock: 4, alertThreshold: 12 },
+    { ...profitabilityRow, id: "product-2", label: "Banane plantain", secondary: "JMA-PLA-1KG", revenue: 3910, grossCost: 2250, margin: 1660, marginRate: 42.5, units: 648, orders: 246, contributionRate: 13.6, imageUrl: "/products/banane-plantain.webp", imageColor: "#F2A900", country: "Cameroun", stockQty: 96, reservedQty: 18, availableStock: 78, alertThreshold: 15 },
+    { ...profitabilityRow, id: "product-3", label: "Akpi", secondary: "JMA-AKP-100", revenue: 2160, grossCost: 1850, margin: 310, marginRate: 14.4, units: 288, orders: 146, contributionRate: 7.5, imageUrl: "/products/akpi.webp", imageColor: "#C84C2E", country: "Côte d'Ivoire", stockQty: 54, reservedQty: 4, availableStock: 50, alertThreshold: 8 },
+  ],
+  recommendations: [
+    { id: "restock:product-1", kind: "restock", productId: "product-1", label: "Attiéké frais", detail: "4 unités disponibles pour un seuil de 12." },
+    { id: "priority:product-2", kind: "priority", productId: "product-2", label: "Banane plantain", detail: "N° 2 des ventes avec 648 unités achetées." },
+    { id: "margin:product-3", kind: "margin", productId: "product-3", label: "Akpi", detail: "Le taux de marge de 14,4 % mérite une révision." },
+  ],
+  comparison: { revenue: 12.4, grossCost: 8.2, margin: 18.6, units: 9.7, previous: { ...profitabilityRow, id: "general-previous" } },
 };
 
 const inventoryBatch = {
@@ -183,12 +212,7 @@ async function mockAdminApi(page: Page) {
       recent: [{ id: "push-1", titleFr: "Le marché du week-end", bodyFr: "Votre sélection ivoirienne est disponible.", sent: true, createdAt: now, type: "promotion", url: "/?view=catalog", audience: "all", recipientCount: 1268, deliveredCount: 1249, failedCount: 19 }],
     };
     else if (path === "/api/admin/advertisements") payload = { advertisements: [{ id: "ad-1", placement: "home", titleFr: "Saveurs de Côte d'Ivoire", titleEn: "Flavours of Côte d'Ivoire", bodyFr: "Une sélection prête à cuisiner.", bodyEn: "A selection ready to cook.", imageUrl: "/hero-feast-v2.webp", imageAltFr: "Table de plats ivoiriens", imageAltEn: "Table of Ivorian dishes", linkUrl: "/?view=catalog", status: "published", priority: 1, startsAt: now, endsAt: "2026-09-30T23:59:59.000Z" }] };
-    else if (path === "/api/admin/profitability") payload = {
-      general: { ...profitabilityRow, id: "general", label: "Ensemble de l'offre", secondary: null, revenue: 28742.4, grossCost: 16416.8, margin: 12325.6, units: 4260, orders: 1260, marginRate: 42.9 },
-      categories: [profitabilityRow],
-      lots: [{ ...profitabilityRow, id: "ATT-2608-FR", label: "ATT-2608-FR", secondary: "Attiéké frais" }],
-      topProducts: [profitabilityRow],
-    };
+    else if (path === "/api/admin/profitability") payload = profitabilityPayload;
     else if (path === "/api/admin/audit") payload = { logs: [{ id: "audit-1", action: "price_change", entityType: "product", entityId: "product-1", reason: "Mise à jour du coût fournisseur et de la marge cible.", actor: "direction@je-mange-africain.com", ip: "192.0.2.10", createdAt: now }] };
     else if (path === "/api/categories") payload = { categories: [{ id: "cat-1", name: "Féculents et farines" }, { id: "cat-2", name: "Épices" }] };
     else if (path === "/api/brands") payload = { brands: [{ id: "brand-1", name: "Je mange Africain" }] };
@@ -303,10 +327,69 @@ test("admin searches report, filter and clear results consistently", async ({ pa
   await page.getByRole("tab", { name: /Encaissements/ }).click();
   const paymentSearch = page.getByRole("searchbox", { name: "Rechercher un encaissement" });
   await paymentSearch.fill("introuvable");
-  await expect(page.getByTestId("admin-search-field")).toContainText("0 résultats sur 1");
+  await expect(page.getByTestId("admin-search-field")).toContainText("0 résultats sur 3");
   await page.getByRole("button", { name: "Effacer la recherche" }).click();
   await expect(paymentSearch).toHaveValue("");
-  await expect(page.getByText("pi_jma_260902", { exact: true })).toBeVisible();
+  await expect(page.getByText("pi_jma_260902", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+});
+
+test("the finance cockpit explains margin, exports records and leads to action", async ({ page }) => {
+  test.setTimeout(120_000);
+  await mockAdminApi(page);
+  await page.goto("/admin#finance", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Rentabilité et encaissements" })).toBeVisible();
+  await expect(page.getByTestId("profitability-bridge")).toContainText("Chaque euro de vente expliqué");
+  await expect(page.getByTestId("profitability-bridge")).toContainText("86,4 %");
+  await expect(page.getByRole("heading", { name: "Produits qui entraînent la demande" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Décisions suggérées" })).toBeVisible();
+  await expect(page.getByText("4 unités disponibles pour un seuil de 12.")).toBeVisible();
+  const attiekeImage = page.getByRole("img", { name: "Attiéké frais" });
+  await expect(attiekeImage).toBeVisible();
+  await expect.poll(() => attiekeImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.getByRole("heading", { name: "Produits qui entraînent la demande" }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(directory, `finance-decisions-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+
+  await page.getByRole("tab", { name: "30 jours" }).click();
+  await expect(page.getByText("+12,4 %")).toBeVisible();
+  const profitabilityDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exporter" }).click();
+  expect((await profitabilityDownload).suggestedFilename()).toBe("je-mange-africain-rentabilite-general.csv");
+
+  await page.getByRole("tab", { name: /Familles/ }).click();
+  await expect(page.getByText("Épices et condiments").filter({ visible: true }).first()).toBeVisible();
+  await page.getByRole("tab", { name: /Lots/ }).click();
+  await expect(page.getByText("AKP-2608-CI").filter({ visible: true }).first()).toBeVisible();
+  await page.getByRole("tab", { name: /Décisions/ }).click();
+  await page.getByRole("button", { name: "Ouvrir les lots" }).click();
+  await expect(page.getByRole("heading", { name: "Inventaire piloté par les lots" })).toBeVisible();
+
+  await page.goto("/admin#finance", { waitUntil: "domcontentloaded" });
+  await page.getByRole("tab", { name: "Encaissements" }).click();
+  await expect(page.getByText("Taux rapproché")).toBeVisible();
+  await expect(page.getByText("33,3 %")).toBeVisible();
+  await page.getByRole("tab", { name: /Exceptions/ }).click();
+  await expect(page.getByText("pi_jma_failed", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  const paymentsDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exporter la vue" }).click();
+  expect((await paymentsDownload).suggestedFilename()).toBe("je-mange-africain-encaissements.csv");
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `finance-ledger-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
 });
 
 test("the inventory desk receives, values and secures a traceable batch", async ({ page }) => {
