@@ -117,7 +117,7 @@ export function CatalogView() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={t.header.searchPlaceholder}
+              placeholder={locale === "fr" ? "Produit, recette ou ingrédient..." : "Product, recipe or ingredient..."}
               aria-label={locale === "fr" ? "Rechercher dans le catalogue" : "Search the catalogue"}
               className="h-11 border-charcoal/12 bg-white pl-9"
             />

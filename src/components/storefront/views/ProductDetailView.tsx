@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Heart, Plus, Minus, Truck, ShieldCheck, Snowflake } from "lucide-react";
+import { Heart, Plus, Minus, Truck, ShieldCheck, Snowflake, FileText, Activity, CookingPot, Refrigerator, Barcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,15 +45,21 @@ export function ProductDetailView() {
   if (!product) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Produit introuvable.</div>;
 
   const variant = product.variants?.find((v: any) => v.id === variantId) || product.variants?.[0];
-  const price = product.promoPrice ?? product.price;
+  const listPrice = Number(variant?.price ?? product.price);
+  const promotionalRate = product.promoPrice !== null && product.promoPrice !== undefined && Number(product.price) > 0
+    ? Number(product.promoPrice) / Number(product.price)
+    : 1;
+  const price = Math.round(listPrice * promotionalRate * 100) / 100;
   const isFav = favorites.includes(product.id);
   const outOfStock = product.stockQty <= 0;
   const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
-  const discountPercent = getDiscountPercent(product.price, product.promoPrice);
-  const saving = product.promoPrice ? product.price - product.promoPrice : 0;
+  const discountPercent = getDiscountPercent(listPrice, promotionalRate < 1 ? price : null);
+  const saving = promotionalRate < 1 ? listPrice - price : 0;
+  const activePricePerKg = variant?.weightGrams ? price / (Number(variant.weightGrams) / 1000) : product.pricePerKg;
   const gallery = getProductGallery(product);
   const heroPhoto = selectedPhoto || gallery[0];
   const commercialLine = getProductCommercialLine(product, locale);
+  const lineTotal = price * qty;
 
   const handleAdd = () => {
     addToCart({
@@ -75,13 +81,13 @@ export function ProductDetailView() {
   };
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 py-7 md:px-7 md:py-10 lg:px-8">
-      <PageBackButton fallbackView="catalog" className="mb-4" />
+    <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 py-4 md:px-7 md:py-10 lg:px-8">
+      <PageBackButton fallbackView="catalog" className="mb-3 md:mb-4" />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         {/* visual */}
         <div className="min-w-0 space-y-3 lg:sticky lg:top-24 lg:self-start">
-          <div className="relative -mx-4 flex aspect-[4/3] items-center justify-center overflow-hidden border-y border-border bg-card sm:mx-0 sm:aspect-square sm:rounded-lg sm:border">
+          <div className="relative -mx-4 flex aspect-[3/2] items-center justify-center overflow-hidden border-y border-border bg-card sm:mx-0 sm:aspect-square sm:rounded-lg sm:border">
             <ProductImage
               src={heroPhoto}
               alt={product.name}
@@ -98,9 +104,10 @@ export function ProductDetailView() {
               </span>
             )}
           </div>
-          <div className="grid min-w-0 grid-cols-3 gap-2">
+          {gallery.length > 1 ? <div className="grid min-w-0 grid-cols-3 gap-2">
             {gallery.map((photo, index) => (
               <button
+                type="button"
                 key={photo}
                 onClick={() => setSelectedPhoto(photo)}
                 className={`relative aspect-[4/3] overflow-hidden rounded-lg border transition ${
@@ -111,7 +118,7 @@ export function ProductDetailView() {
                 <ProductImage src={photo} alt="" emoji={product.imageEmoji} color={product.imageColor} size="md" className="h-full w-full" rounded="rounded-none" />
               </button>
             ))}
-          </div>
+          </div> : null}
           <div className="flex flex-wrap gap-2">
             {product.variants?.map((v: any) => (
               <button
@@ -119,11 +126,11 @@ export function ProductDetailView() {
                 key={v.id}
                 onClick={() => setVariantId(v.id)}
                 aria-pressed={variantId === v.id}
-                className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                className={`inline-flex min-h-11 flex-col items-start justify-center rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                   variantId === v.id ? "border-terre bg-terre/5 text-terre" : "border-border text-charcoal hover:bg-muted"
                 }`}
               >
-                {v.label}
+                <span>{v.label}</span><span className="text-[10px] font-black">{formatPrice(Math.round(Number(v.price) * promotionalRate * 100) / 100, locale)}</span>
               </button>
             ))}
           </div>
@@ -148,9 +155,9 @@ export function ProductDetailView() {
 
           {/* price */}
           <div className="flex min-w-0 flex-wrap items-end gap-x-3 gap-y-1">
-            {product.promoPrice && <span className="text-lg text-muted-foreground line-through">{formatPrice(product.price, locale)}</span>}
+            {discountPercent > 0 && <span className="text-lg text-muted-foreground line-through">{formatPrice(listPrice, locale)}</span>}
             <span className="whitespace-nowrap text-3xl font-extrabold text-terre">{formatPrice(price, locale)}</span>
-            {product.pricePerKg && <span className="min-w-0 break-words pb-1 text-xs text-muted-foreground">≈ {formatUnitPrice(Number(product.pricePerKg), locale)}{t.perKg}</span>}
+            {activePricePerKg && <span className="min-w-0 break-words pb-1 text-xs text-muted-foreground">≈ {formatUnitPrice(Number(activePricePerKg), locale)}{t.perKg}</span>}
           </div>
           {saving > 0 && (
             <p className="w-fit rounded-md bg-forest/10 px-3 py-1 text-xs font-semibold text-forest">
@@ -159,7 +166,7 @@ export function ProductDetailView() {
           )}
 
           {/* stock */}
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm" aria-live="polite">
             {outOfStock ? <span className="font-medium text-destructive">{t.outOfStock}</span>
               : lowStock ? <span className="font-medium text-gold">{t.lowStock} · {product.stockQty} {locale === "fr" ? "en stock" : "in stock"}</span>
               : <span className="font-medium text-forest">{t.inStock}</span>}
@@ -182,8 +189,8 @@ export function ProductDetailView() {
               <span className="min-w-10 text-center font-semibold tabular-nums">{qty}</span>
               <button type="button" onClick={() => setQty(Math.min(product.stockQty || 99, qty + 1))} className="grid h-10 w-10 place-items-center rounded-md hover:bg-muted" aria-label={locale === "fr" ? `Augmenter la quantité de ${product.name}` : `Increase ${product.name} quantity`}><Plus className="h-4 w-4" /></button>
             </div>
-            <Button onClick={handleAdd} disabled={outOfStock} size="lg" className="order-last w-full whitespace-normal bg-terre text-center leading-tight text-cream shadow-md hover:bg-terre-dark sm:order-none sm:min-w-0 sm:flex-1">
-              <Plus className="mr-1 h-4 w-4" /> {t.product.addToCart}
+            <Button onClick={handleAdd} disabled={outOfStock} size="lg" className="order-last w-full justify-between gap-3 whitespace-normal bg-terre px-4 text-center leading-tight text-cream shadow-md hover:bg-terre-dark sm:order-none sm:min-w-0 sm:flex-1">
+              <span className="inline-flex items-center"><Plus className="mr-1.5 h-4 w-4" />{t.product.addToCart}</span><span className="shrink-0 border-l border-white/25 pl-3 font-black tabular-nums">{formatPrice(lineTotal, locale)}</span>
             </Button>
             <Button variant="outline" size="icon" onClick={() => toggleFavorite(product.id)} aria-pressed={isFav} aria-label={isFav ? (locale === "fr" ? `Retirer ${product.name} des favoris` : `Remove ${product.name} from favourites`) : (locale === "fr" ? `Ajouter ${product.name} aux favoris` : `Add ${product.name} to favourites`)} className="ml-auto h-11 w-11 shrink-0 sm:ml-0">
               <Heart className={`h-5 w-5 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />
@@ -193,13 +200,13 @@ export function ProductDetailView() {
           {/* trust badges */}
           <div className="grid min-w-0 grid-cols-3 gap-2 border-t border-border pt-4 text-center">
             <div className="flex min-w-0 flex-col items-center gap-1 text-[11px] leading-tight text-muted-foreground">
-              <Truck className="h-4 w-4 text-terre" /> {locale === "fr" ? "Livraison 48h" : "48h delivery"}
+              <Truck className="h-4 w-4 text-terre" /> {locale === "fr" ? "Livraison suivie" : "Tracked delivery"}
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1 text-[11px] leading-tight text-muted-foreground">
               <Snowflake className="h-4 w-4 text-forest" /> {locale === "fr" ? "Chaîne du froid" : "Cold chain"}
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1 text-[11px] leading-tight text-muted-foreground">
-              <ShieldCheck className="h-4 w-4 text-gold" /> {locale === "fr" ? "Authentique" : "Authentic"}
+              <ShieldCheck className="h-4 w-4 text-gold" /> {locale === "fr" ? "Traçabilité" : "Traceability"}
             </div>
           </div>
 
@@ -207,20 +214,21 @@ export function ProductDetailView() {
             <h2 id="product-facts-title" className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               {locale === "fr" ? "Repères produit" : "Product details"}
             </h2>
-            <dl className="mt-3 grid min-w-0 grid-cols-3 divide-x divide-border text-xs">
+            <dl className="mt-3 grid min-w-0 grid-cols-2 gap-x-4 gap-y-4 text-xs sm:grid-cols-4">
               <ProductFact label={locale === "fr" ? "Origine" : "Origin"} value={product.country || "—"} />
               <ProductFact label={locale === "fr" ? "Format" : "Pack"} value={variant?.label || product.packaging || "—"} />
               <ProductFact label={locale === "fr" ? "Conservation" : "Storage"} value={thermalLabel(product.thermalClass, locale)} />
+              <ProductFact label={locale === "fr" ? "Référence" : "Reference"} value={product.sku || "—"} icon={<Barcode className="h-3.5 w-3.5" />} />
             </dl>
           </section>
 
           {/* tabs */}
           <Tabs defaultValue="desc" className="mt-2 min-w-0">
-            <TabsList className="max-w-full justify-start overflow-x-auto">
-              <TabsTrigger value="desc" className="shrink-0">{t.product.description}</TabsTrigger>
-              <TabsTrigger value="nutri" className="shrink-0">{t.product.nutrition}</TabsTrigger>
-              <TabsTrigger value="prep" className="shrink-0">{t.product.preparation}</TabsTrigger>
-              <TabsTrigger value="store" className="shrink-0">{t.product.storage}</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+              <TabsTrigger value="desc" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><FileText className="h-3.5 w-3.5" />{t.product.description}</TabsTrigger>
+              <TabsTrigger value="nutri" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><Activity className="h-3.5 w-3.5" />{t.product.nutrition}</TabsTrigger>
+              <TabsTrigger value="prep" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><CookingPot className="h-3.5 w-3.5" />{t.product.preparation}</TabsTrigger>
+              <TabsTrigger value="store" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><Refrigerator className="h-3.5 w-3.5" />{t.product.storage}</TabsTrigger>
             </TabsList>
             <TabsContent value="desc" className="text-sm leading-relaxed text-charcoal">
               <p>{product.description}</p>
@@ -273,10 +281,10 @@ export function ProductDetailView() {
   );
 }
 
-function ProductFact({ label, value }: { label: string; value: string }) {
+function ProductFact({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="min-w-0 px-2 first:pl-0 last:pr-0">
-      <dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</dt>
+    <div className="min-w-0 border-l-2 border-terre/15 pl-2.5">
+      <dt className="flex items-center gap-1 text-[10px] font-bold uppercase text-muted-foreground">{icon}{label}</dt>
       <dd className="mt-1 break-words font-semibold leading-snug text-charcoal">{value}</dd>
     </div>
   );

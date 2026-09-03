@@ -155,7 +155,7 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
           onChange={(event) => { setQuery(event.target.value); setActiveIndex(-1); setOpen(true); }}
           onKeyDown={handleKeyDown}
           onFocus={() => setOpen(true)}
-          placeholder={t.header.searchPlaceholder}
+          placeholder={compact ? (locale === "fr" ? "Produit, recette ou ingrédient..." : "Product, recipe or ingredient...") : t.header.searchPlaceholder}
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           role="combobox"
           aria-label={locale === "fr" ? "Recherche globale" : "Global search"}

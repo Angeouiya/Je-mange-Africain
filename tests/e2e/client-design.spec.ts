@@ -264,17 +264,37 @@ test("product details stay bounded and preserve real visual identification in th
   const firstProduct = page.locator("main h3").first();
   const productName = (await firstProduct.textContent())?.trim() || "";
   expect(productName).not.toBe("");
-  await firstProduct.click();
+  const firstProductCard = page.getByRole("link", { name: `Voir ${productName}`, exact: true }).first();
+  await firstProductCard.focus();
+  await firstProductCard.press("Enter");
 
   await expect(page.getByRole("heading", { level: 1, name: productName })).toBeVisible();
+  await expect(page).toHaveURL(/\?view=product&productId=[^&]+/);
   await expect(page.getByRole("button", { name: /retour|back/i })).toHaveCount(1);
   await expect(page.locator("main img").first()).toBeVisible();
+  await expect(page.getByRole("tab", { name: /description/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /nutrition/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /préparation|preparation/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /conservation|storage/i })).toBeVisible();
   await expectNoHorizontalOverflow(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/product-detail-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
+  }
 
-  await page.getByRole("button", { name: /ajouter au panier|add to cart/i }).first().click();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { level: 1, name: productName })).toBeVisible();
+  await expect(page).toHaveURL(/\?view=product&productId=[^&]+/);
+
+  const largerVariant = page.getByRole("button", { name: /Pot 800 g/i });
+  await expect(largerVariant).toContainText(/9,90\s*€/);
+  await largerVariant.click();
+  const addToCart = page.getByRole("button", { name: /ajouter au panier|add to cart/i }).first();
+  await expect(addToCart).toContainText(/9,90\s*€/);
+  await addToCart.click();
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
   await expect(page.getByRole("heading", { name: /mon panier|my cart/i })).toBeVisible();
   await expect(page.getByText(productName, { exact: true })).toBeVisible();
+  await expect(page.getByText("Pot 800 g", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: productName })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
@@ -479,6 +499,9 @@ test("the personal library filters and synchronizes saved products and recipes",
   await expect(page.getByText(/synchronisé au compte|synced to account/i)).toBeVisible();
   await expect(page.getByRole("tab", { name: /mes favoris/i })).toContainText("1");
   await expect(page.getByRole("img", { name: "Attiéké frais" })).toBeVisible();
+  const savedHeadingBox = await page.getByRole("heading", { name: /mes essentiels|my essentials/i }).boundingBox();
+  const firstSavedImageBox = await page.getByRole("img", { name: "Attiéké frais" }).boundingBox();
+  expect((firstSavedImageBox?.y || 0) - (savedHeadingBox?.y || 0)).toBeLessThan((page.viewportSize()?.width || 0) < 768 ? 390 : 310);
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
 

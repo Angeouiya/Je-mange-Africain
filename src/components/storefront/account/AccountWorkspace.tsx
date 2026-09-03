@@ -345,8 +345,6 @@ function SavedSection({ locale, savedTab, setSavedTab, favorites, savedRecipes }
   ), [locale, normalizedQuery, recipeData?.recipes, savedRecipes, sort]);
   const loading = savedTab === "products" ? productsLoading : recipesLoading;
   const error = savedTab === "products" ? productsError : recipesError;
-  const total = favorites.length + savedRecipes.length;
-
   return (
     <section aria-labelledby="account-saved-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -359,20 +357,14 @@ function SavedSection({ locale, savedTab, setSavedTab, favorites, savedRecipes }
         <SavedSyncIndicator locale={locale} status={savedSyncStatus} onRetry={() => void syncSavedItems()} />
       </div>
 
-      <div className="mt-6 grid grid-cols-3 divide-x divide-border border-y border-border bg-muted/20 py-4">
-        <SavedMetric value={total} label={locale === "fr" ? "éléments" : "items"} />
-        <SavedMetric value={favorites.length} label={locale === "fr" ? "produits" : "products"} />
-        <SavedMetric value={savedRecipes.length} label={locale === "fr" ? "recettes" : "recipes"} />
-      </div>
-
-      <div className="mt-5 border-y border-border bg-white py-4">
+      <div className="mt-5 border-b border-border bg-white pb-4">
         <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label={locale === "fr" ? "Type d'éléments enregistrés" : "Saved item type"}>
           <button id="saved-products-tab" type="button" role="tab" aria-controls="saved-products-panel" aria-selected={savedTab === "products"} onClick={() => setSavedTab("products")} className={`flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-md px-2 text-xs font-bold transition ${savedTab === "products" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground hover:text-charcoal"}`}><Heart className={`h-4 w-4 shrink-0 ${savedTab === "products" ? "fill-terre text-terre" : ""}`} /><span className="truncate">{t.account.favorites}</span><span className="rounded bg-charcoal/5 px-1.5 py-0.5 text-[9px]">{favorites.length}</span></button>
           <button id="saved-recipes-tab" type="button" role="tab" aria-label={`${t.account.savedRecipes}, ${savedRecipes.length}`} aria-controls="saved-recipes-panel" aria-selected={savedTab === "recipes"} onClick={() => setSavedTab("recipes")} className={`flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-md px-2 text-xs font-bold transition ${savedTab === "recipes" ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground hover:text-charcoal"}`}><ChefHat className={`h-4 w-4 shrink-0 ${savedTab === "recipes" ? "text-forest" : ""}`} /><span className="sm:hidden">{locale === "fr" ? "Mes recettes" : "Recipes"}</span><span className="hidden truncate sm:inline">{t.account.savedRecipes}</span><span className="rounded bg-charcoal/5 px-1.5 py-0.5 text-[9px]">{savedRecipes.length}</span></button>
         </div>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem]">
-          <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={savedTab === "products" ? (locale === "fr" ? "Rechercher dans mes produits favoris" : "Search favourite products") : (locale === "fr" ? "Rechercher dans mes recettes sauvegardées" : "Search saved recipes")} placeholder={savedTab === "products" ? (locale === "fr" ? "Rechercher un produit..." : "Search a product...") : (locale === "fr" ? "Rechercher une recette..." : "Search a recipe...")} className="pl-9 pr-10" />{query ? <button type="button" onClick={() => setQuery("")} aria-label={locale === "fr" ? "Effacer la recherche" : "Clear search"} className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-charcoal"><X className="h-4 w-4" /></button> : null}</div>
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_9.25rem] gap-2 sm:grid-cols-[minmax(0,1fr)_11rem]">
+          <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={savedTab === "products" ? (locale === "fr" ? "Rechercher dans mes produits favoris" : "Search favourite products") : (locale === "fr" ? "Rechercher dans mes recettes sauvegardées" : "Search saved recipes")} placeholder={savedTab === "products" ? (locale === "fr" ? "Rechercher un produit..." : "Search a product...") : (locale === "fr" ? "Rechercher une recette..." : "Search a recipe...")} className="pl-9 pr-10 text-xs placeholder:text-xs" />{query ? <button type="button" onClick={() => setQuery("")} aria-label={locale === "fr" ? "Effacer la recherche" : "Clear search"} className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-charcoal"><X className="h-4 w-4" /></button> : null}</div>
           <div className="relative"><ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} aria-label={locale === "fr" ? "Trier les éléments enregistrés" : "Sort saved items"} className="h-10 w-full rounded-md border border-input bg-white pl-9 pr-3 text-xs font-bold text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20"><option value="recent">{locale === "fr" ? "Ajout récent" : "Recently added"}</option><option value="name">{locale === "fr" ? "Nom A–Z" : "Name A–Z"}</option><option value="country">{locale === "fr" ? "Pays" : "Country"}</option></select></div>
         </div>
       </div>
@@ -387,10 +379,6 @@ function SavedSection({ locale, savedTab, setSavedTab, favorites, savedRecipes }
       </div>
     </section>
   );
-}
-
-function SavedMetric({ value, label }: { value: number; label: string }) {
-  return <div className="px-2 text-center"><strong className="block text-xl font-black text-charcoal">{value}</strong><span className="mt-0.5 block text-[9px] font-bold uppercase text-muted-foreground">{label}</span></div>;
 }
 
 function SavedSyncIndicator({ locale, status, onRetry }: { locale: "fr" | "en"; status: ReturnType<typeof useStore.getState>["savedSyncStatus"]; onRetry: () => void }) {

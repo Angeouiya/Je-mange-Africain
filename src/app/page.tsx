@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { useStore } from "@/lib/store";
+import { useStore, type ViewId, type ViewParams } from "@/lib/store";
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
@@ -25,24 +25,20 @@ const InfoView = dynamicView(() => import("@/components/storefront/views/InfoVie
 
 export default function Page() {
   const view = useStore((s) => s.view);
+  const params = useStore((s) => s.params);
   const navigate = useStore((s) => s.navigate);
   const customer = useStore((s) => s.customer);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const sessionSubject = useStore.getState().customer?.id || null;
-    const searchParams = new URLSearchParams(window.location.search);
-    const requestedView = searchParams.get("view");
-    if (requestedView === "recipe-config" && searchParams.get("recipeId")) {
-      navigate("recipe-config", { recipeId: searchParams.get("recipeId") || undefined });
-    }
-    if (requestedView === "order-tracking" && searchParams.get("orderId")) {
-      navigate("order-tracking", { orderId: searchParams.get("orderId") || undefined });
-    }
-    if (["catalog", "wholesale", "recipes", "orders", "account"].includes(requestedView || "")) {
-      navigate(requestedView as "catalog" | "wholesale" | "recipes" | "orders" | "account");
-    }
+    const applyLocation = () => {
+      const destination = storefrontDestination(new URLSearchParams(window.location.search));
+      navigate(destination.view, destination.params);
+    };
+    applyLocation();
+    setMounted(true);
+    window.addEventListener("popstate", applyLocation);
     fetch("/api/auth/customer/session", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error(`Session HTTP ${response.status}`);
@@ -67,7 +63,16 @@ export default function Page() {
         state.mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
       })
       .catch(() => undefined);
+    return () => window.removeEventListener("popstate", applyLocation);
   }, [navigate]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (view === "home" && !new URLSearchParams(window.location.search).has("view")) return;
+    const nextUrl = storefrontUrl(view, params);
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (currentUrl !== nextUrl) window.history.replaceState(window.history.state, "", nextUrl);
+  }, [mounted, params, view]);
 
   // Avoid hydration mismatch: render a stable shell on first paint
   if (!mounted) {
@@ -106,6 +111,64 @@ export default function Page() {
       </div>
     </div>
   );
+}
+
+const ROUTABLE_VIEWS = new Set<ViewId>(["home", "catalog", "wholesale", "product", "recipes", "recipe-config", "cart", "checkout", "order-confirmation", "orders", "order-tracking", "account", "info"]);
+
+function storefrontDestination(searchParams: URLSearchParams): { view: ViewId; params: ViewParams } {
+  const requestedView = searchParams.get("view") as ViewId | null;
+  const view = requestedView && ROUTABLE_VIEWS.has(requestedView) ? requestedView : "home";
+  const params: ViewParams = {};
+
+  if (view === "product") {
+    const productId = searchParams.get("productId");
+    return productId ? { view, params: { productId } } : { view: "catalog", params: {} };
+  }
+  if (view === "recipe-config") {
+    const recipeId = searchParams.get("recipeId");
+    return recipeId ? { view, params: { recipeId } } : { view: "recipes", params: {} };
+  }
+  if (view === "order-tracking") {
+    const orderId = searchParams.get("orderId");
+    return orderId ? { view, params: { orderId } } : { view: "orders", params: {} };
+  }
+  if (view === "catalog") {
+    params.category = searchParams.get("category") || undefined;
+    params.query = searchParams.get("query") || undefined;
+  }
+  if (view === "recipes") {
+    const recipeMode = searchParams.get("recipeMode");
+    params.recipeMode = recipeMode === "library" ? "library" : recipeMode === "recipes" ? "recipes" : undefined;
+    params.query = searchParams.get("query") || undefined;
+  }
+  if (view === "account") {
+    const accountSection = searchParams.get("accountSection");
+    if (["profile", "addresses", "saved", "settings"].includes(accountSection || "")) params.accountSection = accountSection as ViewParams["accountSection"];
+    const returnView = searchParams.get("returnView") as ViewId | null;
+    if (returnView && ROUTABLE_VIEWS.has(returnView)) params.returnView = returnView;
+  }
+  if (view === "info") {
+    const infoPage = searchParams.get("infoPage");
+    if (["about", "help", "contact", "cgv", "privacy", "cookies", "delivery"].includes(infoPage || "")) params.infoPage = infoPage as ViewParams["infoPage"];
+  }
+
+  return { view, params };
+}
+
+function storefrontUrl(view: ViewId, params: ViewParams) {
+  if (view === "home") return "/";
+  const searchParams = new URLSearchParams({ view });
+  const append = (key: string, value: string | undefined) => { if (value) searchParams.set(key, value); };
+  append("productId", params.productId);
+  append("recipeId", params.recipeId);
+  append("orderId", params.orderId);
+  append("category", params.category);
+  append("query", params.query);
+  append("recipeMode", params.recipeMode);
+  append("accountSection", params.accountSection);
+  append("returnView", params.returnView);
+  append("infoPage", params.infoPage);
+  return `/?${searchParams.toString()}`;
 }
 
 function renderView(view: string) {
