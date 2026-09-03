@@ -271,7 +271,7 @@ export function AdminView({
 
         <div className="border-t border-white/8 p-3">
           <div className="mb-2 flex items-center gap-3 rounded-md bg-white/[0.045] px-3 py-2.5">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-forest text-xs font-black text-white">{(adminEmail || "J").slice(0, 1).toUpperCase()}</span>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy text-xs font-black text-white">{(adminEmail || "J").slice(0, 1).toUpperCase()}</span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[11px] font-bold text-white">{adminEmail || (isFr ? "Session professionnelle" : "Professional session")}</p>
               <p className="mt-0.5 truncate text-[9px] uppercase text-white/62">{adminRole ? adminRole.replaceAll("_", " ") : (isFr ? "Exploitation" : "Operations")}</p>
@@ -300,7 +300,7 @@ export function AdminView({
         </div>
       </aside>
 
-      {sidebarOpen ? <button type="button" className="fixed inset-0 z-40 bg-forest-dark/45 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} aria-label={isFr ? "Fermer la navigation" : "Close navigation"} /> : null}
+      {sidebarOpen ? <button type="button" className="fixed inset-0 z-40 bg-burgundy-dark/45 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} aria-label={isFr ? "Fermer la navigation" : "Close navigation"} /> : null}
 
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
         <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/94 px-4 backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
@@ -311,7 +311,7 @@ export function AdminView({
             <h1 ref={sectionTitleRef} tabIndex={-1} className="truncate text-sm font-black text-charcoal outline-none">{isFr ? current.labelFr : current.labelEn}</h1>
             <p className="hidden truncate text-[9px] text-muted-foreground lg:block">{isFr ? current.purposeFr : current.purposeEn}</p>
           </div>
-          <Badge variant="outline" className="ml-3 h-8 shrink-0 border-forest/25 bg-white/70 px-2 text-[9px] font-bold text-forest sm:px-3"><ShieldCheck className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>
+          <Badge variant="outline" className="ml-3 h-8 shrink-0 border-burgundy/25 bg-white/70 px-2 text-[9px] font-bold text-burgundy sm:px-3"><ShieldCheck className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>
         </header>
 
         <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[100rem] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">

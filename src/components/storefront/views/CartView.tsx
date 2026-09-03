@@ -185,12 +185,12 @@ export function CartView() {
             const recipeName = key.split("::")[1] || "Recette";
             const groupTotal = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
             return (
-              <section key={key} className="border-y border-forest/25 bg-forest/[0.035] px-3 py-3">
+              <section key={key} className="border-y border-burgundy/25 bg-burgundy/[0.035] px-3 py-3">
                 <div className="mb-2 flex items-center gap-2">
-                  <Badge className="bg-forest text-cream border-0">{t.cart.recipeGroup.replace("{name}", recipeName)}</Badge>
-                  <span className="ml-auto text-sm font-bold text-forest">{formatPrice(groupTotal, locale)}</span>
+                  <Badge className="bg-burgundy text-cream border-0">{t.cart.recipeGroup.replace("{name}", recipeName)}</Badge>
+                  <span className="ml-auto text-sm font-bold text-burgundy">{formatPrice(groupTotal, locale)}</span>
                 </div>
-                <div className="divide-y divide-forest/12">
+                <div className="divide-y divide-burgundy/12">
                   {items.map((c) => <CartLine key={c.id} c={c} locale={locale} onQty={(q) => updateQty(c.id, q)} onRemove={() => removeLine(c.id)} />)}
                 </div>
               </section>
@@ -222,7 +222,7 @@ export function CartView() {
                 </div>
                 <Button size="sm" variant="outline" onClick={applyCoupon} className="border-terre/30 text-terre hover:bg-terre/5 hover:text-terre">{t.cart.applyCoupon}</Button>
               </div>
-              {couponApplied && <div className="flex min-h-8 items-center justify-between gap-2 text-xs text-forest"><p><Check className="mr-1 inline h-3 w-3" />{couponApplied.code} {couponApplied.freeShipping ? (locale === "fr" ? "· livraison offerte" : "· free delivery") : `(-${formatPrice(couponApplied.discount, locale)})`}</p><button type="button" onClick={removeCoupon} aria-label={locale === "fr" ? "Retirer le code promotionnel" : "Remove promo code"} title={locale === "fr" ? "Retirer" : "Remove"} className="grid h-7 w-7 shrink-0 place-items-center rounded-md hover:bg-muted"><X className="h-3.5 w-3.5" /></button></div>}
+              {couponApplied && <div className="flex min-h-8 items-center justify-between gap-2 text-xs text-burgundy"><p><Check className="mr-1 inline h-3 w-3" />{couponApplied.code} {couponApplied.freeShipping ? (locale === "fr" ? "· livraison offerte" : "· free delivery") : `(-${formatPrice(couponApplied.discount, locale)})`}</p><button type="button" onClick={removeCoupon} aria-label={locale === "fr" ? "Retirer le code promotionnel" : "Remove promo code"} title={locale === "fr" ? "Retirer" : "Remove"} className="grid h-7 w-7 shrink-0 place-items-center rounded-md hover:bg-muted"><X className="h-3.5 w-3.5" /></button></div>}
               {couponError && <p className="text-xs text-destructive">{couponError}</p>}
             </div>
 
@@ -233,7 +233,7 @@ export function CartView() {
 
             <div className="space-y-1.5 pt-3 text-sm">
               <Row label={t.cart.subtotal} value={formatPrice(subtotal, locale)} />
-              {promoDiscount > 0 && <Row label={t.cart.promo} value={`-${formatPrice(promoDiscount, locale)}`} className="text-forest" />}
+              {promoDiscount > 0 && <Row label={t.cart.promo} value={`-${formatPrice(promoDiscount, locale)}`} className="text-burgundy" />}
               <Row label={t.cart.totalWeight} value={formatWeight(weight, locale)} />
               <Row label={t.cart.vat} value={formatPrice(vat, locale)} className="text-muted-foreground" />
               <Row label={t.cart.shipping} value={shipLoading ? t.loading : shipFee === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipFee, locale)} />
@@ -270,7 +270,7 @@ function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string;
       <ProductImage src={c.imageUrl} alt={localizedName} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="row-span-2 h-14 w-14 shrink-0 sm:row-auto" rounded="rounded-md" />
       <div className="min-w-0 sm:flex-1">
         <p className="truncate text-sm font-bold text-charcoal">{localizedName}</p>
-        <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground">{c.salesChannel === "wholesale" ? <span className="inline-flex shrink-0 items-center gap-0.5 font-bold text-forest"><Boxes className="h-3 w-3" />{locale === "fr" ? "Gros" : "Wholesale"}</span> : null}<span className="truncate">{c.unitLabel}</span><span aria-hidden="true">·</span><span className={`inline-flex shrink-0 items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>
+        <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground">{c.salesChannel === "wholesale" ? <span className="inline-flex shrink-0 items-center gap-0.5 font-bold text-burgundy"><Boxes className="h-3 w-3" />{locale === "fr" ? "Gros" : "Wholesale"}</span> : null}<span className="truncate">{c.unitLabel}</span><span aria-hidden="true">·</span><span className={`inline-flex shrink-0 items-center rounded border px-1 text-[9px] ${thermalColor(c.thermalClass)}`}>{thermalLabel(c.thermalClass, locale as any)}</span></p>
       </div>
       <div className="col-start-2 row-start-2 inline-flex w-fit items-center rounded-full border border-border sm:col-auto sm:row-auto">
         <button type="button" onClick={() => onQty(c.qty - 1)} disabled={c.salesChannel === "wholesale" && c.qty <= (c.minimumQty || 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted disabled:cursor-not-allowed disabled:opacity-35" aria-label={locale === "fr" ? `Diminuer la quantité de ${localizedName}` : `Decrease ${localizedName} quantity`}><span className="text-xs">−</span></button>

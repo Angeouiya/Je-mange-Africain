@@ -91,14 +91,14 @@ export default function PasswordResetPage() {
               </div>
             ) : status === "success" ? (
               <div className="mt-7 space-y-4">
-                <div className="flex gap-3 rounded-lg border border-forest/25 bg-forest/5 p-4 text-sm leading-6 text-forest" role="status"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" /><p>{message}</p></div>
+                <div className="flex gap-3 rounded-lg border border-burgundy/25 bg-burgundy/5 p-4 text-sm leading-6 text-burgundy" role="status"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" /><p>{message}</p></div>
                 <Button asChild className="h-11 w-full bg-terre text-cream hover:bg-terre-dark"><a href="/?view=account">{isFr ? "Se connecter" : "Sign in"}</a></Button>
               </div>
             ) : (
               <form onSubmit={submit} className="mt-7 space-y-4">
                 <ResetPasswordInput id="new-password" label={isFr ? "Nouveau mot de passe" : "New password"} value={password} onChange={setPassword} locale={locale} />
                 <ResetPasswordInput id="confirm-password" label={isFr ? "Confirmer le mot de passe" : "Confirm password"} value={confirmation} onChange={setConfirmation} locale={locale} />
-                {confirmation ? <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-forest" : "text-destructive"}`}>{passwordsMatch ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}{passwordsMatch ? (isFr ? "Les mots de passe correspondent." : "Passwords match.") : (isFr ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
+                {confirmation ? <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-burgundy" : "text-destructive"}`}>{passwordsMatch ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}{passwordsMatch ? (isFr ? "Les mots de passe correspondent." : "Passwords match.") : (isFr ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
                 {status === "error" ? <p role="alert" className="rounded-md border border-destructive/25 bg-destructive/[0.06] p-3 text-sm leading-6 text-destructive">{message}</p> : null}
                 <Button type="submit" disabled={status === "busy" || !passwordsReady} className="h-11 w-full bg-terre text-cream hover:bg-terre-dark">{status === "busy" ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />{isFr ? "Modification…" : "Updating…"}</> : (isFr ? "Modifier le mot de passe" : "Update password")}</Button>
               </form>

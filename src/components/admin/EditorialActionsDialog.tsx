@@ -98,7 +98,7 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
             </div>
           </div>
           {error ? <p role="alert" className="mx-5 border-y border-destructive/25 bg-destructive/[0.06] px-3 py-2 text-xs leading-5 text-destructive sm:mx-6">{error}</p> : null}
-          <DialogFooter className="border-t border-border px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="button" onClick={() => void save()} disabled={saving || !draft.imageUrl} className="bg-forest text-white hover:bg-forest-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer" : "Save"}</Button></DialogFooter>
+          <DialogFooter className="border-t border-border px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="button" onClick={() => void save()} disabled={saving || !draft.imageUrl} className="bg-burgundy text-white hover:bg-burgundy-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer" : "Save"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

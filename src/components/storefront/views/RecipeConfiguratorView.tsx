@@ -356,7 +356,7 @@ export function RecipeConfiguratorView() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.config.formula}</p>
               <div className="flex gap-1">
                 {([["economy", t.config.economy], ["standard", t.config.standard], ["premium", t.config.premium]] as const).map(([v, label]) => (
-                  <button type="button" key={v} onClick={() => setFormula(v)} aria-pressed={formula === v} className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition ${formula === v ? "bg-forest text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
+                  <button type="button" key={v} onClick={() => setFormula(v)} aria-pressed={formula === v} className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition ${formula === v ? "bg-burgundy text-cream" : "bg-muted text-charcoal hover:bg-muted/70"}`}>
                     {label}
                   </button>
                 ))}
@@ -424,7 +424,7 @@ export function RecipeConfiguratorView() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">{t.config.costPerPerson}</p>
-                  <p className="text-2xl font-extrabold text-forest">{formatPrice(calc.costPerPerson, locale)}</p>
+                  <p className="text-2xl font-extrabold text-burgundy">{formatPrice(calc.costPerPerson, locale)}</p>
                   <p className="text-[10px] text-muted-foreground">{servings} {t.config.peopleUnit}</p>
                 </div>
                 <div>
@@ -449,7 +449,7 @@ export function RecipeConfiguratorView() {
                 </div>
               )}
               {calc.leftoverCount > 0 && (
-                <div className="mt-2 flex items-start gap-2 rounded-md border border-forest/20 bg-forest/[0.06] p-2 text-xs text-forest">
+                <div className="mt-2 flex items-start gap-2 rounded-md border border-burgundy/20 bg-burgundy/[0.06] p-2 text-xs text-burgundy">
                   <Package className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>{locale === "fr" ? `${calc.leftoverCount} produit(s) génèrent un reste réutilisable.` : `${calc.leftoverCount} product(s) yield reusable leftovers.`}</span>
                 </div>
@@ -463,7 +463,7 @@ export function RecipeConfiguratorView() {
                   <Bookmark className={`h-5 w-5 ${isSaved ? "fill-terre text-terre" : "text-charcoal"}`} />
                 </Button>
                 <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => void shareRecipe(recipe.title, recipe.id).then(() => { setShared(true); window.setTimeout(() => setShared(false), 1800); }).catch(() => undefined)} aria-label={t.config.shareRecipe}>
-                  {shared ? <Check className="h-5 w-5 text-forest" /> : <Share2 className="h-5 w-5" />}
+                  {shared ? <Check className="h-5 w-5 text-burgundy" /> : <Share2 className="h-5 w-5" />}
                 </Button>
               </div>
             </motion.div>
@@ -487,9 +487,9 @@ export function RecipeConfiguratorView() {
                         aria-label={locale === "fr" ? `${completedStepCount} étapes terminées sur ${preparationSteps.length}` : `${completedStepCount} of ${preparationSteps.length} steps completed`}
                         className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
                       >
-                        <div className="h-full rounded-full bg-forest transition-all" style={{ width: `${preparationSteps.length ? (completedStepCount / preparationSteps.length) * 100 : 0}%` }} />
+                        <div className="h-full rounded-full bg-burgundy transition-all" style={{ width: `${preparationSteps.length ? (completedStepCount / preparationSteps.length) * 100 : 0}%` }} />
                       </div>
-                      <span className="text-xs font-bold text-forest">{completedStepCount}/{preparationSteps.length}</span>
+                      <span className="text-xs font-bold text-burgundy">{completedStepCount}/{preparationSteps.length}</span>
                       {completedStepCount > 0 ? <button type="button" onClick={() => setCompletedSteps([])} className="inline-flex min-h-7 items-center px-1 text-xs font-semibold text-terre hover:underline">{locale === "fr" ? "Recommencer" : "Restart"}</button> : null}
                     </div>
                     {preparationAdjustments.length > 0 ? (
@@ -510,7 +510,7 @@ export function RecipeConfiguratorView() {
                       {preparationSteps.map((s: string, i: number) => (
                         <li key={i} className="py-1">
                           <button type="button" onClick={() => toggleStep(i)} aria-pressed={completedSteps.includes(i)} aria-label={locale === "fr" ? `Étape ${i + 1} : ${s}` : `Step ${i + 1}: ${s}`} className="flex w-full gap-3 px-1 py-3 text-left text-sm text-charcoal transition hover:bg-muted/40">
-                            <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${completedSteps.includes(i) ? "bg-forest text-white" : "bg-terre text-cream"}`}>
+                            <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${completedSteps.includes(i) ? "bg-burgundy text-white" : "bg-terre text-cream"}`}>
                               {completedSteps.includes(i) ? <Check className="h-4 w-4" /> : i + 1}
                             </span>
                             <span className={`pt-1 leading-relaxed ${completedSteps.includes(i) ? "text-muted-foreground line-through" : ""}`}>{s}</span>
@@ -567,7 +567,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
   const t = dict[locale as "fr" | "en"];
   const roleColor: Record<string, string> = {
     protein: "bg-destructive/10 text-destructive", base: "bg-gold/15 text-charcoal", aromatic: "bg-terre/10 text-terre",
-    spice: "bg-terre/10 text-terre", fat: "bg-gold/15 text-charcoal", side: "bg-forest/10 text-forest", optional: "bg-muted text-muted-foreground",
+    spice: "bg-terre/10 text-terre", fat: "bg-gold/15 text-charcoal", side: "bg-burgundy/10 text-burgundy", optional: "bg-muted text-muted-foreground",
   };
   const roleLabel: Record<string, [string, string]> = {
     protein: ["Protéine", "Protein"], base: ["Base", "Base"], aromatic: ["Aromate", "Aromatic"], spice: ["Épice", "Spice"], fat: ["Matière grasse", "Fat"], side: ["Accompagnement", "Side"], optional: ["Optionnel", "Optional"],
@@ -598,7 +598,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
           </div>
         </div>
         <div className="flex shrink-0 gap-1">
-          <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} aria-label={pantryActionLabel} title={pantryActionLabel} className={`grid h-9 w-9 place-items-center rounded-md border transition ${pantryRemoved ? "border-forest bg-forest text-white" : "border-border text-muted-foreground hover:border-forest hover:text-forest"}`}>
+          <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} aria-label={pantryActionLabel} title={pantryActionLabel} className={`grid h-9 w-9 place-items-center rounded-md border transition ${pantryRemoved ? "border-burgundy bg-burgundy text-white" : "border-border text-muted-foreground hover:border-burgundy hover:text-burgundy"}`}>
             <House className="h-4 w-4" />
           </button>
           {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} title={locale === "fr" ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette") : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe")} aria-label={locale === "fr" ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette") : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe")} className={`grid h-9 w-9 place-items-center rounded-md border transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-border text-muted-foreground hover:border-terre hover:text-terre"}`}>
@@ -655,7 +655,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
           </label>
           {!ing.removed ? <div>
             {ing.available ? (
-              <Badge variant="outline" className="h-10 w-full justify-center border-forest/40 bg-forest/5 text-forest"><Check className="mr-1 h-3 w-3" /> {t.config.inStockOk} · {ing.stockQty}</Badge>
+              <Badge variant="outline" className="h-10 w-full justify-center border-burgundy/40 bg-burgundy/5 text-burgundy"><Check className="mr-1 h-3 w-3" /> {t.config.inStockOk} · {ing.stockQty}</Badge>
             ) : ing.substituteName ? (
               <button type="button" onClick={() => onReplace(ing.substituteProductId)} className="flex h-10 w-full items-center justify-center rounded-md border border-gold/45 bg-gold/[0.09] px-2 text-[10px] font-bold text-charcoal"><RefreshCw className="mr-1 h-3 w-3 text-terre" /> {locale === "fr" ? `Utiliser ${ing.substituteName}` : `Use ${ing.substituteName}`}</button>
             ) : (
@@ -665,7 +665,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
         </div>
       </details>
 
-      {!ing.removed && ing.leftover > 0 ? <p className="text-[10px] text-forest">{t.config.leftover} : {formatQty(ing.leftover, ing.leftoverUnit || (ing.neededUnit === "L" ? "ml" : "g"), locale as any)} · {ing.packLabel}</p> : null}
+      {!ing.removed && ing.leftover > 0 ? <p className="text-[10px] text-burgundy">{t.config.leftover} : {formatQty(ing.leftover, ing.leftoverUnit || (ing.neededUnit === "L" ? "ml" : "g"), locale as any)} · {ing.packLabel}</p> : null}
     </div>
   );
 }

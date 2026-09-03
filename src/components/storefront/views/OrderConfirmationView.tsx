@@ -23,8 +23,8 @@ export function OrderConfirmationView() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 text-center">
-      <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, damping: 14 }} className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-full bg-forest/15">
-        <CheckCircle2 className="h-12 w-12 text-forest" />
+      <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, damping: 14 }} className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-full bg-burgundy/15">
+        <CheckCircle2 className="h-12 w-12 text-burgundy" />
       </motion.div>
       <h1 className="text-2xl font-extrabold text-charcoal md:text-3xl">{t.checkout.orderConfirmed}</h1>
       <p className="mt-1 text-muted-foreground">{t.checkout.thankYou}</p>

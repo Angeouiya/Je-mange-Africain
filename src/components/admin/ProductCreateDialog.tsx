@@ -256,9 +256,9 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
                 </div>
               </section>
 
-              <section className="overflow-hidden rounded-lg border border-forest/20 bg-forest/[0.035]">
-                <div className="flex items-center gap-3 border-b border-forest/15 px-4 py-3">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-forest text-white"><Boxes className="h-4 w-4" /></span>
+              <section className="overflow-hidden rounded-lg border border-burgundy/20 bg-burgundy/[0.035]">
+                <div className="flex items-center gap-3 border-b border-burgundy/15 px-4 py-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white"><Boxes className="h-4 w-4" /></span>
                   <div className="min-w-0 flex-1"><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Marché de gros" : "Wholesale market"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Publiez un conditionnement professionnel et des prix dégressifs protégés au paiement." : "Publish professional packaging and tiered prices protected at checkout."}</p></div>
                   <Switch
                     checked={draft.isWholesale}
@@ -335,9 +335,9 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
                   <EditorialFlag checked={draft.isBestseller} onChange={(isBestseller) => update("isBestseller", isBestseller)} label={locale === "fr" ? "Populaire" : "Popular"} />
                 </div>
               </section>
-              <section className="rounded-lg border border-forest/20 bg-forest/[0.04] p-4">
+              <section className="rounded-lg border border-burgundy/20 bg-burgundy/[0.04] p-4">
               <div className="flex items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-forest text-white"><Sparkles className="h-4 w-4" /></span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-burgundy text-white"><Sparkles className="h-4 w-4" /></span>
                 <div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Plats proposés" : "Suggested dishes"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les correspondances évoluent à mesure que la fiche est renseignée." : "Matches update as the product record is completed."}</p></div>
               </div>
 
@@ -348,7 +348,7 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
                 ) : null}
                 {recommendations.map((dish: any) => (
                   <div key={dish.slug} className="rounded-lg border border-border bg-white p-3">
-                    <div className="flex items-start gap-2"><BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{dish.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{dish.country} · {dish.categoryLabel} · {dish.timeMinutes} min</p></div>{dish.recommendationScore > 8 ? <Badge className="border-0 bg-forest/10 text-[9px] text-forest">{locale === "fr" ? "Fort" : "Strong"}</Badge> : null}</div>
+                    <div className="flex items-start gap-2"><BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{dish.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{dish.country} · {dish.categoryLabel} · {dish.timeMinutes} min</p></div>{dish.recommendationScore > 8 ? <Badge className="border-0 bg-burgundy/10 text-[9px] text-burgundy">{locale === "fr" ? "Fort" : "Strong"}</Badge> : null}</div>
                   </div>
                 ))}
               </div>

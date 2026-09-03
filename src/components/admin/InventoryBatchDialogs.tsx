@@ -88,7 +88,7 @@ function statusLabel(status: InventoryBatch["status"], locale: "fr" | "en") {
 
 export function BatchStatusBadge({ status, locale }: { status: InventoryBatch["status"]; locale: "fr" | "en" }) {
   const tone = status === "active"
-    ? "border-forest/25 bg-forest/[0.05] text-forest"
+    ? "border-burgundy/25 bg-burgundy/[0.05] text-burgundy"
     : status === "blocked"
       ? "border-gold/45 bg-gold/10 text-charcoal"
       : status === "recalled"
@@ -185,7 +185,7 @@ export function BatchReceiptDialog({
                 </Field>
               </div>
               {!compatibleWarehouses.length ? <p role="alert" className="mt-3 rounded-md border border-gold/35 bg-gold/[0.08] px-3 py-2 text-xs text-charcoal">{isFr ? "Aucun entrepôt ne dispose de la zone thermique requise pour ce produit." : "No warehouse has the thermal zone required for this product."}</p> : null}
-              {product ? <div className="mt-3 flex items-center gap-3 border-y border-charcoal/8 py-3"><ProductImage src={product.imageUrl} alt={product.name} emoji="" color={product.imageColor} size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-charcoal">{product.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{product.sku} · {thermalLabel(product.thermalClass, locale)} · {product.stockQty} {isFr ? "unités actuelles" : "current units"}</p></div><span className="grid h-9 w-9 place-items-center rounded-md bg-forest/10 text-forest"><Warehouse className="h-4 w-4" /></span></div> : null}
+              {product ? <div className="mt-3 flex items-center gap-3 border-y border-charcoal/8 py-3"><ProductImage src={product.imageUrl} alt={product.name} emoji="" color={product.imageColor} size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-charcoal">{product.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{product.sku} · {thermalLabel(product.thermalClass, locale)} · {product.stockQty} {isFr ? "unités actuelles" : "current units"}</p></div><span className="grid h-9 w-9 place-items-center rounded-md bg-burgundy/10 text-burgundy"><Warehouse className="h-4 w-4" /></span></div> : null}
             </section>
 
             <section aria-labelledby="receipt-trace-title">
@@ -326,7 +326,7 @@ export function BatchControlDialog({ batch, locale, canUpdate, onUpdated }: { ba
             </section>
           ) : <div className="flex gap-3 rounded-lg border border-gold/30 bg-gold/[0.08] p-4 text-xs leading-5 text-charcoal"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" /><p>{isFr ? "Votre rôle permet la consultation, mais pas la modification du stock." : "Your role allows viewing, but not stock changes."}</p></div>}
 
-          {message ? <p role="status" className="flex items-center gap-2 rounded-md border border-forest/20 bg-forest/[0.05] px-3 py-2 text-xs font-semibold text-forest"><CheckCircle2 className="h-4 w-4 shrink-0" />{message}</p> : null}
+          {message ? <p role="status" className="flex items-center gap-2 rounded-md border border-burgundy/20 bg-burgundy/[0.05] px-3 py-2 text-xs font-semibold text-burgundy"><CheckCircle2 className="h-4 w-4 shrink-0" />{message}</p> : null}
           {error ? <p role="alert" className="rounded-md border border-destructive/25 bg-destructive/[0.06] px-3 py-2 text-xs text-destructive">{error}</p> : null}
         </div>
       </DialogContent>

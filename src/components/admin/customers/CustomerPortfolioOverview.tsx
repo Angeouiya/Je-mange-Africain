@@ -14,11 +14,11 @@ export function CustomerPortfolioOverview({ summary, locale }: { summary: AdminC
   const metrics = [
     { icon: UsersRound, label: isFr ? "Profils clients" : "Customer profiles", value: formatNumber(summary.total, locale), detail: `${summary.markets} ${isFr ? "marchés servis" : "markets served"}`, iconClass: "bg-terre text-white" },
     { icon: ArrowUpRight, label: isFr ? "Valeur du portefeuille" : "Portfolio value", value: formatPrice(summary.lifetimeValue, locale), detail: `${formatPrice(summary.averageCustomerValue, locale)} ${isFr ? "par profil" : "per profile"}`, iconClass: "bg-gold text-charcoal" },
-    { icon: ShoppingBag, label: isFr ? "Taux de réachat" : "Repeat purchase rate", value: `${formatNumber(summary.repeatRate, locale, 1)} %`, detail: `${summary.repeatCustomers} ${isFr ? "clients récurrents" : "repeat customers"}`, iconClass: "bg-forest text-white" },
+    { icon: ShoppingBag, label: isFr ? "Taux de réachat" : "Repeat purchase rate", value: `${formatNumber(summary.repeatRate, locale, 1)} %`, detail: `${summary.repeatCustomers} ${isFr ? "clients récurrents" : "repeat customers"}`, iconClass: "bg-burgundy text-white" },
     { icon: CircleAlert, label: isFr ? "Relations à piloter" : "Relationships to steer", value: formatNumber(summary.actionable, locale), detail: isFr ? `${summary.openTickets} demande${summary.openTickets === 1 ? "" : "s"} ouverte${summary.openTickets === 1 ? "" : "s"}` : `${summary.openTickets} open request${summary.openTickets === 1 ? "" : "s"}`, iconClass: "bg-terre/[0.08] text-terre" },
   ];
   const segmentEntries = (Object.entries(summary.segments) as Array<[AdminCustomer["segment"], number]>).filter(([, count]) => count > 0);
-  const segmentColors: Record<AdminCustomer["segment"], string> = { ambassador: "bg-gold", active: "bg-forest", at_risk: "bg-destructive", new: "bg-terre/35" };
+  const segmentColors: Record<AdminCustomer["segment"], string> = { ambassador: "bg-gold", active: "bg-burgundy", at_risk: "bg-destructive", new: "bg-terre/35" };
 
   return (
     <>

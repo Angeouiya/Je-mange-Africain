@@ -42,7 +42,7 @@
   /* Brand tokens */
   --color-terre: var(--terre);
   --color-gold: var(--gold);
-  --color-forest: var(--forest);
+  --color-burgundy: var(--burgundy);
   --color-charcoal: var(--charcoal);
   --color-cream: var(--cream);
   --radius-sm: calc(var(--radius) - 4px);
@@ -57,8 +57,8 @@
   --terre: #B9472B;
   --terre-dark: #A73E22;
   --gold: #F2A900;
-  --forest: #8A3042;
-  --forest-dark: #5A2632;
+  --burgundy: #8A3042;
+  --burgundy-dark: #5A2632;
   --charcoal: #3F2930;
   --cream: #FFF9F2;
   --mist: #F8F4F3;
@@ -196,12 +196,12 @@
 /* Brand helpers */
 .bg-terre { background-color: var(--terre); }
 .bg-gold { background-color: var(--gold); }
-.bg-forest { background-color: var(--forest); }
+.bg-burgundy { background-color: var(--burgundy); }
 .bg-charcoal { background-color: var(--charcoal); }
 .bg-cream { background-color: var(--cream); }
 .text-terre { color: var(--terre); }
 .text-gold { color: var(--gold); }
-.text-forest { color: var(--forest); }
+.text-burgundy { color: var(--burgundy); }
 .text-charcoal { color: var(--charcoal); }
 .text-cream { color: var(--cream); }
 .border-terre { border-color: var(--terre); }

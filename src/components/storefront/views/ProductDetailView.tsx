@@ -177,7 +177,7 @@ export function ProductDetailView() {
               <Snowflake className="mr-1 h-3 w-3" /> {thermalLabel(product.thermalClass, locale)}
             </span>
             {discountPercent > 0 && <Badge className="bg-destructive text-white border-0">-{discountPercent}%</Badge>}
-            {product.isBestseller && <Badge className="bg-forest text-cream border-0">{t.bestseller}</Badge>}
+            {product.isBestseller && <Badge className="bg-burgundy text-cream border-0">{t.bestseller}</Badge>}
             {product.isNew && <Badge className="bg-gold text-charcoal border-0">{t.new}</Badge>}
             {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0">{t.promo}</Badge>}
           </div>
@@ -194,7 +194,7 @@ export function ProductDetailView() {
             {activePricePerKg && <span className="min-w-0 break-words pb-1 text-xs text-muted-foreground">≈ {formatUnitPrice(Number(activePricePerKg), locale)}{t.perKg}</span>}
           </div>
           {saving > 0 && (
-            <p className="w-fit rounded-md bg-forest/10 px-3 py-1 text-xs font-semibold text-forest">
+            <p className="w-fit rounded-md bg-burgundy/10 px-3 py-1 text-xs font-semibold text-burgundy">
               {locale === "fr" ? "Économie immédiate" : "Instant saving"} : {formatPrice(saving, locale)}
             </p>
           )}
@@ -203,7 +203,7 @@ export function ProductDetailView() {
           <div className="flex items-center gap-2 text-sm" aria-live="polite">
             {outOfStock ? <span className="font-medium text-destructive">{t.outOfStock}</span>
               : lowStock ? <span className="font-medium text-gold">{t.lowStock} · {product.stockQty} {locale === "fr" ? "en stock" : "in stock"}</span>
-              : <span className="font-medium text-forest">{t.inStock}</span>}
+              : <span className="font-medium text-burgundy">{t.inStock}</span>}
           </div>
 
           {/* aliases */}
@@ -237,7 +237,7 @@ export function ProductDetailView() {
               <Truck className="h-4 w-4 text-terre" /> {locale === "fr" ? "Livraison suivie" : "Tracked delivery"}
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1 text-[11px] leading-tight text-muted-foreground">
-              <Snowflake className="h-4 w-4 text-forest" /> {locale === "fr" ? "Chaîne du froid" : "Cold chain"}
+              <Snowflake className="h-4 w-4 text-burgundy" /> {locale === "fr" ? "Chaîne du froid" : "Cold chain"}
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1 text-[11px] leading-tight text-muted-foreground">
               <ShieldCheck className="h-4 w-4 text-gold" /> {locale === "fr" ? "Traçabilité" : "Traceability"}

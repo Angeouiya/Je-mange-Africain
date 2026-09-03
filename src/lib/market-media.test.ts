@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
+import { BRAND_ACCENT_COLORS, BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
 import { getBrandAccentColor, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 
 describe("market media", () => {
@@ -41,6 +41,18 @@ describe("market media", () => {
     expect(getBrandAccentColor("#F7F4F3")).toBe("#F7F4F3");
     expect(getBrandAccentColor("#000000")).toBe("#3F2930");
     expect(getBrandAccentColor("green")).toBe("#8A3042");
+  });
+
+  it("keeps every managed accent outside the green and cool-blue spectrum", () => {
+    for (const color of BRAND_ACCENT_COLORS) {
+      const value = Number.parseInt(color.slice(1), 16);
+      const red = (value >> 16) & 255;
+      const green = (value >> 8) & 255;
+      const blue = value & 255;
+
+      expect(green > red * 1.08 && green > blue * 1.08, color).toBe(false);
+      expect(blue > red * 1.08 && blue > green * 1.05, color).toBe(false);
+    }
   });
 
   it("pairs light logo accents with accessible foreground colors", () => {

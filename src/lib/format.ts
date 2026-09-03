@@ -86,7 +86,7 @@ export function normalize(s: string): string {
 /** Classify thermal class color for badges */
 export function thermalColor(thermal: string): string {
   switch (thermal) {
-    case "FROZEN": return "bg-forest/10 text-forest border-forest/25";
+    case "FROZEN": return "bg-burgundy/10 text-burgundy border-burgundy/25";
     case "REFRIGERATED": return "bg-terre/10 text-terre border-terre/25";
     default: return "bg-gold/15 text-charcoal border-gold/35";
   }
@@ -104,7 +104,7 @@ export function thermalLabel(thermal: string, locale: Locale = "fr"): string {
 
 /** Status color for order state */
 export function orderStatusColor(status: string): string {
-  if (["delivered"].includes(status)) return "bg-forest/10 text-forest border-forest/25";
+  if (["delivered"].includes(status)) return "bg-burgundy/10 text-burgundy border-burgundy/25";
   if (["cancelled", "failed", "refunded"].includes(status)) return "bg-destructive/10 text-destructive border-destructive/30";
   if (["shipped", "in_transit", "delivering", "packed", "controlDone"].includes(status))
     return "bg-terre/10 text-terre border-terre/25";

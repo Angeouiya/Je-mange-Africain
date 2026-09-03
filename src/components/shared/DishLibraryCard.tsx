@@ -61,7 +61,7 @@ export function DishLibraryCard({ dish, onSelect, compact = false, index = 0 }: 
           <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> {dish.servings}</span>
           <span className={`${compact ? "hidden sm:inline-flex" : "inline-flex"} items-center gap-1`}><Flame className="h-3 w-3" /> {difficulty}</span>
         </div>
-        <Button onClick={() => onSelect(dish)} variant="outline" aria-label={locale === "fr" ? `Voir la fiche complète de ${dish.name}` : `View the full record for ${dish.name}`} className={`${compact ? "mt-2 h-8 px-2 text-[10px]" : "mt-4"} w-full border-forest text-forest hover:bg-forest hover:text-white`}>
+        <Button onClick={() => onSelect(dish)} variant="outline" aria-label={locale === "fr" ? `Voir la fiche complète de ${dish.name}` : `View the full record for ${dish.name}`} className={`${compact ? "mt-2 h-8 px-2 text-[10px]" : "mt-4"} w-full border-burgundy text-burgundy hover:bg-burgundy hover:text-white`}>
           <BookOpen className={`${compact ? "mr-1 h-3.5 w-3.5" : "mr-2 h-4 w-4"}`} /> {compact ? (locale === "fr" ? "Voir la fiche" : "View record") : (locale === "fr" ? "Voir la fiche complète" : "View full dish")}
         </Button>
       </div>
@@ -122,7 +122,7 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
                 <ol className="mt-3 space-y-3">
                   {dish.steps.map((step, index) => (
                     <li key={index} className="flex gap-3">
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-forest text-xs font-bold text-white">{index + 1}</span>
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-burgundy text-xs font-bold text-white">{index + 1}</span>
                       <p className="pt-0.5 text-sm leading-6 text-charcoal">{step}</p>
                     </li>
                   ))}
@@ -130,8 +130,8 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
               </section>
             </div>
 
-            <div className="rounded-lg bg-forest/5 p-4">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-forest">{locale === "fr" ? "Conseil de service" : "Serving note"}</p>
+            <div className="rounded-lg bg-burgundy/5 p-4">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-burgundy">{locale === "fr" ? "Conseil de service" : "Serving note"}</p>
               <p className="mt-1 text-sm leading-6 text-charcoal">{dish.service}</p>
             </div>
 

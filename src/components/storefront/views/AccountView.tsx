@@ -181,7 +181,7 @@ export function AccountView() {
               <div><Label htmlFor="register-phone" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Numéro de téléphone" : "Phone number"}</Label><Input id="register-phone" type="tel" autoComplete="tel" value={registration.phone} onChange={(event) => setRegistration({ ...registration, phone: event.target.value })} placeholder={locale === "fr" ? "+33 6 00 00 00 00" : "+44 7 0000 0000"} className="h-11" required /></div>
               <PasswordInput id="register-password" label={locale === "fr" ? "Mot de passe (8 caractères minimum)" : "Password (8 characters minimum)"} autoComplete="new-password" value={registration.password} onChange={(value) => setRegistration({ ...registration, password: value })} locale={locale} />
               <PasswordInput id="register-confirm-password" label={locale === "fr" ? "Confirmer le mot de passe" : "Confirm password"} autoComplete="new-password" value={registration.confirmPassword} onChange={(value) => setRegistration({ ...registration, confirmPassword: value })} locale={locale} />
-              {registration.confirmPassword ? <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-forest" : "text-destructive"}`}>{passwordsMatch ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}{passwordsMatch ? (locale === "fr" ? "Les mots de passe correspondent." : "Passwords match.") : (locale === "fr" ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
+              {registration.confirmPassword ? <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-burgundy" : "text-destructive"}`}>{passwordsMatch ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}{passwordsMatch ? (locale === "fr" ? "Les mots de passe correspondent." : "Passwords match.") : (locale === "fr" ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
               <div className="space-y-3 rounded-lg border border-border bg-muted/35 p-3">
                 <p className="text-[11px] font-bold text-charcoal">{locale === "fr" ? "Accords obligatoires" : "Required agreements"}</p>
                 <LegalCheckbox
@@ -265,7 +265,7 @@ function PasswordInput({ id, label, autoComplete, value, onChange, locale }: { i
 function AuthMessage({ status, message, successIcon = false }: { status: "idle" | "busy" | "error" | "success"; message: string; successIcon?: boolean }) {
   if (!message || status === "idle" || status === "busy") return null;
   const success = status === "success";
-  return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-md border p-3 text-xs leading-relaxed ${success ? "border-forest/25 bg-forest/5 text-forest" : "border-destructive/25 bg-destructive/[0.06] text-destructive"}`}>{success && successIcon ? <MailCheck className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
+  return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-md border p-3 text-xs leading-relaxed ${success ? "border-burgundy/25 bg-burgundy/5 text-burgundy" : "border-destructive/25 bg-destructive/[0.06] text-destructive"}`}>{success && successIcon ? <MailCheck className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
 }
 
 function resolveAuthError(error: unknown, locale: "fr" | "en", fallbackFr: string, fallbackEn: string) {

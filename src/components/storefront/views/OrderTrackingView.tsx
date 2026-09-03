@@ -56,7 +56,7 @@ export function OrderTrackingView() {
 
       <section className="mb-5 grid gap-3 border-b border-border pb-5 sm:grid-cols-2" aria-label={locale === "fr" ? "Informations de livraison" : "Delivery information"}>
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-forest/10 text-forest"><CalendarDays className="h-4 w-4" /></span>
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-burgundy/10 text-burgundy"><CalendarDays className="h-4 w-4" /></span>
           <div className="min-w-0"><p className="text-[10px] font-bold uppercase text-muted-foreground">{t.orders.estimatedDelivery}</p><p className="truncate text-sm font-black text-charcoal">{estimatedDelivery ? formatDate(estimatedDelivery, locale) : (locale === "fr" ? "Estimation à venir" : "Estimate pending")}</p></div>
         </div>
         <div className="flex min-w-0 items-center gap-3">
@@ -68,7 +68,7 @@ export function OrderTrackingView() {
       {isInterrupted ? <div className="mb-5 flex gap-3 rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><p>{locale === "fr" ? "Cette commande n’est plus dans le parcours de livraison normal. Consultez le dernier événement ci-dessous pour connaître sa situation." : "This order is no longer in the standard delivery flow. Check the latest event below for its current situation."}</p></div> : null}
 
       <section className="mb-5 overflow-hidden rounded-lg border border-border bg-white px-3 py-4" aria-label={locale === "fr" ? "Progression de la livraison" : "Delivery progress"}>
-        <ol className="grid grid-cols-4">{deliveryStages.map((stage, index) => <li key={stage.fr} className="relative flex min-w-0 flex-col items-center text-center">{index > 0 ? <span className={`absolute right-1/2 top-4 h-0.5 w-full ${index <= stageIndex ? "bg-forest" : "bg-border"}`} /> : null}<span className={`relative z-10 grid h-8 w-8 place-items-center rounded-full ${index <= stageIndex ? "bg-forest text-white" : isInterrupted && index === 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}`}><stage.icon className="h-4 w-4" /></span><span className={`mt-2 truncate text-[9px] font-bold sm:text-[10px] ${index <= stageIndex ? "text-forest" : isInterrupted && index === 0 ? "text-destructive" : "text-muted-foreground"}`}>{locale === "fr" ? stage.fr : stage.en}</span></li>)}</ol>
+        <ol className="grid grid-cols-4">{deliveryStages.map((stage, index) => <li key={stage.fr} className="relative flex min-w-0 flex-col items-center text-center">{index > 0 ? <span className={`absolute right-1/2 top-4 h-0.5 w-full ${index <= stageIndex ? "bg-burgundy" : "bg-border"}`} /> : null}<span className={`relative z-10 grid h-8 w-8 place-items-center rounded-full ${index <= stageIndex ? "bg-burgundy text-white" : isInterrupted && index === 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}`}><stage.icon className="h-4 w-4" /></span><span className={`mt-2 truncate text-[9px] font-bold sm:text-[10px] ${index <= stageIndex ? "text-burgundy" : isInterrupted && index === 0 ? "text-destructive" : "text-muted-foreground"}`}>{locale === "fr" ? stage.fr : stage.en}</span></li>)}</ol>
       </section>
 
       <div className="grid items-start gap-5 md:grid-cols-2">
@@ -80,7 +80,7 @@ export function OrderTrackingView() {
               const isLast = i === order.timeline.length - 1;
               return (
                 <motion.li key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="relative">
-                  <span className={`absolute -left-[27px] grid h-5 w-5 place-items-center rounded-full ${isLast ? (isInterrupted ? "bg-destructive text-white" : "bg-forest text-cream") : "bg-muted text-muted-foreground"}`}>
+                  <span className={`absolute -left-[27px] grid h-5 w-5 place-items-center rounded-full ${isLast ? (isInterrupted ? "bg-destructive text-white" : "bg-burgundy text-cream") : "bg-muted text-muted-foreground"}`}>
                     {isLast ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-2.5 w-2.5 fill-current" />}
                   </span>
                   <p className="text-sm font-semibold text-charcoal">{t.orders.statuses[orderStatusKey(e.status) as keyof typeof t.orders.statuses] || e.label}</p>
@@ -109,9 +109,9 @@ export function OrderTrackingView() {
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground">{s.carrier || s.carrierName || (locale === "fr" ? "Transporteur à attribuer" : "Carrier pending")} · <span>{t.orders.statuses[orderStatusKey(s.status) as keyof typeof t.orders.statuses] || s.status}</span></p>
                   <p className="text-[11px] text-muted-foreground">{t.orders.estimatedDelivery} : {s.estimatedDelivery ? formatDate(s.estimatedDelivery, locale) : "—"}</p>
-                  {s.confirmCode && <p className="mt-0.5 text-[11px] font-medium text-forest">Code : {s.confirmCode}</p>}
+                  {s.confirmCode && <p className="mt-0.5 text-[11px] font-medium text-burgundy">Code : {s.confirmCode}</p>}
                   {trackingHref ? <a href={trackingHref} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-terre hover:underline">{locale === "fr" ? "Suivre chez le transporteur" : "Track with carrier"}<ExternalLink className="h-3 w-3" /></a> : null}
-                  {s.actualDelivery || s.proofPhoto || s.signature ? <div className="mt-3 border-t border-border pt-3"><p className="flex items-center gap-1.5 text-[10px] font-black uppercase text-forest"><CheckCircle2 className="h-3.5 w-3.5" />{locale === "fr" ? "Preuve de remise" : "Delivery proof"}</p>{s.actualDelivery ? <p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Remis le" : "Handed over on"} {formatDateTime(s.actualDelivery, locale)}</p> : null}{s.proofPhoto ? <ProductImage src={s.proofPhoto} alt={locale === "fr" ? `Preuve de livraison du colis ${s.trackingNumber || ""}` : `Delivery proof for parcel ${s.trackingNumber || ""}`} emoji="" color="#F7F4F3" size="lg" className="mt-2 h-32 w-full" rounded="rounded-md" priority /> : null}{s.signature ? <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-charcoal"><ClipboardSignature className="h-3.5 w-3.5 text-forest" />{locale === "fr" ? "Reçu par" : "Received by"} {s.signature}</p> : s.proofPhoto ? <p className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground"><Camera className="h-3.5 w-3.5" />{locale === "fr" ? "Photo enregistrée par le livreur" : "Photo recorded by the courier"}</p> : null}</div> : null}
+                  {s.actualDelivery || s.proofPhoto || s.signature ? <div className="mt-3 border-t border-border pt-3"><p className="flex items-center gap-1.5 text-[10px] font-black uppercase text-burgundy"><CheckCircle2 className="h-3.5 w-3.5" />{locale === "fr" ? "Preuve de remise" : "Delivery proof"}</p>{s.actualDelivery ? <p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Remis le" : "Handed over on"} {formatDateTime(s.actualDelivery, locale)}</p> : null}{s.proofPhoto ? <ProductImage src={s.proofPhoto} alt={locale === "fr" ? `Preuve de livraison du colis ${s.trackingNumber || ""}` : `Delivery proof for parcel ${s.trackingNumber || ""}`} emoji="" color="#F7F4F3" size="lg" className="mt-2 h-32 w-full" rounded="rounded-md" priority /> : null}{s.signature ? <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-charcoal"><ClipboardSignature className="h-3.5 w-3.5 text-burgundy" />{locale === "fr" ? "Reçu par" : "Received by"} {s.signature}</p> : s.proofPhoto ? <p className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground"><Camera className="h-3.5 w-3.5" />{locale === "fr" ? "Photo enregistrée par le livreur" : "Photo recorded by the courier"}</p> : null}</div> : null}
                 </div>
                 );
               })}
@@ -123,7 +123,7 @@ export function OrderTrackingView() {
             <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-charcoal"><MapPin className="h-4 w-4 text-terre" /> {t.checkout.address}</h2>
             <p className="text-sm text-charcoal">{order.deliveryName}</p>
             <p className="text-xs text-muted-foreground">{order.deliveryAddress}, {order.deliveryPostalCode} {order.deliveryCity}, {order.deliveryCountry}</p>
-            {order.deliverySlot ? <p className="mt-3 border-t border-border pt-3 text-[11px] font-bold text-forest">{locale === "fr" ? "Service de livraison" : "Delivery service"} : {deliveryServiceLabel(order.deliverySlot, locale)}</p> : null}
+            {order.deliverySlot ? <p className="mt-3 border-t border-border pt-3 text-[11px] font-bold text-burgundy">{locale === "fr" ? "Service de livraison" : "Delivery service"} : {deliveryServiceLabel(order.deliverySlot, locale)}</p> : null}
           </div>
         </div>
       </div>
@@ -135,14 +135,14 @@ export function OrderTrackingView() {
           {order.items.map((it: any) => (
             <div key={it.id} className="flex items-center gap-2 text-sm">
               <ProductImage src={it.imageUrl} alt={it.name} emoji="🍲" color="#D65A32" size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" />
-              <span className="min-w-0 flex-1 truncate pr-2 text-charcoal">{it.name} × {it.qty}{it.recipeName && <span className="ml-1 text-[10px] text-forest">· {t.config.recipeGroup}</span>}</span>
+              <span className="min-w-0 flex-1 truncate pr-2 text-charcoal">{it.name} × {it.qty}{it.recipeName && <span className="ml-1 text-[10px] text-burgundy">· {t.config.recipeGroup}</span>}</span>
               <span className="font-medium">{formatPrice(it.lineTotal, locale)}</span>
             </div>
           ))}
         </div>
         <dl className="mt-3 space-y-1.5 border-t border-border pt-3 text-xs">
           <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>{locale === "fr" ? "Sous-total" : "Subtotal"}</dt><dd>{formatPrice(order.subtotal, locale)}</dd></div>
-          {order.promoDiscount > 0 ? <div className="flex items-center justify-between gap-4 text-forest"><dt>{locale === "fr" ? "Remise" : "Discount"}</dt><dd>-{formatPrice(order.promoDiscount, locale)}</dd></div> : null}
+          {order.promoDiscount > 0 ? <div className="flex items-center justify-between gap-4 text-burgundy"><dt>{locale === "fr" ? "Remise" : "Discount"}</dt><dd>-{formatPrice(order.promoDiscount, locale)}</dd></div> : null}
           <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>{locale === "fr" ? "Livraison" : "Delivery"}</dt><dd>{formatPrice(order.shippingCost, locale)}</dd></div>
           <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>{locale === "fr" ? "Dont TVA" : "Including VAT"}</dt><dd>{formatPrice(order.vatAmount, locale)}</dd></div>
           <div className="flex items-center justify-between gap-4 border-t border-border pt-2 text-base"><dt className="font-bold text-charcoal">{t.cart.total}</dt><dd className="font-black text-terre">{formatPrice(order.total, locale)}</dd></div>

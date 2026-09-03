@@ -8,7 +8,7 @@ export function customerSegmentDetails(segment: AdminCustomer["segment"], locale
   const isFr = locale === "fr";
   return {
     ambassador: { label: isFr ? "Ambassadeur" : "Ambassador", move: isFr ? "Fidéliser" : "Reward", className: "border-gold/40 bg-gold/[0.09] text-charcoal" },
-    active: { label: isFr ? "Actif" : "Active", move: isFr ? "Développer" : "Grow", className: "border-forest/20 bg-forest/[0.055] text-forest" },
+    active: { label: isFr ? "Actif" : "Active", move: isFr ? "Développer" : "Grow", className: "border-burgundy/20 bg-burgundy/[0.055] text-burgundy" },
     at_risk: { label: isFr ? "À relancer" : "Re-engage", move: isFr ? "Réactiver" : "Re-engage", className: "border-destructive/25 bg-destructive/[0.055] text-destructive" },
     new: { label: isFr ? "À activer" : "To activate", move: isFr ? "Activer" : "Activate", className: "border-charcoal/10 bg-white text-muted-foreground" },
   }[segment];

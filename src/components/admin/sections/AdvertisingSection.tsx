@@ -32,7 +32,7 @@ type Advertisement = {
   endsAt?: string | null;
 };
 
-const statusStyle: Record<string, string> = { published: "border-forest/25 bg-forest/5 text-forest", draft: "border-gold/40 bg-gold/[0.09] text-charcoal", archived: "border-charcoal/15 bg-charcoal/5 text-charcoal" };
+const statusStyle: Record<string, string> = { published: "border-burgundy/25 bg-burgundy/5 text-burgundy", draft: "border-gold/40 bg-gold/[0.09] text-charcoal", archived: "border-charcoal/15 bg-charcoal/5 text-charcoal" };
 const placementLabels = {
   fr: { home: "Accueil", catalog: "Catalogue", recipes: "Recettes", checkout: "Paiement" },
   en: { home: "Home", catalog: "Catalogue", recipes: "Recipes", checkout: "Checkout" },

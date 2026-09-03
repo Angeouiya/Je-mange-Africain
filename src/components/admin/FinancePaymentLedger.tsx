@@ -54,7 +54,7 @@ export function FinancePaymentLedger({ locale, onNavigate }: { locale: "fr" | "e
         <PaymentMetric position={3} icon={ShieldCheck} label={isFr ? "Taux rapproché" : "Reconciled rate"} value={`${formatNumber(reconciliationRate, locale)} %`} detail={isFr ? "sur le registre chargé" : "of loaded ledger"} tone="burgundy" />
       </section>
 
-      <div className="flex items-start gap-3 border-y border-forest/15 bg-forest/[0.045] px-4 py-3 text-xs leading-5 text-forest"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p><strong>{isFr ? "Registre contrôlé" : "Controlled ledger"}</strong> · {isFr ? "Chaque ligne conserve la référence du prestataire, la commande, le client et son horodatage réel." : "Every line retains its provider reference, order, customer and actual timestamp."}</p></div>
+      <div className="flex items-start gap-3 border-y border-burgundy/15 bg-burgundy/[0.045] px-4 py-3 text-xs leading-5 text-burgundy"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p><strong>{isFr ? "Registre contrôlé" : "Controlled ledger"}</strong> · {isFr ? "Chaque ligne conserve la référence du prestataire, la commande, le client et son horodatage réel." : "Every line retains its provider reference, order, customer and actual timestamp."}</p></div>
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <SectionTabs value={filter} onChange={setFilter} label={isFr ? "Statuts financiers" : "Financial statuses"} items={[
@@ -78,7 +78,7 @@ export function FinancePaymentLedger({ locale, onNavigate }: { locale: "fr" | "e
 }
 
 function PaymentMetric({ position, icon: Icon, label, value, detail, tone }: { position: number; icon: typeof CircleDollarSign; label: string; value: string; detail: string; tone: "earth" | "gold" | "alert" | "burgundy" }) {
-  const style = tone === "earth" ? "bg-terre text-white" : tone === "gold" ? "bg-gold/25 text-charcoal" : tone === "alert" ? "bg-destructive/10 text-destructive" : "bg-forest/10 text-forest";
+  const style = tone === "earth" ? "bg-terre text-white" : tone === "gold" ? "bg-gold/25 text-charcoal" : tone === "alert" ? "bg-destructive/10 text-destructive" : "bg-burgundy/10 text-burgundy";
   return <div className={`min-w-0 p-3 sm:p-5 ${position < 2 ? "border-b" : ""} ${position % 2 === 0 ? "border-r" : ""} border-charcoal/8 xl:border-b-0 ${position < 3 ? "xl:border-r" : "xl:border-r-0"}`}><span className={`grid h-9 w-9 place-items-center rounded-md ${style}`}><Icon className="h-4 w-4" /></span><p className="mt-3 truncate text-lg font-black tabular-nums text-charcoal sm:text-2xl">{value}</p><p className="mt-1 text-xs font-bold text-charcoal">{label}</p><p className="mt-1 text-[9px] leading-4 text-muted-foreground">{detail}</p></div>;
 }
 
@@ -86,7 +86,7 @@ function PaymentStatusBadge({ status, locale }: { status: string; locale: "fr" |
   const captured = status === "captured";
   const exception = ["failed", "refunded"].includes(status);
   const label = status === "captured" ? (locale === "fr" ? "Capturé" : "Captured") : status === "authorized" ? (locale === "fr" ? "Autorisé" : "Authorised") : status === "pending" ? (locale === "fr" ? "En attente" : "Pending") : status === "refunded" ? (locale === "fr" ? "Remboursé" : "Refunded") : status === "failed" ? (locale === "fr" ? "Échoué" : "Failed") : status;
-  return <Badge variant="outline" className={`whitespace-nowrap text-[9px] ${captured ? "border-forest/25 bg-forest/[0.04] text-forest" : exception ? "border-destructive/25 bg-destructive/5 text-destructive" : "border-gold/35 bg-gold/10 text-charcoal"}`}>{captured ? <CheckCircle2 className="mr-1 h-3 w-3" /> : exception ? <AlertCircle className="mr-1 h-3 w-3" /> : <Clock3 className="mr-1 h-3 w-3" />}{label}</Badge>;
+  return <Badge variant="outline" className={`whitespace-nowrap text-[9px] ${captured ? "border-burgundy/25 bg-burgundy/[0.04] text-burgundy" : exception ? "border-destructive/25 bg-destructive/5 text-destructive" : "border-gold/35 bg-gold/10 text-charcoal"}`}>{captured ? <CheckCircle2 className="mr-1 h-3 w-3" /> : exception ? <AlertCircle className="mr-1 h-3 w-3" /> : <Clock3 className="mr-1 h-3 w-3" />}{label}</Badge>;
 }
 
 function methodLabel(method: string, locale: "fr" | "en") {

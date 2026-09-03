@@ -117,7 +117,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
               -{discountPercent}%
             </span>
           )}
-          {product.isBestseller && <Badge className="bg-forest text-cream border-0 shadow-sm">{t.bestseller}</Badge>}
+          {product.isBestseller && <Badge className="bg-burgundy text-cream border-0 shadow-sm">{t.bestseller}</Badge>}
           {product.isNew && <Badge className="bg-gold text-charcoal border-0 shadow-sm">{t.new}</Badge>}
           {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0 shadow-sm">{t.promo}</Badge>}
         </div>
@@ -155,7 +155,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
               <div className="flex flex-wrap items-center gap-1">
                 <span className="text-xs text-muted-foreground line-through">{formatPrice(product.price, locale)}</span>
                 {saving > 0 && (
-                  <span className="text-[10px] font-semibold text-forest">
+                  <span className="text-[10px] font-semibold text-burgundy">
                     {locale === "fr" ? "éco." : "save"} {formatPrice(saving, locale)}
                   </span>
                 )}

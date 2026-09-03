@@ -255,7 +255,7 @@ export function CheckoutView() {
         <PriceLine label={t.cart.packages} value={`${intent?.pricing.packages || selectedShipping?.packages || thermal.length || 1} · ${thermal.map((item) => thermalLabel(item, locale)).join(", ")}`} />
         <div className="mt-2 flex items-center justify-between border-t border-border pt-3"><span className="font-bold text-charcoal">{t.cart.total}</span><span className="text-xl font-extrabold text-terre">{formatPrice(displayTotal, locale)}</span></div>
       </div>
-      <div className="flex items-center gap-2 rounded-lg bg-forest/5 p-2 text-xs text-forest"><ShieldCheck className="h-4 w-4 shrink-0" />{t.checkout.securePayment}</div>
+      <div className="flex items-center gap-2 rounded-lg bg-burgundy/5 p-2 text-xs text-burgundy"><ShieldCheck className="h-4 w-4 shrink-0" />{t.checkout.securePayment}</div>
     </div>
   );
 
@@ -325,7 +325,7 @@ export function CheckoutView() {
                     <label key={value} className={`grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border p-3 transition ${unavailable ? "cursor-not-allowed border-border bg-muted/35" : "cursor-pointer border-border has-[:checked]:border-terre has-[:checked]:bg-terre/[0.045]"}`}>
                       <RadioGroupItem value={value} disabled={unavailable} />
                       <span className="grid h-9 w-9 place-items-center rounded-md bg-charcoal/5 text-terre"><Icon className="h-4 w-4" /></span>
-                      <span className="min-w-0"><span className="flex flex-wrap items-center gap-1.5 text-xs font-extrabold text-charcoal">{label}{value === "standard" ? <span className="rounded bg-forest/10 px-1.5 py-0.5 text-[8px] uppercase text-forest">{locale === "fr" ? "Recommandé" : "Recommended"}</span> : null}</span><span className={`mt-1 block truncate text-[10px] ${unavailable ? "text-charcoal/70" : "text-muted-foreground"}`}>{unavailable ? (locale === "fr" ? "Indisponible avec les produits frais ou surgelés" : "Unavailable for chilled or frozen products") : quote ? `${quote.carrier} · ${formatDeliveryWindow(quote, locale)}` : (locale === "fr" ? "Estimation du transporteur" : "Carrier estimate")}</span></span>
+                      <span className="min-w-0"><span className="flex flex-wrap items-center gap-1.5 text-xs font-extrabold text-charcoal">{label}{value === "standard" ? <span className="rounded bg-burgundy/10 px-1.5 py-0.5 text-[8px] uppercase text-burgundy">{locale === "fr" ? "Recommandé" : "Recommended"}</span> : null}</span><span className={`mt-1 block truncate text-[10px] ${unavailable ? "text-charcoal/70" : "text-muted-foreground"}`}>{unavailable ? (locale === "fr" ? "Indisponible avec les produits frais ou surgelés" : "Unavailable for chilled or frozen products") : quote ? `${quote.carrier} · ${formatDeliveryWindow(quote, locale)}` : (locale === "fr" ? "Estimation du transporteur" : "Carrier estimate")}</span></span>
                       <span className="text-right text-xs font-black tabular-nums text-charcoal">{unavailable ? "-" : quote ? formatPrice(quote.fee, locale) : "…"}</span>
                     </label>
                   );
@@ -488,7 +488,7 @@ function Field({ label, value, onChange, type = "text", autoComplete }: { label:
 }
 
 function PriceLine({ label, value, accent = false, muted = false }: { label: string; value: string; accent?: boolean; muted?: boolean }) {
-  return <div className={`flex items-start justify-between gap-3 ${accent ? "text-forest" : muted ? "text-muted-foreground" : ""}`}><span>{label}</span><span className="max-w-[55%] text-right">{value}</span></div>;
+  return <div className={`flex items-start justify-between gap-3 ${accent ? "text-burgundy" : muted ? "text-muted-foreground" : ""}`}><span>{label}</span><span className="max-w-[55%] text-right">{value}</span></div>;
 }
 
 function deliveryServiceLabel(service: DeliveryService, locale: "fr" | "en") {

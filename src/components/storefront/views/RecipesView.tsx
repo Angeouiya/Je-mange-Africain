@@ -99,9 +99,9 @@ export function RecipesView() {
           {mode === "library" ? (
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <button type="button" onClick={() => setCountry("")} aria-pressed={!country} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${!country ? "bg-forest text-white" : "bg-forest/8 text-forest"}`}>{locale === "fr" ? "Toute l'Afrique" : "All Africa"}</button>
+              <button type="button" onClick={() => setCountry("")} aria-pressed={!country} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${!country ? "bg-burgundy text-white" : "bg-burgundy/8 text-burgundy"}`}>{locale === "fr" ? "Toute l'Afrique" : "All Africa"}</button>
               {dishData?.countries?.map((item: string) => (
-                <button type="button" key={item} onClick={() => setCountry(country === item ? "" : item)} aria-pressed={country === item} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${country === item ? "bg-forest text-white" : "bg-forest/8 text-forest"}`}>{item}</button>
+                <button type="button" key={item} onClick={() => setCountry(country === item ? "" : item)} aria-pressed={country === item} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${country === item ? "bg-burgundy text-white" : "bg-burgundy/8 text-burgundy"}`}>{item}</button>
               ))}
             </div>
           ) : null}
@@ -122,7 +122,7 @@ export function RecipesView() {
         <TabsContent value="library">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">{dishData?.dishes?.length || 0} {locale === "fr" ? "plats détaillés" : "detailed dishes"}</p>
-            <span className="text-[11px] font-semibold text-forest">{locale === "fr" ? "Fiches éditoriales vérifiables" : "Curated editorial records"}</span>
+            <span className="text-[11px] font-semibold text-burgundy">{locale === "fr" ? "Fiches éditoriales vérifiables" : "Curated editorial records"}</span>
           </div>
           {dishesLoading ? (
             <ResultSkeleton />

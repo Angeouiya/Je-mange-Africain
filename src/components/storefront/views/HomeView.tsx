@@ -155,7 +155,7 @@ export function HomeView() {
         </section>
 
         {/* DELIVERY INFO */}
-        <section className="rounded-lg border border-forest/18 bg-forest/[0.045] p-6 md:p-8">
+        <section className="rounded-lg border border-burgundy/18 bg-burgundy/[0.045] p-6 md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <span className="grid h-12 w-12 place-items-center rounded-md bg-terre/12">

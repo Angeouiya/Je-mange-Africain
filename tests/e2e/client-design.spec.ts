@@ -25,17 +25,20 @@ async function expectLoadedProductImages(images: Locator, maximum = 4) {
   }
 }
 
-async function expectBrandSafeUiAccents(page: Page) {
-  const greenStyles = await page.locator("body").evaluate((body) => {
+async function expectBrandSafeUiColors(page: Page) {
+  const forbiddenStyles = await page.locator("body").evaluate((body) => {
     const ignoredTags = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS"]);
     const properties = ["color", "backgroundColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"] as const;
-    const isOffBrandCoolColor = (color: string) => {
-      const match = color.match(/rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)/i);
+    const isForbidden = (color: string) => {
+      const match = color.match(/rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)(?:[, /]+([\d.]+))?/i);
       if (!match) return false;
       const [, red, green, blue] = match.map(Number);
+      const alpha = match[4] === undefined ? 1 : Number(match[4]);
+      if (alpha === 0) return false;
       const isGreen = green > red * 1.08 && green > blue * 1.08;
       const isCoolBlue = blue > red * 1.08 && blue > green * 1.05;
-      return isGreen || isCoolBlue;
+      const isNearBlack = red < 20 && green < 20 && blue < 20;
+      return isGreen || isCoolBlue || isNearBlack;
     };
 
     return [...body.querySelectorAll<HTMLElement>("*")]
@@ -44,12 +47,12 @@ async function expectBrandSafeUiAccents(page: Page) {
         const styles = getComputedStyle(element);
         return properties
           .map((property) => ({ element: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}`, property, color: styles[property] }))
-          .filter(({ color }) => isOffBrandCoolColor(color));
+          .filter(({ color }) => isForbidden(color));
       })
       .slice(0, 20);
   });
 
-  expect(greenStyles, `off-brand green or blue UI styles remain: ${JSON.stringify(greenStyles)}`).toEqual([]);
+  expect(forbiddenStyles, `off-brand green, blue or black UI styles remain: ${JSON.stringify(forbiddenStyles)}`).toEqual([]);
 }
 
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
@@ -58,7 +61,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.locator("body")).not.toContainText(/dashboard admin|administration/i);
   const accentColors = await page.evaluate(() => {
     const styles = getComputedStyle(document.documentElement);
-    return ["--terre", "--gold", "--forest", "--forest-dark"].map((token) => styles.getPropertyValue(token).trim());
+    return ["--terre", "--gold", "--burgundy", "--burgundy-dark"].map((token) => styles.getPropertyValue(token).trim());
   });
   const greenAccents = accentColors.filter((color) => {
     const match = color.match(/^#([0-9a-f]{6})$/i);
@@ -70,7 +73,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
     return green > red * 1.08 && green > blue * 1.08;
   });
   expect(greenAccents, `green accents remain in the computed palette: ${greenAccents.join(", ")}`).toEqual([]);
-  await expectBrandSafeUiAccents(page);
+  await expectBrandSafeUiColors(page);
   const categoryHeading = page.getByRole("heading", { name: /marché par univers|shop by universe/i });
   await expect(categoryHeading).toBeVisible();
   const categoryBox = await categoryHeading.boundingBox();
@@ -391,7 +394,7 @@ test("registration requires legal consent and two independently visible password
   const brandNameBox = await dialog.locator(".font-brand").first().boundingBox();
   expect((brandNameBox?.x || 0) + (brandNameBox?.width || 0)).toBeLessThanOrEqual(page.viewportSize()?.width || 0);
   await expectNoHorizontalOverflow(page, dialog);
-  await expectBrandSafeUiAccents(page);
+  await expectBrandSafeUiColors(page);
   await expectNoSeriousA11yViolations(page);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/auth-register-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
@@ -454,7 +457,7 @@ test("password recovery remains bilingual, branded and independently visible", a
   await expect(page.getByRole("link", { name: "Sign in", exact: true })).toHaveAttribute("href", "/?view=account");
   expect(resetPayload).toEqual({ accessToken: "reset-token", password: "secure-password" });
   await expectNoHorizontalOverflow(page);
-  await expectBrandSafeUiAccents(page);
+  await expectBrandSafeUiColors(page);
   await expectNoSeriousA11yViolations(page);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/auth-reset-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
@@ -646,7 +649,7 @@ test("the help center leads to a contextual and usable contact request", async (
   await page.getByRole("button", { name: /quels moyens de paiement|which payment methods/i }).click();
   await expect(page.getByText(/sécurisé par stripe|secured by stripe/i)).toBeVisible();
   await expect(page.locator("main")).not.toContainText(/paypal|carte cadeau|gift card/i);
-  await expectBrandSafeUiAccents(page);
+  await expectBrandSafeUiColors(page);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/help-reference-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
   }

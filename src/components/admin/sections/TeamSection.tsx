@@ -43,14 +43,14 @@ export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
 }
 
 function TeamMetric({ position, icon, label, value, detail, tone }: { position: number; icon: React.ReactNode; label: string; value: string; detail: string; tone: "earth" | "burgundy" | "gold" }) {
-  const style = tone === "earth" ? "bg-terre text-white" : tone === "burgundy" ? "bg-forest/10 text-forest" : "bg-gold/25 text-charcoal";
+  const style = tone === "earth" ? "bg-terre text-white" : tone === "burgundy" ? "bg-burgundy/10 text-burgundy" : "bg-gold/25 text-charcoal";
   return <div className={`min-w-0 p-3 sm:p-5 ${position < 2 ? "border-b" : ""} ${position % 2 === 0 ? "border-r" : ""} border-charcoal/8 xl:border-b-0 ${position < 3 ? "xl:border-r" : "xl:border-r-0"}`}><span className={`grid h-9 w-9 place-items-center rounded-md ${style}`}>{icon}</span><p className="mt-3 text-xl font-black tabular-nums text-charcoal sm:text-2xl">{value}</p><p className="mt-1 text-xs font-bold text-charcoal">{label}</p><p className="mt-1 text-[9px] leading-4 text-muted-foreground">{detail}</p></div>;
 }
 
 function TeamAttention({ summary, locale }: { summary: TeamSummary; locale: "fr" | "en" }) {
   const isFr = locale === "fr";
   const needsReview = summary.invited > 0 || summary.suspended > 0 || summary.dormant > 0;
-  if (!needsReview) return <div className="flex items-start gap-3 border-y border-forest/15 bg-forest/[0.035] px-4 py-3 text-xs leading-5 text-forest"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p><strong>{isFr ? "Accès sous contrôle" : "Access under control"}</strong> · {isFr ? "Aucune invitation, suspension ou inactivité prolongée ne demande de revue." : "No invitation, suspension or prolonged inactivity currently requires review."}</p></div>;
+  if (!needsReview) return <div className="flex items-start gap-3 border-y border-burgundy/15 bg-burgundy/[0.035] px-4 py-3 text-xs leading-5 text-burgundy"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p><strong>{isFr ? "Accès sous contrôle" : "Access under control"}</strong> · {isFr ? "Aucune invitation, suspension ou inactivité prolongée ne demande de revue." : "No invitation, suspension or prolonged inactivity currently requires review."}</p></div>;
   const facts = [
     summary.invited ? (isFr ? `${summary.invited} invitation${summary.invited === 1 ? "" : "s"} en attente` : `${summary.invited} pending invitation${summary.invited === 1 ? "" : "s"}`) : null,
     summary.suspended ? (isFr ? `${summary.suspended} compte${summary.suspended === 1 ? "" : "s"} suspendu${summary.suspended === 1 ? "" : "s"}` : `${summary.suspended} suspended account${summary.suspended === 1 ? "" : "s"}`) : null,
