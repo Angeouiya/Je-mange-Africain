@@ -10,6 +10,14 @@ const organization: WithContext<Organization> = {
   url: siteUrl,
   logo: `${siteUrl}/brand/app-icon-512.png`,
   email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com",
+  areaServed: ["France", "Belgium", "Germany", "Netherlands", "Luxembourg"],
+  knowsLanguage: ["fr-FR", "en-GB"],
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com",
+    availableLanguage: ["French", "English"],
+  },
 };
 
 const website = {

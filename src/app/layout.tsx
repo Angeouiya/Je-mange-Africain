@@ -4,6 +4,7 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/lib/store-provider";
 import { StructuredData } from "@/components/shared/StructuredData";
+import { PwaRegistration } from "@/components/shared/PwaRegistration";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -46,7 +47,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Je mange Africain",
   },
   openGraph: {
@@ -56,11 +57,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fr_FR",
     alternateLocale: ["en_US"],
+    images: [{ url: "/hero-feast-v2.webp", alt: "Cuisine africaine authentique Je mange Africain" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Je mange Africain",
     description: "Authentic African cooking essentials, delivered to your door.",
+    images: ["/hero-feast-v2.webp"],
   },
   alternates: {
     canonical: "/",
@@ -87,6 +90,7 @@ export default function RootLayout({
       >
         <a href="#main-content" className="jma-skip-link">Aller au contenu principal</a>
         <StructuredData />
+        <PwaRegistration />
         <StoreProvider>
           <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         </StoreProvider>

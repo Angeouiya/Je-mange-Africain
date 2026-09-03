@@ -10,6 +10,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { PageBackButton } from "@/components/shared/PageBackButton";
+import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
@@ -60,6 +61,30 @@ export function ProductDetailView() {
   const heroPhoto = selectedPhoto || gallery[0];
   const commercialLine = getProductCommercialLine(product, locale);
   const lineTotal = price * qty;
+  const canonicalPath = `/?view=product&productId=${encodeURIComponent(product.id)}`;
+  const seoDescription = (product.description || commercialLine).trim();
+  const productStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${absoluteUrl(canonicalPath)}#product`,
+    name: product.name,
+    description: seoDescription,
+    image: gallery.map(absoluteUrl),
+    sku: product.sku || undefined,
+    gtin: product.barcode || undefined,
+    brand: { "@type": "Brand", name: product.brand?.name || "Je mange Africain" },
+    category: product.category?.name,
+    countryOfOrigin: product.country ? { "@type": "Country", name: product.country } : undefined,
+    offers: {
+      "@type": "Offer",
+      url: absoluteUrl(canonicalPath),
+      priceCurrency: "EUR",
+      price: price.toFixed(2),
+      availability: outOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: { "@type": "Organization", "@id": `${absoluteUrl("/")}#organization`, name: "Je mange Africain" },
+    },
+  };
 
   const handleAdd = () => {
     addToCart({
@@ -81,7 +106,16 @@ export function ProductDetailView() {
   };
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 py-4 md:px-7 md:py-10 lg:px-8">
+    <>
+      <ClientSeo
+        id={`product-${product.id}`}
+        title={`${product.name} | Je mange Africain`}
+        description={seoDescription}
+        canonicalPath={canonicalPath}
+        image={heroPhoto}
+        structuredData={productStructuredData}
+      />
+      <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 py-4 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-3 md:mb-4" />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
@@ -277,7 +311,8 @@ export function ProductDetailView() {
           </div>
         </section>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

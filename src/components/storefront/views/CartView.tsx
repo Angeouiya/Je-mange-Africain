@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes } from "lucide-react";
+import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,11 +26,12 @@ export function CartView() {
   const clearCart = useStore((s) => s.clearCart);
   const coupon = useStore((s) => s.coupon);
   const setCoupon = useStore((s) => s.setCoupon);
+  const country = useStore((s) => s.country);
+  const postalCode = useStore((s) => s.postalCode);
   const navigate = useStore((s) => s.navigate);
   const t = dict[locale];
-  const promoCodes = ["BIENVENUE10", "FRAIS5", "LIVRAISONOFFERTE"];
 
-  const [couponInput, setCouponInput] = useState("");
+  const [couponInput, setCouponInput] = useState(coupon || "");
   const [couponApplied, setCouponApplied] = useState<{ code: string; discount: number; freeShipping?: boolean } | null>(null);
   const [couponError, setCouponError] = useState("");
 
@@ -39,7 +40,7 @@ export function CartView() {
   const thermal = cartThermalSplit(cart);
   const thermalKey = thermal.join("|");
 
-  const [shipQuote, setShipQuote] = useState<{ fee: number; carrier: string } | null>(null);
+  const [shipQuote, setShipQuote] = useState<{ fee: number; carrier: string; minDelayHours?: number; maxDelayHours?: number } | null>(null);
   const [shipLoading, setShipLoading] = useState(false);
 
   useEffect(() => {
@@ -50,11 +51,11 @@ export function CartView() {
       }
       setShipLoading(true);
       try {
-        const res = await postJSON<{ fee: number; carrier: string; packages: number }>("/api/shipping/quote", {
+        const res = await postJSON<{ fee: number; carrier: string; packages: number; minDelayHours?: number; maxDelayHours?: number }>("/api/shipping/quote", {
           weightGrams: weight,
           thermalClasses: thermalKey ? thermalKey.split("|") : [],
-          postalCode: "75011",
-          country: "France",
+          postalCode,
+          country,
         });
         setShipQuote(res);
       } catch {
@@ -64,11 +65,36 @@ export function CartView() {
       }
     };
     fetchShip();
-  }, [cart.length, weight, thermalKey]);
+  }, [cart.length, country, postalCode, thermalKey, weight]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!coupon) {
+      setCouponApplied(null);
+      return;
+    }
+    setCouponInput(coupon);
+    postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean; code?: string; error?: string }>("/api/promotions/validate", { code: coupon, subtotal })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.valid) {
+          setCouponApplied({ code: result.code || coupon, discount: result.discount || 0, freeShipping: result.freeShipping });
+          setCouponError("");
+          return;
+        }
+        setCouponApplied(null);
+        setCoupon(null);
+        setCouponError(result.error || (locale === "fr" ? "Ce code n'est plus applicable." : "This code is no longer applicable."));
+      })
+      .catch(() => {
+        if (!cancelled) setCouponError(locale === "fr" ? "Vérification momentanément indisponible." : "Verification is temporarily unavailable.");
+      });
+    return () => { cancelled = true; };
+  }, [coupon, locale, setCoupon, subtotal]);
 
   const promoDiscount = couponApplied?.discount || 0;
   const freeShip = couponApplied?.freeShipping;
-  const shipFee = freeShip ? 0 : (shipQuote?.fee ?? (subtotal >= 50 ? 0 : subtotal > 0 ? 6.9 : 0));
+  const shipFee = freeShip ? 0 : (shipQuote?.fee ?? (subtotal > 0 ? 6.9 : 0));
   const taxable = Math.max(0, subtotal - promoDiscount);
   const vat = Math.round((taxable / 1.2) * 0.2 * 100) / 100;
   const total = taxable + shipFee;
@@ -93,9 +119,16 @@ export function CartView() {
         setCouponApplied({ code: res.code!, discount: res.discount!, freeShipping: res.freeShipping });
         setCoupon(res.code || null);
       } else {
-        setCouponError(res.error || "Code invalide");
+        setCouponError(res.error || (locale === "fr" ? "Code invalide" : "Invalid code"));
       }
-    } catch { setCouponError("Erreur"); }
+    } catch { setCouponError(locale === "fr" ? "Vérification momentanément indisponible." : "Verification is temporarily unavailable."); }
+  };
+
+  const removeCoupon = () => {
+    setCoupon(null);
+    setCouponApplied(null);
+    setCouponInput("");
+    setCouponError("");
   };
 
   const proceed = () => navigate("checkout");
@@ -161,7 +194,7 @@ export function CartView() {
         {/* summary */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-lg border border-charcoal/12 bg-white p-4 shadow-[0_22px_50px_-42px_rgba(24,26,24,0.55)]">
-            <h2 className="mb-3 font-display text-xl font-semibold text-charcoal">{t.config.summary}</h2>
+            <div className="mb-3 flex items-baseline justify-between gap-3"><h2 className="font-display text-xl font-semibold text-charcoal">{t.config.summary}</h2><span className="text-[10px] font-bold uppercase text-muted-foreground">{cart.reduce((sum, item) => sum + item.qty, 0)} {locale === "fr" ? "article(s)" : "item(s)"}</span></div>
 
             {/* coupon */}
             <div className="mb-3 space-y-1.5">
@@ -170,26 +203,18 @@ export function CartView() {
                   <Tag className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input value={couponInput} onChange={(e) => setCouponInput(e.target.value)} placeholder={t.cart.coupon} aria-label={t.cart.coupon} className="pl-8 text-sm" />
                 </div>
-                <Button size="sm" onClick={applyCoupon} className="bg-charcoal text-cream hover:bg-charcoal/90">{t.cart.applyCoupon}</Button>
+                <Button size="sm" variant="outline" onClick={applyCoupon} className="border-terre/30 text-terre hover:bg-terre/5 hover:text-terre">{t.cart.applyCoupon}</Button>
               </div>
-              {couponApplied && <p className="text-xs text-forest"><Check className="inline h-3 w-3" /> {couponApplied.code} (-{formatPrice(couponApplied.discount, locale)})</p>}
+              {couponApplied && <div className="flex min-h-8 items-center justify-between gap-2 text-xs text-forest"><p><Check className="mr-1 inline h-3 w-3" />{couponApplied.code} {couponApplied.freeShipping ? (locale === "fr" ? "· livraison offerte" : "· free delivery") : `(-${formatPrice(couponApplied.discount, locale)})`}</p><button type="button" onClick={removeCoupon} aria-label={locale === "fr" ? "Retirer le code promotionnel" : "Remove promo code"} title={locale === "fr" ? "Retirer" : "Remove"} className="grid h-7 w-7 shrink-0 place-items-center rounded-md hover:bg-muted"><X className="h-3.5 w-3.5" /></button></div>}
               {couponError && <p className="text-xs text-destructive">{couponError}</p>}
-              <div className="flex flex-wrap gap-1.5" aria-label={locale === "fr" ? "Codes promotionnels disponibles" : "Available promotion codes"}>
-                {promoCodes.map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => setCouponInput(code)}
-                    aria-pressed={couponInput === code}
-                    className={`rounded-md border px-2 py-1 text-[9px] font-bold transition-colors ${couponInput === code ? "border-terre bg-terre/8 text-terre" : "border-border bg-background text-muted-foreground hover:border-terre/35 hover:text-charcoal"}`}
-                  >
-                    {code}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            <div className="space-y-1.5 border-t border-border pt-3 text-sm">
+            <div className="flex items-start gap-2 border-y border-border py-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-terre/8 text-terre"><MapPin className="h-4 w-4" /></span>
+              <div className="min-w-0"><p className="text-[10px] font-bold uppercase text-muted-foreground">{locale === "fr" ? "Estimation de livraison" : "Delivery estimate"}</p><p className="mt-0.5 truncate text-xs font-bold text-charcoal">{postalCode ? `${postalCode} · ` : ""}{country}</p>{shipQuote ? <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground"><Clock3 className="h-3 w-3" />{shipQuote.carrier}{shipQuote.minDelayHours && shipQuote.maxDelayHours ? ` · ${shipQuote.minDelayHours}–${shipQuote.maxDelayHours} h` : ""}</p> : null}</div>
+            </div>
+
+            <div className="space-y-1.5 pt-3 text-sm">
               <Row label={t.cart.subtotal} value={formatPrice(subtotal, locale)} />
               {promoDiscount > 0 && <Row label={t.cart.promo} value={`-${formatPrice(promoDiscount, locale)}`} className="text-forest" />}
               <Row label={t.cart.totalWeight} value={formatWeight(weight, locale)} />

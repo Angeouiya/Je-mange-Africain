@@ -16,3 +16,31 @@ test("the catalogue and authentication entry are interactive", async ({ page }) 
   await expect(page.getByRole("heading", { name: /marché je mange africain|african market/i }).first()).toBeVisible();
   await expect(page.locator("main img").first()).toBeVisible();
 });
+
+test("the installable storefront exposes a safe app shell and public discovery map", async ({ page, request }) => {
+  const manifestResponse = await request.get("/manifest.json");
+  expect(manifestResponse.ok()).toBeTruthy();
+  const manifest = await manifestResponse.json();
+  expect(manifest.display).toBe("standalone");
+  expect(manifest.orientation).toBeUndefined();
+  expect(manifest.shortcuts.map((shortcut: { url: string }) => shortcut.url)).toEqual(expect.arrayContaining([
+    "/?view=catalog",
+    "/?view=recipes",
+    "/?view=wholesale",
+    "/?view=orders",
+  ]));
+
+  const workerResponse = await request.get("/sw.js");
+  expect(workerResponse.ok()).toBeTruthy();
+  const workerSource = await workerResponse.text();
+  expect(workerSource).toContain('url.pathname.startsWith("/api/")');
+
+  const sitemapResponse = await request.get("/sitemap.xml");
+  expect(sitemapResponse.ok()).toBeTruthy();
+  const sitemap = await sitemapResponse.text();
+  expect(sitemap).toContain("view=catalog");
+  expect(sitemap).toContain("view=recipes");
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect.poll(() => page.evaluate(async () => Boolean(await navigator.serviceWorker.getRegistration()))).toBe(true);
+});

@@ -86,16 +86,16 @@ export function MobileNav() {
           <BrandLockup compact inverse />
         </button>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
-          {desktopGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? "mt-5" : ""}>
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          {desktopGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? "mt-3" : ""}>
             <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-white/72">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-white/62">{group.intent}</span></div>
             <div className="space-y-1">{group.items.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.id);
               return (
-                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} className={`flex min-h-[3.75rem] w-full items-center gap-3 rounded-md border-l-2 px-3 text-left transition ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-white/72 hover:bg-white/7 hover:text-white"}`} style={active ? { borderLeftColor: item.accent } : undefined}>
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: active ? item.accent : `${item.accent}28` }}><Icon className="h-[1.05rem] w-[1.05rem]" /></span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold">{item.desktopLabel}</span><span className={`mt-1 block truncate text-[9px] ${active ? "text-charcoal/72" : "text-white/62"}`}>{item.purpose}</span></span>
+                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} className={`flex min-h-[3.25rem] w-full items-center gap-3 rounded-md border-l-2 px-3 text-left transition ${active ? "bg-white text-charcoal shadow-sm" : "border-transparent text-white/72 hover:bg-white/7 hover:text-white"}`} style={active ? { borderLeftColor: item.accent } : undefined}>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: active ? item.accent : `${item.accent}28` }}><Icon className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold">{item.desktopLabel}</span><span className={`mt-0.5 block truncate text-[9px] ${active ? "text-charcoal/72" : "text-white/62"}`}>{item.purpose}</span></span>
                   {item.id === "cart" && count > 0 ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-extrabold text-charcoal">{count}</span> : null}
                 </button>
               );
@@ -103,18 +103,18 @@ export function MobileNav() {
           </div>)}
         </nav>
 
-        <div className="border-t border-white/10 p-3">
+        <div className="border-t border-white/10 p-2.5">
           {customer ? (
-            <button type="button" onClick={() => navigate("account", { accountSection: "profile" })} className="mb-2 flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-white/8">
+            <button type="button" onClick={() => navigate("account", { accountSection: "profile" })} className="mb-1 flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-white/8">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-terre text-xs font-extrabold text-white">{customer.firstName[0]}{customer.lastName[0] || ""}</span>
               <span className="min-w-0"><span className="block truncate text-xs font-bold text-white">{customer.firstName} {customer.lastName}</span><span className="block truncate text-[10px] text-white/55">{customer.email}</span></span>
             </button>
           ) : null}
-          {customer ? <button onClick={() => navigate("account", { accountSection: "settings" })} className="flex min-h-10 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-white/70 hover:bg-white/8 hover:text-white"><Settings className="h-4 w-4" /> {locale === "fr" ? "Paramètres" : "Settings"}</button> : <button onClick={() => navigate("account")} className="flex min-h-10 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-white/70 hover:bg-white/8 hover:text-white"><LogIn className="h-4 w-4" /> {t.nav.login}</button>}
-          <button onClick={() => navigate("info", { infoPage: "help" })} className="flex min-h-10 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-white/70 hover:bg-white/8 hover:text-white"><LifeBuoy className="h-4 w-4" /> {t.nav.help}</button>
+          {customer ? <button onClick={() => navigate("account", { accountSection: "settings" })} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-white/70 hover:bg-white/8 hover:text-white"><Settings className="h-4 w-4" /> {locale === "fr" ? "Paramètres" : "Settings"}</button> : <button onClick={() => navigate("account")} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-white/70 hover:bg-white/8 hover:text-white"><LogIn className="h-4 w-4" /> {t.nav.login}</button>}
+          <button onClick={() => navigate("info", { infoPage: "help" })} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-white/70 hover:bg-white/8 hover:text-white"><LifeBuoy className="h-4 w-4" /> {t.nav.help}</button>
           {customer ? (
             <LogoutConfirmDialog>
-              <button className="flex min-h-10 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-red-200 hover:bg-red-500/10 hover:text-red-100"><LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
+              <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-red-200 hover:bg-red-500/10 hover:text-red-100"><LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
             </LogoutConfirmDialog>
           ) : null}
         </div>

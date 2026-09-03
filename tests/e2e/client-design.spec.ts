@@ -270,6 +270,12 @@ test("product details stay bounded and preserve real visual identification in th
 
   await expect(page.getByRole("heading", { level: 1, name: productName })).toBeVisible();
   await expect(page).toHaveURL(/\?view=product&productId=[^&]+/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\?view=product&productId=[^&]+/);
+  const productSchema = JSON.parse((await page.locator('script[id^="jma-structured-product-"]').textContent()) || "{}");
+  expect(productSchema["@type"]).toBe("Product");
+  expect(productSchema.name).toBe(productName);
+  expect(productSchema.offers.priceCurrency).toBe("EUR");
+  expect(productSchema.image.length).toBeGreaterThan(0);
   await expect(page.getByRole("button", { name: /retour|back/i })).toHaveCount(1);
   await expect(page.locator("main img").first()).toBeVisible();
   await expect(page.getByRole("tab", { name: /description/i })).toBeVisible();
@@ -532,6 +538,61 @@ test("the personal library filters and synchronizes saved products and recipes",
   await expectNoHorizontalOverflow(page);
 });
 
+test("the help center leads to a contextual and usable contact request", async ({ page }) => {
+  const captured: { contactRequest: Record<string, string> | null } = { contactRequest: null };
+  await page.route("**/api/contact", async (route) => {
+    captured.contactRequest = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ reference: "JMA-CONTACT-260903" }) });
+  });
+
+  await page.goto("/?view=info&infoPage=help", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: /centre d'aide|help center/i })).toBeVisible();
+  await page.getByRole("button", { name: /quels moyens de paiement|which payment methods/i }).click();
+  await expect(page.getByText(/sécurisé par stripe|secured by stripe/i)).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(/paypal|carte cadeau|gift card/i);
+  await expectNoGreenUiAccents(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/help-reference-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+
+  await page.getByRole("button", { name: /ouvrir le formulaire|open the form/i }).click();
+  await expect(page).toHaveURL(/view=info&infoPage=contact/);
+  await expect(page.getByRole("heading", { name: /contactez-nous|contact us/i })).toBeVisible();
+  await page.waitForTimeout(300); // Let the 200 ms workspace transition finish before simulating typing.
+  const contactName = page.getByLabel(/^nom$|^name$/i);
+  const contactEmail = page.getByLabel(/e-mail/i);
+  await contactName.pressSequentially("Awa Traoré");
+  await expect(contactName).toHaveValue("Awa Traoré");
+  await contactEmail.pressSequentially("awa@example.fr");
+  await expect(contactEmail).toHaveValue("awa@example.fr");
+  await page.getByLabel(/motif|reason/i).selectOption("delivery");
+  await expect(contactName).toHaveValue("Awa Traoré");
+  await expect(contactEmail).toHaveValue("awa@example.fr");
+  await page.getByLabel(/n° de commande|order number/i).fill("JMA-260903-0042");
+  await expect(contactName).toHaveValue("Awa Traoré");
+  await expect(contactEmail).toHaveValue("awa@example.fr");
+  await page.getByLabel(/objet|subject/i).fill("Température du colis");
+  await expect(contactName).toHaveValue("Awa Traoré");
+  await expect(contactEmail).toHaveValue("awa@example.fr");
+  await page.getByLabel(/^message$/i).fill("Je souhaite vérifier les conditions de transport de mon colis surgelé.");
+  await expect(contactName).toHaveValue("Awa Traoré");
+  await expect(contactEmail).toHaveValue("awa@example.fr");
+  await page.getByRole("button", { name: /envoyer la demande|send request/i }).click();
+
+  const successMessage = page.getByText(/JMA-CONTACT-260903/);
+  await expect(successMessage).toBeVisible();
+  expect(captured.contactRequest).not.toBeNull();
+  expect(captured.contactRequest?.subject).toContain("[Livraison]");
+  expect(captured.contactRequest?.subject).toContain("JMA-260903-0042");
+  expect(captured.contactRequest?.message).toContain("Commande: JMA-260903-0042");
+  await expectNoHorizontalOverflow(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await successMessage.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `output/playwright/audit/contact-reference-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await expectNoSeriousA11yViolations(page);
+});
+
 test("checkout compares delivery services and protects the cold chain", async ({ page }) => {
   const customer = { id: "customer-checkout", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
   const quoteRequests: Array<Record<string, unknown>> = [];
@@ -542,7 +603,7 @@ test("checkout compares delivery services and protects the cold chain", async ({
         cart: [{ id: "line-frozen", productId: "product-frozen", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", unitPrice: 8.5, unitLabel: "500 g", packWeightGrams: 500, thermalClass: "FROZEN", imageUrl: "/products/gombo.webp", qty: 2, maxStock: 40 }],
         customer: persistedCustomer,
         addresses: [{ id: "address-checkout", label: "Domicile", firstName: "Awa", lastName: "Traoré", street: "12 rue de la Gare", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678" }],
-        favorites: [], savedRecipes: [], recentlyViewed: [], country: "France", postalCode: "75011", coupon: null,
+        favorites: [], savedRecipes: [], recentlyViewed: [], country: "Belgique", postalCode: "1000", coupon: null,
       },
       version: 0,
     }));
@@ -560,6 +621,20 @@ test("checkout compares delivery services and protects the cold chain", async ({
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
+  await expect.poll(() => quoteRequests[0]?.country).toBe("Belgique");
+  expect(quoteRequests[0]?.postalCode).toBe("1000");
+  await expect(page.getByText("1000 · Belgique", { exact: true })).toBeVisible();
+  await expectLoadedProductImages(page.getByRole("img", { name: /gombo surgelé|frozen okra/i }), 1);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/cart-filled-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  if ((page.viewportSize()?.width || 0) >= 768) {
+    const sidebar = page.locator("aside").first();
+    const orderNavigationBox = await sidebar.getByRole("button", { name: /suivre mes commandes|track my orders/i }).boundingBox();
+    const profileBox = await sidebar.getByRole("button", { name: /awa traoré/i }).boundingBox();
+    expect((orderNavigationBox?.y || 0) + (orderNavigationBox?.height || 0)).toBeLessThanOrEqual(profileBox?.y || 0);
+  }
+  await expectNoHorizontalOverflow(page);
   await page.getByRole("button", { name: /passer la commande|place order/i }).click();
 
   await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
@@ -611,6 +686,11 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await page.getByRole("button", { name: /configurer|configure/i }).first().click();
 
   await expect(page.getByRole("heading", { name: /configurateur de recette|recipe configurator/i })).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\?view=recipe-config&recipeId=[^&]+/);
+  const recipeSchema = JSON.parse((await page.locator('script[id^="jma-structured-recipe-"]').textContent()) || "{}");
+  expect(recipeSchema["@type"]).toBe("Recipe");
+  expect(recipeSchema.recipeIngredient.length).toBeGreaterThan(0);
+  expect(recipeSchema.recipeInstructions.length).toBeGreaterThan(0);
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   const configuratorHeaderBox = await page.getByTestId("recipe-header").boundingBox();
   if (isMobile) expect(configuratorHeaderBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(210);

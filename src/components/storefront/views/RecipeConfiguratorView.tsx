@@ -20,6 +20,7 @@ import { formatQty } from "@/lib/recipe-engine";
 import { getRecipePhoto } from "@/lib/market-media";
 import { shareRecipe } from "@/lib/client-actions";
 import { PageBackButton } from "@/components/shared/PageBackButton";
+import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 
 interface CalcResult {
   ingredients: any[];
@@ -211,9 +212,42 @@ export function RecipeConfiguratorView() {
   const completedStepCount = completedSteps.filter((index) => index < preparationSteps.length).length;
   const preparationAdjustments = (calc?.ingredients || []).filter((ingredient) => ingredient.removalReason === "excluded" || ingredient.removalReason === "protein-none" || ingredient.isReplacement);
   const purchasableCount = (calc?.ingredients || []).filter((ingredient) => !ingredient.removed && ingredient.packs > 0 && ingredient.available).length;
+  const canonicalPath = `/?view=recipe-config&recipeId=${encodeURIComponent(recipe.id)}`;
+  const recipeStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    "@id": `${absoluteUrl(canonicalPath)}#recipe`,
+    name: recipe.title,
+    description: recipe.description,
+    image: [absoluteUrl(recipePhoto)],
+    recipeCuisine: recipe.country ? `${recipe.country} / Africa` : "African",
+    recipeCategory: recipe.category,
+    recipeYield: `${recipe.baseServings} ${locale === "fr" ? "personnes" : "servings"}`,
+    totalTime: `PT${Math.max(1, Number(recipe.timeMinutes) || 1)}M`,
+    inLanguage: locale === "fr" ? "fr-FR" : "en-GB",
+    recipeIngredient: (recipe.ingredients || []).map((ingredient: any) => {
+      const name = locale === "en" ? ingredient.product.nameEn : ingredient.product.nameFr;
+      return `${formatQty(Number(ingredient.quantityPerBase), ingredient.unit, locale)} ${name}`;
+    }),
+    recipeInstructions: (recipe.steps || []).map((step: string, index: number) => ({
+      "@type": "HowToStep",
+      position: index + 1,
+      text: step,
+    })),
+    author: { "@type": "Organization", "@id": `${absoluteUrl("/")}#organization`, name: "Je mange Africain" },
+  };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
+    <>
+      <ClientSeo
+        id={`recipe-${recipe.id}`}
+        title={`${recipe.title} | Je mange Africain`}
+        description={recipe.description}
+        canonicalPath={canonicalPath}
+        image={recipePhoto}
+        structuredData={recipeStructuredData}
+      />
+      <div className="mx-auto max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="recipes" className="mb-3" />
 
       {/* recipe header */}
@@ -479,7 +513,8 @@ export function RecipeConfiguratorView() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
