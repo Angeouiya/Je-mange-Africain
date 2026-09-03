@@ -232,6 +232,14 @@ test("global search and notifications navigate to useful client destinations", a
   await expect(notificationsButton).toBeVisible();
   await notificationsButton.click();
   await expect(page.getByRole("heading", { name: "Notifications" }).last()).toBeVisible();
+  await expect(page.getByText(/centre d’activité|activity centre/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /actualiser les notifications|refresh notifications/i })).toBeVisible();
+  const notificationFilters = page.getByRole("tablist", { name: /filtrer les notifications|filter notifications/i });
+  await expect(notificationFilters).toBeVisible();
+  await notificationFilters.getByRole("tab", { name: /recettes 1|recipes 1/i }).click();
+  await expect(page.getByText("Une nouvelle recette")).toBeVisible();
+  await expect(page.getByText("Votre commande avance")).toBeHidden();
+  await notificationFilters.getByRole("tab", { name: /toutes 2|all 2/i }).click();
   await expect(page.getByText("Votre commande avance")).toBeVisible();
   await expect(page.getByText(/commande|order/i).last()).toBeVisible();
   await expectNoHorizontalOverflow(page);

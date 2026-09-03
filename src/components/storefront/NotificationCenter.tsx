@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Bell, CheckCheck, ChefHat, Inbox, PackageCheck, Percent, ShieldAlert } from "lucide-react";
+import { ArrowRight, Bell, CheckCheck, ChefHat, Inbox, PackageCheck, Percent, RefreshCw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -32,6 +32,8 @@ const iconByType = {
   order: PackageCheck,
   promotion: Percent,
 };
+const notificationFilterOrder = ["order", "recipe", "promotion"] as const;
+type NotificationFilter = "all" | (typeof notificationFilterOrder)[number];
 
 function decodeApplicationKey(value: string) {
   const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -291,34 +293,89 @@ function NotificationPanel({
   onTogglePush: (checked: boolean) => void;
   onRetry: () => void;
 }) {
+  const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>("all");
+  const notificationCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const notification of notifications) {
+      counts.set(notification.type, (counts.get(notification.type) || 0) + 1);
+    }
+    return counts;
+  }, [notifications]);
+  const availableFilters = useMemo(
+    () => notificationFilterOrder.filter((type) => notificationCounts.has(type)),
+    [notificationCounts]
+  );
+  const activeFilter = selectedFilter === "all" || availableFilters.includes(selectedFilter) ? selectedFilter : "all";
+  const filteredNotifications = useMemo(
+    () => activeFilter === "all" ? notifications : notifications.filter((notification) => notification.type === activeFilter),
+    [activeFilter, notifications]
+  );
+  const filterLabel = (filter: NotificationFilter) => {
+    if (filter === "all") return locale === "fr" ? "Toutes" : "All";
+    if (filter === "order") return locale === "fr" ? "Commandes" : "Orders";
+    if (filter === "recipe") return locale === "fr" ? "Recettes" : "Recipes";
+    return locale === "fr" ? "Offres" : "Offers";
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-white md:h-auto md:max-h-[min(42rem,calc(100vh-5rem))]">
-      <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-4 pr-12 md:pr-4">
+      <div className="african-kente-stripe h-[3px] shrink-0" />
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 pr-12 md:pr-4">
         <div className="min-w-0">
-          <h2 className="text-base font-black text-charcoal">Notifications</h2>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">{unread > 0 ? (locale === "fr" ? `${unread} nouvelle${unread > 1 ? "s" : ""}` : `${unread} new`) : (locale === "fr" ? "Vous êtes à jour" : "You are up to date")}</p>
+          <p className="text-[10px] font-bold uppercase text-terre">{locale === "fr" ? "Centre d’activité" : "Activity centre"}</p>
+          <h2 className="mt-0.5 text-lg font-black leading-tight text-charcoal">Notifications</h2>
+          <p className="mt-1 text-[11px] text-muted-foreground">{unread > 0 ? (locale === "fr" ? `${unread} nouvelle${unread > 1 ? "s" : ""} à consulter` : `${unread} new to review`) : (locale === "fr" ? "Toute votre activité est à jour" : "All your activity is up to date")}</p>
         </div>
-        {unread > 0 ? <button type="button" onClick={onReadAll} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-bold text-terre hover:bg-terre/5"><CheckCheck className="h-3.5 w-3.5" /> {locale === "fr" ? "Tout lire" : "Read all"}</button> : null}
+        <div className="flex shrink-0 items-center gap-1">
+          <Button type="button" variant="ghost" size="icon" onClick={onRetry} disabled={loading} className="h-9 w-9 text-muted-foreground hover:bg-cream hover:text-terre" aria-label={locale === "fr" ? "Actualiser les notifications" : "Refresh notifications"}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+          {unread > 0 ? <button type="button" onClick={onReadAll} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-bold text-terre hover:bg-terre/5"><CheckCheck className="h-3.5 w-3.5" /> {locale === "fr" ? "Tout lire" : "Read all"}</button> : null}
+        </div>
       </div>
 
-      <div className="border-b border-border bg-muted/30 p-3">
-        <div className="flex items-center gap-3 rounded-lg border border-charcoal/5 bg-white px-3 py-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-cream"><Image src="/brand/logo-mark-burgundy.png" alt="" width={72} height={72} className="h-8 w-8 object-contain" /></span>
+      <div className="flex items-center gap-3 border-b border-border bg-cream/55 px-4 py-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md bg-white"><Image src="/brand/logo-mark-burgundy.png" alt="" width={72} height={72} className="h-8 w-8 object-contain" /></span>
           <span className="min-w-0 flex-1">
-            <span className="block text-xs font-black text-charcoal">{locale === "fr" ? "Alertes mobiles" : "Mobile alerts"}</span>
+            <span className="block text-xs font-black text-charcoal">{locale === "fr" ? "Alertes sur cet appareil" : "Alerts on this device"}</span>
             <span className={`mt-0.5 block text-[10px] ${pushState === "denied" || pushError ? "text-destructive" : "text-muted-foreground"}`}>{pushCopy}</span>
           </span>
           {pushState === "denied" ? <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" /> : (
             <Switch checked={pushState === "active"} disabled={["checking", "busy", "unsupported", "needs-install"].includes(pushState)} onCheckedChange={onTogglePush} aria-label={locale === "fr" ? "Activer les alertes mobiles" : "Enable mobile alerts"} />
           )}
-        </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      {!loading && !error && notifications.length > 0 ? (
+        <div className="shrink-0 border-b border-border px-3 py-2.5">
+          <div role="tablist" aria-label={locale === "fr" ? "Filtrer les notifications" : "Filter notifications"} className="flex gap-1 overflow-x-auto overscroll-x-contain">
+            {(["all", ...availableFilters] as NotificationFilter[]).map((filter) => {
+              const count = filter === "all" ? notifications.length : notificationCounts.get(filter) || 0;
+              const isActive = activeFilter === filter;
+              return (
+                <button
+                  key={filter}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls="notification-activity-list"
+                  onClick={() => setSelectedFilter(filter)}
+                  className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md px-3 text-[11px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/45 ${isActive ? "bg-charcoal text-white" : "bg-muted/55 text-muted-foreground hover:bg-cream hover:text-charcoal"}`}
+                >
+                  {filterLabel(filter)}
+                  <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[9px] ${isActive ? "bg-white/15 text-white" : "bg-white text-charcoal"}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      <div id="notification-activity-list" role="tabpanel" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {loading ? <div className="space-y-1 p-3" aria-label={locale === "fr" ? "Chargement des notifications" : "Loading notifications"}>{Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-20 animate-pulse rounded-md bg-muted" />)}</div> : null}
         {!loading && error ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><ShieldAlert className="mx-auto h-7 w-7 text-destructive" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Notifications indisponibles" : "Notifications unavailable"}</p><Button type="button" variant="link" size="sm" onClick={onRetry} className="mt-1 text-terre">{locale === "fr" ? "Réessayer" : "Retry"}</Button></div></div> : null}
         {!loading && !error && !notifications.length ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><Inbox className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Aucune notification" : "No notifications"}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les actualités de vos commandes et offres apparaîtront ici." : "Order and offer updates will appear here."}</p></div></div> : null}
-        {!loading && !error ? notifications.map((notification) => {
+        {!loading && !error && notifications.length > 0 && !filteredNotifications.length ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><Inbox className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Aucune activité dans cette catégorie" : "No activity in this category"}</p><button type="button" onClick={() => setSelectedFilter("all")} className="mt-2 min-h-9 rounded-md px-3 text-xs font-bold text-terre hover:bg-terre/5">{locale === "fr" ? "Voir toutes les notifications" : "View all notifications"}</button></div></div> : null}
+        {!loading && !error ? filteredNotifications.map((notification) => {
           const Icon = iconByType[notification.type as keyof typeof iconByType] || Bell;
           const isRead = readIds.includes(notification.id);
           const typeLabel = notification.type === "order" ? (locale === "fr" ? "Commande" : "Order") : notification.type === "recipe" ? (locale === "fr" ? "Recette" : "Recipe") : notification.type === "promotion" ? (locale === "fr" ? "Offre" : "Offer") : (locale === "fr" ? "Information" : "Information");
