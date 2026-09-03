@@ -193,7 +193,7 @@ export function CartView() {
 
         {/* summary */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-lg border border-charcoal/12 bg-white p-4 shadow-[0_22px_50px_-42px_rgba(24,26,24,0.55)]">
+          <div className="rounded-lg border border-charcoal/12 bg-white p-4 shadow-[0_22px_50px_-42px_rgba(63,41,48,0.55)]">
             <div className="mb-3 flex items-baseline justify-between gap-3"><h2 className="font-display text-xl font-semibold text-charcoal">{t.config.summary}</h2><span className="text-[10px] font-bold uppercase text-muted-foreground">{cart.reduce((sum, item) => sum + item.qty, 0)} {locale === "fr" ? "article(s)" : "item(s)"}</span></div>
 
             {/* coupon */}

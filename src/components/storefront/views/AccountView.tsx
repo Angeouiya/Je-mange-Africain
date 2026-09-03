@@ -138,7 +138,7 @@ export function AccountView() {
             </button>
           </DialogClose>
           <div className="mx-auto flex min-h-full w-full max-w-md items-start px-4 py-16 sm:items-center sm:py-12">
-        <section className="w-full rounded-lg bg-white p-5 sm:border sm:border-charcoal/10 sm:p-7 sm:shadow-[0_26px_70px_-52px_rgba(24,26,24,0.6)]">
+        <section className="w-full rounded-lg bg-white p-5 sm:border sm:border-charcoal/10 sm:p-7 sm:shadow-[0_26px_70px_-52px_rgba(63,41,48,0.6)]">
           <div className="mb-8 flex justify-center sm:justify-start">
             <BrandLockup size="large" />
           </div>

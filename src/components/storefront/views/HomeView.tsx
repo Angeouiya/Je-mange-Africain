@@ -87,7 +87,7 @@ export function HomeView() {
                   onClick={() => navigate("catalog", { category: c.id })}
                   className="group flex min-h-20 w-[4.55rem] shrink-0 snap-start flex-col items-center justify-start gap-2 rounded-md px-1 py-1.5 text-center transition hover:bg-muted md:w-auto"
                 >
-                  <CategoryIcon slug={c.slug} color={c.color} className="h-11 w-11 border-black/5 bg-white shadow-sm transition group-hover:-translate-y-0.5" />
+                  <CategoryIcon slug={c.slug} color={c.color} className="h-11 w-11 border-charcoal/5 bg-white shadow-sm transition group-hover:-translate-y-0.5" />
                   <span className="line-clamp-2 min-h-7 text-[9px] font-extrabold leading-3.5 text-charcoal sm:text-[10px]">{c.name}</span>
                 </motion.button>
               ))}
@@ -245,7 +245,7 @@ function MarketPulse({ deals, news, locale }: { deals: any[]; news: any[]; local
         </button>
       </div>
 
-      <div className="grid overflow-hidden rounded-lg border border-black/8 bg-white lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid overflow-hidden rounded-lg border border-charcoal/8 bg-white lg:grid-cols-[1.1fr_0.9fr]">
         {deal ? (
           <button type="button" onClick={() => navigate("product", { productId: deal.id })} className="group relative min-h-64 overflow-hidden text-left sm:min-h-72">
             <ProductImage src={getProductPhoto(deal)} alt={deal.name} emoji={deal.imageEmoji} color={deal.imageColor} size="lg" className="h-full w-full transition duration-500 group-hover:scale-[1.025]" rounded="rounded-none" />
@@ -258,8 +258,8 @@ function MarketPulse({ deals, news, locale }: { deals: any[]; news: any[]; local
           </button>
         ) : null}
 
-        <div className="flex flex-col border-t border-black/8 lg:border-l lg:border-t-0">
-          <div className="flex items-center gap-3 border-b border-black/8 px-4 py-4 sm:px-5"><span className="grid h-9 w-9 place-items-center rounded-md bg-gold/18 text-amber-800"><PackageOpen className="h-4 w-4" /></span><div><h3 className="text-sm font-black text-charcoal">{locale === "fr" ? "Arrivages récents" : "Recent arrivals"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Nouveaux formats et produits à découvrir" : "New products and pack sizes to discover"}</p></div></div>
+        <div className="flex flex-col border-t border-charcoal/8 lg:border-l lg:border-t-0">
+          <div className="flex items-center gap-3 border-b border-charcoal/8 px-4 py-4 sm:px-5"><span className="grid h-9 w-9 place-items-center rounded-md bg-gold/18 text-amber-800"><PackageOpen className="h-4 w-4" /></span><div><h3 className="text-sm font-black text-charcoal">{locale === "fr" ? "Arrivages récents" : "Recent arrivals"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Nouveaux formats et produits à découvrir" : "New products and pack sizes to discover"}</p></div></div>
           <div className="flex-1 divide-y divide-border">
             {arrivals.map((product) => (
               <button key={product.id} type="button" onClick={() => navigate("product", { productId: product.id })} className="group grid w-full grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/45 sm:px-5">

@@ -123,7 +123,7 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
 
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_23rem]">
         <div className="min-w-0">
-          <section className="border-y border-black/8 bg-white px-4 py-5 sm:px-5" aria-labelledby="campaign-message-title">
+          <section className="border-y border-charcoal/8 bg-white px-4 py-5 sm:px-5" aria-labelledby="campaign-message-title">
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-terre text-white"><Globe2 className="h-4 w-4" /></span><div><h3 id="campaign-message-title" className="text-sm font-black text-charcoal">{locale === "fr" ? "Message bilingue" : "Bilingual message"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Les deux versions sont obligatoires avant diffusion." : "Both versions are required before delivery."}</p></div></div>
             <div className="mt-4 grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/45 p-1 sm:hidden" role="tablist" aria-label={locale === "fr" ? "Langue du message" : "Message language"}>
               {(["fr", "en"] as const).map((language) => (
@@ -148,7 +148,7 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
             </div>
           </section>
 
-          <section className="mt-5 border-y border-black/8 bg-white px-4 py-5 sm:px-5" aria-labelledby="campaign-routing-title">
+          <section className="mt-5 border-y border-charcoal/8 bg-white px-4 py-5 sm:px-5" aria-labelledby="campaign-routing-title">
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-forest text-white"><Target className="h-4 w-4" /></span><div><h3 id="campaign-routing-title" className="text-sm font-black text-charcoal">{locale === "fr" ? "Audience et destination" : "Audience and destination"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Chaque appareil reçoit la bonne langue et ouvre directement l’espace choisi." : "Each device receives the right language and opens the selected destination."}</p></div></div>
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               <div className="space-y-2"><Label htmlFor="push-audience">{locale === "fr" ? "Audience" : "Audience"}</Label><select id="push-audience" value={campaign.audience} onChange={(event) => setCampaign({ ...campaign, audience: event.target.value as PushAudience })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{audienceOptions.map((audience) => <option key={audience.value} value={audience.value}>{audience.label}</option>)}</select><p className="text-[9px] leading-4 text-muted-foreground">{selectedAudience.description}</p></div>
@@ -156,7 +156,7 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
               <div className="space-y-2"><Label htmlFor="push-url">Destination</Label><select id="push-url" value={campaign.url} onChange={(event) => setCampaign({ ...campaign, url: event.target.value as CampaignDraft["url"] })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{destinations.map((destination) => <option key={destination.value} value={destination.value}>{destination.label}</option>)}</select></div>
             </div>
 
-            <div className="mt-4 flex items-center gap-3 border-y border-black/8 py-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal"><UsersRound className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-black text-charcoal">{audienceCount.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB")} {locale === "fr" ? "appareil(s) ciblé(s)" : "targeted device(s)"}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{selectedAudience.label} · {destinationLabel(campaign.url)}</p></div></div>
+            <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal"><UsersRound className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-black text-charcoal">{audienceCount.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB")} {locale === "fr" ? "appareil(s) ciblé(s)" : "targeted device(s)"}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{selectedAudience.label} · {destinationLabel(campaign.url)}</p></div></div>
 
             <AlertDialog>
               <AlertDialogTrigger asChild><Button disabled={!valid || sending} className="mt-5 h-11 w-full bg-terre text-white hover:bg-terre-dark sm:w-auto">{sending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{sending ? (locale === "fr" ? "Diffusion..." : "Delivering...") : (locale === "fr" ? "Vérifier puis diffuser" : "Review and deliver")}</Button></AlertDialogTrigger>

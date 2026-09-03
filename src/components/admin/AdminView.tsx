@@ -329,7 +329,7 @@ export function AdminView({
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[4.4rem] border-t border-black/10 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ gridTemplateColumns: `repeat(${quickItems.length + 1}, minmax(0, 1fr))` }} aria-label={isFr ? "Navigation rapide" : "Quick navigation"}>
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[4.4rem] border-t border-charcoal/10 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ gridTemplateColumns: `repeat(${quickItems.length + 1}, minmax(0, 1fr))` }} aria-label={isFr ? "Navigation rapide" : "Quick navigation"}>
         {quickItems.map((item) => (
           <button key={item.id} type="button" onClick={() => selectSection(item.id)} className="relative flex min-w-0 flex-col items-center justify-center gap-1 text-[9px] font-bold text-muted-foreground" style={section === item.id ? { color: item.accent } : undefined} aria-current={section === item.id ? "page" : undefined}>{section === item.id ? <span className="absolute inset-x-3 top-0 h-0.5" style={{ backgroundColor: item.accent }} /> : null}<item.icon className="h-5 w-5" /><span className="max-w-full truncate px-1">{isFr ? item.mobileFr : item.mobileEn}</span></button>
         ))}

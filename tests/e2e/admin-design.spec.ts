@@ -58,6 +58,35 @@ const profitabilityRow = {
   orders: 284,
 };
 
+async function expectBrandSafeUiColors(page: Page) {
+  const forbiddenStyles = await page.locator("body").evaluate((body) => {
+    const ignoredTags = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS"]);
+    const properties = ["color", "backgroundColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"] as const;
+    const isForbidden = (color: string) => {
+      const match = color.match(/rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)(?:[, /]+([\d.]+))?/i);
+      if (!match) return false;
+      const [, red, green, blue] = match.map(Number);
+      const alpha = match[4] === undefined ? 1 : Number(match[4]);
+      if (alpha === 0) return false;
+      const isGreen = green > red * 1.08 && green > blue * 1.08;
+      const isNearBlack = red < 20 && green < 20 && blue < 20;
+      return isGreen || isNearBlack;
+    };
+
+    return [...body.querySelectorAll<HTMLElement>("*")]
+      .filter((element) => !ignoredTags.has(element.tagName) && element.getClientRects().length > 0)
+      .flatMap((element) => {
+        const styles = getComputedStyle(element);
+        return properties
+          .map((property) => ({ element: element.tagName.toLowerCase(), property, color: styles[property] }))
+          .filter(({ color }) => isForbidden(color));
+      })
+      .slice(0, 20);
+  });
+
+  expect(forbiddenStyles, `green or black UI styles remain: ${JSON.stringify(forbiddenStyles)}`).toEqual([]);
+}
+
 async function mockAdminApi(page: Page) {
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -174,12 +203,45 @@ test("every professional workspace has a clear purpose and stays inside the view
     }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${section.nav} overflows horizontally`).toBeLessThanOrEqual(1);
+    await expectBrandSafeUiColors(page);
     if (process.env.ADMIN_SCREENSHOTS) {
       const directory = join(process.cwd(), "output", "playwright", "admin-review");
       mkdirSync(directory, { recursive: true });
       await page.screenshot({ path: join(directory, `${section.id}-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
     }
   }
+});
+
+test("admin searches report, filter and clear results consistently", async ({ page }) => {
+  await mockAdminApi(page);
+  const cases = [
+    { hash: "catalog", heading: "Ce qui est réellement vendu", label: "Rechercher un produit", visible: "Attiéké frais" },
+    { hash: "recipes", heading: "Construire des recettes achetables", label: "Rechercher une recette", visible: "Attiéké poisson braisé" },
+    { hash: "orders", heading: "Du paiement jusqu'à la porte", label: "Rechercher une commande", visible: "JMA-260902-0142" },
+    { hash: "inventory", heading: "Inventaire piloté par les lots", label: "Rechercher un lot", visible: "ATT-2608-FR" },
+    { hash: "customers", heading: "Piloter chaque relation", label: "Rechercher un client", visible: "Aminata Koné" },
+  ] as const;
+
+  for (const item of cases) {
+    await page.goto(`/admin#${item.hash}`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: item.heading })).toBeVisible();
+    const field = page.getByRole("searchbox", { name: item.label });
+    await field.fill("aucun-résultat");
+    await expect(page.getByTestId("admin-search-field")).toContainText("0 résultats sur 1");
+    await page.getByRole("button", { name: "Effacer la recherche" }).click();
+    await expect(field).toHaveValue("");
+    await expect(page.getByText(item.visible, { exact: false }).filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByTestId("admin-search-field")).toContainText("1 résultat sur 1");
+  }
+
+  await page.goto("/admin#finance", { waitUntil: "domcontentloaded" });
+  await page.getByRole("tab", { name: /Encaissements/ }).click();
+  const paymentSearch = page.getByRole("searchbox", { name: "Rechercher un encaissement" });
+  await paymentSearch.fill("introuvable");
+  await expect(page.getByTestId("admin-search-field")).toContainText("0 résultats sur 1");
+  await page.getByRole("button", { name: "Effacer la recherche" }).click();
+  await expect(paymentSearch).toHaveValue("");
+  await expect(page.getByText("pi_jma_260902", { exact: true })).toBeVisible();
 });
 
 test("the professional console remains separate from the customer storefront", async ({ page }) => {

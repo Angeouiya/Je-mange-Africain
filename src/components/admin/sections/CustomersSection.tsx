@@ -2,12 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { ArrowUpRight, CircleAlert, Crown, Search, UserRound, UsersRound } from "lucide-react";
+import { ArrowUpRight, CircleAlert, Crown, UserRound, UsersRound } from "lucide-react";
 import { CustomerProfileDialog } from "@/components/admin/customers/CustomerProfileDialog";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import type { AdminCustomer } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate, formatPrice, normalize } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
@@ -88,7 +87,7 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
           { value: "new", label: isFr ? "À activer" : "To activate", count: segmentCounts.new },
         ]} />
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row 2xl:w-auto">
-          <label className="relative block min-w-0 flex-1 2xl:w-80"><span className="sr-only">{isFr ? "Rechercher un client" : "Search customers"}</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 bg-white pl-9" placeholder={isFr ? "Nom, e-mail, téléphone ou ville" : "Name, email, phone or city"} /></label>
+          <AdminSearchField value={query} onChange={setQuery} label={isFr ? "Rechercher un client" : "Search customers"} placeholder={isFr ? "Nom, e-mail, téléphone ou ville" : "Name, email, phone or city"} resultCount={filteredCustomers.length} totalCount={customers.length} locale={locale} className="flex-1 2xl:w-80" />
           <Select value={sort} onValueChange={(value) => setSort(value as CustomerSort)}>
             <SelectTrigger className="h-10 w-full bg-white sm:w-48" aria-label={isFr ? "Trier les clients" : "Sort customers"}><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -105,11 +104,11 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
           {filteredCustomers.map((customer) => {
             const segment = segmentDetails(customer.segment, isFr);
             return (
-              <button key={customer.id} type="button" onClick={() => setSelectedCustomer(customer)} aria-label={`${isFr ? "Ouvrir le profil de" : "Open profile for"} ${customer.name}`} className="group min-w-0 rounded-lg border border-black/8 bg-white p-4 text-left transition [contain-intrinsic-size:205px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
+              <button key={customer.id} type="button" onClick={() => setSelectedCustomer(customer)} aria-label={`${isFr ? "Ouvrir le profil de" : "Open profile for"} ${customer.name}`} className="group min-w-0 rounded-lg border border-charcoal/8 bg-white p-4 text-left transition [contain-intrinsic-size:205px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
                 <div className="flex min-w-0 items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-charcoal text-xs font-black text-white">{initials(customer.name)}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-charcoal">{customer.name}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{customer.email}</p></div><Badge variant="outline" className={segment.className}>{segment.label}</Badge></div>
-                <div className="mt-4 flex items-end justify-between gap-3 border-t border-black/8 pt-3"><div className="min-w-0"><p className="text-[9px] font-extrabold uppercase text-muted-foreground">{isFr ? "Valeur client" : "Lifetime value"}</p><p className="mt-1 truncate text-lg font-black tabular-nums text-charcoal">{formatPrice(customer.lifetimeValue, locale)}</p></div><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal transition group-hover:bg-charcoal group-hover:text-white"><ArrowUpRight className="h-4 w-4" /></span></div>
-                <dl className="mt-3 grid grid-cols-3 divide-x divide-black/8 text-center"><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Commandes" : "Orders"}</dt><dd className="mt-0.5 text-xs font-black tabular-nums">{customer.orders}</dd></div><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Panier moy." : "Avg. basket"}</dt><dd className="mt-0.5 truncate text-xs font-black tabular-nums">{formatPrice(customer.averageBasket, locale)}</dd></div><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Dernier achat" : "Last order"}</dt><dd className="mt-0.5 truncate text-[10px] font-black">{customer.lastOrderAt ? formatDate(customer.lastOrderAt, locale) : "—"}</dd></div></dl>
-                <div className="mt-3 flex min-w-0 items-center justify-between gap-3 border-t border-black/8 pt-3 text-[10px] text-muted-foreground"><span className="truncate">{customer.city}, {customer.country}</span>{customer.openTickets ? <span className="shrink-0 font-bold text-red-700">{customer.openTickets} {isFr ? "demande(s)" : "request(s)"}</span> : <span className="shrink-0">{customer.favorites + customer.savedRecipes} {isFr ? "envies" : "saved"}</span>}</div>
+                <div className="mt-4 flex items-end justify-between gap-3 border-t border-charcoal/8 pt-3"><div className="min-w-0"><p className="text-[9px] font-extrabold uppercase text-muted-foreground">{isFr ? "Valeur client" : "Lifetime value"}</p><p className="mt-1 truncate text-lg font-black tabular-nums text-charcoal">{formatPrice(customer.lifetimeValue, locale)}</p></div><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal transition group-hover:bg-charcoal group-hover:text-white"><ArrowUpRight className="h-4 w-4" /></span></div>
+                <dl className="mt-3 grid grid-cols-3 divide-x divide-charcoal/8 text-center"><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Commandes" : "Orders"}</dt><dd className="mt-0.5 text-xs font-black tabular-nums">{customer.orders}</dd></div><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Panier moy." : "Avg. basket"}</dt><dd className="mt-0.5 truncate text-xs font-black tabular-nums">{formatPrice(customer.averageBasket, locale)}</dd></div><div className="min-w-0 px-1"><dt className="text-[9px] text-muted-foreground">{isFr ? "Dernier achat" : "Last order"}</dt><dd className="mt-0.5 truncate text-[10px] font-black">{customer.lastOrderAt ? formatDate(customer.lastOrderAt, locale) : "—"}</dd></div></dl>
+                <div className="mt-3 flex min-w-0 items-center justify-between gap-3 border-t border-charcoal/8 pt-3 text-[10px] text-muted-foreground"><span className="truncate">{customer.city}, {customer.country}</span>{customer.openTickets ? <span className="shrink-0 font-bold text-red-700">{customer.openTickets} {isFr ? "demande(s)" : "request(s)"}</span> : <span className="shrink-0">{customer.favorites + customer.savedRecipes} {isFr ? "envies" : "saved"}</span>}</div>
               </button>
             );
           })}
@@ -122,5 +121,5 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
 }
 
 function Metric({ icon, iconClass, value, label }: { icon: ReactNode; iconClass: string; value: string; label: string }) {
-  return <div className="min-w-0 rounded-lg border border-black/8 bg-white p-3 sm:p-4"><span className={`grid h-8 w-8 place-items-center rounded-md ${iconClass}`}>{icon}</span><p className="mt-3 truncate text-lg font-black tabular-nums text-charcoal sm:mt-4 sm:text-xl">{value}</p><p className="mt-1 text-[9px] font-bold leading-4 text-muted-foreground sm:text-[10px]">{label}</p></div>;
+  return <div className="min-w-0 rounded-lg border border-charcoal/8 bg-white p-3 sm:p-4"><span className={`grid h-8 w-8 place-items-center rounded-md ${iconClass}`}>{icon}</span><p className="mt-3 truncate text-lg font-black tabular-nums text-charcoal sm:mt-4 sm:text-xl">{value}</p><p className="mt-1 text-[9px] font-bold leading-4 text-muted-foreground sm:text-[10px]">{label}</p></div>;
 }

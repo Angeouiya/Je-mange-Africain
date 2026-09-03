@@ -58,7 +58,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "bg-[#FBFBF8] data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 border-white/60 shadow-[0_24px_90px_-28px_rgba(0,0,0,0.72)] transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          "bg-[#FBFBF8] data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 border-white/60 shadow-[0_24px_90px_-28px_rgba(63,41,48,0.72)] transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
           side === "left" &&
@@ -72,7 +72,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-md border border-black/8 bg-white/90 text-muted-foreground shadow-sm transition hover:text-charcoal focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-md border border-charcoal/8 bg-white/90 text-muted-foreground shadow-sm transition hover:text-charcoal focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>

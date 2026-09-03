@@ -59,9 +59,9 @@ export default function OverviewSection({ locale, onNavigate }: { locale: "fr" |
         description={isFr ? "Une lecture directe de l'activité réelle pour savoir quoi traiter maintenant, sans indicateurs décoratifs." : "A direct view of live activity so you know what to handle now, without decorative metrics."}
       />
 
-      <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-black/8 bg-white xl:grid-cols-4" aria-label={isFr ? "Indicateurs essentiels" : "Essential metrics"}>
+      <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white xl:grid-cols-4" aria-label={isFr ? "Indicateurs essentiels" : "Essential metrics"}>
         {activityMetrics.map((metric, index) => (
-          <div key={metric.label} className={`min-w-0 p-3 sm:p-5 ${index % 2 === 0 ? "border-r border-black/8" : ""} ${index < 2 ? "border-b border-black/8" : ""} ${index < 3 ? "xl:border-r" : "xl:border-r-0"} xl:border-b-0`}>
+          <div key={metric.label} className={`min-w-0 p-3 sm:p-5 ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "xl:border-r" : "xl:border-r-0"} xl:border-b-0`}>
             <span className={`grid h-9 w-9 place-items-center rounded-md ${metric.accent}`}><metric.icon className="h-4 w-4" /></span>
             <p className="mt-3 text-xl font-black tabular-nums text-charcoal sm:mt-4 sm:text-2xl">{metric.value}</p>
             <p className="mt-1 text-xs font-bold text-charcoal">{metric.label}</p>
@@ -76,7 +76,7 @@ export default function OverviewSection({ locale, onNavigate }: { locale: "fr" |
             <div><p className="text-[11px] font-extrabold uppercase text-muted-foreground">{isFr ? "File d'attention" : "Attention queue"}</p><h3 className="mt-1 text-lg font-black text-charcoal">{isFr ? "Priorités opérationnelles" : "Operational priorities"}</h3></div>
             <span className="text-xs font-bold tabular-nums text-muted-foreground">{operationalAlerts.reduce((sum, item) => sum + item.value, 0)} {isFr ? "signalements" : "signals"}</span>
           </div>
-          <div className="divide-y divide-black/8 border-y border-black/8 bg-white">
+          <div className="divide-y divide-charcoal/8 border-y border-charcoal/8 bg-white">
             {operationalAlerts.map((item) => (
               <button key={item.label} type="button" onClick={() => onNavigate(item.target)} className="group flex w-full items-center gap-3 px-3 py-4 text-left transition-colors hover:bg-forest/[0.035] sm:px-4">
                 <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${item.color}`}><item.icon className="h-[18px] w-[18px]" /></span>

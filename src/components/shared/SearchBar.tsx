@@ -168,7 +168,7 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
       </div>
 
       {showPanel ? (
-        <div id={listboxId} role="listbox" aria-label={locale === "fr" ? "Suggestions de recherche" : "Search suggestions"} className="absolute z-50 mt-2 max-h-[min(32rem,calc(100dvh-10rem))] w-full min-w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-lg border border-border bg-white shadow-[0_22px_70px_-28px_rgba(0,0,0,0.5)] md:min-w-0">
+        <div id={listboxId} role="listbox" aria-label={locale === "fr" ? "Suggestions de recherche" : "Search suggestions"} className="absolute z-50 mt-2 max-h-[min(32rem,calc(100dvh-10rem))] w-full min-w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-lg border border-border bg-white shadow-[0_22px_70px_-28px_rgba(63,41,48,0.5)] md:min-w-0">
           {!query.trim() ? (
             <div className="p-4">
               <p className="text-[10px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Recherches populaires" : "Popular searches"}</p>

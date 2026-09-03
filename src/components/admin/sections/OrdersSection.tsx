@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Box, Boxes, CheckCircle2, ClipboardList, Clock3, MapPin, PackageCheck, Search, Truck, UserRound } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { Box, Boxes, CheckCircle2, ClipboardList, Clock3, MapPin, PackageCheck, Truck, UserRound } from "lucide-react";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import type { AdminOrder } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { useFetch } from "@/lib/use-fetch";
 import { formatDate, formatDateTime, formatPrice, formatWeight, normalize, orderStatusColor, thermalLabel } from "@/lib/format";
 import { ProductImage } from "@/components/shared/ProductImage";
@@ -78,26 +77,26 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
         description={isFr ? "Chaque commande avance dans un flux explicite. Ouvrez une fiche pour contrôler ses articles, son paiement, ses colis et sa chronologie." : "Every order moves through an explicit workflow. Open a record to inspect items, payment, parcels and timeline."}
       />
 
-      <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-black/8 bg-white sm:grid-cols-4">
+      <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white sm:grid-cols-4">
         {([
           [Clock3, isFr ? "À valider" : "To validate", counts.validate, "text-terre"],
           [PackageCheck, isFr ? "En préparation" : "Packing", counts.prepare, "text-gold"],
           [Truck, isFr ? "En livraison" : "Delivering", counts.deliver, "text-blue-700"],
           [CheckCircle2, isFr ? "Clôturées" : "Closed", counts.closed, "text-forest"],
-        ] as const).map(([Icon, label, value, color], index) => <div key={label} className={`flex items-center gap-3 p-3 sm:p-4 ${index % 2 === 0 ? "border-r border-black/8" : ""} ${index < 2 ? "border-b border-black/8" : ""} ${index < 3 ? "sm:border-r" : "sm:border-r-0"} sm:border-b-0`}><Icon className={`h-5 w-5 ${color}`} /><div><p className="text-xl font-black tabular-nums">{value}</p><p className="text-[10px] font-bold text-muted-foreground">{label}</p></div></div>)}
+        ] as const).map(([Icon, label, value, color], index) => <div key={label} className={`flex items-center gap-3 p-3 sm:p-4 ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "sm:border-r" : "sm:border-r-0"} sm:border-b-0`}><Icon className={`h-5 w-5 ${color}`} /><div><p className="text-xl font-black tabular-nums">{value}</p><p className="text-[10px] font-bold text-muted-foreground">{label}</p></div></div>)}
       </div>
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <SectionTabs value={flow} onChange={setFlow} label={isFr ? "Étapes du flux" : "Workflow stages"} items={flowItems} />
-        <label className="relative block w-full xl:max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 bg-white pl-9" placeholder={isFr ? "N°, destinataire ou ville" : "Number, recipient or city"} /></label>
+        <AdminSearchField value={query} onChange={setQuery} label={isFr ? "Rechercher une commande" : "Search orders"} placeholder={isFr ? "N°, destinataire ou ville" : "Number, recipient or city"} resultCount={filteredOrders.length} totalCount={orders.length} locale={locale} className="w-full xl:max-w-sm" />
       </div>
 
       {filteredOrders.length ? (
         <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {filteredOrders.map((order) => (
-            <button key={order.id} type="button" onClick={() => setSelectedOrder(order)} className="group rounded-lg border border-black/8 bg-white p-4 text-left transition [contain-intrinsic-size:220px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
+            <button key={order.id} type="button" onClick={() => setSelectedOrder(order)} className="group rounded-lg border border-charcoal/8 bg-white p-4 text-left transition [contain-intrinsic-size:220px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
               <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-terre">{order.number}</p><p className="mt-1 text-[10px] text-muted-foreground">{formatDateTime(order.createdAt, locale)}</p></div><Badge className={`border ${orderStatusColor(order.status)}`}>{statusLabel(order.status, isFr)}</Badge></div>
-              <div className="mt-4 flex items-center gap-3 border-y border-black/8 py-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-charcoal/5 text-charcoal"><UserRound className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-extrabold">{order.deliveryName}</p><p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-muted-foreground"><MapPin className="h-3 w-3" /> {order.deliveryPostalCode} {order.deliveryCity}</p></div></div>
+              <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-charcoal/5 text-charcoal"><UserRound className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-extrabold">{order.deliveryName}</p><p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-muted-foreground"><MapPin className="h-3 w-3" /> {order.deliveryPostalCode} {order.deliveryCity}</p></div></div>
               <div className="mt-3 flex items-end justify-between"><div><p className="text-[10px] text-muted-foreground">{order.items.length} {isFr ? "article(s)" : "item(s)"} · {order.packageCount} {isFr ? "colis" : "parcel(s)"}</p><p className="mt-1 text-[10px] text-muted-foreground">{formatWeight(order.weightGrams, locale)}</p></div><p className="text-base font-black tabular-nums text-charcoal">{formatPrice(order.total, locale)}</p></div>
             </button>
           ))}

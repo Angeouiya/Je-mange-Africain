@@ -95,7 +95,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
       role="link"
       tabIndex={0}
       aria-label={locale === "fr" ? `Voir ${product.name}` : `View ${product.name}`}
-      className={`group relative flex min-w-0 cursor-pointer flex-col overflow-hidden bg-white transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-offset-2 ${compact ? "rounded-md border border-transparent hover:border-charcoal/10 hover:shadow-sm" : "rounded-lg border border-charcoal/10 hover:border-charcoal/20 hover:shadow-[0_22px_50px_-34px_rgba(24,26,24,0.55)]"}`}
+      className={`group relative flex min-w-0 cursor-pointer flex-col overflow-hidden bg-white transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-offset-2 ${compact ? "rounded-md border border-transparent hover:border-charcoal/10 hover:shadow-sm" : "rounded-lg border border-charcoal/10 hover:border-charcoal/20 hover:shadow-[0_22px_50px_-34px_rgba(63,41,48,0.55)]"}`}
     >
       <div className="relative">
         <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-square rounded-md" : "aspect-[4/3]"}`}>

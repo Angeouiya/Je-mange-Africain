@@ -76,7 +76,7 @@ export function MobileNav() {
 
   return (
     <>
-      <nav className="jma-safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t border-charcoal/10 bg-white/96 px-1 shadow-[0_-10px_28px_-26px_rgba(24,26,24,0.65)] backdrop-blur-xl md:hidden">
+      <nav className="jma-safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t border-charcoal/10 bg-white/96 px-1 shadow-[0_-10px_28px_-26px_rgba(63,41,48,0.65)] backdrop-blur-xl md:hidden">
         <div className="mx-auto grid max-w-xl grid-cols-5">{mobileItems.map(renderMobileItem)}</div>
       </nav>
 

@@ -81,7 +81,7 @@ export function ProductImage({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 18 }}
-          style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))" }}
+          style={{ filter: "drop-shadow(0 2px 4px rgba(63,41,48,0.15))" }}
         >
           {emoji || "🍲"}
         </motion.span>

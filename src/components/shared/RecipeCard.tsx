@@ -42,7 +42,7 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
       initial={{ y: 10 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
-      className={`group flex flex-col overflow-hidden border border-charcoal/10 bg-white transition-all hover:-translate-y-0.5 hover:border-forest/30 hover:shadow-[0_22px_50px_-34px_rgba(24,26,24,0.55)] ${compact ? "rounded-md [contain-intrinsic-size:390px] [content-visibility:auto]" : "rounded-lg"}`}
+      className={`group flex flex-col overflow-hidden border border-charcoal/10 bg-white transition-all hover:-translate-y-0.5 hover:border-forest/30 hover:shadow-[0_22px_50px_-34px_rgba(63,41,48,0.55)] ${compact ? "rounded-md [contain-intrinsic-size:390px] [content-visibility:auto]" : "rounded-lg"}`}
     >
       <div className={`relative flex items-center justify-center bg-muted/40 ${compact ? "aspect-[4/3]" : "aspect-[16/10]"}`}>
         <ProductImage
@@ -68,7 +68,7 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
             ? (locale === "fr" ? `Retirer ${recipe.title} des recettes sauvegardées` : `Remove ${recipe.title} from saved recipes`)
             : (locale === "fr" ? `Sauvegarder la recette ${recipe.title}` : `Save the ${recipe.title} recipe`)}
           title={isSaved ? (locale === "fr" ? "Retirer" : "Remove") : (locale === "fr" ? "Sauvegarder" : "Save")}
-          className={`absolute grid place-items-center rounded-md border border-black/10 bg-white/95 text-charcoal shadow-sm backdrop-blur transition hover:border-terre/35 hover:text-terre ${compact ? "right-2 top-2 h-7 w-7" : "right-3 top-3 h-9 w-9"}`}
+          className={`absolute grid place-items-center rounded-md border border-charcoal/10 bg-white/95 text-charcoal shadow-sm backdrop-blur transition hover:border-terre/35 hover:text-terre ${compact ? "right-2 top-2 h-7 w-7" : "right-3 top-3 h-9 w-9"}`}
         >
           <Bookmark className={`h-4 w-4 ${isSaved ? "fill-terre text-terre" : ""}`} />
         </button>
