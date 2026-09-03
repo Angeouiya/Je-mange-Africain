@@ -127,6 +127,11 @@ test("the client application exposes clear catalogue, recipe and basket workspac
 
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
   await expect(page.getByText(/votre panier est vide|your cart is empty/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /choisir une recette|choose a recipe/i })).toBeVisible();
+  await expect(page.getByText(/stock vérifié|verified stock/i)).toBeVisible();
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/cart-empty-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
   await expectNoHorizontalOverflow(page);
 });
 

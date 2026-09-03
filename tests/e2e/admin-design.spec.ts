@@ -191,6 +191,7 @@ test("the professional sign-in owns its bilingual identity and persists the sele
 
   await page.goto("/admin", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Connexion professionnelle" })).toBeVisible();
+  await expect(page.locator('img[src*="logo-mark-burgundy"]').filter({ visible: true }).first()).toBeVisible();
   await expect(page).toHaveTitle("Console professionnelle | Je mange Africain");
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.locator(".jma-skip-link")).toHaveAttribute("href", "#main-content");
@@ -454,6 +455,7 @@ test("push campaigns target a measured audience and preview both languages", asy
   await mockAdminApi(page);
   await page.goto("/admin#campaigns", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Composer, vérifier, diffuser" })).toBeVisible();
+  await expect(page.locator('img[src*="notification-icon-burgundy"]').first()).toBeVisible();
   await page.getByLabel("Titre français").fill("Les saveurs du week-end");
   await page.getByLabel("Message français").fill("Découvrez une sélection ivoirienne préparée pour vous.");
   if ((page.viewportSize()?.width || 0) < 768) {

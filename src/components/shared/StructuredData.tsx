@@ -8,7 +8,7 @@ const organization: WithContext<Organization> = {
   "@id": `${siteUrl}/#organization`,
   name: "Je mange Africain",
   url: siteUrl,
-  logo: `${siteUrl}/brand/app-icon-512.png`,
+  logo: `${siteUrl}/brand/app-icon-512-burgundy.png`,
   email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com",
   areaServed: ["France", "Belgium", "Germany", "Netherlands", "Luxembourg"],
   knowsLanguage: ["fr-FR", "en-GB"],

@@ -39,10 +39,10 @@ export const metadata: Metadata = {
   authors: [{ name: "Je mange Africain" }],
   icons: {
     icon: [
-      { url: "/brand/app-icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/brand/app-icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/brand/app-icon-192-burgundy.png", sizes: "192x192", type: "image/png" },
+      { url: "/brand/app-icon-512-burgundy.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: "/brand/apple-touch-icon.png",
+    apple: "/brand/apple-touch-icon-burgundy.png",
   },
   manifest: "/manifest.json",
   appleWebApp: {

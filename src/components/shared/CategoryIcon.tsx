@@ -17,11 +17,11 @@ const categoryColors: Record<string, string> = {
   manioc: "#D65A32",
   farines: "#C88A00",
   viandes: "#B9382B",
-  poissons: "#326B8A",
+  poissons: "#A73E22",
   legumes: "#8A3042",
   sauces: "#C34B29",
-  legumineuses: "#8B5E21",
-  boissons: "#A83B68",
+  legumineuses: "#8A3042",
+  boissons: "#C92A3E",
 };
 
 export function CategoryIcon({ slug, color, className }: { slug?: string; color?: string | null; className?: string }) {
@@ -29,11 +29,17 @@ export function CategoryIcon({ slug, color, className }: { slug?: string; color?
   const resolvedColor = getBrandAccentColor(categoryColors[slug || ""] || color || "#D65A32");
   return (
     <span
-      className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/55 shadow-sm", className)}
-      style={{ color: resolvedColor, backgroundColor: `color-mix(in srgb, ${resolvedColor} 13%, white)` }}
+      className={cn("relative isolate grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md border shadow-[0_8px_20px_-15px_rgba(63,41,48,0.8)]", className)}
+      style={{
+        color: resolvedColor,
+        borderColor: `color-mix(in srgb, ${resolvedColor} 18%, white)`,
+        backgroundColor: `color-mix(in srgb, ${resolvedColor} 9%, white)`,
+      }}
       aria-hidden="true"
     >
-      <Icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
+      <span className="absolute inset-x-0 top-0 h-[2px] bg-current opacity-75" />
+      <Icon className="relative h-[19px] w-[19px]" strokeWidth={2} />
+      <span className="absolute bottom-1.5 right-1.5 h-1 w-1 rounded-full bg-current opacity-35" />
     </span>
   );
 }

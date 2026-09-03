@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X } from "lucide-react";
+import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X, ChefHat, Plus, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -135,13 +135,30 @@ export function CartView() {
 
   if (cart.length === 0) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col items-center justify-center gap-4 px-4 py-20 text-center">
-        <PageBackButton fallbackView="catalog" className="self-start" />
-        <ShoppingBag className="h-16 w-16 text-muted-foreground/50" />
-        <h2 className="font-display text-2xl font-semibold text-charcoal">{t.cart.empty}</h2>
-        <Button onClick={() => navigate("catalog")} className="bg-terre text-cream hover:bg-terre-dark">
-          {t.cart.emptyCta} <ChevronRight className="ml-1 h-4 w-4" />
-        </Button>
+      <div className="mx-auto max-w-5xl px-4 py-6 md:px-7 md:py-10 lg:px-8">
+        <PageBackButton fallbackView="catalog" />
+        <section className="mx-auto flex min-h-[28rem] max-w-3xl flex-col items-center justify-center py-12 text-center md:min-h-[34rem]">
+          <span className="relative grid h-24 w-24 place-items-center rounded-lg border border-terre/14 bg-terre/[0.055] text-terre shadow-[0_26px_60px_-38px_rgba(138,48,66,0.65)]">
+            <ShoppingBag className="h-10 w-10" strokeWidth={1.65} />
+            <span className="absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-md bg-gold text-charcoal shadow-sm"><Plus className="h-4 w-4" strokeWidth={2.5} /></span>
+          </span>
+          <p className="jma-eyebrow mt-7">{locale === "fr" ? "Votre sélection" : "Your selection"}</p>
+          <h1 className="mt-2 font-display text-3xl font-semibold text-charcoal md:text-4xl">{t.cart.empty}</h1>
+          <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">{locale === "fr" ? "Choisissez vos produits directement dans le marché, ou partez d'une recette pour générer un panier déjà calculé." : "Choose products directly from the market, or start with a recipe to generate a ready-calculated basket."}</p>
+          <div className="mt-7 grid w-full max-w-md gap-2 sm:grid-cols-2">
+            <Button onClick={() => navigate("catalog")} className="h-11 bg-terre text-cream hover:bg-terre-dark">
+              {t.cart.emptyCta} <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={() => navigate("recipes")} className="h-11 border-charcoal/14 bg-white text-charcoal hover:bg-muted">
+              <ChefHat className="mr-2 h-4 w-4 text-burgundy" /> {locale === "fr" ? "Choisir une recette" : "Choose a recipe"}
+            </Button>
+          </div>
+          <div className="mt-10 grid w-full max-w-2xl grid-cols-3 border-y border-charcoal/10 py-4 text-left">
+            <EmptyBenefit icon={Package} label={locale === "fr" ? "Stock vérifié" : "Verified stock"} />
+            <EmptyBenefit icon={Truck} label={locale === "fr" ? "Livraison suivie" : "Tracked delivery"} />
+            <EmptyBenefit icon={ShieldCheck} label={locale === "fr" ? "Paiement protégé" : "Protected payment"} />
+          </div>
+        </section>
       </div>
     );
   }
@@ -270,4 +287,8 @@ function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string;
 
 function Row({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return <div className={`flex items-center justify-between ${className}`}><span>{label}</span><span className="font-medium">{value}</span></div>;
+}
+
+function EmptyBenefit({ icon: Icon, label }: { icon: typeof Package; label: string }) {
+  return <span className="flex min-w-0 flex-col items-center gap-1.5 border-r border-charcoal/10 px-2 text-center last:border-r-0 sm:flex-row sm:justify-center sm:text-left"><Icon className="h-4 w-4 shrink-0 text-terre" /><span className="text-[9px] font-extrabold leading-3 text-charcoal sm:text-[10px]">{label}</span></span>;
 }

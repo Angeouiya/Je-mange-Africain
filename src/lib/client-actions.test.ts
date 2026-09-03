@@ -40,7 +40,7 @@ describe("customer invoice document", () => {
       },
     });
 
-    expect(html).toContain("https://je-mange-africain.com/brand/logo-mark.png");
+    expect(html).toContain("https://je-mange-africain.com/brand/logo-mark-burgundy.png");
     expect(html).toContain("https://je-mange-africain.com/products/attieke.webp");
     expect(html).toContain("Aminata Koné");
     expect(html).toContain("aminata@example.fr");

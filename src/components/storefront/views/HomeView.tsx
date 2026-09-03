@@ -85,9 +85,9 @@ export function HomeView() {
                   key={c.id}
                   initial={{ scale: 0.96 }} animate={{ scale: 1 }} transition={{ delay: i * 0.04 }}
                   onClick={() => navigate("catalog", { category: c.id })}
-                  className="group flex min-h-20 w-[4.55rem] shrink-0 snap-start flex-col items-center justify-start gap-2 rounded-md px-1 py-1.5 text-center transition hover:bg-muted md:w-auto"
+                  className="group flex min-h-[5.75rem] w-[4.85rem] shrink-0 snap-start flex-col items-center justify-start gap-2 rounded-md px-1 py-1.5 text-center transition hover:bg-muted md:w-auto"
                 >
-                  <CategoryIcon slug={c.slug} color={c.color} className="h-11 w-11 border-charcoal/5 bg-white shadow-sm transition group-hover:-translate-y-0.5" />
+                  <CategoryIcon slug={c.slug} color={c.color} className="h-12 w-12 transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md" />
                   <span className="line-clamp-2 min-h-7 text-[9px] font-extrabold leading-3.5 text-charcoal sm:text-[10px]">{c.name}</span>
                 </motion.button>
               ))}

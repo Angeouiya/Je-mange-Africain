@@ -13,14 +13,14 @@
   "dir": "ltr",
   "prefer_related_applications": false,
   "icons": [
-    { "src": "/brand/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/brand/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/brand/app-icon-192-burgundy.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/brand/app-icon-512-burgundy.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "Catalogue", "short_name": "Catalogue", "url": "/?view=catalog", "icons": [{ "src": "/brand/app-icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "Recettes", "short_name": "Recettes", "url": "/?view=recipes", "icons": [{ "src": "/brand/app-icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "Marché de gros", "short_name": "Gros", "url": "/?view=wholesale", "icons": [{ "src": "/brand/app-icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "Mes commandes", "short_name": "Commandes", "url": "/?view=orders", "icons": [{ "src": "/brand/app-icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+    { "name": "Catalogue", "short_name": "Catalogue", "url": "/?view=catalog", "icons": [{ "src": "/brand/app-icon-192-burgundy.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Recettes", "short_name": "Recettes", "url": "/?view=recipes", "icons": [{ "src": "/brand/app-icon-192-burgundy.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Marché de gros", "short_name": "Gros", "url": "/?view=wholesale", "icons": [{ "src": "/brand/app-icon-192-burgundy.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Mes commandes", "short_name": "Commandes", "url": "/?view=orders", "icons": [{ "src": "/brand/app-icon-192-burgundy.png", "sizes": "192x192", "type": "image/png" }] }
   ],
   "categories": ["food", "shopping", "lifestyle"]
 }

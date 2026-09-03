@@ -176,11 +176,12 @@ export function CatalogView() {
               {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-md" />)}
             </div>
           ) : data?.products?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
-              <PackageSearch className="h-10 w-10 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{t.catalog.noResults}</p>
-              <Button onClick={clearAll} variant="outline">{t.catalog.clearFilters}</Button>
-            </div>
+            <section className="flex min-h-80 flex-col items-center justify-center border-y border-charcoal/10 px-4 py-14 text-center">
+              <span className="grid h-16 w-16 place-items-center rounded-lg border border-terre/12 bg-terre/[0.055] text-terre"><PackageSearch className="h-7 w-7" strokeWidth={1.7} /></span>
+              <h2 className="mt-5 font-display text-2xl font-semibold text-charcoal">{locale === "fr" ? "Aucune référence trouvée" : "No matching product"}</h2>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{t.catalog.noResults}</p>
+              <Button onClick={clearAll} variant="outline" className="mt-5 border-terre/25 text-terre hover:bg-terre/5 hover:text-terre">{t.catalog.clearFilters}</Button>
+            </section>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3 xl:grid-cols-4" data-testid="catalog-product-grid">

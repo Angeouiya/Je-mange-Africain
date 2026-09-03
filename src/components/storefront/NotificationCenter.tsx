@@ -303,7 +303,7 @@ function NotificationPanel({
 
       <div className="border-b border-border bg-muted/30 p-3">
         <div className="flex items-center gap-3 rounded-lg border border-charcoal/5 bg-white px-3 py-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-cream"><Image src="/brand/logo-mark.png" alt="" width={72} height={72} className="h-8 w-8 object-contain" /></span>
+          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-cream"><Image src="/brand/logo-mark-burgundy.png" alt="" width={72} height={72} className="h-8 w-8 object-contain" /></span>
           <span className="min-w-0 flex-1">
             <span className="block text-xs font-black text-charcoal">{locale === "fr" ? "Alertes mobiles" : "Mobile alerts"}</span>
             <span className={`mt-0.5 block text-[10px] ${pushState === "denied" || pushError ? "text-destructive" : "text-muted-foreground"}`}>{pushCopy}</span>

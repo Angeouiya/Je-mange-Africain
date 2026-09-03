@@ -175,7 +175,7 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
           <div className="mx-auto mt-5 max-w-[19rem] rounded-[1.75rem] border-[5px] border-forest-dark bg-[#E9E9E9] px-3 pb-16 pt-7 shadow-2xl">
             <div className="mx-auto mb-5 h-1.5 w-16 rounded-full bg-forest-dark/80" />
             <div className="flex gap-3 rounded-lg bg-white p-3 text-charcoal shadow-xl">
-              <Image src="/brand/notification-icon.png" alt="" width={44} height={44} className="h-11 w-11 rounded-lg object-cover" />
+              <Image src="/brand/notification-icon-burgundy.png" alt="" width={44} height={44} className="h-11 w-11 rounded-lg object-cover" />
               <div className="min-w-0 flex-1"><div className="flex items-start gap-2"><p className="flex-1 truncate text-xs font-extrabold">{previewTitle || "Je mange Africain"}</p><span className="text-[9px] text-muted-foreground">{previewLocale === "fr" ? "maintenant" : "now"}</span></div><p className="mt-1 break-words text-[11px] leading-5 text-muted-foreground">{previewBody || (previewLocale === "fr" ? "Votre message apparaîtra ici avant toute diffusion." : "Your message will appear here before delivery.")}</p></div>
             </div>
           </div>

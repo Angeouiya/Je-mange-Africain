@@ -1,12 +1,12 @@
-const DEFAULT_ICON = "/brand/notification-icon.png";
+const DEFAULT_ICON = "/brand/notification-icon-burgundy.png";
 const DEFAULT_BADGE = "/brand/notification-badge.png";
-const CACHE_NAME = "jma-shell-v2";
+const CACHE_NAME = "jma-shell-v3";
 const APP_SHELL = [
   "/",
   "/manifest.json",
-  "/brand/app-icon-192.png",
-  "/brand/app-icon-512.png",
-  "/brand/logo-mark.png",
+  "/brand/app-icon-192-burgundy.png",
+  "/brand/app-icon-512-burgundy.png",
+  "/brand/logo-mark-burgundy.png",
 ];
 
 self.addEventListener("install", (event) => {

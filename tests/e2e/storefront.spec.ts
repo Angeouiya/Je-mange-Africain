@@ -23,6 +23,11 @@ test("the installable storefront exposes a safe app shell and public discovery m
   const manifest = await manifestResponse.json();
   expect(manifest.display).toBe("standalone");
   expect(manifest.orientation).toBeUndefined();
+  expect(manifest.icons.map((icon: { src: string }) => icon.src)).toEqual([
+    "/brand/app-icon-192-burgundy.png",
+    "/brand/app-icon-512-burgundy.png",
+  ]);
+  expect(manifest.shortcuts.every((shortcut: { icons: { src: string }[] }) => shortcut.icons[0]?.src === "/brand/app-icon-192-burgundy.png")).toBe(true);
   expect(manifest.shortcuts.map((shortcut: { url: string }) => shortcut.url)).toEqual(expect.arrayContaining([
     "/?view=catalog",
     "/?view=recipes",
@@ -34,6 +39,8 @@ test("the installable storefront exposes a safe app shell and public discovery m
   expect(workerResponse.ok()).toBeTruthy();
   const workerSource = await workerResponse.text();
   expect(workerSource).toContain('url.pathname.startsWith("/api/")');
+  expect(workerSource).toContain('const CACHE_NAME = "jma-shell-v3"');
+  expect(workerSource).toContain('/brand/notification-icon-burgundy.png');
 
   const sitemapResponse = await request.get("/sitemap.xml");
   expect(sitemapResponse.ok()).toBeTruthy();

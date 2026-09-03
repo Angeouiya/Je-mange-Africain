@@ -97,7 +97,7 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
   const summaryRows = summaryEntries.map(([label, value]) => `<div class="summary-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(formatMoney(value))}</strong></div>`).join("");
   const invoiceNumber = order.number || (isFr ? "Facture" : "Invoice");
   const invoiceDate = new Date(order.createdAt || Date.now()).toLocaleDateString(language, { day: "2-digit", month: "long", year: "numeric" });
-  const logoUrl = absoluteAssetUrl("/brand/logo-mark.png", options.baseUrl);
+  const logoUrl = absoluteAssetUrl("/brand/logo-mark-burgundy.png", options.baseUrl);
   return `<!doctype html>
 <html lang="${locale}">
 <head>
