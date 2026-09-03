@@ -28,7 +28,7 @@ export function CatalogView() {
   const [country, setCountry] = useState<string | null>(null);
   const [thermal, setThermal] = useState<string | null>(null);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
-  const [sort, setSort] = useState("popular");
+  const [sort, setSort] = useState(params.sort || "popular");
   const [page, setPage] = useState(1);
   const [filtersOpenMobile, setFiltersOpenMobile] = useState(false);
 
@@ -41,6 +41,7 @@ export function CatalogView() {
   // Sync category from navigation params + reset page on filter change.
   useEffect(() => { setCat(params.category || null); }, [params.category]);
   useEffect(() => { if (params.query !== undefined) setSearch(params.query); }, [params.query]);
+  useEffect(() => { if (params.sort) setSort(params.sort); }, [params.sort]);
   useEffect(() => { setPage(1); }, [search, cat, brand, country, thermal, maxPrice, sort]);
 
   const qs = new URLSearchParams({ locale, sort, page: String(page), pageSize: "12" });
@@ -122,7 +123,7 @@ export function CatalogView() {
               className="h-11 border-charcoal/12 bg-white pl-9"
             />
           </div>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={locale === "fr" ? "Trier les produits" : "Sort products"} className="h-11 min-w-0 rounded-lg border border-charcoal/12 bg-white px-3 text-sm font-semibold text-charcoal sm:w-auto">
+          <select value={sort} onChange={(e) => setSort(e.target.value as NonNullable<typeof params.sort>)} aria-label={locale === "fr" ? "Trier les produits" : "Sort products"} className="h-11 min-w-0 rounded-lg border border-charcoal/12 bg-white px-3 text-sm font-semibold text-charcoal sm:w-auto">
             <option value="popular">{t.catalog.sortPopular}</option>
             <option value="priceAsc">{t.catalog.sortPriceAsc}</option>
             <option value="priceDesc">{t.catalog.sortPriceDesc}</option>

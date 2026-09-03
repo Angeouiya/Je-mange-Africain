@@ -74,25 +74,38 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   });
   expect(greenAccents, `green accents remain in the computed palette: ${greenAccents.join(", ")}`).toEqual([]);
   await expectBrandSafeUiColors(page);
-  const categoryHeading = page.getByRole("heading", { name: /marché par univers|shop by universe/i });
+  const favouritesHeading = page.getByRole("heading", { name: /favoris du moment|popular favourites/i });
+  await expect(favouritesHeading).toBeVisible();
+  const favouritesRail = page.getByTestId("home-favourites-rail");
+  await expect(favouritesRail).toBeVisible();
+  await expectLoadedProductImages(favouritesRail.locator("img"));
+  const categoryHeading = page.getByRole("heading", { name: /explorer les rayons|explore departments/i });
   await expect(categoryHeading).toBeVisible();
   const categoryBox = await categoryHeading.boundingBox();
-  expect(categoryBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(page.viewportSize()?.height || 0);
   const isMobile = (page.viewportSize()?.width || 0) < 768;
+  if (isMobile) expect(categoryBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(page.viewportSize()?.height || 0);
   if (!isMobile) {
     const sidebar = page.getByTestId("client-sidebar");
     await expect(sidebar).toBeVisible();
     await expect.poll(() => sidebar.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 252, 250)");
   }
   const heroBox = await page.getByTestId("home-hero").boundingBox();
-  if (isMobile) expect(heroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(300);
-  else expect(heroBox?.height || 0).toBeGreaterThanOrEqual(440);
-  const bestsellerGrid = page.getByTestId("home-bestseller-grid");
-  await expect(bestsellerGrid).toBeVisible();
-  const visibleProducts = await bestsellerGrid.locator(":scope > div:visible").count();
+  if (isMobile) expect(heroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(240);
+  else expect(heroBox?.height || 0).toBeGreaterThanOrEqual(340);
+  const bestsellerRail = page.getByTestId("home-bestseller-rail");
+  await expect(bestsellerRail).toBeVisible();
+  await expectLoadedProductImages(bestsellerRail.getByRole("img"));
+  const visibleProducts = await bestsellerRail.locator(":scope > div:visible").count();
   expect(visibleProducts).toBeGreaterThanOrEqual(isMobile ? 4 : 5);
-  const columnCount = await bestsellerGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
-  expect(columnCount).toBe(isMobile ? 2 : 5);
+  const railDisplay = await bestsellerRail.evaluate((element) => getComputedStyle(element).display);
+  if (isMobile) {
+    expect(railDisplay).toBe("flex");
+    expect(await bestsellerRail.evaluate((element) => element.scrollWidth)).toBeGreaterThan(await bestsellerRail.evaluate((element) => element.clientWidth));
+  } else {
+    expect(railDisplay).toBe("grid");
+    const columnCount = await bestsellerRail.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+    expect(columnCount).toBe(5);
+  }
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/home-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
@@ -373,6 +386,7 @@ test("registration requires legal consent and two independently visible password
     const authVisual = dialog.getByTestId("customer-auth-visual");
     await expect(authVisual).toBeVisible();
     await expect.poll(() => authVisual.locator("img").first().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+    await expect(dialog.getByTestId("customer-auth-overlay")).toHaveClass(/bg-burgundy\/45/);
   }
   await expect(dialog).not.toContainText(/console professionnelle|professional console|administration/i);
   if (process.env.CLIENT_SCREENSHOTS) {

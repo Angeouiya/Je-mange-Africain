@@ -406,6 +406,13 @@ test("the professional sign-in owns its bilingual identity and persists the sele
 
   await page.goto("/admin", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Connexion professionnelle" })).toBeVisible();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  const visual = page.getByTestId("admin-auth-visual");
+  if (isMobile) await expect(visual).toBeHidden();
+  else {
+    await expect(visual).toBeVisible();
+    await expect.poll(() => visual.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 248, 244)");
+  }
   await expect(page.locator('img[src*="logo-mark-burgundy"]').filter({ visible: true }).first()).toBeVisible();
   await expect(page).toHaveTitle("Console professionnelle | Je mange Africain");
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
@@ -420,6 +427,9 @@ test("the professional sign-in owns its bilingual identity and persists the sele
   await expect(page.locator(".jma-skip-link")).toHaveText("Skip to main content");
   await expect(page.locator("body")).not.toContainText(/my basket|customer sign in|food & groceries/i);
   await expectBrandSafeUiColors(page);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/admin-auth-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Professional sign in" })).toBeVisible();

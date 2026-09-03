@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
 import { Eye, EyeOff, Globe2, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
 import { AdminView } from "@/components/admin/AdminView";
 import { Button } from "@/components/ui/button";
@@ -109,20 +110,21 @@ export function AdminGate() {
       <div className="fixed right-4 top-4 z-20 inline-flex items-center gap-1 rounded-md border border-border bg-white/95 p-1 shadow-sm backdrop-blur sm:right-6 sm:top-6" role="group" aria-label={isFr ? "Langue de la console" : "Console language"}>
         <Globe2 className="ml-1.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
         {(["fr", "en"] as const).map((language) => (
-          <button key={language} type="button" onClick={() => changeLocale(language)} aria-pressed={locale === language} className={`grid h-8 min-w-9 place-items-center rounded px-2 text-[10px] font-black uppercase transition ${locale === language ? "bg-charcoal text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}>
+          <button key={language} type="button" onClick={() => changeLocale(language)} aria-pressed={locale === language} className={`grid h-8 min-w-9 place-items-center rounded px-2 text-[10px] font-black uppercase transition ${locale === language ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}>
             {language}
           </button>
         ))}
       </div>
-      <section className="jma-page-grid relative hidden overflow-hidden bg-charcoal p-14 text-white lg:flex lg:flex-col lg:justify-between">
+      <section data-testid="admin-auth-visual" className="jma-page-grid relative hidden overflow-hidden border-r border-burgundy/10 bg-[#FFF8F4] p-14 text-charcoal lg:flex lg:flex-col lg:justify-between">
         <div className="african-kente-stripe absolute inset-x-0 top-0 h-[3px]" />
-        <BrandLockup context="admin" size="large" inverse locale={locale} />
-        <div className="max-w-xl">
-          <p className="text-[10px] font-extrabold uppercase text-gold">{isFr ? "Console d'exploitation" : "Operations console"}</p>
+        <Image src="/brand/logo-mark-burgundy.png" alt="" width={520} height={520} className="pointer-events-none absolute -bottom-16 -right-16 h-96 w-96 object-contain opacity-[0.055]" />
+        <BrandLockup context="admin" size="large" locale={locale} className="relative z-10" />
+        <div className="relative z-10 max-w-xl">
+          <p className="text-[10px] font-extrabold uppercase text-terre">{isFr ? "Console d'exploitation" : "Operations console"}</p>
           <h1 className="mt-5 max-w-2xl font-display text-5xl font-semibold leading-[1.08]">{isFr ? "Piloter Je mange Africain avec précision." : "Run Je mange Africain with precision."}</h1>
-          <p className="mt-5 max-w-lg text-sm leading-7 text-white/62">{isFr ? "Catalogue, recettes, stocks, commandes et conformité réunis dans un espace strictement réservé aux équipes autorisées." : "Catalogue, recipes, stock, orders and compliance brought together in a workspace reserved for authorised teams."}</p>
+          <p className="mt-5 max-w-lg text-sm leading-7 text-muted-foreground">{isFr ? "Catalogue, recettes, stocks, commandes et conformité réunis dans un espace strictement réservé aux équipes autorisées." : "Catalogue, recipes, stock, orders and compliance brought together in a workspace reserved for authorised teams."}</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-white/52"><ShieldCheck className="h-4 w-4 text-gold" /> {isFr ? "Accès contrôlé par rôles Supabase" : "Access controlled by Supabase roles"}</div>
+        <div className="relative z-10 flex items-center gap-2 border-t border-burgundy/15 pt-5 text-xs font-bold text-burgundy"><ShieldCheck className="h-4 w-4 text-terre" /> {isFr ? "Accès contrôlé par rôles Supabase" : "Access controlled by Supabase roles"}</div>
       </section>
 
       <section className="flex items-center justify-center px-5 py-10 sm:px-12">

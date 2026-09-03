@@ -135,6 +135,8 @@ function storefrontDestination(searchParams: URLSearchParams): { view: ViewId; p
   if (view === "catalog") {
     params.category = searchParams.get("category") || undefined;
     params.query = searchParams.get("query") || undefined;
+    const sort = searchParams.get("sort");
+    if (["popular", "priceAsc", "priceDesc", "new", "available"].includes(sort || "")) params.sort = sort as ViewParams["sort"];
   }
   if (view === "recipes") {
     const recipeMode = searchParams.get("recipeMode");
@@ -164,6 +166,7 @@ function storefrontUrl(view: ViewId, params: ViewParams) {
   append("orderId", params.orderId);
   append("category", params.category);
   append("query", params.query);
+  append("sort", params.sort);
   append("recipeMode", params.recipeMode);
   append("accountSection", params.accountSection);
   append("returnView", params.returnView);

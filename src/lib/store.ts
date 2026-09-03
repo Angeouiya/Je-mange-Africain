@@ -57,6 +57,7 @@ export interface ViewParams {
   orderId?: string;
   category?: string;
   query?: string;
+  sort?: "popular" | "priceAsc" | "priceDesc" | "new" | "available";
   recipeMode?: "recipes" | "library";
   accountSection?: "profile" | "addresses" | "saved" | "settings";
   returnView?: ViewId;
