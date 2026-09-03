@@ -6,6 +6,7 @@ import { join } from "node:path";
 const now = "2026-09-02T09:30:00.000Z";
 
 const dashboard = {
+  generatedAt: now,
   kpis: {
     revenueToday: 1842.6,
     revenueMonth: 28742.4,
@@ -16,7 +17,35 @@ const dashboard = {
     expiringSoon: 4,
     customers: 1860,
     toPrepare: 7,
+    activeOrders: 23,
+    inDelivery: 6,
+    paymentAttention: 3,
+    newCustomersMonth: 48,
+    stockCoverageRate: 97.4,
   },
+  comparison: { revenue: 12.4, orders: 8.6, averageBasket: 3.8 },
+  pulse: [
+    { date: "2026-08-27T00:00:00.000Z", label: "jeu", revenue: 2480, orders: 42 },
+    { date: "2026-08-28T00:00:00.000Z", label: "ven", revenue: 3210, orders: 54 },
+    { date: "2026-08-29T00:00:00.000Z", label: "sam", revenue: 4680, orders: 71 },
+    { date: "2026-08-30T00:00:00.000Z", label: "dim", revenue: 2870, orders: 46 },
+    { date: "2026-08-31T00:00:00.000Z", label: "lun", revenue: 3560, orders: 58 },
+    { date: "2026-09-01T00:00:00.000Z", label: "mar", revenue: 3940, orders: 62 },
+    { date: "2026-09-02T00:00:00.000Z", label: "mer", revenue: 1842.6, orders: 31 },
+  ],
+  workflow: [{ id: "validate", count: 7 }, { id: "prepare", count: 10 }, { id: "deliver", count: 6 }, { id: "closed", count: 295 }],
+  priorities: [
+    { id: "delivery-delay", level: "critical", count: 2, title: "Livraisons hors délai", detail: "Les dates estimées sont dépassées et demandent un suivi transporteur.", target: "orders" },
+    { id: "payment", level: "attention", count: 3, title: "Paiements à rapprocher", detail: "Les paiements en attente ou en échec du mois doivent être examinés.", target: "finance" },
+    { id: "stockout", level: "attention", count: 2, title: "Produits indisponibles", detail: "L'offre publiée n'est plus vendable avec le stock actuellement disponible.", target: "inventory" },
+    { id: "expiry", level: "monitor", count: 4, title: "Échéances sous 14 jours", detail: "Priorisez ces lots dans les prochaines vagues selon la règle FEFO.", target: "inventory" },
+  ],
+  recentOrders: [{ id: "order-1", number: "JMA-260902-0142", status: "preparing", total: 48.7, createdAt: now, deliveryName: "Aminata Koné", deliveryCity: "Paris", itemCount: 2, imageUrl: "/products/attieke.webp" }],
+  topProducts: [
+    { productId: "product-1", name: "Attiéké frais", imageUrl: "/products/attieke.webp", imageColor: "#E9B949", units: 712, revenue: 4820 },
+    { productId: "product-2", name: "Banane plantain", imageUrl: "/products/banane-plantain.webp", imageColor: "#F2A900", units: 648, revenue: 3910 },
+    { productId: "product-3", name: "Akpi", imageUrl: "/products/akpi.webp", imageColor: "#C84C2E", units: 288, revenue: 2160 },
+  ],
 };
 
 const order = {
@@ -388,6 +417,45 @@ test("every professional workspace has a clear purpose and stays inside the view
       await page.screenshot({ path: join(directory, `${section.id}-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
     }
   }
+});
+
+test("the operations home turns live signals into clear decisions", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#overview", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Sept jours d'encaissement" })).toBeVisible();
+  await expect(page.getByTestId("dashboard-pulse-bar")).toHaveCount(7);
+  await expect(page.getByText("97,4 %", { exact: true })).toBeVisible();
+  await expect(page.getByText("+12,4 %", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Décisions à prendre maintenant" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Livraisons hors délai/ })).toContainText("2");
+  await expect(page.getByText("JMA-260902-0142", { exact: true })).toBeVisible();
+  await expect(page.getByText("Attiéké frais", { exact: true })).toBeVisible();
+  await expect(page.locator('img[src*="attieke"]').filter({ visible: true }).first()).toBeVisible();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `overview-command-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: true });
+  }
+
+  await page.getByRole("button", { name: /Livraisons hors délai/ }).click();
+  await expect(page.locator("header h1")).toHaveText("Orchestrer les commandes");
+
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+  if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
+  await page.getByRole("navigation", { name: "Navigation professionnelle" }).getByRole("button", { name: /^Décider aujourd'hui/ }).click();
+  if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
+  await page.getByRole("button", { name: "en", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Seven days of collected revenue" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Most purchased products" })).toBeVisible();
+  await expect(page.getByText("Available catalogue", { exact: true })).toBeVisible();
 });
 
 test("the audit center qualifies, filters and exports operational evidence", async ({ page }) => {

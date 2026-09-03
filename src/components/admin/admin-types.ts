@@ -12,6 +12,7 @@ export type AdminSectionId =
   | "team";
 
 export type DashboardPayload = {
+  generatedAt: string;
   kpis: {
     revenueToday: number;
     revenueMonth: number;
@@ -22,7 +23,46 @@ export type DashboardPayload = {
     expiringSoon: number;
     customers: number;
     toPrepare: number;
+    activeOrders: number;
+    inDelivery: number;
+    paymentAttention: number;
+    newCustomersMonth: number;
+    stockCoverageRate: number;
   };
+  comparison: {
+    revenue: number | null;
+    orders: number | null;
+    averageBasket: number | null;
+  };
+  pulse: Array<{ date: string; label: string; revenue: number; orders: number }>;
+  workflow: Array<{ id: "validate" | "prepare" | "deliver" | "closed"; count: number }>;
+  priorities: Array<{
+    id: string;
+    level: "critical" | "attention" | "monitor";
+    count: number;
+    title: string;
+    detail: string;
+    target: AdminSectionId;
+  }>;
+  recentOrders: Array<{
+    id: string;
+    number: string;
+    status: string;
+    total: number;
+    createdAt: string;
+    deliveryName: string;
+    deliveryCity: string;
+    itemCount: number;
+    imageUrl?: string | null;
+  }>;
+  topProducts: Array<{
+    productId: string;
+    name: string;
+    imageUrl?: string | null;
+    imageColor: string;
+    units: number;
+    revenue: number;
+  }>;
 };
 
 export type AdminOrder = {
