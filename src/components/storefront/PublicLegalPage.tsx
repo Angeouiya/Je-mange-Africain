@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Globe2, Mail } from "lucide-react";
 import { BrandLockup } from "@/components/shared/BrandLockup";
+import { DocumentLocaleSync } from "@/components/shared/DocumentLocaleSync";
 import { LegalDocument, type LegalKind } from "@/components/storefront/LegalDocument";
 import type { Locale } from "@/lib/i18n";
 
@@ -28,6 +29,7 @@ export function PublicLegalPage({ kind, locale, pathname }: { kind: LegalKind; l
 
   return (
     <main className="min-h-screen bg-white text-charcoal">
+      <DocumentLocaleSync locale={locale} />
       <div className="african-kente-stripe h-[3px]" />
       <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-16 max-w-5xl items-center gap-2 px-4 sm:gap-4 lg:px-6">
@@ -35,7 +37,7 @@ export function PublicLegalPage({ kind, locale, pathname }: { kind: LegalKind; l
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <Link href="/" className="min-w-0 flex-1" aria-label="Je mange Africain">
-            <BrandLockup compact responsive />
+            <BrandLockup compact responsive locale={locale} />
           </Link>
           <nav aria-label={text.language} className="flex shrink-0 items-center gap-1 rounded-md border border-border bg-muted/45 p-1">
             <Globe2 className="ml-1.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />

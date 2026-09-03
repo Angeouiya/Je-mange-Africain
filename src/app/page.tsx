@@ -191,8 +191,9 @@ function renderView(view: string) {
 }
 
 function ViewLoading() {
+  const locale = useStore((state) => state.locale);
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-6" role="status" aria-live="polite" aria-label="Chargement de la vue">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-6" role="status" aria-live="polite" aria-label={locale === "fr" ? "Chargement de la vue" : "Loading view"}>
       <div className="h-7 w-48 animate-pulse rounded-md bg-muted" />
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-48 animate-pulse rounded-lg bg-muted" />)}

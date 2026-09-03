@@ -83,7 +83,7 @@ export function MobileNav() {
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-white/8 bg-charcoal text-white md:flex">
         <div className="african-kente-stripe h-[3px] shrink-0" />
         <button onClick={() => navigate("home")} className="border-b border-white/8 px-5 py-5 text-left" aria-label={locale === "fr" ? "Accueil" : "Home"}>
-          <BrandLockup compact inverse />
+          <BrandLockup compact inverse locale={locale} />
         </button>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">

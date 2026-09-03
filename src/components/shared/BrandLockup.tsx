@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import type { Locale } from "@/lib/i18n";
 
 export function BrandLockup({
   context = "client",
@@ -7,6 +8,7 @@ export function BrandLockup({
   size = "default",
   inverse = false,
   responsive = false,
+  locale = "fr",
   className,
 }: {
   context?: "client" | "admin";
@@ -14,9 +16,13 @@ export function BrandLockup({
   size?: "default" | "large";
   inverse?: boolean;
   responsive?: boolean;
+  locale?: Locale;
   className?: string;
 }) {
   const isLarge = size === "large" && !compact;
+  const descriptor = context === "admin"
+    ? (locale === "fr" ? "Console professionnelle" : "Professional console")
+    : (locale === "fr" ? "Cuisine & épicerie" : "Food & groceries");
 
   return (
     <span className={cn("inline-flex min-w-0 items-center", isLarge ? "gap-3 sm:gap-4" : "gap-2.5", className)}>
@@ -28,7 +34,7 @@ export function BrandLockup({
           Je mange Africain
         </span>
         <span className={cn("mt-1.5 block font-extrabold uppercase", isLarge ? "text-[10px]" : "text-[8px]", inverse ? "text-gold" : "text-terre")}>
-          {context === "admin" ? "Console professionnelle" : "Cuisine & épicerie"}
+          {descriptor}
         </span>
       </span>
     </span>

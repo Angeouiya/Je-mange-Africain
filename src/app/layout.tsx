@@ -88,7 +88,6 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} ${fraunces.variable} antialiased bg-background text-foreground min-h-screen`}
       >
-        <a href="#main-content" className="jma-skip-link">Aller au contenu principal</a>
         <StructuredData />
         <PwaRegistration />
         <StoreProvider>

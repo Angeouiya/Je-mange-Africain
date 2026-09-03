@@ -321,6 +321,13 @@ test("registration requires legal consent and two independently visible password
   await expect(languageSwitch).toBeVisible();
   await languageSwitch.click();
   await expect(dialog.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page).toHaveTitle("My account | Je mange Africain");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator(".jma-skip-link")).toHaveText("Skip to main content");
+  await expect(dialog).toContainText("Food & groceries");
+  await expect(dialog.getByLabel("Email or phone number")).toHaveAttribute("placeholder", "you@example.com or +44...");
+  await expect(dialog.getByRole("link", { name: "terms", exact: true })).toHaveAttribute("href", "/conditions-generales?lang=en");
+  await expect(dialog.getByRole("link", { name: "privacy policy", exact: true })).toHaveAttribute("href", "/confidentialite?lang=en");
   await dialog.getByRole("button", { name: /switch the platform to french/i }).click();
   await page.getByRole("tab", { name: /inscription|register/i }).click();
 
@@ -386,6 +393,10 @@ test("public legal documents are bilingual, navigable and free of drafting notes
   await expect(page).toHaveURL(/conditions-generales\?lang=en/);
   await expect(page.getByRole("heading", { level: 1, name: "Terms of use and sale" })).toBeVisible();
   await expect(page.locator('[data-testid="legal-contents"]:visible')).toHaveText("Document contents");
+  await expect(page).toHaveTitle("Terms and conditions | Je mange Africain");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator(".jma-skip-link")).toHaveText("Skip to main content");
+  await expect(page.getByText("Food & groceries", { exact: true })).toHaveCount(1);
 
   await page.goto("/confidentialite?lang=fr", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { level: 1, name: "Politique de confidentialité" })).toBeVisible();

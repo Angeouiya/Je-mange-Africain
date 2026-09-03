@@ -71,7 +71,7 @@ export function Header() {
           <SheetContent side="left" className="w-[min(22rem,calc(100vw-1rem))] bg-white p-0">
             <SheetHeader className="border-b border-charcoal/10 p-5">
               <SheetTitle className="text-left">
-                <BrandLockup />
+                <BrandLockup locale={locale} />
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col p-4" aria-label={locale === "fr" ? "Assistance et informations" : "Help and information"}>
@@ -128,8 +128,8 @@ export function Header() {
         </Sheet>
 
         {/* logo */}
-        <button onClick={() => go("home")} className="flex items-center gap-2 md:hidden" aria-label="Accueil">
-          <BrandLockup compact responsive />
+        <button onClick={() => go("home")} className="flex items-center gap-2 md:hidden" aria-label={locale === "fr" ? "Accueil" : "Home"}>
+          <BrandLockup compact responsive locale={locale} />
         </button>
 
         <div className="hidden min-w-0 flex-1 md:block">

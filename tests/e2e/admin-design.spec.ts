@@ -182,6 +182,36 @@ const sections = [
   { id: "team", nav: "Administrer les habilitations", title: "Équipe professionnelle" },
 ] as const;
 
+test("the professional sign-in owns its bilingual identity and persists the selected language", async ({ page }) => {
+  await page.route("**/api/admin/session", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ user: null }),
+  }));
+
+  await page.goto("/admin", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Connexion professionnelle" })).toBeVisible();
+  await expect(page).toHaveTitle("Console professionnelle | Je mange Africain");
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await expect(page.locator(".jma-skip-link")).toHaveAttribute("href", "#main-content");
+  await expect(page.locator("#main-content")).toBeVisible();
+  await page.getByRole("button", { name: "en", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Professional sign in" })).toBeVisible();
+  await expect(page.getByText("Professional console", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await expect(page).toHaveTitle("Professional console | Je mange Africain");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator(".jma-skip-link")).toHaveText("Skip to main content");
+  await expect(page.locator("body")).not.toContainText(/my basket|customer sign in|food & groceries/i);
+  await expectBrandSafeUiColors(page);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Professional sign in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "en", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
 test("every professional workspace has a clear purpose and stays inside the viewport", async ({ page }) => {
   test.setTimeout(180_000);
   await mockAdminApi(page);

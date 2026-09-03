@@ -140,7 +140,7 @@ export function AccountView() {
           <div className="mx-auto flex min-h-full w-full max-w-md items-start px-4 py-16 sm:items-center sm:py-12">
         <section className="w-full rounded-lg bg-white p-5 sm:border sm:border-charcoal/10 sm:p-7 sm:shadow-[0_26px_70px_-52px_rgba(63,41,48,0.6)]">
           <div className="mb-8 flex justify-center sm:justify-start">
-            <BrandLockup size="large" />
+            <BrandLockup size="large" locale={locale} />
           </div>
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-lg bg-terre/10"><User className="h-6 w-6 text-terre" /></div>
@@ -156,7 +156,7 @@ export function AccountView() {
 
           {authMode === "login" ? (
             <form onSubmit={submitLogin} className="mt-5 space-y-4">
-              <div><Label htmlFor="customer-identifier" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "E-mail ou numéro de téléphone" : "Email or phone number"}</Label><Input id="customer-identifier" autoFocus autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="vous@exemple.fr ou +33..." required /></div>
+              <div><Label htmlFor="customer-identifier" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "E-mail ou numéro de téléphone" : "Email or phone number"}</Label><Input id="customer-identifier" autoFocus autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={locale === "fr" ? "vous@exemple.fr ou +33..." : "you@example.com or +44..."} required /></div>
               <PasswordInput id="customer-password" label={locale === "fr" ? "Mot de passe" : "Password"} autoComplete="current-password" value={password} onChange={setPassword} locale={locale} />
               <button type="button" onClick={() => changeAuthMode("forgot")} className="text-xs font-bold text-terre hover:underline">{locale === "fr" ? "Mot de passe oublié ?" : "Forgot password?"}</button>
               <AuthMessage status={authStatus} message={authMessage} />
@@ -166,7 +166,7 @@ export function AccountView() {
             <form onSubmit={submitRegistration} className="mt-5 space-y-4">
               <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="register-first-name" className="mb-1 block text-xs font-semibold">{t.checkout.firstName}</Label><Input id="register-first-name" autoFocus autoComplete="given-name" value={registration.firstName} onChange={(event) => setRegistration({ ...registration, firstName: event.target.value })} required /></div><div><Label htmlFor="register-last-name" className="mb-1 block text-xs font-semibold">{t.checkout.lastName}</Label><Input id="register-last-name" autoComplete="family-name" value={registration.lastName} onChange={(event) => setRegistration({ ...registration, lastName: event.target.value })} required /></div></div>
               <div><Label htmlFor="register-email" className="mb-1 block text-xs font-semibold">E-mail</Label><Input id="register-email" type="email" autoComplete="email" value={registration.email} onChange={(event) => setRegistration({ ...registration, email: event.target.value })} required /></div>
-              <div><Label htmlFor="register-phone" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Numéro de téléphone" : "Phone number"}</Label><Input id="register-phone" type="tel" autoComplete="tel" value={registration.phone} onChange={(event) => setRegistration({ ...registration, phone: event.target.value })} placeholder="+33 6 00 00 00 00" required /></div>
+              <div><Label htmlFor="register-phone" className="mb-1 block text-xs font-semibold">{locale === "fr" ? "Numéro de téléphone" : "Phone number"}</Label><Input id="register-phone" type="tel" autoComplete="tel" value={registration.phone} onChange={(event) => setRegistration({ ...registration, phone: event.target.value })} placeholder={locale === "fr" ? "+33 6 00 00 00 00" : "+44 7 0000 0000"} required /></div>
               <PasswordInput id="register-password" label={locale === "fr" ? "Mot de passe (8 caractères minimum)" : "Password (8 characters minimum)"} autoComplete="new-password" value={registration.password} onChange={(value) => setRegistration({ ...registration, password: value })} locale={locale} />
               <PasswordInput id="register-confirm-password" label={locale === "fr" ? "Confirmer le mot de passe" : "Confirm password"} autoComplete="new-password" value={registration.confirmPassword} onChange={(value) => setRegistration({ ...registration, confirmPassword: value })} locale={locale} />
               {registration.confirmPassword ? <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-forest" : "text-destructive"}`}>{passwordsMatch ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}{passwordsMatch ? (locale === "fr" ? "Les mots de passe correspondent." : "Passwords match.") : (locale === "fr" ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
@@ -178,7 +178,7 @@ export function AccountView() {
                   onCheckedChange={(checked) => setRegistration({ ...registration, termsAccepted: checked })}
                   label={locale === "fr" ? "J'ai lu et j'accepte les conditions générales d'utilisation et de vente." : "I have read and accept the terms of use and sale."}
                   linkLabel={locale === "fr" ? "Lire les CGU" : "Read the terms"}
-                  href={LEGAL_PATHS.terms}
+                  href={`${LEGAL_PATHS.terms}?lang=${locale}`}
                 />
                 <LegalCheckbox
                   id="register-privacy"
@@ -186,7 +186,7 @@ export function AccountView() {
                   onCheckedChange={(checked) => setRegistration({ ...registration, privacyAccepted: checked })}
                   label={locale === "fr" ? "J'ai lu et j'accepte la politique de confidentialité et le traitement nécessaire à la gestion de mon compte." : "I have read and accept the privacy policy and the processing required to manage my account."}
                   linkLabel={locale === "fr" ? "Lire la politique" : "Read the policy"}
-                  href={LEGAL_PATHS.privacy}
+                  href={`${LEGAL_PATHS.privacy}?lang=${locale}`}
                 />
               </div>
               <AuthMessage status={authStatus} message={authMessage} />
@@ -203,9 +203,9 @@ export function AccountView() {
           )}
           <p className="mt-6 text-center text-[10px] leading-5 text-muted-foreground">
             {locale === "fr" ? "L'utilisation de Je mange Africain est régie par nos " : "Using Je mange Africain is governed by our "}
-            <a href={LEGAL_PATHS.terms} target="_blank" rel="noreferrer" className="font-semibold text-terre hover:underline">{locale === "fr" ? "conditions générales" : "terms"}</a>
+            <a href={`${LEGAL_PATHS.terms}?lang=${locale}`} target="_blank" rel="noreferrer" className="font-semibold text-terre hover:underline">{locale === "fr" ? "conditions générales" : "terms"}</a>
             {locale === "fr" ? " et notre " : " and "}
-            <a href={LEGAL_PATHS.privacy} target="_blank" rel="noreferrer" className="font-semibold text-terre hover:underline">{locale === "fr" ? "politique de confidentialité" : "privacy policy"}</a>.
+            <a href={`${LEGAL_PATHS.privacy}?lang=${locale}`} target="_blank" rel="noreferrer" className="font-semibold text-terre hover:underline">{locale === "fr" ? "politique de confidentialité" : "privacy policy"}</a>.
           </p>
         </section>
           </div>

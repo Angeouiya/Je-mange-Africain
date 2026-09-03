@@ -135,12 +135,15 @@ export function AdminView({
   adminEmail = "",
   adminRole = "",
   onLogout,
+  locale,
+  onLocaleChange,
 }: {
   adminEmail?: string;
   adminRole?: string;
   onLogout?: () => void;
+  locale: "fr" | "en";
+  onLocaleChange: (locale: "fr" | "en") => void;
 }) {
-  const [locale, setLocale] = useState<"fr" | "en">("fr");
   const [section, setSection] = useState<AdminSectionId>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -222,7 +225,7 @@ export function AdminView({
       >
         <div className="african-kente-stripe h-[3px] shrink-0" />
         <div className="flex items-center justify-between px-5 py-5">
-          <BrandLockup context="admin" compact inverse />
+          <BrandLockup context="admin" compact inverse locale={locale} />
           <button type="button" onClick={() => setSidebarOpen(false)} className="grid h-10 w-10 place-items-center rounded-md text-cream/70 hover:bg-white/8 hover:text-white md:hidden" aria-label={isFr ? "Fermer la navigation" : "Close navigation"}>
             <X className="h-5 w-5" />
           </button>
@@ -274,7 +277,7 @@ export function AdminView({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-1 rounded-md bg-white/[0.035] p-1" aria-label={isFr ? "Langue" : "Language"}>
-            {(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => setLocale(language)} className={`h-8 rounded text-[10px] font-extrabold uppercase ${locale === language ? "bg-white text-charcoal" : "text-cream/65 hover:text-white"}`}>{language}</button>)}
+            {(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => onLocaleChange(language)} aria-pressed={locale === language} className={`h-8 rounded text-[10px] font-extrabold uppercase ${locale === language ? "bg-white text-charcoal" : "text-cream/65 hover:text-white"}`}>{language}</button>)}
           </div>
           <div className="mt-1 grid grid-cols-2 gap-1">
             <Button type="button" variant="ghost" onClick={() => window.location.assign("https://je-mange-africain.com")} className="h-9 justify-start px-2 text-[10px] text-cream/55 hover:bg-white/8 hover:text-white">
@@ -310,7 +313,7 @@ export function AdminView({
           <Badge variant="outline" className="ml-3 h-8 shrink-0 border-forest/25 bg-white/70 px-2 text-[9px] font-bold text-forest sm:px-3"><ShieldCheck className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>
         </header>
 
-        <main className="mx-auto w-full max-w-[100rem] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[100rem] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
           <AnimatePresence mode="wait">
             <motion.div key={section} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={{ duration: 0.18 }}>
               {section === "overview" ? <OverviewSection locale={locale} onNavigate={selectSection} /> : null}
