@@ -32,3 +32,36 @@ export function wholesaleDiscountPercent(retailPrice: number, unitsPerPack: numb
   if (retailPackPrice <= 0 || wholesalePrice >= retailPackPrice) return 0;
   return Math.round((1 - wholesalePrice / retailPackPrice) * 100);
 }
+
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+export function wholesaleLineEconomics(
+  retailPrice: number,
+  unitsPerPack: number,
+  tiers: WholesaleTier[],
+  quantity: number,
+) {
+  const packs = Math.max(0, Math.floor(quantity));
+  const casePrice = wholesalePriceForQuantity(tiers, packs);
+  const lineTotal = roundMoney(casePrice * packs);
+  const retailEquivalent = roundMoney(Math.max(0, retailPrice) * Math.max(1, unitsPerPack) * packs);
+  const savings = roundMoney(Math.max(0, retailEquivalent - lineTotal));
+
+  return {
+    casePrice,
+    lineTotal,
+    retailEquivalent,
+    savings,
+    savingsPercent: retailEquivalent > 0 ? Math.round((savings / retailEquivalent) * 100) : 0,
+  };
+}
+
+export function nextWholesaleTier(tiers: WholesaleTier[], quantity: number) {
+  const next = [...tiers]
+    .sort((a, b) => a.minPacks - b.minPacks)
+    .find((tier) => tier.minPacks > quantity);
+
+  return next ? { ...next, remainingPacks: next.minPacks - quantity } : null;
+}

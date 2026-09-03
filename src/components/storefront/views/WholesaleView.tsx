@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useDeferredValue, useState } from "react";
-import { Boxes, Check, ChevronRight, Minus, PackageCheck, Plus, Search, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
+import { Boxes, Check, ChevronRight, Minus, PackageCheck, Plus, Search, ShieldCheck, ShoppingBag, TrendingDown, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { useStore } from "@/lib/store";
 import { formatPrice, formatUnitPrice } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
 import { getProductPhoto } from "@/lib/market-media";
-import { wholesaleDiscountPercent, wholesalePriceForQuantity, type WholesaleTier } from "@/lib/wholesale";
+import { nextWholesaleTier, wholesaleDiscountPercent, wholesaleLineEconomics, type WholesaleTier } from "@/lib/wholesale";
 
 type WholesaleProduct = {
   id: string;
@@ -117,9 +117,11 @@ function WholesaleProductCard({ product, index }: { product: WholesaleProduct; i
   const [added, setAdded] = useState(false);
   const tiers = product.wholesaleTiers || [];
   const maxPacks = Math.min(99, product.wholesaleAvailablePacks);
-  const unitPrice = wholesalePriceForQuantity(tiers, quantity);
+  const economics = wholesaleLineEconomics(product.price, product.wholesaleUnitsPerPack, tiers, quantity);
+  const unitPrice = economics.casePrice;
   const retailPackPrice = product.price * product.wholesaleUnitsPerPack;
   const discount = wholesaleDiscountPercent(product.price, product.wholesaleUnitsPerPack, unitPrice);
+  const nextTier = nextWholesaleTier(tiers, quantity);
   const outOfStock = maxPacks < product.wholesaleMinPacks || !unitPrice;
   const photo = product.imageUrl || getProductPhoto(product);
   const isFr = locale === "fr";
@@ -156,7 +158,7 @@ function WholesaleProductCard({ product, index }: { product: WholesaleProduct; i
       <div className="relative aspect-[4/3] overflow-hidden bg-muted/40">
         <ProductImage src={photo} fallbackSrc={getProductPhoto({ ...product, imageUrl: null })} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="lg" priority={index < 2} className="h-full w-full" rounded="rounded-none" />
         {discount > 0 ? <span className="absolute left-2 top-2 rounded-md bg-destructive px-2 py-1 text-[10px] font-extrabold leading-none text-white">-{discount}%</span> : null}
-        <span className="absolute bottom-2 left-2 rounded-md bg-charcoal/90 px-2 py-1 text-[9px] font-bold text-white">{product.country}</span>
+        <span className="absolute bottom-2 left-2 rounded-md bg-burgundy/95 px-2 py-1 text-[9px] font-bold text-white">{product.country}</span>
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-2.5">
         <div><h3 className="line-clamp-2 min-h-7 break-words text-xs font-extrabold leading-tight text-charcoal">{product.name}</h3><p className="mt-0.5 line-clamp-2 min-h-8 text-[10px] leading-4 text-muted-foreground">{product.description}</p></div>
@@ -166,15 +168,23 @@ function WholesaleProductCard({ product, index }: { product: WholesaleProduct; i
           <p className="text-[15px] font-black text-terre">{formatPrice(unitPrice, locale)} <span className="text-[9px] font-semibold text-muted-foreground">/ {isFr ? "colis" : "case"}</span></p>
           <p className="text-[10px] text-muted-foreground">{formatUnitPrice(unitPrice / product.wholesaleUnitsPerPack, locale)} / {isFr ? "unité" : "unit"}</p>
         </div>
+        <div className="mt-1 border-y border-burgundy/15 bg-burgundy/[0.035] py-2" data-testid="wholesale-line-economics" aria-live="polite">
+          <div className="flex items-baseline justify-between gap-2"><span className="text-[9px] font-extrabold uppercase text-muted-foreground">{isFr ? "Total du lot" : "Lot total"}</span><strong className="shrink-0 text-sm font-black tabular-nums text-charcoal">{formatPrice(economics.lineTotal, locale)}</strong></div>
+          {economics.savings > 0 ? <p className="mt-0.5 flex items-center gap-1 text-[9px] font-bold leading-3 text-burgundy"><TrendingDown className="h-3 w-3 shrink-0" />{isFr ? `Vous économisez ${formatPrice(economics.savings, locale)} (${economics.savingsPercent} %)` : `You save ${formatPrice(economics.savings, locale)} (${economics.savingsPercent}%)`}</p> : null}
+        </div>
         {tiers.length > 1 ? (
           <label className="mt-1 block"><span className="sr-only">{isFr ? `Choisir un palier pour ${product.name}` : `Choose a tier for ${product.name}`}</span><select value={tiers.reduce((selected, tier) => quantity >= tier.minPacks ? tier.minPacks : selected, tiers[0].minPacks)} onChange={(event) => changeQuantity(Number(event.target.value))} className="h-8 w-full rounded-md border border-border bg-white px-2 text-[9px] font-bold text-charcoal">{tiers.map((tier) => <option key={tier.minPacks} value={tier.minPacks}>{tier.minPacks}+ {isFr ? "colis" : "cases"} · {formatPrice(tier.price, locale)}</option>)}</select></label>
         ) : <p className="mt-1 text-[9px] font-semibold text-muted-foreground">{isFr ? "Minimum" : "Minimum"} · {product.wholesaleMinPacks} {isFr ? "colis" : "case(s)"}</p>}
+        <div className="min-h-8 border-b border-charcoal/8 pb-1.5">
+          <p className="flex items-center gap-1 text-[9px] font-bold text-burgundy"><PackageCheck className="h-3 w-3 shrink-0" />{maxPacks} {isFr ? "colis disponibles" : "cases available"}</p>
+          {nextTier ? <p className="mt-0.5 line-clamp-1 text-[9px] leading-3 text-muted-foreground">{isFr ? `Encore ${nextTier.remainingPacks} pour ${formatPrice(nextTier.price, locale)} / colis` : `${nextTier.remainingPacks} more for ${formatPrice(nextTier.price, locale)} / case`}</p> : <p className="mt-0.5 text-[9px] font-semibold leading-3 text-muted-foreground">{isFr ? "Meilleur tarif atteint" : "Best price reached"}</p>}
+        </div>
         <div className="mt-auto grid grid-cols-[2rem_minmax(0,1fr)_2rem] overflow-hidden rounded-md border border-border">
           <button type="button" onClick={() => changeQuantity(quantity - 1)} disabled={quantity <= product.wholesaleMinPacks || outOfStock} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Diminuer les colis de ${product.name}` : `Decrease cases of ${product.name}`}><Minus className="h-3.5 w-3.5" /></button>
           <span className="grid h-8 place-items-center border-x border-border text-[11px] font-black tabular-nums">{quantity}</span>
           <button type="button" onClick={() => changeQuantity(quantity + 1)} disabled={quantity >= maxPacks || outOfStock} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter les colis de ${product.name}` : `Increase cases of ${product.name}`}><Plus className="h-3.5 w-3.5" /></button>
         </div>
-        <Button type="button" size="sm" onClick={add} disabled={outOfStock} className={`h-9 w-full text-[10px] ${added ? "bg-burgundy text-white hover:bg-burgundy" : "bg-terre text-white hover:bg-terre-dark"}`}>{added ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <ShoppingBag className="mr-1.5 h-3.5 w-3.5" />}{outOfStock ? (isFr ? "Indisponible" : "Unavailable") : added ? (isFr ? "Ajouté" : "Added") : (isFr ? "Ajouter" : "Add")}</Button>
+        <Button type="button" size="sm" onClick={add} disabled={outOfStock} className={`h-9 w-full px-2 text-[10px] ${added ? "bg-burgundy text-white hover:bg-burgundy" : "bg-terre text-white hover:bg-terre-dark"}`}>{added ? <Check className="mr-1 h-3.5 w-3.5" /> : <ShoppingBag className="mr-1 h-3.5 w-3.5" />}{outOfStock ? (isFr ? "Indisponible" : "Unavailable") : added ? (isFr ? "Ajouté" : "Added") : <>{isFr ? "Ajouter" : "Add"}<span aria-hidden="true"> · {formatPrice(economics.lineTotal, locale)}</span></>}</Button>
       </div>
     </article>
   );
@@ -185,7 +195,7 @@ function WholesalePromise({ icon: Icon, title, detail }: { icon: typeof PackageC
 }
 
 function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-md border px-3 py-2 text-[10px] font-bold ${active ? "border-charcoal bg-charcoal text-white" : "border-border bg-white text-charcoal"}`}>{children}</button>;
+  return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-md border px-3 py-2 text-[10px] font-bold ${active ? "border-burgundy bg-burgundy text-white" : "border-border bg-white text-charcoal"}`}>{children}</button>;
 }
 
 function WholesaleQuoteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {

@@ -185,8 +185,12 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   const wholesaleImage = grid.getByRole("img", { name: "Attiéké professionnel" });
   await expect(wholesaleImage).toBeVisible();
   await expect.poll(() => wholesaleImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
-  const productCardBox = await grid.getByTestId("wholesale-product-card").first().boundingBox();
+  const productCard = grid.getByTestId("wholesale-product-card").first();
+  const productCardBox = await productCard.boundingBox();
   expect(productCardBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(isMobile ? 530 : 560);
+  await expect(productCard.getByText(/12 colis disponibles|12 cases available/i)).toBeVisible();
+  await expect(productCard.getByText(/encore 4 pour 30,00\s*€|4 more for €30\.00/i)).toBeVisible();
+  await expectBrandSafeUiColors(page);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/wholesale-market-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
@@ -194,8 +198,17 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   const quoteDialog = page.getByRole("dialog", { name: /demande de devis professionnel|professional quote request/i });
   await expect(quoteDialog.getByLabel(/entreprise|company/i)).toBeVisible();
   await quoteDialog.getByRole("button", { name: /annuler|cancel/i }).click();
+  await expect(quoteDialog).toBeHidden();
   await page.locator("[data-testid=wholesale-product-card] select").selectOption("5");
   await expect(page.getByText(/30,00\s*€|€30\.00/).first()).toBeVisible();
+  const economics = productCard.getByTestId("wholesale-line-economics");
+  await expect(economics).toContainText(/150,00\s*€|€150\.00/);
+  await expect(economics).toContainText(/économisez 30,00\s*€ \(17 %\)|save €30\.00 \(17%\)/i);
+  await expect(productCard.getByText(/encore 5 pour 28,00\s*€|5 more for €28\.00/i)).toBeVisible();
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await productCard.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `output/playwright/audit/wholesale-economics-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
   await page.getByRole("button", { name: /^(ajouter|add)$/i }).click();
   await page.getByRole("button", { name: /passer la plateforme en anglais|switch the platform to french/i }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Wholesale market" })).toBeVisible();
