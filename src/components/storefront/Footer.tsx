@@ -40,7 +40,7 @@ export function Footer() {
         {/* about */}
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <Image src="/logo-jma.png" alt="Je mange Africain" width={120} height={120} className="h-16 w-16 object-contain" />
+            <Image src="/brand/logo-mark.png" alt="Je mange Africain" width={120} height={120} className="h-16 w-16 object-contain" />
             <div>
               <p className="text-base font-extrabold text-cream">Je mange Africain</p>
               <p className="text-xs font-semibold uppercase tracking-wide text-gold">Épicerie mobile</p>
