@@ -184,27 +184,27 @@ export function OrderFulfillmentControl({
 
   return (
     <section className="border-t border-border" aria-labelledby={`fulfillment-${order.id}`}>
-      <div className="bg-charcoal px-5 py-5 text-white sm:px-6">
+      <div className="border-b border-burgundy/10 bg-[#FFF8F4] px-5 py-5 text-charcoal sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-white/10 text-gold"><Truck className="h-5 w-5" /></span>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-terre text-white shadow-sm"><Truck className="h-5 w-5" /></span>
             <div>
-              <p className="text-[9px] font-black uppercase text-gold">{isFr ? "Poste d'orchestration" : "Fulfilment control"}</p>
+              <p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Poste d'orchestration" : "Fulfilment control"}</p>
               <h3 id={`fulfillment-${order.id}`} className="mt-1 text-sm font-black">{isFr ? "Préparer, tracer et remettre" : "Prepare, trace and hand over"}</h3>
-              <p className="mt-1 max-w-2xl text-[11px] leading-5 text-white/65">{isFr ? "Chaque avancement est séquentiel, horodaté et ajouté au journal d'audit." : "Every advancement is sequential, timestamped and added to the audit log."}</p>
+              <p className="mt-1 max-w-2xl text-[11px] leading-5 text-muted-foreground">{isFr ? "Chaque avancement est séquentiel, horodaté et ajouté au journal d'audit." : "Every advancement is sequential, timestamped and added to the audit log."}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-bold">
-            <span className="text-white/55">{isFr ? "État" : "State"}</span>
-            <ArrowRight className="h-3.5 w-3.5 text-gold" />
-            <span>{currentStatusLabel(order.status, locale)}</span>
+          <div className="flex items-center gap-2 rounded-md border border-burgundy/12 bg-white px-3 py-2 text-[10px] font-bold shadow-sm">
+            <span className="text-muted-foreground">{isFr ? "État" : "State"}</span>
+            <ArrowRight className="h-3.5 w-3.5 text-terre" />
+            <span className="text-burgundy">{currentStatusLabel(order.status, locale)}</span>
           </div>
         </div>
         <ol className="mt-5 grid grid-cols-7 gap-1" aria-label={isFr ? "Chaîne de traitement" : "Fulfilment chain"}>
           {FULFILLMENT_TARGETS.map((status, index) => (
             <li key={status} className="min-w-0">
-              <span className={`block h-1 rounded-sm ${index <= progressIndex ? "bg-gold" : "bg-white/12"}`} />
-              <span className={`mt-1.5 hidden truncate text-[8px] font-bold lg:block ${index <= progressIndex ? "text-white" : "text-white/65"}`}>{fulfillmentStatusLabel(status, locale)}</span>
+              <span className={`block h-1 rounded-sm ${index <= progressIndex ? "bg-terre" : "bg-charcoal/10"}`} />
+              <span className={`mt-1.5 hidden text-[8px] font-bold leading-3 lg:block ${index <= progressIndex ? "text-burgundy" : "text-muted-foreground"}`}>{fulfillmentStatusLabel(status, locale)}</span>
             </li>
           ))}
         </ol>

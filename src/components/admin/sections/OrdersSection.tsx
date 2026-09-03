@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Box, Boxes, CheckCircle2, ClipboardList, Clock3, MapPin, PackageCheck, Truck, UserRound } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { ArrowRight, Box, Boxes, CheckCircle2, CircleDollarSign, ClipboardList, Clock3, MapPin, PackageCheck, Snowflake, Truck } from "lucide-react";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import type { AdminOrder } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,6 +10,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { formatDate, formatDateTime, formatPrice, formatWeight, normalize, orderStatusColor, thermalLabel } from "@/lib/format";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { OrderFulfillmentControl } from "@/components/admin/OrderFulfillmentControl";
+import { fulfillmentStatusLabel, nextFulfillmentStatus } from "@/lib/admin-order-fulfillment";
 
 type FlowId = "all" | "validate" | "prepare" | "deliver" | "closed";
 
@@ -19,6 +20,7 @@ const FLOW_STATUSES: Record<Exclude<FlowId, "all">, string[]> = {
   deliver: ["shipped", "in_transit", "out_for_delivery", "delivering"],
   closed: ["delivered", "cancelled", "failed", "refunded"],
 };
+const FLOW_ORDER: Array<Exclude<FlowId, "all">> = ["validate", "prepare", "deliver", "closed"];
 
 function flowFor(status: string): Exclude<FlowId, "all"> {
   return (Object.entries(FLOW_STATUSES).find(([, statuses]) => statuses.includes(status))?.[0] as Exclude<FlowId, "all">) || "validate";
@@ -58,13 +60,13 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
   if (loading) return <AdminSectionLoading label={isFr ? "Synchronisation des commandes" : "Synchronising orders"} />;
   if (error) return <AdminErrorState message={error} onRetry={refetch} />;
 
-  const flowItems: Array<{ value: FlowId; label: string; count: number }> = [
-    { value: "all", label: isFr ? "Toutes" : "All", count: counts.all },
-    { value: "validate", label: isFr ? "À valider" : "Validate", count: counts.validate },
-    { value: "prepare", label: isFr ? "Préparation" : "Packing", count: counts.prepare },
-    { value: "deliver", label: isFr ? "Livraison" : "Delivery", count: counts.deliver },
-    { value: "closed", label: isFr ? "Clôturées" : "Closed", count: counts.closed },
-  ];
+  const activeFlowLabel: Record<FlowId, string> = {
+    all: isFr ? "Toutes les commandes" : "All orders",
+    validate: isFr ? "Commandes à valider" : "Orders to validate",
+    prepare: isFr ? "Commandes en préparation" : "Orders being packed",
+    deliver: isFr ? "Commandes en livraison" : "Orders being delivered",
+    closed: isFr ? "Commandes clôturées" : "Closed orders",
+  };
 
   return (
     <div className="space-y-6">
@@ -77,40 +79,50 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
         description={isFr ? "Chaque commande avance dans un flux explicite. Ouvrez une fiche pour contrôler ses articles, son paiement, ses colis et sa chronologie." : "Every order moves through an explicit workflow. Open a record to inspect items, payment, parcels and timeline."}
       />
 
-      <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white sm:grid-cols-4">
+      <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white sm:grid-cols-4" aria-label={isFr ? "Filtrer par étape opérationnelle" : "Filter by operational stage"}>
         {([
-          [Clock3, isFr ? "À valider" : "To validate", counts.validate, "text-terre"],
-          [PackageCheck, isFr ? "En préparation" : "Packing", counts.prepare, "text-gold"],
-          [Truck, isFr ? "En livraison" : "Delivering", counts.deliver, "text-terre"],
-          [CheckCircle2, isFr ? "Clôturées" : "Closed", counts.closed, "text-burgundy"],
-        ] as const).map(([Icon, label, value, color], index) => <div key={label} className={`flex items-center gap-3 p-3 sm:p-4 ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "sm:border-r" : "sm:border-r-0"} sm:border-b-0`}><Icon className={`h-5 w-5 ${color}`} /><div><p className="text-xl font-black tabular-nums">{value}</p><p className="text-[10px] font-bold text-muted-foreground">{label}</p></div></div>)}
+          ["validate", Clock3, isFr ? "À valider" : "To validate", counts.validate, "text-terre"],
+          ["prepare", PackageCheck, isFr ? "En préparation" : "Packing", counts.prepare, "text-gold"],
+          ["deliver", Truck, isFr ? "En livraison" : "Delivering", counts.deliver, "text-terre"],
+          ["closed", CheckCircle2, isFr ? "Clôturées" : "Closed", counts.closed, "text-burgundy"],
+        ] as const).map(([target, Icon, label, value, color], index) => <button key={target} type="button" onClick={() => setFlow(flow === target ? "all" : target)} aria-pressed={flow === target} aria-label={`${label}, ${value}`} className={`flex min-h-20 items-center gap-3 p-3 text-left transition hover:bg-burgundy/[0.035] sm:p-4 ${flow === target ? "bg-burgundy/[0.055] shadow-[inset_0_-2px_0_#8A3042]" : ""} ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "sm:border-r" : "sm:border-r-0"} sm:border-b-0`}><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${flow === target ? "bg-white shadow-sm" : "bg-charcoal/[0.035]"}`}><Icon className={`h-5 w-5 ${color}`} /></span><span><span className="block text-xl font-black tabular-nums text-charcoal">{value}</span><span className="block text-[10px] font-bold leading-4 text-muted-foreground">{label}</span></span></button>)}
       </div>
 
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <SectionTabs value={flow} onChange={setFlow} label={isFr ? "Étapes du flux" : "Workflow stages"} items={flowItems} />
+      <div className="flex flex-col gap-3 border-y border-charcoal/8 py-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-h-10 items-center justify-between gap-3">
+          <div><p className="text-[9px] font-black uppercase text-muted-foreground">{isFr ? "Vue active" : "Active view"}</p><p className="mt-0.5 text-xs font-extrabold text-charcoal">{activeFlowLabel[flow]} · {filteredOrders.length}</p></div>
+          {flow !== "all" ? <button type="button" onClick={() => setFlow("all")} className="shrink-0 text-[10px] font-black text-terre hover:underline">{isFr ? "Voir toutes" : "View all"}</button> : null}
+        </div>
         <AdminSearchField value={query} onChange={setQuery} label={isFr ? "Rechercher une commande" : "Search orders"} placeholder={isFr ? "N°, destinataire ou ville" : "Number, recipient or city"} resultCount={filteredOrders.length} totalCount={orders.length} locale={locale} className="w-full xl:max-w-sm" />
       </div>
 
       {filteredOrders.length ? (
         <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-          {filteredOrders.map((order) => (
-            <button key={order.id} type="button" onClick={() => setSelectedOrder(order)} className="group rounded-lg border border-charcoal/8 bg-white p-4 text-left transition [contain-intrinsic-size:220px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
+          {filteredOrders.map((order) => {
+            const currentFlow = flowFor(order.status);
+            const flowIndex = FLOW_ORDER.indexOf(currentFlow);
+            const nextStatus = nextFulfillmentStatus(order.status);
+            const coldChain = order.items.some((item) => item.thermalClass === "FROZEN" || item.thermalClass === "REFRIGERATED");
+            return (
+            <button key={order.id} type="button" data-testid={`admin-order-card-${order.id}`} onClick={() => setSelectedOrder(order)} className="group rounded-lg border border-charcoal/8 bg-white p-4 text-left transition [contain-intrinsic-size:236px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
               <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-terre">{order.number}</p><p className="mt-1 text-[10px] text-muted-foreground">{formatDateTime(order.createdAt, locale)}</p></div><Badge className={`border ${orderStatusColor(order.status)}`}>{statusLabel(order.status, isFr)}</Badge></div>
-              <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-charcoal/5 text-charcoal"><UserRound className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-extrabold">{order.deliveryName}</p><p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-muted-foreground"><MapPin className="h-3 w-3" /> {order.deliveryPostalCode} {order.deliveryCity}</p></div></div>
-              <div className="mt-3 flex items-end justify-between"><div><p className="text-[10px] text-muted-foreground">{order.items.length} {isFr ? "article(s)" : "item(s)"} · {order.packageCount} {isFr ? "colis" : "parcel(s)"}</p><p className="mt-1 text-[10px] text-muted-foreground">{formatWeight(order.weightGrams, locale)}</p></div><p className="text-base font-black tabular-nums text-charcoal">{formatPrice(order.total, locale)}</p></div>
+              <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="flex shrink-0 -space-x-2" aria-label={isFr ? "Aperçu des produits" : "Product preview"}>{order.items.slice(0, 3).map((item) => <ProductImage key={item.id} src={item.imageUrl} alt={isFr ? item.nameFr : item.nameEn} emoji="" color="#F8F3EF" size="sm" className="h-9 w-9 border-2 border-white" rounded="rounded-md" />)}{order.items.length > 3 ? <span className="relative grid h-9 w-9 place-items-center rounded-md border-2 border-white bg-burgundy/10 text-[9px] font-black text-burgundy">+{order.items.length - 3}</span> : null}</span><span className="min-w-0 flex-1"><span className="block break-words text-xs font-extrabold leading-4 text-charcoal">{order.deliveryName}</span><span className="mt-0.5 flex items-start gap-1 text-[10px] leading-4 text-muted-foreground"><MapPin className="mt-0.5 h-3 w-3 shrink-0" /><span className="break-words">{order.deliveryPostalCode} {order.deliveryCity}</span></span></span>{coldChain ? <Snowflake className="h-4 w-4 shrink-0 text-burgundy" aria-label={isFr ? "Chaîne du froid" : "Cold chain"} /> : null}</div>
+              <div className="mt-3 grid grid-cols-4 gap-1" role="progressbar" aria-label={`${isFr ? "Progression" : "Progress"}: ${statusLabel(order.status, isFr)}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={(flowIndex + 1) * 25}>{FLOW_ORDER.map((stage, index) => <span key={stage} className={`h-1 rounded-sm ${index <= flowIndex ? "bg-terre" : "bg-charcoal/10"}`} />)}</div>
+              <div className="mt-3 flex items-end justify-between gap-3"><div className="min-w-0"><p className="text-[10px] text-muted-foreground">{order.items.length} {isFr ? "article(s)" : "item(s)"} · {order.packageCount} {isFr ? "colis" : "parcel(s)"} · {formatWeight(order.weightGrams, locale)}</p><p className="mt-1 flex items-center gap-1 text-[9px] font-black uppercase text-burgundy">{nextStatus ? <>{isFr ? "Prochaine" : "Next"}: {fulfillmentStatusLabel(nextStatus, locale)} <ArrowRight className="h-3 w-3" /></> : (isFr ? "Flux terminé" : "Workflow complete")}</p></div><p className="shrink-0 text-base font-black tabular-nums text-charcoal">{formatPrice(order.total, locale)}</p></div>
             </button>
-          ))}
+            );
+          })}
         </div>
       ) : <AdminEmptyState icon={<Box className="h-5 w-5" />} title={isFr ? "Aucune commande dans cette vue" : "No orders in this view"} description={isFr ? "Modifiez l'étape ou la recherche pour retrouver une commande." : "Change the stage or search to find an order."} />}
 
       <Dialog open={Boolean(selectedOrder)} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
-        <DialogContent className="max-h-[92dvh] overflow-y-auto p-0 sm:max-w-4xl">
+        <DialogContent closeLabel={isFr ? "Fermer" : "Close"} className="max-h-[92dvh] overflow-y-auto p-0 sm:max-w-4xl">
           {selectedOrder ? <>
-            <DialogHeader className="border-b border-border px-5 py-5 sm:px-6"><div className="flex flex-wrap items-center gap-2 pr-8"><DialogTitle className="text-xl font-black text-terre">{selectedOrder.number}</DialogTitle><Badge className={`border ${orderStatusColor(selectedOrder.status)}`}>{statusLabel(selectedOrder.status, isFr)}</Badge></div><DialogDescription>{formatDateTime(selectedOrder.createdAt, locale)} · {selectedOrder.items.length} {isFr ? "articles" : "items"} · {formatPrice(selectedOrder.total, locale)}</DialogDescription></DialogHeader>
+            <DialogHeader className="border-b border-border px-5 py-5 sm:px-6"><div className="flex flex-wrap items-center gap-2 pr-8"><DialogTitle className="text-xl font-black text-terre">{selectedOrder.number}</DialogTitle><Badge className={`border ${orderStatusColor(selectedOrder.status)}`}>{statusLabel(selectedOrder.status, isFr)}</Badge></div><DialogDescription>{formatDateTime(selectedOrder.createdAt, locale)} · {selectedOrder.deliveryName}</DialogDescription><div className="mt-4 grid grid-cols-3 divide-x divide-charcoal/10 border-y border-charcoal/8 py-3 text-left"><OrderDialogFact icon={CircleDollarSign} label={isFr ? "Total" : "Total"} value={formatPrice(selectedOrder.total, locale)} /><OrderDialogFact icon={PackageCheck} label={isFr ? "Préparation" : "Fulfilment"} value={`${selectedOrder.items.length} ${isFr ? "article(s)" : "item(s)"}`} /><OrderDialogFact icon={Truck} label={isFr ? "Expédition" : "Shipping"} value={`${selectedOrder.packageCount} ${isFr ? "colis" : "parcel(s)"}`} /></div></DialogHeader>
             <div className="grid gap-7 px-5 py-6 lg:grid-cols-[1.05fr_0.95fr] sm:px-6">
               <div className="space-y-6">
-                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Articles à préparer" : "Items to fulfil"}</h3><div className="mt-3 divide-y divide-border border-y border-border">{selectedOrder.items.map((item) => <div key={item.id} className="flex items-center gap-3 py-3"><ProductImage src={item.imageUrl} alt={isFr ? item.nameFr : item.nameEn} emoji="🍲" color="#D65A32" size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" /><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-charcoal text-[10px] font-black text-white">{item.qty}×</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold">{isFr ? item.nameFr : item.nameEn}</p><p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">{item.salesChannel === "wholesale" ? <span className="inline-flex items-center gap-1 font-bold text-burgundy"><Boxes className="h-3 w-3" />{isFr ? "Gros" : "Wholesale"}</span> : null}<span>{item.sku} · {thermalLabel(item.thermalClass, locale)}</span></p></div><span className="text-xs font-extrabold">{formatPrice(item.lineTotal, locale)}</span></div>)}</div></section>
-                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Livraison" : "Delivery"}</h3><div className="mt-3 rounded-lg bg-charcoal p-4 text-white"><p className="text-sm font-extrabold">{selectedOrder.deliveryName}</p><p className="mt-2 text-xs leading-5 text-white/65">{selectedOrder.deliveryAddress}<br />{selectedOrder.deliveryPostalCode} {selectedOrder.deliveryCity}<br />{selectedOrder.deliveryCountry}{selectedOrder.customerEmail ? <><br />{selectedOrder.customerEmail}</> : null}{selectedOrder.customerPhone ? <><br />{selectedOrder.customerPhone}</> : null}</p>{selectedOrder.deliverySlot ? <p className="mt-3 border-t border-white/10 pt-3 text-[10px] font-bold text-gold">{deliveryServiceLabel(selectedOrder.deliverySlot, isFr)}</p> : null}</div></section>
+                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Articles à préparer" : "Items to fulfil"}</h3><div className="mt-3 divide-y divide-border border-y border-border">{selectedOrder.items.map((item) => <div key={item.id} className="flex items-center gap-3 py-3"><ProductImage src={item.imageUrl} alt={isFr ? item.nameFr : item.nameEn} emoji="" color="#F8F3EF" size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" /><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy/10 text-[10px] font-black text-burgundy">{item.qty}×</span><div className="min-w-0 flex-1"><p className="break-words text-xs font-bold leading-4">{isFr ? item.nameFr : item.nameEn}</p><p className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">{item.salesChannel === "wholesale" ? <span className="inline-flex items-center gap-1 font-bold text-burgundy"><Boxes className="h-3 w-3" />{isFr ? "Gros" : "Wholesale"}</span> : null}<span>{item.sku} · {thermalLabel(item.thermalClass, locale)}</span></p></div><span className="shrink-0 text-xs font-extrabold">{formatPrice(item.lineTotal, locale)}</span></div>)}</div></section>
+                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Livraison" : "Delivery"}</h3><div className="mt-3 rounded-lg border border-burgundy/12 bg-[#FFF9F6] p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-terre text-white"><MapPin className="h-4 w-4" /></span><div className="min-w-0"><p className="break-words text-sm font-extrabold text-charcoal">{selectedOrder.deliveryName}</p><p className="mt-2 break-words text-xs leading-5 text-muted-foreground">{selectedOrder.deliveryAddress}<br />{selectedOrder.deliveryPostalCode} {selectedOrder.deliveryCity}<br />{selectedOrder.deliveryCountry}{selectedOrder.customerEmail ? <><br />{selectedOrder.customerEmail}</> : null}{selectedOrder.customerPhone ? <><br />{selectedOrder.customerPhone}</> : null}</p></div></div>{selectedOrder.deliverySlot ? <p className="mt-3 border-t border-burgundy/10 pt-3 text-[10px] font-bold text-burgundy">{deliveryServiceLabel(selectedOrder.deliverySlot, isFr)}</p> : null}</div></section>
               </div>
               <div className="space-y-6">
                 <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Progression" : "Progress"}</h3>{selectedOrder.timeline.length ? <ol className="mt-3 space-y-0">{selectedOrder.timeline.map((event, index) => <li key={`${event.status}-${event.at}`} className="relative flex gap-3 pb-5 last:pb-0"><span className={`relative z-10 mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full ${index === selectedOrder.timeline.length - 1 ? "bg-terre text-white" : "bg-burgundy/10 text-burgundy"}`}><CheckCircle2 className="h-3.5 w-3.5" /></span>{index < selectedOrder.timeline.length - 1 ? <span className="absolute bottom-0 left-[13px] top-7 w-px bg-border" /> : null}<div><p className="text-xs font-bold text-charcoal">{event.label || statusLabel(event.status, isFr)}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{formatDateTime(event.at, locale)}{event.actor ? ` · ${event.actor}` : ""}</p></div></li>)}</ol> : <p className="mt-3 text-xs text-muted-foreground">{isFr ? "Aucun événement enregistré." : "No event recorded."}</p>}</section>
@@ -132,6 +144,10 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
       </Dialog>
     </div>
   );
+}
+
+function OrderDialogFact({ icon: Icon, label, value }: { icon: typeof Truck; label: string; value: string }) {
+  return <div className="min-w-0 px-3 first:pl-0 last:pr-0"><p className="flex items-center gap-1 text-[8px] font-black uppercase text-muted-foreground"><Icon className="h-3 w-3 shrink-0 text-terre" />{label}</p><p className="mt-1 break-words text-[10px] font-extrabold leading-4 text-charcoal sm:text-xs">{value}</p></div>;
 }
 
 function deliveryServiceLabel(service: string, isFr: boolean) {

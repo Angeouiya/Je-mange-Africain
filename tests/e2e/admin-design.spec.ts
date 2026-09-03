@@ -1052,12 +1052,35 @@ test("the order workspace saves logistics and confirms each sensitive advancemen
   await mockAdminApi(page);
   await page.goto("/admin#orders", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Du paiement jusqu'à la porte" })).toBeVisible();
-  await page.getByRole("button", { name: /JMA-260902-0142/ }).click();
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+  const preparingFilter = page.getByRole("button", { name: /En préparation, 1/ });
+  await preparingFilter.click();
+  await expect(preparingFilter).toHaveAttribute("aria-pressed", "true");
+  const orderCard = page.getByTestId("admin-order-card-order-1");
+  await expect(orderCard).toBeVisible();
+  const orderProductImage = orderCard.getByRole("img", { name: "Attiéké frais" });
+  await expect(orderProductImage).toBeVisible();
+  await expect.poll(() => orderProductImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect(orderCard.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
+  await expect(orderCard).toContainText("Prochaine: Colis prêt");
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `orders-operational-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await orderCard.click();
 
   const dialog = page.getByRole("dialog", { name: "JMA-260902-0142" });
+  await expect(dialog.getByText("48,70 €", { exact: true }).first()).toBeVisible();
+  await expect(dialog.getByText("1 article(s)", { exact: true }).first()).toBeVisible();
+  await expect(dialog.getByText("2 colis", { exact: true }).first()).toBeVisible();
   await expect(dialog.getByRole("heading", { name: "Préparer, tracer et remettre" })).toBeVisible();
   await expect(dialog.getByText("aminata@example.fr")).toBeVisible();
   await expect(dialog.getByText("Livraison standard")).toBeVisible();
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    await page.screenshot({ path: join(directory, `order-control-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
   await dialog.getByLabel("Transporteur").fill("Chrono Frais Europe");
   await dialog.getByLabel("Numéro de suivi").fill("JMA-FR-260902-ADV");
   await dialog.getByLabel("Notes internes d'exploitation").fill("Chaîne du froid contrôlée avant emballage.");
