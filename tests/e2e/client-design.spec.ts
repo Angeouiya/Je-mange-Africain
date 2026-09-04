@@ -56,6 +56,22 @@ async function expectBrandSafeUiColors(page: Page) {
 }
 
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
+  await page.route("**/api/catalog?*", async (route) => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    if (Array.isArray(payload.products) && payload.products[0]) {
+      payload.products[0] = { ...payload.products[0], isBestseller: false, isRecommended: true, isNew: false };
+    }
+    await route.fulfill({ response, json: payload });
+  });
+  await page.route("**/api/recipes?*", async (route) => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    if (Array.isArray(payload.recipes) && payload.recipes[0]) {
+      payload.recipes[0] = { ...payload.recipes[0], isPopular: false, isRecommended: true, isNew: false };
+    }
+    await route.fulfill({ response, json: payload });
+  });
   await page.route("**/api/advertisements?*", async (route) => {
     const placement = new URL(route.request().url()).searchParams.get("placement") || "home";
     const campaigns = {
@@ -130,6 +146,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.locator("main img").first()).toBeVisible();
   const catalogueGrid = page.getByTestId("catalog-product-grid");
   await expect(catalogueGrid).toBeVisible();
+  await expect(catalogueGrid.getByText(/^Recommandé$/).first()).toBeVisible();
   await expectLoadedProductImages(catalogueGrid.getByRole("img"));
   const catalogueColumns = await catalogueGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(catalogueColumns).toBe(isMobile ? 2 : 4);
@@ -172,6 +189,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   }
   const recipeGrid = page.getByTestId("recipes-grid");
   await expect(recipeGrid).toBeVisible();
+  await expect(recipeGrid.getByText(/^Recommandée$/).first()).toBeVisible();
   await expectLoadedProductImages(recipeGrid.getByRole("img"));
   const recipeColumns = await recipeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(recipeColumns).toBe(isMobile ? 2 : 3);

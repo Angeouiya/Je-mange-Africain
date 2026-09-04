@@ -9,6 +9,7 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
 import { getDiscountPercent, getProductCommercialLine, getProductPhoto } from "@/lib/market-media";
+import { productEditorialHighlight } from "@/lib/editorial-flags";
 
 export interface ProductListItem {
   id: string;
@@ -33,6 +34,7 @@ export interface ProductListItem {
   imageColor: string;
   imageEmoji: string;
   isBestseller?: boolean;
+  isRecommended?: boolean;
   isNew?: boolean;
   isOnSale?: boolean;
   thermalClass: string;
@@ -57,6 +59,14 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
   const commercialLine = getProductCommercialLine(product, locale);
   const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
   const outOfStock = product.stockQty <= 0;
+  const editorialHighlight = productEditorialHighlight(product);
+  const editorialLabel = editorialHighlight === "bestseller"
+    ? t.bestseller
+    : editorialHighlight === "recommended"
+      ? (locale === "fr" ? "Recommandé" : "Recommended")
+      : editorialHighlight === "new"
+        ? t.new
+        : "";
 
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
 
@@ -117,8 +127,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
               -{discountPercent}%
             </span>
           )}
-          {product.isBestseller && <Badge className="bg-burgundy text-cream border-0 shadow-sm">{t.bestseller}</Badge>}
-          {product.isNew && <Badge className="bg-gold text-charcoal border-0 shadow-sm">{t.new}</Badge>}
+          {editorialHighlight ? <Badge className={`border-0 shadow-sm ${editorialHighlight === "new" ? "bg-gold text-charcoal" : editorialHighlight === "recommended" ? "bg-terre text-white" : "bg-burgundy text-cream"}`}>{editorialLabel}</Badge> : null}
           {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0 shadow-sm">{t.promo}</Badge>}
         </div>
         <button

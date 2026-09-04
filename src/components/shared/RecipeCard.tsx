@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bookmark, Clock, Users, Flame, ChevronRight, Star } from "lucide-react";
+import { Bookmark, Clock, Users, Flame, ChevronRight, Sparkles, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductImage } from "./ProductImage";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { getRecipePhoto } from "@/lib/market-media";
+import { recipeEditorialHighlight } from "@/lib/editorial-flags";
 
 export interface RecipeListItem {
   id: string;
@@ -21,6 +22,8 @@ export interface RecipeListItem {
   imageEmoji: string;
   imageUrl?: string | null;
   isPopular?: boolean;
+  isRecommended?: boolean;
+  isNew?: boolean;
   title: string;
   description?: string;
   ingredientCount?: number;
@@ -36,6 +39,14 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
   const photoUrl = recipe.imageUrl || getRecipePhoto(recipe);
   const isSaved = savedRecipes.includes(recipe.id);
+  const editorialHighlight = recipeEditorialHighlight(recipe);
+  const editorialLabel = editorialHighlight === "popular"
+    ? t.recipes.popular
+    : editorialHighlight === "recommended"
+      ? (locale === "fr" ? "Recommandée" : "Recommended")
+      : editorialHighlight === "new"
+        ? t.new
+        : "";
 
   return (
     <motion.div
@@ -56,9 +67,11 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
           rounded="rounded-none"
           priority={index < 2}
         />
-        {recipe.isPopular && (
-          <Badge className={`absolute border-0 bg-terre text-cream shadow-sm ${compact ? "left-2 top-2 px-1.5 py-0.5 text-[8px]" : "left-3 top-3"}`}><Star className={`${compact ? "mr-0.5 h-2.5 w-2.5" : "mr-1 h-3 w-3"} fill-current`} /> {t.recipes.popular}</Badge>
-        )}
+        {editorialHighlight ? (
+          <Badge className={`absolute border-0 shadow-sm ${editorialHighlight === "new" ? "bg-gold text-charcoal" : editorialHighlight === "recommended" ? "bg-burgundy text-white" : "bg-terre text-cream"} ${compact ? "left-2 top-2 px-1.5 py-0.5 text-[8px]" : "left-3 top-3"}`}>
+            {editorialHighlight === "popular" ? <Star className={`${compact ? "mr-0.5 h-2.5 w-2.5" : "mr-1 h-3 w-3"} fill-current`} /> : <Sparkles className={`${compact ? "mr-0.5 h-2.5 w-2.5" : "mr-1 h-3 w-3"}`} />}{editorialLabel}
+          </Badge>
+        ) : null}
         <Badge variant="outline" className={`absolute max-w-[calc(100%-4.5rem)] truncate bg-white/90 backdrop-blur ${compact ? "bottom-2 left-2 px-1.5 py-0.5 text-[8px]" : "bottom-3 left-3"}`}>{recipe.country}</Badge>
         <button
           type="button"

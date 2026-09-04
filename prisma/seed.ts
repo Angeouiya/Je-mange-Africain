@@ -302,7 +302,7 @@ async function main() {
         pricePerKg: weightG > 0 ? (Number(price) / weightG * 1000) : (volumeMl > 0 ? Number(price) / volumeMl * 1000 : Number(price)),
         stockQty: Math.floor(20 + Math.random() * 80),
         alertThreshold: 8,
-        imageColor, imageEmoji, imageUrl: `/products/${slug}.webp`, isBestseller: bestseller, isNew, isOnSale,
+        imageColor, imageEmoji, imageUrl: `/products/${slug}.webp`, isBestseller: bestseller, isRecommended: ["attieke", "gombo-frais", "fonio"].includes(slug), isNew, isOnSale,
         status: "published",
         nutrition,
         translations: {
@@ -506,7 +506,7 @@ async function main() {
   for (const r of recipes) {
     const [slug, country, category, difficulty, timeMin, baseServings, color, emoji, popular, frTitle, frDesc, frSteps, enTitle, enDesc, enSteps, ingredients] = r;
     const recipe = await db.recipe.create({
-      data: { slug, country, category, difficulty, timeMinutes: timeMin, baseServings, imageColor: color, imageEmoji: emoji, imageUrl: `/recipes/${slug}.webp`, isPopular: popular, status: "published",
+      data: { slug, country, category, difficulty, timeMinutes: timeMin, baseServings, imageColor: color, imageEmoji: emoji, imageUrl: `/recipes/${slug}.webp`, isPopular: popular, isRecommended: ["attieke-poisson", "mafe", "alloco-poulet"].includes(slug), status: "published",
         translations: {
           create: [
             { locale: "fr", title: frTitle, description: frDesc, steps: JSON.stringify(frSteps) },
