@@ -226,6 +226,18 @@ export function getProductGallery(product: MarketSubject) {
   ].filter(Boolean)));
 }
 
+export function getRecipeGallery(recipe: MarketSubject & { title?: string | null; category?: string | CategoryLike | null }) {
+  let gallery: string[] = [];
+  if (Array.isArray(recipe.galleryUrls)) gallery = recipe.galleryUrls;
+  else if (recipe.galleryUrls) {
+    try { gallery = JSON.parse(recipe.galleryUrls); } catch { gallery = []; }
+  }
+  return Array.from(new Set([
+    getRecipePhoto(recipe),
+    ...gallery,
+  ].filter(Boolean)));
+}
+
 export function getDiscountPercent(price?: number | null, promoPrice?: number | null) {
   if (!price || !promoPrice || promoPrice >= price) return 0;
   return Math.max(1, Math.round(((price - promoPrice) / price) * 100));

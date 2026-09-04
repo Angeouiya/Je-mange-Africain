@@ -404,7 +404,7 @@ test("global search and notifications navigate to useful client destinations", a
   await page.route("**/api/products/product-search?*", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify({ id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", description: "Semoule de manioc prête à accompagner vos plats.", country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", netWeightGrams: 500, stockQty: 14, alertThreshold: 5, imageColor: "#F7F2F1", imageEmoji: "", imageUrl: "/products/attieke.webp", galleryUrls: [], price: 7.5, promoPrice: null, pricePerKg: 15, isBestseller: false, isNew: false, isOnSale: false, variants: [], aliases: ["Attiéké"], ingredients: "Manioc", allergens: null, preparation: "Réchauffer doucement.", storage: "Conserver au frais.", storageTempC: "4°C", nutrition: null, related: [], relatedRecipes: [] }),
+    body: JSON.stringify({ id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", description: "Semoule de manioc prête à accompagner vos plats.", country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", netWeightGrams: 500, stockQty: 14, alertThreshold: 5, imageColor: "#F7F2F1", imageEmoji: "", imageUrl: "/products/attieke.webp", galleryUrls: [], price: 7.5, promoPrice: null, pricePerKg: 15, isBestseller: false, isRecommended: true, isNew: false, isOnSale: false, variants: [], aliases: ["Attiéké"], ingredients: "Manioc", allergens: null, preparation: "Réchauffer doucement.", storage: "Conserver au frais.", storageTempC: "4°C", nutrition: null, related: [], relatedRecipes: [] }),
   }));
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -467,6 +467,7 @@ test("global search and notifications navigate to useful client destinations", a
   }
   await search.press("Enter");
   await expect(page.getByRole("heading", { level: 1, name: "Attiéké frais" })).toBeVisible();
+  await expect(page.getByText(/^Recommandé$/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 
@@ -1346,6 +1347,14 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
 });
 
 test("the recipe configurator recalculates, removes and restores an ingredient", async ({ page }) => {
+  await page.route(/\/api\/recipes\/[^/?]+\?/, async (route) => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    payload.galleryUrls = ["/recipes/sauce-gombo.webp", "/recipes/mafe.webp"];
+    payload.isPopular = false;
+    payload.isRecommended = true;
+    await route.fulfill({ response, json: payload });
+  });
   await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();
   await page.getByRole("button", { name: /configurer|configure/i }).first().click();
@@ -1356,9 +1365,15 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   expect(recipeSchema["@type"]).toBe("Recipe");
   expect(recipeSchema.recipeIngredient.length).toBeGreaterThan(0);
   expect(recipeSchema.recipeInstructions.length).toBeGreaterThan(0);
+  expect(recipeSchema.image.length).toBeGreaterThan(1);
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   const configuratorHeaderBox = await page.getByTestId("recipe-header").boundingBox();
   if (isMobile) expect(configuratorHeaderBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(210);
+  const recipeGallery = page.getByTestId("recipe-gallery");
+  await expect(recipeGallery.getByRole("button")).toHaveCount(2);
+  await recipeGallery.getByRole("button", { name: /photo 2/i }).click();
+  await expect(recipeGallery.getByRole("button", { name: /photo 2/i })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/^Recommandée$/)).toBeVisible();
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/configurer|configure/i);
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/ingrédients|ingredients/i);
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/préparation|preparation/i);

@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BRAND_ACCENT_COLORS, BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
-import { getBrandAccentColor, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
+import { getBrandAccentColor, getProductPhoto, getRecipeGallery, getRecipePhoto } from "@/lib/market-media";
 
 describe("market media", () => {
   it("maps product identities to their dedicated photo", () => {
@@ -29,6 +29,14 @@ describe("market media", () => {
   it("prefers an explicitly managed product or recipe image", () => {
     expect(getProductPhoto({ traditionalName: "Attiéké", imageUrl: "https://cdn.example.com/attieke.webp" })).toBe("https://cdn.example.com/attieke.webp");
     expect(getRecipePhoto({ slug: "mafe", imageUrl: "https://cdn.example.com/mafe.webp" })).toBe("https://cdn.example.com/mafe.webp");
+  });
+
+  it("keeps the managed recipe photo first and removes duplicate gallery entries", () => {
+    expect(getRecipeGallery({
+      slug: "mafe",
+      imageUrl: "/recipes/mafe-managed.webp",
+      galleryUrls: ["/recipes/mafe-side.webp", "/recipes/mafe-managed.webp", "/recipes/mafe-side.webp"],
+    })).toEqual(["/recipes/mafe-managed.webp", "/recipes/mafe-side.webp"]);
   });
 
   it("normalizes chromatic accents to the logo palette and preserves neutrals", () => {

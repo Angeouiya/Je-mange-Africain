@@ -47,6 +47,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       difficulty: r.recipe.difficulty, timeMinutes: r.recipe.timeMinutes, baseServings: r.recipe.baseServings,
       imageColor: r.recipe.imageColor, imageEmoji: r.recipe.imageEmoji,
       imageUrl: getRecipePhoto({ slug: r.recipe.slug, title, country: r.recipe.country, category: r.recipe.category, imageUrl: r.recipe.imageUrl }),
+      isPopular: r.recipe.isPopular,
+      isRecommended: r.recipe.isRecommended,
+      isNew: r.recipe.isNew,
       title,
     };
   });
@@ -81,6 +84,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       country: p.country,
       thermalClass: p.thermalClass, packaging: p.packaging,
       isBestseller: p.isBestseller,
+      isRecommended: p.isRecommended,
       isNew: p.isNew,
       isOnSale: p.isOnSale,
       brandName: p.brand?.[`name${locale === "en" ? "En" : "Fr"}`] || p.brand?.nameFr || null,

@@ -18,13 +18,14 @@ import { dict } from "@/lib/i18n";
 import { useFetch, postJSON } from "@/lib/use-fetch";
 import { formatPrice, formatWeight, thermalColor, thermalLabel } from "@/lib/format";
 import { formatQty } from "@/lib/recipe-engine";
-import { getRecipePhoto } from "@/lib/market-media";
+import { getRecipeGallery } from "@/lib/market-media";
 import { shareRecipe } from "@/lib/client-actions";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { getPreparationProgress, togglePreparationStep } from "@/lib/recipe-preparation";
 import { buildRecipeStepGuides } from "@/lib/recipe-step-guide";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
+import { recipeEditorialHighlight } from "@/lib/editorial-flags";
 
 interface CalcResult {
   ingredients: any[];
@@ -70,6 +71,7 @@ export function RecipeConfiguratorView() {
   const [calcError, setCalcError] = useState("");
   const [shared, setShared] = useState(false);
   const [mobileStage, setMobileStage] = useState<RecipeStage>("settings");
+  const [selectedRecipePhoto, setSelectedRecipePhoto] = useState<string | null>(null);
   const calcRequestRef = useRef(0);
 
   const servings = Math.max(1, adults + children);
@@ -82,6 +84,7 @@ export function RecipeConfiguratorView() {
       setAdults(recipe.baseServings);
       setChildren(0);
       setCompletedSteps([]);
+      setSelectedRecipePhoto(null);
     }
   }, [recipe?.id]);
 
@@ -222,7 +225,16 @@ export function RecipeConfiguratorView() {
   if (!recipe) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Recette introuvable.</div>;
 
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
-  const recipePhoto = getRecipePhoto(recipe);
+  const recipeGallery = getRecipeGallery(recipe);
+  const recipePhoto = selectedRecipePhoto || recipeGallery[0];
+  const editorialHighlight = recipeEditorialHighlight(recipe);
+  const editorialLabel = editorialHighlight === "popular"
+    ? t.recipes.popular
+    : editorialHighlight === "recommended"
+      ? (locale === "fr" ? "Recommandée" : "Recommended")
+      : editorialHighlight === "new"
+        ? t.new
+        : "";
   const preparationSteps = calc?.steps?.[locale as "fr" | "en"] || recipe.steps || [];
   const preparationGuides = buildRecipeStepGuides(preparationSteps, locale);
   const preparationProgress = getPreparationProgress(preparationSteps.length, completedSteps);
@@ -246,7 +258,7 @@ export function RecipeConfiguratorView() {
     "@id": `${absoluteUrl(canonicalPath)}#recipe`,
     name: recipe.title,
     description: recipe.description,
-    image: [absoluteUrl(recipePhoto)],
+    image: recipeGallery.map(absoluteUrl),
     recipeCuisine: recipe.country ? `${recipe.country} / Africa` : "African",
     recipeCategory: recipe.category,
     recipeYield: `${recipe.baseServings} ${locale === "fr" ? "personnes" : "servings"}`,
@@ -279,7 +291,7 @@ export function RecipeConfiguratorView() {
 
       {/* recipe header */}
       <div className="mb-4 grid grid-cols-[6.75rem_minmax(0,1fr)] overflow-hidden rounded-md border border-charcoal/10 bg-white md:mb-6 md:grid-cols-[280px_1fr] md:rounded-lg" data-testid="recipe-header">
-        <div className="relative min-h-44 md:min-h-52">
+        <div className="relative min-h-44 md:min-h-52" data-testid="recipe-main-image">
           <ProductImage
             src={recipePhoto}
             alt={recipe.title}
@@ -289,9 +301,21 @@ export function RecipeConfiguratorView() {
             priority
             className="h-full w-full"
           />
+          {recipeGallery.length > 1 ? (
+            <div className="absolute inset-x-1.5 bottom-1.5 flex gap-1 overflow-x-auto rounded-md bg-white/92 p-1 shadow-sm backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={locale === "fr" ? "Photos de la recette" : "Recipe photos"} data-testid="recipe-gallery">
+              {recipeGallery.map((photo, index) => (
+                <button key={photo} type="button" onClick={() => setSelectedRecipePhoto(photo)} aria-pressed={recipePhoto === photo} aria-label={`${locale === "fr" ? "Afficher la photo" : "Show photo"} ${index + 1}`} className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-md border-2 transition md:h-10 md:w-10 ${recipePhoto === photo ? "border-terre" : "border-white hover:border-gold"}`}>
+                  <ProductImage src={photo} alt="" emoji={recipe.imageEmoji} color={recipe.imageColor} size="sm" className="h-full w-full" rounded="rounded-none" />
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="min-w-0 p-3 md:p-6">
-          <Badge variant="outline" className="mb-1.5 max-w-full truncate px-1.5 py-0.5 text-[9px] md:mb-2 md:px-2.5 md:text-xs">{recipe.country}</Badge>
+          <div className="mb-1.5 flex min-w-0 flex-wrap gap-1 md:mb-2">
+            <Badge variant="outline" className="max-w-full truncate px-1.5 py-0.5 text-[9px] md:px-2.5 md:text-xs">{recipe.country}</Badge>
+            {editorialHighlight ? <Badge className={`border-0 px-1.5 py-0.5 text-[9px] md:px-2.5 md:text-xs ${editorialHighlight === "new" ? "bg-gold text-charcoal" : editorialHighlight === "recommended" ? "bg-burgundy text-white" : "bg-terre text-white"}`}>{editorialLabel}</Badge> : null}
+          </div>
           <h1 className="line-clamp-2 font-display text-lg font-semibold leading-tight text-charcoal md:text-4xl">{recipe.title}</h1>
           <p className="mt-1.5 line-clamp-2 max-w-3xl text-[10px] leading-4 text-muted-foreground md:mt-2 md:text-sm md:leading-relaxed">{recipe.description}</p>
           <div className="mt-2 grid grid-cols-3 divide-x divide-border border-t border-border pt-2 text-center md:mt-4 md:max-w-md md:pt-3">

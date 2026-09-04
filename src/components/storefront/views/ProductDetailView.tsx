@@ -17,6 +17,7 @@ import { dict, type Locale } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
 import { getDiscountPercent, getProductCommercialLine, getProductGallery } from "@/lib/market-media";
+import { productEditorialHighlight } from "@/lib/editorial-flags";
 
 export function ProductDetailView() {
   const locale = useStore((s) => s.locale);
@@ -61,6 +62,14 @@ export function ProductDetailView() {
   const gallery = getProductGallery(product);
   const heroPhoto = selectedPhoto || gallery[0];
   const commercialLine = getProductCommercialLine(product, locale);
+  const editorialHighlight = productEditorialHighlight(product);
+  const editorialLabel = editorialHighlight === "bestseller"
+    ? t.bestseller
+    : editorialHighlight === "recommended"
+      ? (locale === "fr" ? "Recommandé" : "Recommended")
+      : editorialHighlight === "new"
+        ? t.new
+        : "";
   const lineTotal = price * qty;
   const canonicalPath = `/?view=product&productId=${encodeURIComponent(product.id)}`;
   const seoDescription = (product.description || commercialLine).trim();
@@ -178,8 +187,7 @@ export function ProductDetailView() {
               <Snowflake className="mr-1 h-3 w-3" /> {thermalLabel(product.thermalClass, locale)}
             </span>
             {discountPercent > 0 && <Badge className="bg-destructive text-white border-0">-{discountPercent}%</Badge>}
-            {product.isBestseller && <Badge className="bg-burgundy text-cream border-0">{t.bestseller}</Badge>}
-            {product.isNew && <Badge className="bg-gold text-charcoal border-0">{t.new}</Badge>}
+            {editorialHighlight ? <Badge className={`border-0 ${editorialHighlight === "new" ? "bg-gold text-charcoal" : editorialHighlight === "recommended" ? "bg-terre text-white" : "bg-burgundy text-cream"}`}>{editorialLabel}</Badge> : null}
             {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0">{t.promo}</Badge>}
           </div>
           <div>
