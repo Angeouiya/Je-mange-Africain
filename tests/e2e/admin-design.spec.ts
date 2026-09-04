@@ -1352,6 +1352,15 @@ test("the recipe studio imports a documented dish and exposes every unresolved s
   await expect(dialog.getByLabel("Durée en minutes")).toHaveValue("25");
   await expect(dialog.getByLabel("Nombre de portions")).toHaveValue("4");
   await expect(importer).toContainText("1/2");
+  const storefrontPreview = dialog.getByTestId("recipe-storefront-preview");
+  await expect(storefrontPreview).toContainText("Garba ivoirien");
+  await expect(storefrontPreview).toContainText("Côte d'Ivoire");
+  await expect(storefrontPreview).toContainText("25 min");
+  await expect(storefrontPreview).toContainText("Recommandée");
+  await expect(storefrontPreview.getByRole("img", { name: "Garba ivoirien" })).toBeVisible();
+  await storefrontPreview.getByRole("button", { name: "en", exact: true }).click();
+  await expect(storefrontPreview).toContainText("Ivorian garba");
+  await storefrontPreview.getByRole("button", { name: "fr", exact: true }).click();
 
   const linkedProduct = dialog.getByLabel("Produit 1");
   const unresolvedProduct = dialog.getByLabel("Produit 2");
@@ -1363,6 +1372,8 @@ test("the recipe studio imports a documented dish and exposes every unresolved s
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
+    await storefrontPreview.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(directory, `recipe-storefront-preview-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
     await unresolvedProduct.scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(directory, `recipe-library-import-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }

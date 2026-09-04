@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useFetch } from "@/lib/use-fetch";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { RecipeCardPreview, type RecipeListItem } from "@/components/shared/RecipeCard";
 import { getRecipePhoto } from "@/lib/market-media";
 import { buildRecipeStepGuide, recipeStepDetailScore } from "@/lib/recipe-step-guide";
 
@@ -237,11 +238,34 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
   const [templateCountry, setTemplateCountry] = useState("");
   const [pendingTemplate, setPendingTemplate] = useState<DishTemplate | null>(null);
   const [importSummary, setImportSummary] = useState<{ name: string; matched: number; total: number } | null>(null);
+  const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
   const { data: productData, loading: productsLoading } = useFetch<{ products: ProductOption[] }>(open ? `/api/admin/products?locale=${locale}` : null, [open, locale]);
   const { data: templateData, loading: templatesLoading, error: templatesError, refetch: refetchTemplates } = useFetch<DishTemplateResponse>(open && templateOpen && !editing ? "/api/dishes?bilingual=1&limit=100" : null, [open, templateOpen, editing]);
   const editRequest = useFetch<RecipeEditPayload>(open && recipe ? `/api/admin/recipes/${recipe.id}?locale=${locale}` : null, [open, recipe?.id, locale]);
   const products = productData?.products || [];
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+  const previewRecipe = useMemo<RecipeListItem>(() => {
+    const title = (previewLocale === "fr" ? draft.titleFr : draft.titleEn).trim()
+      || (previewLocale === "fr" ? "Titre de la recette" : "Recipe title");
+    return {
+      id: "recipe-studio-preview",
+      country: draft.country || (previewLocale === "fr" ? "Pays d'origine" : "Country of origin"),
+      category: draft.category,
+      difficulty: draft.difficulty,
+      timeMinutes: Number(draft.timeMinutes || 0),
+      baseServings: Number(draft.baseServings || 0),
+      imageColor: draft.imageColor,
+      imageEmoji: draft.imageEmoji,
+      imageUrl: draft.imageUrl || null,
+      isPopular: draft.isPopular,
+      isRecommended: draft.isRecommended,
+      isNew: draft.isNew,
+      title,
+      description: (previewLocale === "fr" ? draft.descriptionFr : draft.descriptionEn).trim()
+        || (previewLocale === "fr" ? "La description courte apparaîtra ici." : "The short description will appear here."),
+      ingredientCount: draft.ingredients.filter((ingredient) => ingredient.productId).length,
+    };
+  }, [draft, previewLocale]);
   const filteredTemplates = useMemo(() => {
     const query = normalizeSignal(templateQuery);
     return (templateData?.dishes || []).filter((template) => {
@@ -325,6 +349,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
   const handleOpen = (nextOpen: boolean) => {
     if (submitting) return;
     setOpen(nextOpen);
+    if (nextOpen) setPreviewLocale(locale);
     if (!nextOpen || !editing) {
       setDraft(initialDraft());
       setSubmitError("");
@@ -405,6 +430,20 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
                   <RecipeFlag checked={draft.isRecommended} onChange={(isRecommended) => update("isRecommended", isRecommended)} label={isFr ? "Recommandée" : "Recommended"} />
                   <RecipeFlag checked={draft.isPopular} onChange={(isPopular) => update("isPopular", isPopular)} label={isFr ? "Populaire" : "Popular"} />
                 </div>
+                <section className="border-t border-terre/20 pt-4" data-testid="recipe-storefront-preview">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-black uppercase text-terre">{isFr ? "Reflet client" : "Customer view"}</p>
+                      <h3 className="truncate text-sm font-extrabold text-charcoal">{isFr ? "Aperçu de la carte recette" : "Recipe card preview"}</h3>
+                    </div>
+                    <div className="flex shrink-0 rounded-md border border-burgundy/15 bg-white p-0.5" role="group" aria-label={isFr ? "Langue de l'aperçu recette" : "Recipe preview language"}>
+                      {(["fr", "en"] as const).map((language) => <button key={language} type="button" aria-pressed={previewLocale === language} onClick={() => setPreviewLocale(language)} className={`h-7 min-w-9 rounded px-2 text-[10px] font-black uppercase transition ${previewLocale === language ? "bg-burgundy text-white" : "text-muted-foreground hover:text-charcoal"}`}>{language}</button>)}
+                    </div>
+                  </div>
+                  <div className="mx-auto mt-4 w-full max-w-[190px]">
+                    <RecipeCardPreview recipe={previewRecipe} locale={previewLocale} compact />
+                  </div>
+                </section>
               </div>
             </section>
 
