@@ -48,6 +48,8 @@ describe("customer invoice document", () => {
     expect(html).toContain("Payée");
     expect(html).toContain("GBP");
     expect(html).toContain("FR00123456789");
+    expect(html).toContain("th{background:#8A3042");
+    expect(html).not.toContain("background:#3F2930");
   });
 
   it("escapes customer and product content before inserting it into the document", () => {

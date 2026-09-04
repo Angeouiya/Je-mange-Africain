@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOrderDeliveryTimestamp, getOrderProgress, getOrderStageIndex, isTerminalOrder, orderNeedsAttention, summarizeOrders } from "@/lib/order-experience";
+import { getOrderDeliveryOverview, getOrderDeliveryTimestamp, getOrderProgress, getOrderStageIndex, getShipmentTrackingHref, isTerminalOrder, orderNeedsAttention, summarizeOrders } from "@/lib/order-experience";
 import type { Order } from "@/lib/types";
 
 const order = (status: string, total: number, id = status): Order => ({
@@ -61,5 +61,14 @@ describe("order experience", () => {
     delivered.shipments = [{ id: "parcel", carrierId: null, carrierName: "Chrono Frais", trackingNumber: "JMA-1", thermalClass: "FROZEN", status: "delivered", confirmCode: null, estimatedDelivery: "2026-09-04T12:00:00.000Z", actualDelivery: "2026-09-03T16:30:00.000Z" }];
 
     expect(getOrderDeliveryTimestamp(delivered)).toBe("2026-09-03T16:30:00.000Z");
+  });
+
+  it("builds a secure carrier action from the primary parcel", () => {
+    const inTransit = order("in_transit", 30);
+    inTransit.packageCount = 2;
+    inTransit.shipments = [{ id: "parcel", carrierId: null, carrierName: "Chrono Frais", trackingNumber: "JMA FR/1", thermalClass: "FROZEN", status: "in_transit", confirmCode: "4821", estimatedDelivery: "2026-09-04T12:00:00.000Z", actualDelivery: null, trackingUrl: "https://track.example.com/{ref}" }];
+
+    expect(getOrderDeliveryOverview(inTransit)).toMatchObject({ stageIndex: 2, progress: 76, interrupted: false, packageCount: 2, trackingHref: "https://track.example.com/JMA%20FR%2F1" });
+    expect(getShipmentTrackingHref({ trackingNumber: "JMA-1", trackingUrl: "javascript:alert(1)?ref={ref}" })).toBeNull();
   });
 });

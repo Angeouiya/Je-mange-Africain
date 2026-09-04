@@ -1080,13 +1080,48 @@ test("delivered orders expose carrier tracking and proof without leaking interna
 
   await page.goto("/?view=orders", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /^(suivre|track)$/i }).first().click();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
   await expect(page.getByRole("heading", { name: "JMA-260902-0098" })).toBeVisible();
-  await expect(page.getByText(/livraison standard|standard delivery/i).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /facture|invoice/i })).toBeVisible();
+  const deliveryCommandCenter = page.getByTestId("delivery-command-center");
+  await expect(deliveryCommandCenter).toContainText(/commande a été remise|order has been delivered/i);
+  await expect(deliveryCommandCenter).toContainText(/chrono frais europe/i);
+  await expect(deliveryCommandCenter).toContainText(/colis\s*1|parcels\s*1/i);
+  await expect(page.getByRole("progressbar", { name: /livraison terminée|delivery .*complete/i })).toHaveAttribute("aria-valuenow", "100");
   await expect(page.getByRole("link", { name: /suivre chez le transporteur|track with carrier/i })).toHaveAttribute("href", "https://track.example.com/JMA-FR-260902-PROOF");
-  await expect(page.getByText(/preuve de remise|delivery proof/i)).toBeVisible();
+  const deliveryProofHeading = page.getByText(/^(preuve de remise|delivery proof)$/i);
+  await expect(deliveryProofHeading).toBeVisible();
   await expect(page.getByRole("img", { name: /preuve de livraison|delivery proof/i })).toBeVisible();
   await expect(page.getByText(/reçu par aminata koné|received by aminata koné/i)).toBeVisible();
+  const trackingDock = page.getByTestId("order-tracking-action-dock");
+  const trackingTabs = page.getByTestId("tracking-mobile-tabs");
+  const addressHeading = page.getByRole("heading", { name: /adresse|address/i });
+  const orderItemsHeading = page.getByRole("heading", { name: /articles|items/i });
+  if (isMobile) {
+    await expect(trackingDock).toBeVisible();
+    await expect(trackingDock).toContainText(/45,90\s*€|€45\.90/);
+    await expect(trackingDock.getByRole("link", { name: /suivre le colis|track parcel/i })).toHaveAttribute("href", "https://track.example.com/JMA-FR-260902-PROOF");
+    const trackingDockBox = await trackingDock.boundingBox();
+    const navigationBox = await page.getByTestId("mobile-navigation").boundingBox();
+    expect(Math.abs((trackingDockBox?.y || 0) + (trackingDockBox?.height || 0) - (navigationBox?.y || 0))).toBeLessThanOrEqual(2);
+    await expect(trackingTabs).toBeVisible();
+    await expect(trackingTabs.getByRole("button", { name: /livraison|delivery/i })).toHaveAttribute("aria-pressed", "true");
+    await expect(addressHeading).toBeHidden();
+    await expect(orderItemsHeading).toBeHidden();
+    await trackingTabs.getByRole("button", { name: /ma commande|my order/i }).click();
+    await expect(trackingTabs.getByRole("button", { name: /ma commande|my order/i })).toHaveAttribute("aria-pressed", "true");
+    await expect(addressHeading).toBeVisible();
+    await expect(orderItemsHeading).toBeVisible();
+    await expect(page.getByText(/livraison standard|standard delivery/i).first()).toBeVisible();
+    await expect(deliveryProofHeading).toBeHidden();
+    await trackingTabs.getByRole("button", { name: /livraison|delivery/i }).click();
+  } else {
+    await expect(trackingDock).toBeHidden();
+    await expect(trackingTabs).toBeHidden();
+    await expect(addressHeading).toBeVisible();
+    await expect(orderItemsHeading).toBeVisible();
+    await expect(page.getByText(/livraison standard|standard delivery/i).first()).toBeVisible();
+  }
   await expect(page.locator("body")).not.toContainText(/notes internes|internal operations notes|chaîne du froid contrôlée/i);
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);

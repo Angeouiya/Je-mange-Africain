@@ -1,4 +1,4 @@
-import type { Order } from "@/lib/types";
+import type { Order, OrderShipment } from "@/lib/types";
 
 const terminalStatuses = new Set(["delivered", "cancelled", "canceled", "refunded", "failed", "partialrefund"]);
 const attentionStatuses = new Set(["awaitingclient", "replacement", "failed", "paymentpending"]);
@@ -35,6 +35,34 @@ export function getOrderDeliveryTimestamp(order: Pick<Order, "status" | "shipmen
     .filter((value): value is string => Boolean(value))
     .sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
   return values[0] || null;
+}
+
+export function getShipmentTrackingHref(shipment: Pick<OrderShipment, "trackingNumber" | "trackingUrl">) {
+  if (!shipment.trackingNumber || !shipment.trackingUrl) return null;
+  try {
+    const url = new URL(shipment.trackingUrl.replace("{ref}", encodeURIComponent(shipment.trackingNumber)));
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getOrderDeliveryOverview(order: Order) {
+  const stageIndex = getOrderStageIndex(order.status);
+  const shipment = order.shipments.find((item) => {
+    const status = canonicalStatus(item.status);
+    return !["delivered", "cancelled", "canceled", "returned"].includes(status) && Boolean(item.trackingNumber);
+  }) || order.shipments.find((item) => Boolean(item.proofPhoto || item.trackingNumber)) || order.shipments[0] || null;
+
+  return {
+    stageIndex,
+    progress: getOrderProgress(order.status),
+    interrupted: stageIndex < 0,
+    shipment,
+    trackingHref: shipment ? getShipmentTrackingHref(shipment) : null,
+    deliveryTimestamp: getOrderDeliveryTimestamp(order),
+    packageCount: Math.max(1, Number(order.packageCount || 0), order.shipments.length),
+  };
 }
 
 export function summarizeOrders(orders: Order[]) {

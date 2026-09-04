@@ -186,6 +186,7 @@ export interface OrderEvent {
 export interface OrderShipment {
   id: string;
   carrierId: string | null;
+  carrier?: string | null;
   carrierName: string | null;
   trackingNumber: string | null;
   thermalClass: string;
