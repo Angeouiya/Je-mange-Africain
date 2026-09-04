@@ -493,21 +493,66 @@ test("product details stay bounded and preserve real visual identification in th
   await expectNoHorizontalOverflow(page);
 });
 
+test("customer sign-in accepts a phone number and resumes the intended workspace", async ({ page }) => {
+  const customer = { id: "customer-login", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Koné", role: "customer", loyaltyPoints: 120, walletCredit: 0 };
+  let credentials: { identifier?: string; password?: string } | undefined;
+  await page.route("**/api/auth/customer/session", async (route) => {
+    if (route.request().method() === "POST") {
+      credentials = route.request().postDataJSON();
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer: null }) });
+  });
+  await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [] }) }));
+
+  await page.goto("/?view=account&returnView=orders", { waitUntil: "domcontentloaded" });
+  const loginForm = page.getByRole("form", { name: /formulaire de connexion|sign-in form/i });
+  await expect(loginForm).toBeVisible();
+  await loginForm.getByLabel(/e-mail ou numéro de téléphone|email or phone number/i).fill("+33 6 12 34 56 78");
+  await loginForm.getByRole("textbox", { name: /^(mot de passe|password)$/i }).fill("motdepasse-solide");
+  await loginForm.getByRole("button", { name: /connexion|sign in/i }).click();
+
+  await expect(page.getByRole("heading", { name: /mes commandes|my orders/i })).toBeVisible();
+  await expect(page).toHaveURL(/view=orders/);
+  expect(credentials).toEqual({ identifier: "+33 6 12 34 56 78", password: "motdepasse-solide" });
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+});
+
 test("registration requires legal consent and two independently visible passwords", async ({ page }) => {
+  let recoveryRequest: { email?: string } | undefined;
   await page.route("**/api/auth/customer/register", (route) => route.fulfill({
     status: 503,
     contentType: "application/json",
     body: JSON.stringify({ error: "L'inscription client n'est pas configurée." }),
   }));
+  await page.route("**/api/auth/customer/password", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    recoveryRequest = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+  });
   await page.goto("/?view=account", { waitUntil: "domcontentloaded" });
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId("customer-auth-workspace")).toBeVisible();
+  await expect(dialog.getByText(/commandes|orders/i).last()).toBeVisible();
+  await expect(dialog.getByText(/favoris|saved/i).last()).toBeVisible();
+  await expect(dialog.getByText(/adresses|addresses/i).last()).toBeVisible();
   const isMobile = (page.viewportSize()?.width || 0) < 768;
-  if (!isMobile) {
+  if (isMobile) {
+    const mobileBrand = dialog.getByTestId("customer-auth-mobile-brand");
+    await expect(mobileBrand).toBeVisible();
+    await expect.poll(() => mobileBrand.locator("img").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  } else {
     const authVisual = dialog.getByTestId("customer-auth-visual");
     await expect(authVisual).toBeVisible();
     await expect.poll(() => authVisual.locator("img").first().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
     await expect(dialog.getByTestId("customer-auth-overlay")).toHaveClass(/bg-burgundy\/45/);
+    await expect(authVisual.getByText("Commandes suivies")).toBeVisible();
+    await expect(authVisual.getByText("Recettes synchronisées")).toBeVisible();
+    await expect(authVisual.getByText("Accès protégé")).toBeVisible();
   }
   await expect(dialog).not.toContainText(/console professionnelle|professional console|administration/i);
   if (process.env.CLIENT_SCREENSHOTS) {
@@ -526,6 +571,8 @@ test("registration requires legal consent and two independently visible password
   await expect(dialog.getByRole("link", { name: "privacy policy", exact: true })).toHaveAttribute("href", "/confidentialite?lang=en");
   await dialog.getByRole("button", { name: /switch the platform to french/i }).click();
   await page.getByRole("tab", { name: /inscription|register/i }).click();
+  const registrationProgress = page.getByRole("progressbar", { name: /progression de l'inscription|registration progress/i });
+  await expect(registrationProgress).toHaveAttribute("aria-valuenow", "0");
 
   const password = page.getByLabel(/mot de passe \(8 caractères minimum\)|password \(8 characters minimum\)/i);
   const confirmation = page.getByLabel(/confirmer le mot de passe|confirm password/i);
@@ -545,27 +592,47 @@ test("registration requires legal consent and two independently visible password
   await expect(page.getByRole("button", { name: /créer mon compte|create my account/i })).toBeDisabled();
   await confirmation.fill("motdepasse-solide");
   await expect(page.getByText("Les mots de passe correspondent.")).toBeVisible();
+  await expect(registrationProgress).toHaveAttribute("aria-valuenow", "33");
   await page.getByLabel(/prénom|first name/i).fill("Awa");
   await page.getByLabel(/^nom$|last name/i).fill("Koné");
   await page.getByLabel(/^e-mail$/i).fill("awa.kone@example.fr");
   await page.getByLabel(/numéro de téléphone|phone number/i).fill("+33 6 12 34 56 78");
+  await expect(registrationProgress).toHaveAttribute("aria-valuenow", "67");
 
   await page.getByRole("checkbox", { name: /conditions générales|terms of use/i }).click();
   await expect(page.getByRole("button", { name: /créer mon compte|create my account/i })).toBeDisabled();
   await page.getByRole("checkbox", { name: /politique de confidentialité|privacy policy/i }).click();
   await expect(page.getByRole("button", { name: /créer mon compte|create my account/i })).toBeEnabled();
+  await expect(registrationProgress).toHaveAttribute("aria-valuenow", "100");
+  await expect(page.getByText("Votre dossier est prêt")).toBeVisible();
   const brandNameBox = await dialog.locator(".font-brand").first().boundingBox();
   expect((brandNameBox?.x || 0) + (brandNameBox?.width || 0)).toBeLessThanOrEqual(page.viewportSize()?.width || 0);
   await expectNoHorizontalOverflow(page, dialog);
   await expectBrandSafeUiColors(page);
   await expectNoSeriousA11yViolations(page);
   if (process.env.CLIENT_SCREENSHOTS) {
+    await dialog.getByTestId("customer-auth-form-scroll").evaluate((element) => element.scrollTo({ top: 0, behavior: "instant" }));
     await page.screenshot({ path: `output/playwright/audit/auth-register-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, fullPage: true, scale: "css" });
   }
 
   await page.getByRole("button", { name: /créer mon compte|create my account/i }).click();
   await expect(page.getByRole("alert")).toContainText("Inscription momentanément indisponible.");
   await expect(dialog).not.toContainText(/configuré|supabase|api key/i);
+
+  await page.getByRole("tab", { name: /connexion|sign in/i }).click();
+  await dialog.getByRole("button", { name: /mot de passe oublié|forgot password/i }).click();
+  await expect(dialog.getByRole("heading", { name: /retrouvez l'accès à votre compte|recover access to your account/i })).toBeVisible();
+  await expect(dialog.getByLabel(/étapes de récupération|recovery steps/i)).toBeVisible();
+  await dialog.getByLabel(/^e-mail$/i).fill("awa.kone@example.fr");
+  await dialog.getByRole("button", { name: /envoyer le lien sécurisé|send secure link/i }).click();
+  await expect(dialog.getByRole("status")).toContainText(/un lien de modification vient d'être envoyé|a reset link has just been sent/i);
+  expect(recoveryRequest).toEqual({ email: "awa.kone@example.fr" });
+  await expectNoHorizontalOverflow(page, dialog);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await dialog.getByTestId("customer-auth-form-scroll").evaluate((element) => element.scrollTo({ top: 0, behavior: "instant" }));
+    await page.screenshot({ path: `output/playwright/audit/auth-recovery-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
 
   await page.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
