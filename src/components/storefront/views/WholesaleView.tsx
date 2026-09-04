@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useDeferredValue, useState } from "react";
-import { Boxes, Check, ChevronRight, Minus, PackageCheck, Plus, Search, ShieldCheck, ShoppingBag, TrendingDown, Truck } from "lucide-react";
+import { Boxes, Check, ChevronRight, FilePlus2, Minus, PackageCheck, Plus, Search, ShieldCheck, ShoppingBag, Trash2, TrendingDown, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -46,16 +46,32 @@ type WholesaleResponse = {
   filters: { categories: Array<{ id: string; name: string }> };
 };
 
+type WholesaleQuoteLine = {
+  product: WholesaleProduct;
+  packs: number;
+};
+
 export function WholesaleView() {
   const locale = useStore((state) => state.locale);
   const navigate = useStore((state) => state.navigate);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [quoteOpen, setQuoteOpen] = useState(false);
+  const [quoteLines, setQuoteLines] = useState<WholesaleQuoteLine[]>([]);
   const deferredQuery = useDeferredValue(query.trim());
   const url = `/api/catalog?channel=wholesale&locale=${locale}&pageSize=48&sort=popular${deferredQuery ? `&q=${encodeURIComponent(deferredQuery)}` : ""}${category ? `&category=${encodeURIComponent(category)}` : ""}`;
   const { data, loading, error, refetch } = useFetch<WholesaleResponse>(url, [locale, deferredQuery, category]);
   const isFr = locale === "fr";
+  const quotePackCount = quoteLines.reduce((total, line) => total + line.packs, 0);
+
+  const addToQuote = (product: WholesaleProduct, packs: number) => {
+    setQuoteLines((current) => {
+      const existing = current.some((line) => line.product.id === product.id);
+      return existing
+        ? current.map((line) => line.product.id === product.id ? { product, packs } : line)
+        : [...current, { product, packs }];
+    });
+  };
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
@@ -67,7 +83,7 @@ export function WholesaleView() {
             <h1 className="jma-section-title mt-1">{isFr ? "Marché de gros" : "Wholesale market"}</h1>
             <p className="mt-1.5 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-5">{isFr ? "Commandez par carton ou par lot, profitez de prix dégressifs et conservez la traçabilité de la chaîne du froid." : "Order by case or lot, access tiered pricing and preserve cold-chain traceability."}</p>
           </div>
-          <Button type="button" variant="outline" onClick={() => setQuoteOpen(true)} className="h-10 shrink-0 px-3 sm:px-4" aria-label={isFr ? "Demander un devis" : "Request a quote"}><Boxes className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{isFr ? "Devis" : "Quote"}</span><span className="hidden sm:inline">{isFr ? "Demander un devis" : "Request a quote"}</span></Button>
+          <Button type="button" variant="outline" onClick={() => setQuoteOpen(true)} className="h-10 shrink-0 px-3 sm:px-4" aria-label={quoteLines.length ? (isFr ? `Ouvrir le devis, ${quoteLines.length} produit(s) et ${quotePackCount} colis` : `Open quote, ${quoteLines.length} product(s) and ${quotePackCount} cases`) : (isFr ? "Demander un devis" : "Request a quote")}><Boxes className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{isFr ? "Devis" : "Quote"}</span><span className="hidden sm:inline">{isFr ? "Demander un devis" : "Request a quote"}</span>{quoteLines.length ? <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded bg-burgundy px-1 text-[9px] font-black text-white" aria-hidden="true">{quoteLines.length}</span> : null}</Button>
         </div>
         <div className="mt-3 sm:mt-4"><MarketChannelSwitch channel="wholesale" /></div>
       </header>
@@ -98,19 +114,19 @@ export function WholesaleView() {
         {!loading && error ? <div className="mt-5 border-y border-destructive/20 py-10 text-center"><p className="text-sm font-bold text-destructive">{error}</p><Button type="button" variant="outline" onClick={refetch} className="mt-3">{isFr ? "Réessayer" : "Try again"}</Button></div> : null}
         {!loading && !error && data?.products.length ? (
           <div className="mt-3 grid grid-cols-2 gap-2.5 sm:mt-5 md:grid-cols-3 md:gap-3 lg:grid-cols-4" data-testid="wholesale-product-grid">
-            {data.products.map((product, index) => <WholesaleProductCard key={product.id} product={product} index={index} />)}
+            {data.products.map((product, index) => <WholesaleProductCard key={product.id} product={product} index={index} selectedPacks={quoteLines.find((line) => line.product.id === product.id)?.packs || 0} onQuote={addToQuote} />)}
           </div>
         ) : null}
         {!loading && !error && data && !data.products.length ? (
           <div className="mt-5 border-y border-charcoal/10 py-12 text-center"><Boxes className="mx-auto h-8 w-8 text-muted-foreground" /><h2 className="mt-3 text-base font-black text-charcoal">{isFr ? "Aucune offre dans cette sélection" : "No offer in this selection"}</h2><p className="mx-auto mt-1 max-w-md text-xs leading-5 text-muted-foreground">{isFr ? "Modifiez votre recherche ou consultez le marché au détail pendant la préparation des prochains lots." : "Change your search or browse retail while the next batches are being prepared."}</p><Button type="button" variant="outline" onClick={() => navigate("catalog")} className="mt-4">{isFr ? "Voir le marché au détail" : "Browse retail"}<ChevronRight className="ml-1 h-4 w-4" /></Button></div>
         ) : null}
       </section>
-      <WholesaleQuoteDialog open={quoteOpen} onOpenChange={setQuoteOpen} />
+      <WholesaleQuoteDialog open={quoteOpen} onOpenChange={setQuoteOpen} lines={quoteLines} onLinesChange={setQuoteLines} />
     </div>
   );
 }
 
-function WholesaleProductCard({ product, index }: { product: WholesaleProduct; index: number }) {
+function WholesaleProductCard({ product, index, selectedPacks, onQuote }: { product: WholesaleProduct; index: number; selectedPacks: number; onQuote: (product: WholesaleProduct, packs: number) => void }) {
   const locale = useStore((state) => state.locale);
   const addToCart = useStore((state) => state.addToCart);
   const [quantity, setQuantity] = useState(Math.max(1, product.wholesaleMinPacks));
@@ -184,7 +200,10 @@ function WholesaleProductCard({ product, index }: { product: WholesaleProduct; i
           <span className="grid h-8 place-items-center border-x border-border text-[11px] font-black tabular-nums">{quantity}</span>
           <button type="button" onClick={() => changeQuantity(quantity + 1)} disabled={quantity >= maxPacks || outOfStock} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter les colis de ${product.name}` : `Increase cases of ${product.name}`}><Plus className="h-3.5 w-3.5" /></button>
         </div>
-        <Button type="button" size="sm" onClick={add} disabled={outOfStock} className={`h-9 w-full px-2 text-[10px] ${added ? "bg-burgundy text-white hover:bg-burgundy" : "bg-terre text-white hover:bg-terre-dark"}`}>{added ? <Check className="mr-1 h-3.5 w-3.5" /> : <ShoppingBag className="mr-1 h-3.5 w-3.5" />}{outOfStock ? (isFr ? "Indisponible" : "Unavailable") : added ? (isFr ? "Ajouté" : "Added") : <>{isFr ? "Ajouter" : "Add"}<span aria-hidden="true"> · {formatPrice(economics.lineTotal, locale)}</span></>}</Button>
+        <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-1.5">
+          <Button type="button" variant="outline" size="icon" onClick={() => onQuote(product, quantity)} disabled={outOfStock} className={`h-9 w-10 ${selectedPacks ? "border-burgundy/30 bg-burgundy/5 text-burgundy" : "text-terre"}`} aria-label={selectedPacks ? (isFr ? `Mettre à jour ${product.name} dans le devis avec ${quantity} colis` : `Update ${product.name} in the quote with ${quantity} cases`) : (isFr ? `Ajouter ${product.name} au devis` : `Add ${product.name} to quote`)} title={isFr ? "Ajouter au devis" : "Add to quote"}>{selectedPacks ? <Check className="h-3.5 w-3.5" /> : <FilePlus2 className="h-3.5 w-3.5" />}</Button>
+          <Button type="button" size="sm" onClick={add} disabled={outOfStock} className={`h-9 w-full px-2 text-[10px] ${added ? "bg-burgundy text-white hover:bg-burgundy" : "bg-terre text-white hover:bg-terre-dark"}`}>{added ? <Check className="mr-1 h-3.5 w-3.5" /> : <ShoppingBag className="mr-1 h-3.5 w-3.5" />}{outOfStock ? (isFr ? "Indisponible" : "Unavailable") : added ? (isFr ? "Ajouté" : "Added") : <>{isFr ? "Ajouter" : "Add"}<span aria-hidden="true"> · {formatPrice(economics.lineTotal, locale)}</span></>}</Button>
+        </div>
       </div>
     </article>
   );
@@ -198,29 +217,63 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
   return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-md border px-3 py-2 text-[10px] font-bold ${active ? "border-burgundy bg-burgundy text-white" : "border-border bg-white text-charcoal"}`}>{children}</button>;
 }
 
-function WholesaleQuoteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { open: boolean; onOpenChange: (open: boolean) => void; lines: WholesaleQuoteLine[]; onLinesChange: (lines: WholesaleQuoteLine[]) => void }) {
   const locale = useStore((state) => state.locale);
   const customer = useStore((state) => state.customer);
   const [form, setForm] = useState({ company: "", name: customer ? `${customer.firstName} ${customer.lastName}` : "", email: customer?.email || "", phone: customer?.phone || "", volume: "", message: "" });
   const [status, setStatus] = useState<"idle" | "busy" | "success" | "error">("idle");
   const [reference, setReference] = useState("");
   const isFr = locale === "fr";
+  const estimatedSubtotal = lines.reduce((total, line) => total + wholesaleLineEconomics(line.product.price, line.product.wholesaleUnitsPerPack, line.product.wholesaleTiers, line.packs).lineTotal, 0);
+  const totalPacks = lines.reduce((total, line) => total + line.packs, 0);
+
+  const handleOpenChange = (next: boolean) => {
+    if (status === "busy") return;
+    if (!next) {
+      setStatus("idle");
+      setReference("");
+    }
+    onOpenChange(next);
+  };
+
+  const changeLinePacks = (productId: string, packs: number) => {
+    onLinesChange(lines.map((line) => {
+      if (line.product.id !== productId) return line;
+      const maximum = Math.min(99, line.product.wholesaleAvailablePacks);
+      return { ...line, packs: Math.max(line.product.wholesaleMinPacks, Math.min(maximum, packs)) };
+    }));
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setStatus("busy");
     try {
-      const response = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: `${form.name} · ${form.company}`, email: form.email, subject: isFr ? "Demande de devis marché de gros" : "Wholesale quote request", message: `${isFr ? "Téléphone" : "Phone"}: ${form.phone}\n${isFr ? "Volume souhaité" : "Requested volume"}: ${form.volume}\n\n${form.message}` }) });
+      const selectedProducts = lines.map((line) => {
+        const economics = wholesaleLineEconomics(line.product.price, line.product.wholesaleUnitsPerPack, line.product.wholesaleTiers, line.packs);
+        return `- ${line.product.name}: ${line.packs} x ${line.product.wholesalePackLabel} = ${formatPrice(economics.lineTotal, locale)}`;
+      }).join("\n");
+      const response = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: `${form.name} · ${form.company}`, email: form.email, subject: isFr ? "Demande de devis marché de gros" : "Wholesale quote request", message: `${isFr ? "Téléphone" : "Phone"}: ${form.phone}\n${isFr ? "Sélection" : "Selection"}:\n${selectedProducts || (isFr ? "Aucune sélection préremplie" : "No prefilled selection")}\n${isFr ? "Estimation produits" : "Product estimate"}: ${formatPrice(estimatedSubtotal, locale)}\n${isFr ? "Besoin complémentaire" : "Additional requirement"}: ${form.volume || "-"}\n\n${form.message}` }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Request failed");
       setReference(payload.reference || "JMA");
       setStatus("success");
+      onLinesChange([]);
     } catch {
       setStatus("error");
     }
   };
 
-  return <Dialog open={open} onOpenChange={(next) => status !== "busy" && onOpenChange(next)}><DialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto p-5 sm:max-w-lg sm:p-6"><DialogHeader><span className="grid h-11 w-11 place-items-center rounded-md bg-terre/10 text-terre"><Boxes className="h-5 w-5" /></span><DialogTitle>{isFr ? "Demande de devis professionnel" : "Professional quote request"}</DialogTitle><DialogDescription>{isFr ? "Décrivez votre besoin. L'équipe commerciale vous répondra avec les volumes, la logistique et les conditions applicables." : "Describe your needs. The sales team will respond with volumes, logistics and applicable terms."}</DialogDescription></DialogHeader>{status === "success" ? <div className="border-y border-burgundy/20 py-7 text-center"><Check className="mx-auto h-7 w-7 text-burgundy" /><p className="mt-3 text-sm font-black text-charcoal">{isFr ? "Demande enregistrée" : "Request recorded"}</p><p className="mt-1 text-xs text-muted-foreground">{isFr ? "Référence" : "Reference"} · {reference}</p><Button type="button" onClick={() => onOpenChange(false)} className="mt-5 bg-burgundy text-white hover:bg-burgundy/90">{isFr ? "Fermer" : "Close"}</Button></div> : <form onSubmit={submit} className="mt-2 grid gap-3 sm:grid-cols-2"><QuoteField id="quote-company" label={isFr ? "Entreprise" : "Company"} value={form.company} onChange={(company) => setForm({ ...form, company })} required /><QuoteField id="quote-name" label={isFr ? "Contact" : "Contact"} value={form.name} onChange={(name) => setForm({ ...form, name })} required /><QuoteField id="quote-email" label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required /><QuoteField id="quote-phone" label={isFr ? "Téléphone" : "Phone"} type="tel" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} required /><div className="sm:col-span-2"><QuoteField id="quote-volume" label={isFr ? "Produits et volumes souhaités" : "Requested products and volumes"} value={form.volume} onChange={(volume) => setForm({ ...form, volume })} required /></div><div className="sm:col-span-2"><Label htmlFor="quote-message" className="mb-1.5 block text-xs font-bold">{isFr ? "Contraintes de livraison" : "Delivery requirements"}</Label><Textarea id="quote-message" value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} rows={4} minLength={10} required /></div>{status === "error" ? <p role="alert" className="text-xs font-semibold text-destructive sm:col-span-2">{isFr ? "La demande n'a pas pu être envoyée. Vérifiez les champs puis réessayez." : "The request could not be sent. Check the fields and try again."}</p> : null}<DialogFooter className="mt-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={status === "busy"}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={status === "busy"} className="bg-terre text-white hover:bg-terre-dark">{status === "busy" ? (isFr ? "Envoi..." : "Sending...") : (isFr ? "Envoyer la demande" : "Send request")}</Button></DialogFooter></form>}</DialogContent></Dialog>;
+  return <Dialog open={open} onOpenChange={handleOpenChange}><DialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto p-5 sm:max-w-xl sm:p-6"><DialogHeader><span className="grid h-11 w-11 place-items-center rounded-md bg-terre/10 text-terre"><Boxes className="h-5 w-5" /></span><DialogTitle>{isFr ? "Demande de devis professionnel" : "Professional quote request"}</DialogTitle><DialogDescription>{isFr ? "Ajustez votre sélection. L'équipe commerciale confirmera les volumes, la logistique et les conditions applicables." : "Adjust your selection. The sales team will confirm volumes, logistics and applicable terms."}</DialogDescription></DialogHeader>{status === "success" ? <div className="border-y border-burgundy/20 py-7 text-center"><Check className="mx-auto h-7 w-7 text-burgundy" /><p className="mt-3 text-sm font-black text-charcoal">{isFr ? "Demande enregistrée" : "Request recorded"}</p><p className="mt-1 text-xs text-muted-foreground">{isFr ? "Référence" : "Reference"} · {reference}</p><Button type="button" onClick={() => handleOpenChange(false)} className="mt-5 bg-burgundy text-white hover:bg-burgundy/90">{isFr ? "Fermer" : "Close"}</Button></div> : <form onSubmit={submit} className="mt-2 grid gap-3 sm:grid-cols-2">{lines.length ? <section className="border-y border-burgundy/15 py-3 sm:col-span-2" aria-labelledby="quote-selection-title" data-testid="wholesale-quote-selection"><div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Bordereau à chiffrer" : "Pricing schedule"}</p><h3 id="quote-selection-title" className="mt-0.5 text-sm font-black text-charcoal">{lines.length} {isFr ? "produit(s) sélectionné(s)" : "selected product(s)"}</h3></div><p className="text-right text-sm font-black text-terre">{formatPrice(estimatedSubtotal, locale)}<span className="block text-[9px] font-bold text-muted-foreground">{totalPacks} {isFr ? "colis" : "cases"}</span></p></div><div className="mt-3 divide-y divide-border">{lines.map((line) => <WholesaleQuoteLineEditor key={line.product.id} line={line} locale={locale} onPacksChange={(packs) => changeLinePacks(line.product.id, packs)} onRemove={() => onLinesChange(lines.filter((item) => item.product.id !== line.product.id))} />)}</div></section> : <div className="border-y border-gold/30 bg-gold/[0.06] px-3 py-3 text-[11px] leading-5 text-charcoal sm:col-span-2">{isFr ? "Aucun produit présélectionné. Décrivez librement votre besoin ci-dessous." : "No product preselected. Describe your requirements below."}</div>}<QuoteField id="quote-company" label={isFr ? "Entreprise" : "Company"} value={form.company} onChange={(company) => setForm({ ...form, company })} required /><QuoteField id="quote-name" label={isFr ? "Contact" : "Contact"} value={form.name} onChange={(name) => setForm({ ...form, name })} required /><QuoteField id="quote-email" label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required /><QuoteField id="quote-phone" label={isFr ? "Téléphone" : "Phone"} type="tel" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} required /><div className="sm:col-span-2"><QuoteField id="quote-volume" label={lines.length ? (isFr ? "Besoin complémentaire (optionnel)" : "Additional requirement (optional)") : (isFr ? "Produits et volumes souhaités" : "Requested products and volumes")} value={form.volume} onChange={(volume) => setForm({ ...form, volume })} required={!lines.length} /></div><div className="sm:col-span-2"><Label htmlFor="quote-message" className="mb-1.5 block text-xs font-bold">{isFr ? "Contraintes de livraison" : "Delivery requirements"}</Label><Textarea id="quote-message" value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} rows={4} minLength={10} required /></div>{status === "error" ? <p role="alert" className="text-xs font-semibold text-destructive sm:col-span-2">{isFr ? "La demande n'a pas pu être envoyée. Vérifiez les champs puis réessayez." : "The request could not be sent. Check the fields and try again."}</p> : null}<DialogFooter className="mt-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={status === "busy"}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={status === "busy"} className="bg-terre text-white hover:bg-terre-dark">{status === "busy" ? (isFr ? "Envoi..." : "Sending...") : (isFr ? "Envoyer la demande" : "Send request")}</Button></DialogFooter></form>}</DialogContent></Dialog>;
+}
+
+function WholesaleQuoteLineEditor({ line, locale, onPacksChange, onRemove }: { line: WholesaleQuoteLine; locale: "fr" | "en"; onPacksChange: (packs: number) => void; onRemove: () => void }) {
+  const isFr = locale === "fr";
+  const product = line.product;
+  const maximum = Math.min(99, product.wholesaleAvailablePacks);
+  const economics = wholesaleLineEconomics(product.price, product.wholesaleUnitsPerPack, product.wholesaleTiers, line.packs);
+  const photo = product.imageUrl || getProductPhoto(product);
+
+  return <article className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-2.5 py-3"><ProductImage src={photo} fallbackSrc={getProductPhoto({ ...product, imageUrl: null })} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-12 w-12" rounded="rounded-md" /><div className="min-w-0"><p className="truncate text-[11px] font-black text-charcoal">{product.name}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{product.wholesalePackLabel}</p><p className="mt-1 text-[10px] font-black text-terre">{formatPrice(economics.lineTotal, locale)}</p></div><div className="flex items-center gap-1"><div className="grid grid-cols-[1.75rem_2rem_1.75rem] overflow-hidden rounded-md border border-border"><button type="button" onClick={() => onPacksChange(line.packs - 1)} disabled={line.packs <= product.wholesaleMinPacks} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Diminuer ${product.name}` : `Decrease ${product.name}`}><Minus className="h-3 w-3" /></button><span className="grid h-8 place-items-center border-x border-border text-[10px] font-black tabular-nums">{line.packs}</span><button type="button" onClick={() => onPacksChange(line.packs + 1)} disabled={line.packs >= maximum} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter ${product.name}` : `Increase ${product.name}`}><Plus className="h-3 w-3" /></button></div><button type="button" onClick={onRemove} className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-destructive/[0.05] hover:text-destructive" aria-label={isFr ? `Retirer ${product.name} du devis` : `Remove ${product.name} from quote`} title={isFr ? "Retirer" : "Remove"}><Trash2 className="h-3.5 w-3.5" /></button></div></article>;
 }
 
 function QuoteField({ id, label, value, onChange, type = "text", required = false }: { id: string; label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean }) {

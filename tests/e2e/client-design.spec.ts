@@ -172,6 +172,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
 });
 
 test("the wholesale market applies volume pricing and preserves case quantities in the basket", async ({ page }) => {
+  let quotePayload: { message?: string } | null = null;
   const wholesaleProduct = {
     id: "wholesale-attieke",
     sku: "JMA-WHO-ATT",
@@ -203,6 +204,10 @@ test("the wholesale market applies volume pricing and preserves case quantities 
     const english = route.request().url().includes("locale=en");
     const localizedProduct = { ...wholesaleProduct, name: english ? wholesaleProduct.nameEn : wholesaleProduct.nameFr, description: english ? "Fresh cassava semolina for restaurants and caterers." : wholesaleProduct.description };
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [localizedProduct], total: 1, page: 1, pageSize: 48, pages: 1, filters: { categories: [wholesaleProduct.category], brands: [], countries: ["Côte d'Ivoire"] } }) });
+  });
+  await page.route("**/api/contact", async (route) => {
+    quotePayload = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ ok: true, reference: "JMA-PRO-2042" }) });
   });
 
   await page.goto("/?view=wholesale", { waitUntil: "domcontentloaded" });
@@ -240,6 +245,29 @@ test("the wholesale market applies volume pricing and preserves case quantities 
     await productCard.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `output/playwright/audit/wholesale-economics-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
+  await productCard.getByRole("button", { name: /ajouter .* au devis|add .* to quote/i }).click();
+  const selectedQuoteButton = page.getByRole("button", { name: /ouvrir le devis, 1 produit.*5 colis|open quote, 1 product.*5 cases/i });
+  await expect(selectedQuoteButton).toBeVisible();
+  await selectedQuoteButton.click();
+  const selectedQuoteDialog = page.getByRole("dialog", { name: /demande de devis professionnel|professional quote request/i });
+  const quoteSelection = selectedQuoteDialog.getByTestId("wholesale-quote-selection");
+  await expect(quoteSelection).toContainText("Attiéké professionnel");
+  await expect(quoteSelection).toContainText(/150,00\s*€|€150\.00/);
+  await expectLoadedProductImages(quoteSelection.getByRole("img", { name: "Attiéké professionnel" }), 1);
+  await quoteSelection.getByRole("button", { name: /diminuer attiéké|decrease professional attieke/i }).click();
+  await expect(quoteSelection).toContainText(/128,00\s*€|€128\.00/);
+  await selectedQuoteDialog.getByLabel(/entreprise|company/i).fill("Maison Awa");
+  await selectedQuoteDialog.getByLabel(/^contact$/i).fill("Awa Traore");
+  await selectedQuoteDialog.getByLabel(/^email$/i).fill("awa@maison.example");
+  await selectedQuoteDialog.getByLabel(/téléphone|phone/i).fill("+33612345678");
+  await selectedQuoteDialog.getByLabel(/contraintes de livraison|delivery requirements/i).fill("Livraison réfrigérée le mardi matin.");
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/wholesale-quote-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await selectedQuoteDialog.getByRole("button", { name: /envoyer la demande|send request/i }).click();
+  await expect(selectedQuoteDialog).toContainText("JMA-PRO-2042");
+  await expect.poll(() => quotePayload?.message || "").toContain("Attiéké professionnel: 4 x Carton de 6 sachets = 128,00 €");
+  await selectedQuoteDialog.getByRole("button", { name: "Fermer", exact: true }).click();
   await page.getByRole("button", { name: /^(ajouter|add)$/i }).click();
   await page.getByRole("button", { name: /passer la plateforme en anglais|switch the platform to french/i }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Wholesale market" })).toBeVisible();
