@@ -29,7 +29,15 @@ export default function Page() {
   const navigate = useStore((s) => s.navigate);
   const customer = useStore((s) => s.customer);
   const [mounted, setMounted] = useState(false);
-  const viewKey = `${view}:${JSON.stringify(params)}`;
+  const viewIdentity = view === "product"
+    ? `${view}:${params.productId || ""}`
+    : view === "recipe-config"
+      ? `${view}:${params.recipeId || ""}`
+      : view === "order-tracking" || view === "order-confirmation"
+        ? `${view}:${params.orderId || ""}`
+        : view === "info"
+          ? `${view}:${params.infoPage || "about"}`
+          : view;
 
   useEffect(() => {
     const sessionSubject = useStore.getState().customer?.id || null;
@@ -85,7 +93,7 @@ export default function Page() {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(settled);
     };
-  }, [mounted, viewKey]);
+  }, [mounted, viewIdentity]);
 
   // Avoid hydration mismatch: render a stable shell on first paint
   if (!mounted) {
@@ -111,7 +119,7 @@ export default function Page() {
       <main id="main-content" tabIndex={-1} className={isPublicAuthGate ? "flex-1" : "flex-1 pb-20 md:pb-0"}>
         <AnimatePresence mode="wait">
           <motion.div
-            key={viewKey}
+            key={viewIdentity}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -141,7 +149,7 @@ function storefrontDestination(searchParams: URLSearchParams): { view: ViewId; p
     const recipeId = searchParams.get("recipeId");
     return recipeId ? { view, params: { recipeId } } : { view: "recipes", params: {} };
   }
-  if (view === "order-tracking") {
+  if (view === "order-tracking" || view === "order-confirmation") {
     const orderId = searchParams.get("orderId");
     return orderId ? { view, params: { orderId } } : { view: "orders", params: {} };
   }

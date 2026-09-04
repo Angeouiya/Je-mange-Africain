@@ -955,6 +955,96 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expectNoSeriousA11yViolations(page);
 });
 
+test("the confirmation receipt survives a direct link and leads into delivery tracking", async ({ page }) => {
+  const customer = { id: "customer-confirmed", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
+  const confirmedOrder = {
+    id: "order-confirmed",
+    number: "JMA-260904-0218",
+    status: "paymentConfirmed",
+    subtotal: 35.8,
+    shippingCost: 8.5,
+    vatAmount: 7.38,
+    promoDiscount: 2,
+    total: 42.3,
+    currency: "EUR",
+    weightGrams: 1900,
+    packageCount: 2,
+    createdAt: "2026-09-04T10:12:00.000Z",
+    deliveryName: "Awa Traoré",
+    deliveryAddress: "12 rue des Cultures",
+    deliveryCity: "Paris",
+    deliveryPostalCode: "75011",
+    deliveryCountry: "France",
+    deliverySlot: "standard",
+    paymentMethod: "card",
+    items: [
+      { id: "confirmed-line-1", productId: "product-attieke", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 4.9, qty: 2, lineTotal: 9.8, thermalClass: "REFRIGERATED", recipeId: null, recipeName: null, packWeightGrams: 500, unitLabel: "500 g", imageUrl: "/products/attieke.webp" },
+      { id: "confirmed-line-2", productId: "product-gombo", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", sku: "JMA-GOM-500", unitPrice: 8.5, qty: 2, lineTotal: 17, thermalClass: "FROZEN", recipeId: null, recipeName: null, packWeightGrams: 500, unitLabel: "500 g", imageUrl: "/products/gombo.webp" },
+    ],
+    shipments: [{ id: "confirmed-shipment", carrierId: null, carrier: "Chrono Frais", carrierName: "Chrono Frais", trackingNumber: null, thermalClass: "FROZEN", status: "preparing", confirmCode: null, estimatedDelivery: "2026-09-06T14:00:00.000Z", actualDelivery: null }],
+    timeline: [{ id: "confirmed-event", status: "paymentConfirmed", label: "Paiement confirmé", at: "2026-09-04T10:12:00.000Z", actor: null }],
+    payments: [{ id: "confirmed-payment", amount: 42.3, method: "card", status: "captured", reference: "pi_jma_confirmed" }],
+  };
+
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: {
+        locale: "fr",
+        cart: [],
+        customer: persistedCustomer,
+        addresses: [],
+        favorites: [],
+        savedRecipes: [],
+        recentlyViewed: [],
+        country: "France",
+        postalCode: "75011",
+        coupon: null,
+      },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer }) }));
+  await page.route("**/api/orders/order-confirmed*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(confirmedOrder) }));
+
+  await page.goto("/?view=order-confirmation&orderId=order-confirmed", { waitUntil: "domcontentloaded" });
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  await expect(page).toHaveURL(/view=order-confirmation&orderId=order-confirmed/);
+  await expect(page.getByRole("heading", { name: /merci awa, c'est confirmé|thank you awa, it is confirmed/i })).toBeVisible();
+  await expect(page.getByTestId("confirmation-command-center")).toContainText("JMA-260904-0218");
+  await expect(page.getByRole("list", { name: /prochaines étapes de la commande|next order steps/i })).toContainText(/paiement validé|payment validated/i);
+  await expect(page.getByRole("heading", { name: /articles confirmés|confirmed items/i })).toBeVisible();
+  await expectLoadedProductImages(page.getByRole("main").getByRole("img"), 2);
+  await expect(page.getByRole("heading", { name: /6 sept\. 2026|6 september 2026/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /paiement validé|payment validated/i })).toBeVisible();
+  await expect(page.getByText("42,30 €", { exact: true })).toBeVisible();
+
+  const actions = isMobile ? page.getByTestId("confirmation-action-dock") : page.getByTestId("confirmation-desktop-actions");
+  if (isMobile) {
+    await expect(actions).toBeVisible();
+    const dockBox = await actions.boundingBox();
+    const navigationBox = await page.getByTestId("mobile-navigation").boundingBox();
+    expect(Math.abs((dockBox?.y || 0) + (dockBox?.height || 0) - (navigationBox?.y || 0))).toBeLessThanOrEqual(2);
+  } else {
+    await expect(page.getByTestId("confirmation-action-dock")).toBeHidden();
+  }
+
+  const downloadPromise = page.waitForEvent("download");
+  await actions.getByRole("button", { name: /télécharger la facture|download invoice|facture|invoice/i }).click();
+  await expect((await downloadPromise).suggestedFilename()).toBe("JMA-260904-0218.html");
+  await expectNoHorizontalOverflow(page);
+  await expectBrandSafeUiColors(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: `output/playwright/audit/order-confirmation-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+
+  await actions.getByRole("button", { name: /suivre|track/i }).click();
+  await expect(page).toHaveURL(/view=order-tracking&orderId=order-confirmed/);
+  await expect(page.getByRole("heading", { name: "JMA-260904-0218" })).toBeVisible();
+});
+
 test("the recipe configurator recalculates, removes and restores an ingredient", async ({ page }) => {
   await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();
