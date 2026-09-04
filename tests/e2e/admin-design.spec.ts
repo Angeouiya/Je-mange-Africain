@@ -1106,6 +1106,7 @@ test("the guided product studio publishes a complete image-backed record", async
 
   await dialog.getByLabel("Coût brut d'achat (€)").fill("2.40");
   await dialog.getByLabel("Marge bénéficiaire (€)").fill("1.60");
+  await dialog.getByLabel("Prix promotionnel (€)").fill("3.20");
   await expect(dialog.getByText("4,00 €", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Suivant" }).click();
 
@@ -1117,13 +1118,27 @@ test("the guided product studio publishes a complete image-backed record", async
   await expect(steps.getByRole("tab", { name: /Publication/ })).toHaveAttribute("aria-selected", "true");
   await dialog.getByLabel("Choisir un fichier pour Photo principale du produit").setInputFiles({ name: "gari.webp", mimeType: "image/webp", buffer: Buffer.from([82, 73, 70, 70]) });
   await expect(dialog.getByRole("img", { name: "Photo principale du produit" })).toBeVisible();
+  const storefrontPreview = dialog.getByTestId("product-storefront-preview");
+  await expect(storefrontPreview).toContainText("Farine de manioc premium");
+  await expect(storefrontPreview).toContainText("4,00 €");
+  await expect(storefrontPreview).toContainText("3,20 €");
+  await expect(storefrontPreview).toContainText("-20%");
+  await expect(storefrontPreview).toContainText("Nouveau");
+  await storefrontPreview.getByRole("button", { name: "en", exact: true }).click();
+  await expect(storefrontPreview).toContainText("Premium cassava flour");
+  await storefrontPreview.getByRole("button", { name: "fr", exact: true }).click();
   const publish = dialog.getByRole("button", { name: "Publier", exact: true });
   await expect(publish).toBeEnabled();
   await expectBrandSafeUiColors(page);
   expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).include('[data-testid="product-storefront-preview"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blockingAccessibility = accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blockingAccessibility, blockingAccessibility.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
+    await storefrontPreview.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(directory, `product-storefront-preview-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
     await dialog.getByTestId("product-studio-panel").evaluate((element) => { element.scrollTop = 0; });
     await page.screenshot({ path: join(directory, `product-studio-ready-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }
@@ -1135,6 +1150,7 @@ test("the guided product studio publishes a complete image-backed record", async
     sku: "JMA-GAR-500",
     costPrice: "2.40",
     profitMargin: "1.60",
+    promoPrice: "3.20",
     stockQty: "48",
     imageUrl: "/products/attieke.webp",
     status: "published",

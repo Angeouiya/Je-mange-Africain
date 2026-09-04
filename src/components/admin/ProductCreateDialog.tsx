@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useFetch } from "@/lib/use-fetch";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
+import { ProductCardPreview, type ProductListItem } from "@/components/shared/ProductCard";
 
 type ProductDraft = {
   nameFr: string;
@@ -133,6 +134,7 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
   const [discardOpen, setDiscardOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
   const { data: categoriesData } = useFetch(`/api/categories?locale=${locale}`, [locale]);
   const productSignal = useDeferredValue(`${draft.nameFr} ${draft.nameEn} ${draft.traditionalName} ${draft.descriptionFr} ${draft.descriptionEn} ${draft.country}`.trim());
   const recommendationsUrl = productSignal.length >= 3
@@ -141,6 +143,40 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
   const { data: recommendationData, loading: recommendationsLoading } = useFetch(recommendationsUrl, [productSignal, locale]);
   const recommendations = recommendationData?.dishes || [];
   const salePrice = Math.round((Number(draft.costPrice || 0) + Number(draft.profitMargin || 0) + Number.EPSILON) * 100) / 100;
+  const previewProduct = useMemo<ProductListItem>(() => {
+    const category = categoriesData?.categories?.find((entry: { id: string }) => entry.id === draft.categoryId);
+    const promoPrice = Number(draft.promoPrice);
+    const netWeightGrams = Number(draft.netWeightGrams);
+    const name = (previewLocale === "fr" ? draft.nameFr : draft.nameEn).trim()
+      || draft.traditionalName.trim()
+      || (previewLocale === "fr" ? "Nom du produit" : "Product name");
+
+    return {
+      id: "product-studio-preview",
+      sku: draft.sku || "JMA-PREVIEW",
+      traditionalName: draft.traditionalName || (previewLocale === "fr" ? "Nom traditionnel" : "Traditional name"),
+      name,
+      nameFr: draft.nameFr || name,
+      nameEn: draft.nameEn || name,
+      price: salePrice,
+      promoPrice: promoPrice > 0 && promoPrice < salePrice ? promoPrice : null,
+      pricePerKg: netWeightGrams > 0 ? salePrice / (netWeightGrams / 1000) : null,
+      stockQty: Number(draft.stockQty || 0),
+      country: draft.country,
+      category: category ? { id: category.id, slug: category.slug, name: category.name, color: category.color } : null,
+      description: (previewLocale === "fr" ? draft.descriptionFr : draft.descriptionEn).trim()
+        || (previewLocale === "fr" ? "La description courte apparaîtra ici." : "The short description will appear here."),
+      imageUrl: draft.imageUrl || null,
+      imageColor: category?.color || "#C44725",
+      imageEmoji: "📦",
+      isBestseller: draft.isBestseller,
+      isRecommended: draft.isRecommended,
+      isNew: draft.isNew,
+      isOnSale: promoPrice > 0 && promoPrice < salePrice,
+      thermalClass: draft.thermalClass,
+      packaging: draft.packaging,
+    };
+  }, [categoriesData?.categories, draft, previewLocale, salePrice]);
   const marginRate = salePrice > 0 ? (Number(draft.profitMargin || 0) / salePrice) * 100 : 0;
   const wholesalePackCost = Number(draft.costPrice || 0) * Number(draft.wholesaleUnitsPerPack || 1);
   const wholesalePackPrice = Number(draft.wholesalePrice || 0);
@@ -195,6 +231,7 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
       setDraft(draftFor(product));
       setSubmitError("");
       setActiveStep("identity");
+      setPreviewLocale(locale);
       setOpen(true);
       return;
     }
@@ -321,7 +358,24 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
                   <StudioPanelHeading icon={ImageIcon} eyebrow={locale === "fr" ? "04 · Mise en vente" : "04 · Go live"} title={locale === "fr" ? "Image, visibilité et associations" : "Media, visibility and pairings"} description={locale === "fr" ? "Contrôlez exactement ce que le client verra et les recettes dans lesquelles le produit sera proposé." : "Control exactly what customers see and the recipes where this product will be suggested."} />
                   <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
                     <section className="border-y border-terre/20 bg-white px-1 py-4 sm:px-4"><MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="product" locale={locale} label={locale === "fr" ? "Photo principale du produit" : "Main product photo"} required /><div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-3"><EditorialFlag checked={draft.isNew} onChange={(isNew) => update("isNew", isNew)} label={locale === "fr" ? "Nouveauté" : "New"} /><EditorialFlag checked={draft.isRecommended} onChange={(isRecommended) => update("isRecommended", isRecommended)} label={locale === "fr" ? "Recommandé" : "Recommended"} /><EditorialFlag checked={draft.isBestseller} onChange={(isBestseller) => update("isBestseller", isBestseller)} label={locale === "fr" ? "Populaire" : "Popular"} /></div><div className="mt-4 border-t border-border pt-4"><Field label={locale === "fr" ? "État de publication" : "Publishing status"}><select aria-label={locale === "fr" ? "État de publication" : "Publishing status"} value={draft.status} onChange={(event) => update("status", event.target.value as ProductDraft["status"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"><option value="published">{locale === "fr" ? "Publié dans la boutique" : "Published in store"}</option><option value="draft">{locale === "fr" ? "Brouillon interne" : "Internal draft"}</option><option value="archived">{locale === "fr" ? "Désactivé" : "Disabled"}</option></select></Field></div></section>
-                    <section className="rounded-lg border border-burgundy/20 bg-burgundy/[0.04] p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white"><Sparkles className="h-4 w-4" /></span><div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Plats proposés" : "Suggested dishes"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les correspondances évoluent selon le nom, l'origine et la description." : "Matches update from the name, origin and description."}</p></div></div><div className="mt-4 space-y-2">{recommendationsLoading ? <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> {locale === "fr" ? "Analyse culinaire..." : "Analysing..."}</div> : null}{!recommendationsLoading && recommendations.length === 0 ? <div className="rounded-lg border border-dashed border-border bg-white/70 p-5 text-center"><ChefHat className="mx-auto h-7 w-7 text-muted-foreground" /><p className="mt-2 text-xs text-muted-foreground">{locale === "fr" ? "Complétez l'identité pour obtenir des associations." : "Complete the identity to get matches."}</p></div> : null}{recommendations.map((dish: any) => <div key={dish.slug} className="rounded-md border border-border bg-white p-3"><div className="flex items-start gap-2"><BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{dish.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{dish.country} · {dish.categoryLabel} · {dish.timeMinutes} min</p></div>{dish.recommendationScore > 8 ? <Badge className="border-0 bg-burgundy/10 text-[9px] text-burgundy">{locale === "fr" ? "Fort" : "Strong"}</Badge> : null}</div></div>)}</div></section>
+                    <div className="space-y-4">
+                      <section className="rounded-lg border border-terre/20 bg-[#FFF9F6] p-4" data-testid="product-storefront-preview">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-black uppercase text-terre">{locale === "fr" ? "Reflet client" : "Customer view"}</p>
+                            <h3 className="truncate text-sm font-extrabold text-charcoal">{locale === "fr" ? "Aperçu boutique" : "Storefront preview"}</h3>
+                          </div>
+                          <div className="flex shrink-0 rounded-md border border-burgundy/15 bg-white p-0.5" role="group" aria-label={locale === "fr" ? "Langue de l'aperçu" : "Preview language"}>
+                            {(["fr", "en"] as const).map((language) => <button key={language} type="button" aria-pressed={previewLocale === language} onClick={() => setPreviewLocale(language)} className={`h-7 min-w-9 rounded px-2 text-[10px] font-black uppercase transition ${previewLocale === language ? "bg-burgundy text-white" : "text-muted-foreground hover:text-charcoal"}`}>{language}</button>)}
+                          </div>
+                        </div>
+                        <div className="mx-auto mt-4 w-full max-w-[220px]">
+                          <ProductCardPreview product={previewProduct} locale={previewLocale} compact />
+                        </div>
+                      </section>
+
+                      <section className="rounded-lg border border-burgundy/20 bg-burgundy/[0.04] p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white"><Sparkles className="h-4 w-4" /></span><div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Plats proposés" : "Suggested dishes"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les correspondances évoluent selon le nom, l'origine et la description." : "Matches update from the name, origin and description."}</p></div></div><div className="mt-4 space-y-2">{recommendationsLoading ? <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> {locale === "fr" ? "Analyse culinaire..." : "Analysing..."}</div> : null}{!recommendationsLoading && recommendations.length === 0 ? <div className="rounded-lg border border-dashed border-border bg-white/70 p-5 text-center"><ChefHat className="mx-auto h-7 w-7 text-muted-foreground" /><p className="mt-2 text-xs text-muted-foreground">{locale === "fr" ? "Complétez l'identité pour obtenir des associations." : "Complete the identity to get matches."}</p></div> : null}{recommendations.map((dish: any) => <div key={dish.slug} className="rounded-md border border-border bg-white p-3"><div className="flex items-start gap-2"><BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{dish.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{dish.country} · {dish.categoryLabel} · {dish.timeMinutes} min</p></div>{dish.recommendationScore > 8 ? <Badge className="border-0 bg-burgundy/10 text-[9px] text-burgundy">{locale === "fr" ? "Fort" : "Strong"}</Badge> : null}</div></div>)}</div></section>
+                    </div>
                   </div>
                 </section>
               ) : null}

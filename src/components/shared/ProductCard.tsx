@@ -43,30 +43,29 @@ export interface ProductListItem {
   variants?: { id: string; label: string; weightGrams: number; price: number; isDefault: boolean }[];
 }
 
+type ProductCardSurfaceProps = {
+  product: ProductListItem;
+  locale: "fr" | "en";
+  compact: boolean;
+  index?: number;
+  isFav?: boolean;
+  onAdd?: (event: React.MouseEvent) => void;
+  onFavorite?: (event: React.MouseEvent) => void;
+};
+
+const productCardFrame = (compact: boolean, interactive: boolean) =>
+  `group relative flex min-w-0 flex-col overflow-hidden bg-white transition-all ${interactive ? "cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-offset-2" : ""} ${compact ? "rounded-md border border-transparent hover:border-charcoal/10 hover:shadow-sm" : "rounded-lg border border-charcoal/10 hover:border-charcoal/20 hover:shadow-[0_22px_50px_-34px_rgba(63,41,48,0.55)]"}`;
+
 export function ProductCard({ product, index = 0, compact = false }: { product: ProductListItem; index?: number; compact?: boolean }) {
   const locale = useStore((s) => s.locale);
   const navigate = useStore((s) => s.navigate);
   const addToCart = useStore((s) => s.addToCart);
   const favorites = useStore((s) => s.favorites);
   const toggleFavorite = useStore((s) => s.toggleFavorite);
-  const t = dict[locale];
   const isFav = favorites.includes(product.id);
   const price = product.promoPrice ?? product.price;
-  const discountPercent = getDiscountPercent(product.price, product.promoPrice);
-  const saving = product.promoPrice ? product.price - product.promoPrice : 0;
   const photoUrl = product.imageUrl || product.photoUrl || getProductPhoto(product);
-  const fallbackPhotoUrl = getProductPhoto({ ...product, imageUrl: null, photoUrl: null });
-  const commercialLine = getProductCommercialLine(product, locale);
-  const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
   const outOfStock = product.stockQty <= 0;
-  const editorialHighlight = productEditorialHighlight(product);
-  const editorialLabel = editorialHighlight === "bestseller"
-    ? t.bestseller
-    : editorialHighlight === "recommended"
-      ? (locale === "fr" ? "Recommandé" : "Recommended")
-      : editorialHighlight === "new"
-        ? t.new
-        : "";
 
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
 
@@ -105,8 +104,43 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
       role="link"
       tabIndex={0}
       aria-label={locale === "fr" ? `Voir ${product.name}` : `View ${product.name}`}
-      className={`group relative flex min-w-0 cursor-pointer flex-col overflow-hidden bg-white transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-offset-2 ${compact ? "rounded-md border border-transparent hover:border-charcoal/10 hover:shadow-sm" : "rounded-lg border border-charcoal/10 hover:border-charcoal/20 hover:shadow-[0_22px_50px_-34px_rgba(63,41,48,0.55)]"}`}
+      className={productCardFrame(compact, true)}
     >
+      <ProductCardSurface product={product} locale={locale} compact={compact} index={index} isFav={isFav} onAdd={handleAdd} onFavorite={handleFav} />
+    </motion.div>
+  );
+}
+
+export function ProductCardPreview({ product, locale, compact = true }: { product: ProductListItem; locale: "fr" | "en"; compact?: boolean }) {
+  return (
+    <div className={productCardFrame(compact, false)} data-testid="storefront-product-card-preview">
+      <ProductCardSurface product={product} locale={locale} compact={compact} />
+    </div>
+  );
+}
+
+function ProductCardSurface({ product, locale, compact, index = 0, isFav = false, onAdd, onFavorite }: ProductCardSurfaceProps) {
+  const t = dict[locale];
+  const price = product.promoPrice ?? product.price;
+  const discountPercent = getDiscountPercent(product.price, product.promoPrice);
+  const saving = product.promoPrice ? product.price - product.promoPrice : 0;
+  const photoUrl = product.imageUrl || product.photoUrl || getProductPhoto(product);
+  const fallbackPhotoUrl = getProductPhoto({ ...product, imageUrl: null, photoUrl: null });
+  const commercialLine = getProductCommercialLine(product, locale);
+  const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
+  const outOfStock = product.stockQty <= 0;
+  const editorialHighlight = productEditorialHighlight(product);
+  const editorialLabel = editorialHighlight === "bestseller"
+    ? t.bestseller
+    : editorialHighlight === "recommended"
+      ? (locale === "fr" ? "Recommandé" : "Recommended")
+      : editorialHighlight === "new"
+        ? t.new
+        : "";
+  const interactive = Boolean(onAdd && onFavorite);
+
+  return (
+    <>
       <div className="relative">
         <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-square rounded-md" : "aspect-[4/3]"}`}>
           <ProductImage
@@ -130,17 +164,21 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
           {editorialHighlight ? <Badge className={`border-0 shadow-sm ${editorialHighlight === "new" ? "bg-gold text-charcoal" : editorialHighlight === "recommended" ? "bg-terre text-white" : "bg-burgundy text-cream"}`}>{editorialLabel}</Badge> : null}
           {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0 shadow-sm">{t.promo}</Badge>}
         </div>
-        <button
-          type="button"
-          onClick={handleFav}
-          aria-pressed={isFav}
-          aria-label={isFav
-            ? (locale === "fr" ? `Retirer ${product.name} des favoris` : `Remove ${product.name} from favourites`)
-            : (locale === "fr" ? `Ajouter ${product.name} aux favoris` : `Add ${product.name} to favourites`)}
-          className={`absolute right-2 top-2 grid place-items-center border border-charcoal/10 bg-white/90 shadow-sm backdrop-blur transition hover:bg-white ${compact ? "h-7 w-7 rounded-md" : "h-8 w-8 rounded-full"}`}
-        >
-          <Heart className={`h-4 w-4 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />
-        </button>
+        {interactive ? (
+          <button
+            type="button"
+            onClick={onFavorite}
+            aria-pressed={isFav}
+            aria-label={isFav
+              ? (locale === "fr" ? `Retirer ${product.name} des favoris` : `Remove ${product.name} from favourites`)
+              : (locale === "fr" ? `Ajouter ${product.name} aux favoris` : `Add ${product.name} to favourites`)}
+            className={`absolute right-2 top-2 grid place-items-center border border-charcoal/10 bg-white/90 shadow-sm backdrop-blur transition hover:bg-white ${compact ? "h-7 w-7 rounded-md" : "h-8 w-8 rounded-full"}`}
+          >
+            <Heart className={`h-4 w-4 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />
+          </button>
+        ) : (
+          <span aria-hidden="true" className={`absolute right-2 top-2 grid place-items-center border border-charcoal/10 bg-white/90 text-charcoal shadow-sm backdrop-blur ${compact ? "h-7 w-7 rounded-md" : "h-8 w-8 rounded-full"}`}><Heart className="h-4 w-4" /></span>
+        )}
       </div>
 
       <div className={`flex min-w-0 flex-1 flex-col ${compact ? "gap-1 p-2" : "gap-2.5 p-3.5"}`}>
@@ -173,17 +211,21 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
             <span className={`${compact ? "text-[13px]" : "text-base"} block whitespace-nowrap font-black text-terre`}>{formatPrice(price, locale)}</span>
             {product.pricePerKg && !compact && <span className="block truncate text-[10px] text-muted-foreground">{formatUnitPrice(product.pricePerKg, locale)} / kg</span>}
           </div>
-          <Button
-            size="sm"
-            onClick={handleAdd}
-            disabled={outOfStock}
-            className={`${compact ? "h-8 w-8 rounded-md" : "h-9 w-9 rounded-full"} bg-terre p-0 text-white shadow-sm hover:bg-terre-dark`}
-            aria-label={t.product.addToCart}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          {interactive ? (
+            <Button
+              size="sm"
+              onClick={onAdd}
+              disabled={outOfStock}
+              className={`${compact ? "h-8 w-8 rounded-md" : "h-9 w-9 rounded-full"} bg-terre p-0 text-white shadow-sm hover:bg-terre-dark`}
+              aria-label={t.product.addToCart}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          ) : (
+            <span aria-hidden="true" className={`${compact ? "h-8 w-8 rounded-md" : "h-9 w-9 rounded-full"} grid place-items-center bg-terre text-white shadow-sm ${outOfStock ? "opacity-50" : ""}`}><Plus className="h-4 w-4" /></span>
+          )}
         </div>
       </div>
-    </motion.div>
+    </>
   );
 }
