@@ -13,6 +13,7 @@ export function MediaUploadField({
   label,
   aspect = "square",
   required = false,
+  compactMobile = false,
 }: {
   value: string;
   onChange: (url: string, objectPath?: string) => void;
@@ -21,6 +22,7 @@ export function MediaUploadField({
   label: string;
   aspect?: "square" | "landscape";
   required?: boolean;
+  compactMobile?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -49,7 +51,7 @@ export function MediaUploadField({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2"><p className="text-xs font-bold text-charcoal">{label}{required ? <span className="ml-1 text-terre">*</span> : null}</p><span className="text-[9px] uppercase text-muted-foreground">JPG · PNG · WebP · AVIF</span></div>
-      <div className={`relative overflow-hidden border border-dashed border-border bg-muted/25 ${aspect === "landscape" ? "aspect-[16/7]" : "aspect-square max-h-64"}`}>
+      <div className={`relative overflow-hidden border border-dashed border-border bg-muted/25 ${aspect === "landscape" ? compactMobile ? "h-28 sm:h-auto sm:aspect-[16/7]" : "aspect-[16/7]" : "aspect-square max-h-64"}`}>
         {value ? <Image src={value} alt={label} fill sizes={aspect === "landscape" ? "(max-width: 768px) 100vw, 700px" : "320px"} className="object-cover" /> : <div className="absolute inset-0 grid place-items-center px-6 text-center"><div><ImagePlus className="mx-auto h-7 w-7 text-muted-foreground" /><p className="mt-2 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Choisissez une photo nette qui permet d'identifier immédiatement le contenu." : "Choose a clear photo that immediately identifies the content."}</p></div></div>}
         {uploading ? <div className="absolute inset-0 grid place-items-center bg-white/85 backdrop-blur-sm"><LoaderCircle className="h-6 w-6 animate-spin text-terre" /></div> : null}
       </div>

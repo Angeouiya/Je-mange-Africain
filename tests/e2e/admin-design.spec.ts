@@ -1207,6 +1207,32 @@ test("the advertising desk plans placements without oversized cards", async ({ p
   await expect(row).toBeVisible();
   await expect.poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
 
+  await page.getByRole("button", { name: "Nouvelle affiche" }).click();
+  const editor = page.getByRole("dialog", { name: "Composer une affiche publicitaire" });
+  const clientPreview = editor.getByTestId("advertising-client-preview");
+  const artworkPreview = editor.getByTestId("advertising-artwork-preview");
+  await expect(clientPreview).toContainText("Aperçu avant diffusion");
+  await expect(artworkPreview).toHaveAttribute("data-advertisement-variant", "immersive");
+  await editor.getByLabel("Titre français").fill("La semaine des saveurs ivoiriennes");
+  await editor.getByLabel("Texte français").fill("Une sélection généreuse, disponible dans votre application.");
+  await expect(artworkPreview).toContainText("La semaine des saveurs ivoiriennes");
+  const previewEnglish = clientPreview.getByRole("button", { name: "en", exact: true });
+  await previewEnglish.click();
+  await expect(previewEnglish).toHaveAttribute("aria-pressed", "true");
+  await expect(clientPreview.getByRole("button", { name: "fr", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await editor.getByLabel("Titre anglais").fill("Ivorian flavours this week");
+  await expect(artworkPreview).toContainText("Ivorian flavours this week");
+  await editor.getByLabel("Emplacement").selectOption("checkout");
+  await expect(artworkPreview).toHaveAttribute("data-advertisement-variant", "compact");
+  expect(await editor.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `advertising-editor-preview-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await page.keyboard.press("Escape");
+  await expect(editor).toBeHidden();
+
   await expectBrandSafeUiColors(page);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);

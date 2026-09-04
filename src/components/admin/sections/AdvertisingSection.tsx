@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import Image from "next/image";
-import { CalendarClock, CalendarRange, FilePenLine, ImagePlus, LayoutTemplate, LoaderCircle, Megaphone, MousePointerClick, Pencil, Radio, Save, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarRange, FilePenLine, ImagePlus, LayoutTemplate, LoaderCircle, Megaphone, MonitorSmartphone, MousePointerClick, Pencil, Radio, Save, Trash2 } from "lucide-react";
 import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useFetch } from "@/lib/use-fetch";
 import { formatDateTime } from "@/lib/format";
 import { advertisementLifecycle, type AdvertisementLifecycle } from "@/lib/advertising";
+import { StorefrontAdvertisementArtwork, type StorefrontAdvertisementVariant } from "@/components/storefront/StorefrontAdvertisement";
 
 type Advertisement = {
   id: string;
@@ -122,6 +123,7 @@ function AdvertisementEditor({ locale, advertisement, onSaved, compact = false }
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
   const [draft, setDraft] = useState(() => advertisement ? { ...advertisement, bodyFr: advertisement.bodyFr || "", bodyEn: advertisement.bodyEn || "", priority: String(advertisement.priority), startsAt: toLocalDate(advertisement.startsAt), endsAt: toLocalDate(advertisement.endsAt) } : blank);
   const update = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value }));
   const reset = () => setDraft(advertisement ? { ...advertisement, bodyFr: advertisement.bodyFr || "", bodyEn: advertisement.bodyEn || "", priority: String(advertisement.priority), startsAt: toLocalDate(advertisement.startsAt), endsAt: toLocalDate(advertisement.endsAt) } : blank);
@@ -135,6 +137,14 @@ function AdvertisementEditor({ locale, advertisement, onSaved, compact = false }
     && draft.linkUrl.trim()
     && dateRangeValid
   );
+  const previewPlacement = draft.placement as Advertisement["placement"];
+  const previewVariant: StorefrontAdvertisementVariant = previewPlacement === "home" ? "immersive" : previewPlacement === "checkout" ? "compact" : "ribbon";
+  const previewAdvertisement = {
+    imageUrl: draft.imageUrl,
+    imageAlt: previewLocale === "fr" ? draft.imageAltFr : draft.imageAltEn,
+    title: (previewLocale === "fr" ? draft.titleFr : draft.titleEn).trim() || (previewLocale === "fr" ? "Titre de l'affiche" : "Artwork title"),
+    body: (previewLocale === "fr" ? draft.bodyFr : draft.bodyEn).trim() || (previewLocale === "fr" ? "Le texte secondaire apparaîtra ici." : "Supporting copy will appear here."),
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -150,7 +160,7 @@ function AdvertisementEditor({ locale, advertisement, onSaved, compact = false }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (saving) return; setOpen(nextOpen); if (nextOpen) { reset(); setError(""); } }}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (saving) return; setOpen(nextOpen); if (nextOpen) { reset(); setPreviewLocale(locale); setError(""); } }}>
       <DialogTrigger asChild>
         {advertisement ? (compact ? <Button variant="outline" size="icon" className="h-9 w-9" aria-label={isFr ? `Modifier ${advertisement.titleFr}` : `Edit ${advertisement.titleEn}`}><Pencil className="h-3.5 w-3.5" /></Button> : <Button variant="outline" size="sm"><Pencil className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Modifier" : "Edit"}</Button>) : <Button size="sm" className="bg-terre text-white hover:bg-terre-dark"><ImagePlus className="mr-1.5 h-4 w-4" />{isFr ? "Nouvelle affiche" : "New artwork"}</Button>}
       </DialogTrigger>
@@ -161,7 +171,19 @@ function AdvertisementEditor({ locale, advertisement, onSaved, compact = false }
             <DialogDescription>{isFr ? "Le visuel, les deux langues, la destination et le calendrier sont contrôlés avant diffusion." : "Artwork, both languages, destination and schedule are checked before publishing."}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
-            <MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="advertisement" locale={locale} label={isFr ? "Affiche publicitaire" : "Advertising artwork"} aspect="landscape" required />
+            <div className="space-y-4 lg:sticky lg:top-0 lg:self-start">
+              <MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="advertisement" locale={locale} label={isFr ? "Affiche publicitaire" : "Advertising artwork"} aspect="landscape" required compactMobile />
+              <section className="space-y-2.5 border-t border-charcoal/8 pt-4" aria-labelledby="advertising-preview-title" data-testid="advertising-client-preview">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0"><p className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase text-terre"><MonitorSmartphone className="h-3.5 w-3.5" />{isFr ? "Reflet client" : "Customer view"}</p><h3 id="advertising-preview-title" className="mt-0.5 text-xs font-black text-charcoal">{isFr ? "Aperçu avant diffusion" : "Preview before publishing"}</h3></div>
+                  <div className="inline-flex shrink-0 rounded-md border border-burgundy/15 bg-burgundy/[0.04] p-1" role="group" aria-label={isFr ? "Langue de l'aperçu" : "Preview language"}>
+                    {(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => setPreviewLocale(language)} aria-pressed={previewLocale === language} className={`h-7 rounded px-2 text-[9px] font-black uppercase transition ${previewLocale === language ? "bg-burgundy text-white shadow-sm" : "text-burgundy hover:bg-white"}`}>{language}</button>)}
+                  </div>
+                </div>
+                <StorefrontAdvertisementArtwork advertisement={previewAdvertisement} placement={previewPlacement} variant={previewVariant} locale={previewLocale} className="rounded-lg" showAction testId="advertising-artwork-preview" />
+                <p className="text-[9px] leading-4 text-muted-foreground">{isFr ? `Format ${placementLabels.fr[previewPlacement]} · le client verra cette composition après publication.` : `${placementLabels.en[previewPlacement]} format · customers will see this composition after publishing.`}</p>
+              </section>
+            </div>
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <AdField label={isFr ? "Titre français" : "French title"} required><Input required value={draft.titleFr} onChange={(event) => update("titleFr", event.target.value)} /></AdField>
