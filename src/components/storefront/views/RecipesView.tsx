@@ -10,6 +10,7 @@ import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { RecipeCard, type RecipeListItem } from "@/components/shared/RecipeCard";
 import { DishDetailsDialog, DishLibraryCard, type DishLibraryItem } from "@/components/shared/DishLibraryCard";
+import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 
 type CategoryOption = { slug: string; name: string };
 type RecipeResponse = { recipes: RecipeListItem[]; categories: CategoryOption[] };
@@ -84,6 +85,8 @@ export function RecipesView() {
           </div>
         </div>
       </section>
+
+      <StorefrontAdvertisement placement="recipes" className="mb-4" />
 
       <Tabs value={mode} onValueChange={changeMode} className="gap-3">
         <TabsList className="grid h-auto min-h-[4.75rem] w-full grid-cols-2 overflow-hidden border border-burgundy/12 bg-[#FBF7F5] p-0 sm:w-[36rem]">

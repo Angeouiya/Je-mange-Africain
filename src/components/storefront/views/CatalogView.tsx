@@ -13,6 +13,7 @@ import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { ProductCard, type ProductListItem } from "@/components/shared/ProductCard";
 import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch";
+import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
 
 const THERMALS = ["AMBIANT", "REFRIGERATED", "FROZEN"];
@@ -174,6 +175,8 @@ export function CatalogView() {
           </Sheet>
         </div>
       </div>
+
+      <StorefrontAdvertisement placement="catalog" className="mb-5 md:mb-6" />
 
       <div className="flex gap-6">
         {/* desktop sidebar */}

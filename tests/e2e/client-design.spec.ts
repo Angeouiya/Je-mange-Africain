@@ -56,6 +56,16 @@ async function expectBrandSafeUiColors(page: Page) {
 }
 
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
+  await page.route("**/api/advertisements?*", async (route) => {
+    const placement = new URL(route.request().url()).searchParams.get("placement") || "home";
+    const campaigns = {
+      home: { id: "campaign-home", placement: "home", title: "Les saveurs de Côte d'Ivoire", body: "Une table généreuse, sélectionnée par Je mange Africain.", imageUrl: "/hero-feast-v2.webp", imageAlt: "Table de plats ivoiriens", linkUrl: "/?view=catalog" },
+      catalog: { id: "campaign-catalog", placement: "catalog", title: "Du marché à votre prochaine recette", body: "Découvrez les ingrédients choisis pour les plats de la semaine.", imageUrl: "/hero-feast-v2.webp", imageAlt: "Ingrédients africains sélectionnés", linkUrl: "/?view=recipes" },
+      recipes: { id: "campaign-recipes", placement: "recipes", title: "Un menu africain à composer", body: "Inspirez-vous de recettes détaillées et adaptez chaque ingrédient.", imageUrl: "/recipe-library-hero.webp", imageAlt: "Recettes africaines préparées", linkUrl: "/?view=catalog" },
+      checkout: { id: "campaign-checkout", placement: "checkout", title: "Votre avantage livraison", body: "Une offre appliquée aux commandes éligibles.", imageUrl: "/hero-feast-v2.webp", imageAlt: "Commande de produits africains", linkUrl: "/?view=catalog" },
+    } as const;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ advertisements: [campaigns[placement as keyof typeof campaigns]] }) });
+  });
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/dashboard admin|administration/i);
@@ -114,6 +124,9 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
   await expect(page.getByLabel(/rechercher dans le catalogue|search the catalogue/i)).toBeVisible();
   await expect(page.getByLabel(/trier les produits|sort products/i)).toBeVisible();
+  const catalogCampaign = page.getByTestId("advertisement-catalog");
+  await expect(catalogCampaign).toContainText("Du marché à votre prochaine recette");
+  await expectLoadedProductImages(catalogCampaign.getByRole("img"), 1);
   await expect(page.locator("main img").first()).toBeVisible();
   const catalogueGrid = page.getByTestId("catalog-product-grid");
   await expect(catalogueGrid).toBeVisible();
@@ -121,6 +134,8 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   const catalogueColumns = await catalogueGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(catalogueColumns).toBe(isMobile ? 2 : 4);
   if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: `output/playwright/audit/catalog-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
   if (isMobile) {
@@ -139,8 +154,11 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
 
-  await page.getByRole("button", { name: /recettes|cuisiner une recette|cook a recipe/i }).first().click();
+  await catalogCampaign.getByRole("button", { name: /voir la sélection|view selection/i }).click();
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();
+  const recipesCampaign = page.getByTestId("advertisement-recipes");
+  await expect(recipesCampaign).toContainText("Un menu africain à composer");
+  await expectLoadedProductImages(recipesCampaign.getByRole("img"), 1);
   await expect(page.getByRole("tab", { name: /atlas des plats|dish atlas/i })).toBeVisible();
   await expect(page.getByText(/personnaliser puis créer le panier|customise then build the basket/i)).toBeVisible();
   await expect(page.getByText(/explorer les cuisines par origine|explore cuisines by origin/i)).toBeVisible();
@@ -1095,6 +1113,13 @@ test("checkout compares delivery services and protects the cold chain", async ({
     }));
   }, { persistedCustomer: customer });
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer }) }));
+  await page.route("**/api/advertisements?*", (route) => {
+    const placement = new URL(route.request().url()).searchParams.get("placement");
+    const advertisements = placement === "checkout"
+      ? [{ id: "campaign-checkout", placement, title: "Votre avantage livraison", body: "Une offre appliquée aux commandes éligibles.", imageUrl: "/hero-feast-v2.webp", imageAlt: "Commande de produits africains", linkUrl: "/?view=catalog" }]
+      : [];
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ advertisements }) });
+  });
   await page.route("**/api/shipping/quote", async (route) => {
     quoteRequests.push(route.request().postDataJSON());
     const options = [
@@ -1135,11 +1160,14 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await page.getByRole("button", { name: /passer la commande|place order/i }).click();
 
   await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
+  const checkoutCampaign = page.getByTestId("advertisement-checkout");
+  await expect(checkoutCampaign).toContainText("Votre avantage livraison");
+  await expectLoadedProductImages(checkoutCampaign.getByRole("img"), 1);
   const checkoutProgress = page.getByTestId("checkout-progress");
   await expect(checkoutProgress.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "33");
   await expect(checkoutProgress.locator('[aria-current="step"]')).toContainText(/livraison|delivery/i);
   await expect(checkoutProgress).toContainText(/adresse et transport|address and carrier/i);
-  await expect(checkoutProgress).toContainText(/carte sécurisée|secure card/i);
+  await expect(checkoutProgress).toContainText(/carte, paypal et wallets|card, paypal and wallets|carte sécurisée|secure card/i);
   await expect(checkoutProgress).toContainText(/contrôle final|final check/i);
   const checkoutDock = page.getByTestId("checkout-action-dock");
   if (isMobile) {

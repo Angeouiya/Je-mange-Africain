@@ -13,6 +13,7 @@ import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
+import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { formatEstimatedArrival } from "@/lib/delivery-experience";
 import { formatPrice, formatWeight, thermalLabel } from "@/lib/format";
 import { dict } from "@/lib/i18n";
@@ -341,6 +342,8 @@ export function CheckoutView() {
         testId="checkout-progress"
         className="mb-6"
       />
+
+      <StorefrontAdvertisement placement="checkout" variant="compact" className="mb-6" />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
         <div className="min-w-0">

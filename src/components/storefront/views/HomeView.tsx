@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Bookmark,
-  ChevronRight,
   Clock,
   Headphones,
   Heart,
@@ -28,6 +27,7 @@ import { formatPrice } from "@/lib/format";
 import { getCategoryPhoto, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { useFetch } from "@/lib/use-fetch";
 import { useStore } from "@/lib/store";
+import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 
 type HomeCategory = {
   id: string;
@@ -44,22 +44,12 @@ type HomeCatalog = {
   popularRecipes: RecipeListItem[];
 };
 
-type HomeAdvertisement = {
-  imageUrl?: string | null;
-  imageAlt?: string | null;
-  title?: string | null;
-  body?: string | null;
-  linkUrl?: string | null;
-};
-
 export function HomeView() {
   const locale = useStore((state) => state.locale);
   const navigate = useStore((state) => state.navigate);
   const favorites = useStore((state) => state.favorites);
   const t = dict[locale];
   const { data, loading } = useFetch<HomeCatalog>(`/api/catalog?section=home&locale=${locale}`, [locale]);
-  const { data: advertisingData } = useFetch<{ advertisements: HomeAdvertisement[] }>(`/api/advertisements?placement=home&locale=${locale}`, [locale]);
-  const homeAdvertisement = advertisingData?.advertisements?.[0];
 
   const allFeaturedProducts = useMemo(() => {
     const unique = new Map<string, ProductListItem>();
@@ -84,7 +74,6 @@ export function HomeView() {
         recipes: "À cuisiner cette semaine",
         recipesAction: "Toutes les recettes",
         offers: "Offres du moment",
-        advertisementAction: "Découvrir",
       }
     : {
         screenTitle: "Home",
@@ -94,7 +83,6 @@ export function HomeView() {
         recipes: "Cook this week",
         recipesAction: "All recipes",
         offers: "Current offers",
-        advertisementAction: "Discover",
       };
 
   const commitments = [
@@ -190,7 +178,17 @@ export function HomeView() {
           {loading ? <StorySkeleton tall /> : <RecipeShelf recipes={data?.popularRecipes || []} />}
         </Section>
 
-        <AdvertisementBand advertisement={homeAdvertisement} locale={locale} actionLabel={copy.advertisementAction} />
+        <StorefrontAdvertisement
+          placement="home"
+          variant="immersive"
+          fallback={{
+            title: locale === "fr" ? "Le panier d'une recette, calculé pour vous" : "A recipe basket, calculated for you",
+            body: locale === "fr" ? "Choisissez le nombre de personnes, adaptez les ingrédients et obtenez les bonnes quantités." : "Choose the number of guests, adapt ingredients and get the right quantities.",
+            imageUrl: "/hero.jpg",
+            imageAlt: locale === "fr" ? "Assortiment de plats africains prêts à cuisiner" : "Selection of African dishes ready to cook",
+          }}
+          fallbackDestination={{ view: "recipes" }}
+        />
 
         <div className="grid gap-9 md:gap-14 lg:grid-cols-2">
           <Section title={t.home.newProducts} actionLabel={t.viewAll} onAction={() => navigate("catalog", { sort: "new" })}>
@@ -349,35 +347,6 @@ function RecipeShelf({ recipes }: { recipes: RecipeListItem[] }) {
         );
       })}
     </div>
-  );
-}
-
-function AdvertisementBand({ advertisement, locale, actionLabel }: { advertisement?: HomeAdvertisement; locale: "fr" | "en"; actionLabel: string }) {
-  const navigate = useStore((state) => state.navigate);
-  const title = advertisement?.title || (locale === "fr" ? "Le panier d'une recette, calculé pour vous" : "A recipe basket, calculated for you");
-  const body = advertisement?.body || (locale === "fr" ? "Choisissez le nombre de personnes, adaptez les ingrédients et obtenez les bonnes quantités." : "Choose the number of guests, adapt ingredients and get the right quantities.");
-
-  const openDestination = () => {
-    if (advertisement?.linkUrl) {
-      window.location.assign(advertisement.linkUrl);
-      return;
-    }
-    navigate("recipes");
-  };
-
-  return (
-    <section className="relative -mx-4 min-h-48 overflow-hidden md:mx-0 md:min-h-64 md:rounded-lg" data-testid="home-advertisement">
-      <Image src={advertisement?.imageUrl || "/hero.jpg"} alt={advertisement?.imageAlt || ""} fill sizes="(max-width: 768px) 100vw, 1200px" className="object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-r from-burgundy/94 via-burgundy/70 to-terre/20" />
-      <div className="relative flex min-h-48 flex-col items-start justify-end p-5 text-white md:min-h-64 md:justify-center md:p-9">
-        <span className="text-[9px] font-black uppercase text-gold">{locale === "fr" ? "Recette intelligente" : "Smart recipe"}</span>
-        <h2 className="mt-1 max-w-xl font-display text-xl font-semibold leading-tight md:text-3xl">{title}</h2>
-        <p className="mt-2 line-clamp-2 max-w-lg text-[11px] leading-5 text-white/82 md:text-sm">{body}</p>
-        <Button type="button" onClick={openDestination} className="mt-4 h-9 bg-white px-3 text-xs text-burgundy hover:bg-cream md:h-10 md:px-4">
-          {actionLabel} <ChevronRight className="ml-1 h-4 w-4" />
-        </Button>
-      </div>
-    </section>
   );
 }
 
