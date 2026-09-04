@@ -450,26 +450,45 @@ const sections = [
 ] as const;
 
 test("the professional sign-in owns its bilingual identity and persists the selected language", async ({ page }) => {
-  await page.route("**/api/admin/session", (route) => route.fulfill({
-    status: 200,
-    contentType: "application/json",
-    body: JSON.stringify({ user: null }),
-  }));
+  let credentials: { email?: string; password?: string } | undefined;
+  await page.route("**/api/admin/session", async (route) => {
+    if (route.request().method() === "POST") {
+      credentials = route.request().postDataJSON();
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: { email: "direction@je-mange-africain.com", role: "super_admin" } }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: null }) });
+  });
+  await page.route("**/api/admin/dashboard?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(dashboard) }));
 
   await page.goto("/admin", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Connexion professionnelle" })).toBeVisible();
+  await expect(page.getByTestId("admin-auth-workspace")).toBeVisible();
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   const visual = page.getByTestId("admin-auth-visual");
-  if (isMobile) await expect(visual).toBeHidden();
-  else {
+  if (isMobile) {
+    await expect(visual).toBeHidden();
+    const mobileLogo = page.getByTestId("admin-auth-workspace").locator('img[src*="logo-mark-burgundy"]');
+    await expect(mobileLogo).toBeVisible();
+    await expect.poll(() => mobileLogo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  } else {
     await expect(visual).toBeVisible();
-    await expect.poll(() => visual.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 248, 244)");
+    const visualImage = visual.locator('img[src*="recipe-library-hero"]');
+    await expect(visualImage).toBeVisible();
+    await expect.poll(() => visualImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+    await expect(page.getByTestId("admin-auth-overlay")).toHaveClass(/bg-burgundy\/55/);
+    await expect(page.getByTestId("admin-auth-signals")).toContainText("Habilitations");
+    await expect(page.getByTestId("admin-auth-signals")).toContainText("Traçabilité");
+    await expect(page.getByTestId("admin-auth-signals")).toContainText("Accès protégé");
   }
   await expect(page.locator('img[src*="logo-mark-burgundy"]').filter({ visible: true }).first()).toBeVisible();
   await expect(page).toHaveTitle("Console professionnelle | Je mange Africain");
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.locator(".jma-skip-link")).toHaveAttribute("href", "#main-content");
   await expect(page.locator("#main-content")).toBeVisible();
+  if (process.env.ADMIN_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/admin-auth-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
   await page.getByRole("button", { name: "en", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Professional sign in" })).toBeVisible();
@@ -478,14 +497,33 @@ test("the professional sign-in owns its bilingual identity and persists the sele
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator(".jma-skip-link")).toHaveText("Skip to main content");
   await expect(page.locator("body")).not.toContainText(/my basket|customer sign in|food & groceries/i);
+  const loginForm = page.getByRole("form", { name: "Professional sign-in form" });
+  const submit = loginForm.getByRole("button", { name: "Open the console" });
+  await expect(submit).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Return to the store" })).toHaveAttribute("href", "/");
+  await expect(page.getByRole("link", { name: "Contact management" })).toHaveAttribute("href", "mailto:direction@je-mange-africain.com");
   await expectBrandSafeUiColors(page);
+  const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
   if (process.env.ADMIN_SCREENSHOTS) {
-    await page.screenshot({ path: `output/playwright/audit/admin-auth-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+    await page.screenshot({ path: `output/playwright/audit/admin-auth-english-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Professional sign in" })).toBeVisible();
   await expect(page.getByRole("button", { name: "en", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const reloadedForm = page.getByRole("form", { name: "Professional sign-in form" });
+  await reloadedForm.getByLabel("Professional email address").fill("direction@je-mange-africain.com");
+  const password = reloadedForm.locator("#admin-password");
+  await password.fill("motdepasse-solide");
+  await expect(password).toHaveAttribute("type", "password");
+  await reloadedForm.getByRole("button", { name: "Show password" }).click();
+  await expect(password).toHaveAttribute("type", "text");
+  await expect(reloadedForm.getByRole("button", { name: "Open the console" })).toBeEnabled();
+  await reloadedForm.getByRole("button", { name: "Open the console" }).click();
+  await expect(page.locator("header h1")).toHaveText("Decide today");
+  expect(credentials).toEqual({ email: "direction@je-mange-africain.com", password: "motdepasse-solide" });
+  await expect(page.getByTestId("admin-auth-workspace")).toBeHidden();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
