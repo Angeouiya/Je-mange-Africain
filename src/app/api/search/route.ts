@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
         OR: [
           { traditionalName: { contains: q } },
           { sku: { contains: q } },
-          { translations: { some: { name: { contains: q } } } },
+          { country: { contains: q } },
+          { category: { OR: [{ nameFr: { contains: q } }, { nameEn: { contains: q } }] } },
+          { brand: { OR: [{ nameFr: { contains: q } }, { nameEn: { contains: q } }] } },
+          { translations: { some: { OR: [{ name: { contains: q } }, { description: { contains: q } }, { ingredients: { contains: q } }] } } },
         ],
       },
       take: 20,
@@ -46,9 +49,26 @@ export async function GET(req: NextRequest) {
     db.recipe.findMany({
       where: {
         status: "published",
-        translations: { some: { title: { contains: q } } },
+        OR: [
+          { country: { contains: q } },
+          { category: { contains: q } },
+          { translations: { some: { OR: [{ title: { contains: q } }, { description: { contains: q } }] } } },
+          {
+            ingredients: {
+              some: {
+                product: {
+                  OR: [
+                    { traditionalName: { contains: q } },
+                    { aliases: { some: { alias: { contains: norm } } } },
+                    { translations: { some: { OR: [{ name: { contains: q } }, { ingredients: { contains: q } }] } } },
+                  ],
+                },
+              },
+            },
+          },
+        ],
       },
-      take: 4,
+      take: 6,
       include: { translations: true },
     }),
   ]);
@@ -140,10 +160,23 @@ export async function GET(req: NextRequest) {
       difficulty: r.difficulty,
       timeMinutes: r.timeMinutes,
       baseServings: r.baseServings,
+      description: r.translations.find((translation) => translation.locale === locale)?.description || r.translations[0]?.description || "",
     };
   });
 
-  const dishes = searchDishLibrary({ query: q, limit: 4 }).map(({ dish, score }) => localizeDish(dish, locale, score));
+  const dishes = searchDishLibrary({ query: q, limit: 4 }).map(({ dish, score }) => {
+    const localized = localizeDish(dish, locale, score);
+    return {
+      kind: "dish" as const,
+      ...localized,
+      imageUrl: getRecipePhoto({
+        slug: dish.slug,
+        title: localized.name,
+        country: dish.country,
+        category: localized.categoryLabel,
+      }),
+    };
+  });
 
-  return NextResponse.json({ results: results.slice(0, limit), recipes, dishes });
+  return NextResponse.json({ query: q, results: results.slice(0, limit), recipes, dishes });
 }

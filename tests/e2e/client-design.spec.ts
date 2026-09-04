@@ -358,8 +358,8 @@ test("global search and notifications navigate to useful client destinations", a
     contentType: "application/json",
     body: JSON.stringify({
       results: [{ kind: "product", id: "product-search", name: "Attiéké frais", traditionalName: "Attiéké", emoji: "", imageUrl: "/products/attieke.webp", color: "#F7F2F1", price: 7.5, promoPrice: null, country: "Côte d'Ivoire", thermalClass: "REFRIGERATED", packaging: "Sachet 500 g", availableStock: 14, category: { id: "cat-1", slug: "feculents", name: "Féculents", color: "#D65A32" }, matchedAlias: null }],
-      recipes: [{ kind: "recipe", id: "recipe-search", slug: "kedjenou", name: "Kedjenou de poulet", emoji: "", imageUrl: "/hero-feast-v2.webp", color: "#8A3042", country: "Côte d'Ivoire", category: "Plats", difficulty: "easy", timeMinutes: 55, baseServings: 4 }],
-      dishes: [{ kind: "dish", slug: "mafe", name: "Mafé", country: "Mali", categoryLabel: "Sauces" }],
+      recipes: [{ kind: "recipe", id: "recipe-search", slug: "kedjenou", name: "Kedjenou de poulet", emoji: "", imageUrl: "/hero-feast-v2.webp", color: "#8A3042", country: "Côte d'Ivoire", category: "Plats", difficulty: "easy", timeMinutes: 55, baseServings: 4, description: "Poulet mijoté doucement avec tomate et aromates." }],
+      dishes: [{ kind: "dish", slug: "mafe", name: "Mafé", country: "Mali", region: "Bamako", categoryLabel: "Sauces", difficulty: "easy", timeMinutes: 60, servings: 4, description: "Sauce onctueuse à l'arachide.", imageUrl: "/recipes/mafe.webp" }],
     }),
   }));
   await page.route("**/api/products/product-search?*", (route) => route.fulfill({
@@ -407,6 +407,20 @@ test("global search and notifications navigate to useful client destinations", a
   await expect(page.getByRole("option", { name: /attiéké frais/i })).toBeVisible();
   await expect(page.getByText(/bibliothèque de plats|dish library/i)).toBeVisible();
   await expect(page.getByText(/disponible|in stock/i).first()).toBeVisible();
+  await expect(page.getByTestId("search-destination-products")).toContainText(/produits|products/i);
+  await expect(page.getByTestId("search-destination-products")).toContainText(/1 résultat|1 result/i);
+  await expect(page.getByTestId("search-destination-kitchen")).toContainText(/recettes & plats|recipes & dishes/i);
+  await expect(page.getByTestId("search-destination-kitchen")).toContainText(/2 inspirations|2 ideas/i);
+  await expectLoadedProductImages(page.getByRole("option", { name: /mafé/i }).getByRole("img"), 1);
+  await expectNoHorizontalOverflow(page, page.getByRole("listbox", { name: /suggestions de recherche|search suggestions/i }));
+  await page.getByTestId("search-destination-kitchen").click();
+  await expect(page).toHaveURL(/view=recipes/);
+  expect(new URL(page.url()).searchParams.get("recipeMode")).toBe("recipes");
+  expect(new URL(page.url()).searchParams.get("query")).toBe("attiéké");
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await search.fill("attiéké");
+  await expect(page.getByRole("option", { name: /attiéké frais/i })).toBeVisible();
   await search.press("ArrowDown");
   await expect(page.getByRole("option", { name: /attiéké frais/i })).toHaveAttribute("aria-selected", "true");
   if (process.env.CLIENT_SCREENSHOTS) {

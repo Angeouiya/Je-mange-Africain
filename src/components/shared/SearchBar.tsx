@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { BookOpen, ChefHat, Clock3, LoaderCircle, Package, Search, X } from "lucide-react";
+import { ArrowRight, BookOpen, ChefHat, Clock3, LoaderCircle, Package, PackageSearch, Search, UtensilsCrossed, X } from "lucide-react";
 import { ProductImage } from "./ProductImage";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
@@ -9,6 +9,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { formatPrice } from "@/lib/format";
 import { getDiscountPercent, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { cn } from "@/lib/utils";
+import { kitchenResultCount, preferredSearchCollection, type SearchCollection } from "@/lib/search-experience";
 
 type ProductResult = {
   kind: "product";
@@ -41,6 +42,7 @@ type RecipeResult = {
   difficulty: string;
   timeMinutes: number;
   baseServings: number;
+  description: string;
 };
 
 type DishResult = {
@@ -48,7 +50,13 @@ type DishResult = {
   slug: string;
   name: string;
   country: string;
+  region: string;
   categoryLabel: string;
+  difficulty: "easy" | "medium" | "hard";
+  timeMinutes: number;
+  servings: number;
+  description: string;
+  imageUrl: string | null;
 };
 
 type SearchResponse = {
@@ -90,13 +98,18 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
   const { data, loading } = useFetch<SearchResponse>(debounced ? `/api/search?q=${encodeURIComponent(debounced)}&locale=${locale}&limit=6` : null, [debounced, locale]);
   const options = useMemo<SearchOption[]>(() => [...(data?.results || []), ...(data?.recipes || []), ...(data?.dishes || [])], [data]);
   const showPanel = open && (!query.trim() || Boolean(debounced));
+  const counts = { products: data?.results.length || 0, recipes: data?.recipes.length || 0, dishes: data?.dishes.length || 0 };
+  const kitchenCount = kitchenResultCount(counts);
 
-  const submit = (value = query) => {
+  const navigateToCollection = (collection: SearchCollection, value = query) => {
     const normalized = value.trim();
     if (!normalized) return;
-    navigate("catalog", { query: normalized });
+    if (collection === "products") navigate("catalog", { query: normalized });
+    else navigate("recipes", { query: normalized, recipeMode: collection });
     setOpen(false);
   };
+
+  const submit = (value = query) => navigateToCollection(preferredSearchCollection(counts), value);
 
   const selectOption = (option: SearchOption) => {
     if (option.kind === "product") navigate("product", { productId: option.id });
@@ -192,16 +205,19 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
               {data.recipes.length ? <SearchGroupLabel icon={ChefHat} label={locale === "fr" ? "Recettes" : "Recipes"} count={data.recipes.length} /> : null}
               {data.recipes.map((result) => {
                 const index = ++optionIndex;
-                return <button id={`${listboxId}-option-${index}`} role="option" aria-selected={activeIndex === index} key={`recipe-${result.id}`} type="button" onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(result)} className={`flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors ${activeIndex === index ? "bg-muted" : "hover:bg-muted/70"}`}><ProductImage src={getRecipePhoto({ ...result, title: result.name, imageEmoji: result.emoji })} alt={result.name} emoji={result.emoji} color={result.color} size="sm" className="h-11 w-11 shrink-0" rounded="rounded-md" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-charcoal">{result.name}</span><span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{result.country} · {result.category}</span></span><span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-burgundy"><Clock3 className="h-3.5 w-3.5" />{result.timeMinutes} min</span></button>;
+                return <button id={`${listboxId}-option-${index}`} role="option" aria-selected={activeIndex === index} key={`recipe-${result.id}`} type="button" onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(result)} className={`flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors ${activeIndex === index ? "bg-[#FFF7F2]" : "hover:bg-[#FFF9F6]"}`}><ProductImage src={getRecipePhoto({ ...result, title: result.name, imageEmoji: result.emoji })} alt={result.name} emoji={result.emoji} color={result.color} size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-charcoal">{result.name}</span><span className="mt-0.5 block truncate text-[10px] font-semibold text-muted-foreground">{result.country} · {result.category}</span>{result.description ? <span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{result.description}</span> : null}</span><span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-burgundy"><Clock3 className="h-3.5 w-3.5" />{result.timeMinutes} min</span></button>;
               })}
 
               {data.dishes.length ? <SearchGroupLabel icon={BookOpen} label={locale === "fr" ? "Bibliothèque de plats" : "Dish library"} count={data.dishes.length} /> : null}
               {data.dishes.map((result) => {
                 const index = ++optionIndex;
-                return <button id={`${listboxId}-option-${index}`} role="option" aria-selected={activeIndex === index} key={`dish-${result.slug}`} type="button" onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(result)} className={`flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors ${activeIndex === index ? "bg-muted" : "hover:bg-muted/70"}`}><span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-burgundy/10 text-burgundy"><BookOpen className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-charcoal">{result.name}</span><span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{result.country} · {result.categoryLabel}</span></span><span className="text-[10px] font-bold text-terre">{locale === "fr" ? "Explorer" : "Explore"}</span></button>;
+                return <button id={`${listboxId}-option-${index}`} role="option" aria-selected={activeIndex === index} key={`dish-${result.slug}`} type="button" onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(result)} className={`flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors ${activeIndex === index ? "bg-[#FFF7F2]" : "hover:bg-[#FFF9F6]"}`}><ProductImage src={result.imageUrl || getRecipePhoto({ slug: result.slug, title: result.name, country: result.country, category: result.categoryLabel })} alt={result.name} emoji="" color="#8A3042" size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-charcoal">{result.name}</span><span className="mt-0.5 block truncate text-[10px] font-semibold text-muted-foreground">{result.country} · {result.region || result.categoryLabel}</span>{result.description ? <span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{result.description}</span> : null}</span><span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-burgundy"><Clock3 className="h-3.5 w-3.5" />{result.timeMinutes} min</span></button>;
               })}
 
-              <button type="button" onClick={() => submit()} className="sticky bottom-0 flex min-h-11 w-full items-center justify-center gap-2 border-t border-border bg-white/95 px-4 text-xs font-black text-terre backdrop-blur-md hover:bg-muted"><Search className="h-3.5 w-3.5" />{locale === "fr" ? `Voir tous les résultats pour « ${query.trim()} »` : `View all results for “${query.trim()}”`}</button>
+              <div className={`sticky bottom-0 grid gap-px border-t border-border bg-border ${data.results.length && kitchenCount ? "grid-cols-2" : "grid-cols-1"}`}>
+                {data.results.length ? <SearchDestinationButton icon={PackageSearch} label={locale === "fr" ? "Produits" : "Products"} detail={locale === "fr" ? `${data.results.length} résultat${data.results.length > 1 ? "s" : ""}` : `${data.results.length} result${data.results.length > 1 ? "s" : ""}`} onClick={() => navigateToCollection("products")} testId="search-destination-products" /> : null}
+                {kitchenCount ? <SearchDestinationButton icon={UtensilsCrossed} label={locale === "fr" ? "Recettes & plats" : "Recipes & dishes"} detail={locale === "fr" ? `${kitchenCount} inspiration${kitchenCount > 1 ? "s" : ""}` : `${kitchenCount} idea${kitchenCount > 1 ? "s" : ""}`} onClick={() => navigateToCollection(data.recipes.length ? "recipes" : "library")} testId="search-destination-kitchen" /> : null}
+              </div>
             </>
           ) : null}
         </div>
@@ -211,5 +227,9 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
 }
 
 function SearchGroupLabel({ icon: Icon, label, count }: { icon: typeof Search; label: string; count: number }) {
-  return <div className="sticky top-0 z-10 flex items-center gap-2 border-y border-border/70 bg-muted/90 px-3 py-2 text-[9px] font-black uppercase text-muted-foreground backdrop-blur-md"><Icon className="h-3.5 w-3.5 text-terre" /><span>{label}</span><span className="ml-auto rounded bg-white px-1.5 py-0.5 text-charcoal">{count}</span></div>;
+  return <div className="sticky top-0 z-10 flex items-center gap-2 border-y border-burgundy/8 bg-[#FBF7F5]/95 px-3 py-2 text-[9px] font-black uppercase text-burgundy backdrop-blur-md"><Icon className="h-3.5 w-3.5 text-terre" /><span>{label}</span><span className="ml-auto rounded bg-white px-1.5 py-0.5 text-charcoal shadow-sm">{count}</span></div>;
+}
+
+function SearchDestinationButton({ icon: Icon, label, detail, onClick, testId }: { icon: typeof Search; label: string; detail: string; onClick: () => void; testId: string }) {
+  return <button type="button" onClick={onClick} data-testid={testId} className="flex min-h-14 min-w-0 items-center gap-2 bg-white/97 px-3 text-left backdrop-blur-md transition hover:bg-[#FFF8F4]"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy/7 text-burgundy"><Icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-black text-charcoal">{label}</span><span className="block truncate text-[9px] text-muted-foreground">{detail}</span></span><ArrowRight className="h-3.5 w-3.5 shrink-0 text-terre" /></button>;
 }

@@ -132,8 +132,11 @@ export async function GET(req: NextRequest) {
     where.OR = [
       { traditionalName: { contains: q } },
       { sku: { contains: q } },
+      { country: { contains: q } },
       { aliases: { some: { alias: { contains: norm } } } },
-      { translations: { some: { OR: [{ name: { contains: q } }, { description: { contains: q } }] } } },
+      { category: { OR: [{ nameFr: { contains: q } }, { nameEn: { contains: q } }] } },
+      { brand: { OR: [{ nameFr: { contains: q } }, { nameEn: { contains: q } }] } },
+      { translations: { some: { OR: [{ name: { contains: q } }, { description: { contains: q } }, { ingredients: { contains: q } }] } } },
     ];
   }
 
