@@ -27,6 +27,15 @@ const order = {
     imageUrl: "/products/attieke.webp",
   }],
   payments: [{ method: "Carte", status: "captured", reference: "pi_0042" }],
+  weightGrams: 1_500,
+  packageCount: 1,
+  shipments: [{
+    carrierName: "Chrono Frais",
+    trackingNumber: "JMA-FR-0042",
+    thermalClass: "REFRIGERATED",
+    status: "in_transit",
+    estimatedDelivery: "2026-09-04T14:00:00.000Z",
+  }],
 };
 
 describe("customer invoice document", () => {
@@ -35,8 +44,13 @@ describe("customer invoice document", () => {
       baseUrl: "https://je-mange-africain.com",
       company: {
         name: "Je mange Africain SAS",
+        address: "8 rue des Saveurs, 75001 Paris, France",
+        legalFormCapital: "SAS au capital de 10 000 EUR",
         registration: "RCS TEST 123",
         vat: "FR00123456789",
+        earlyPaymentTerms: "Pas d'escompte pour paiement anticipé.",
+        latePaymentTerms: "Pénalités exigibles selon les conditions contractuelles.",
+        collectionFee: "40 EUR pour les clients professionnels.",
       },
     });
 
@@ -48,8 +62,20 @@ describe("customer invoice document", () => {
     expect(html).toContain("Payée");
     expect(html).toContain("GBP");
     expect(html).toContain("FR00123456789");
-    expect(html).toContain("th{background:#8A3042");
-    expect(html).not.toContain("background:#3F2930");
+    expect(html).toContain("SAS au capital de 10 000 EUR");
+    expect(html).toContain("data-company-profile=\"complete\"");
+    expect(html).toContain("Prix unit. HT");
+    expect(html).toContain("TVA incluse");
+    expect(html).toContain("Livraison de biens");
+    expect(html).toContain("Chrono Frais");
+    expect(html).toContain("JMA-FR-0042");
+    expect(html).toContain("Réfrigéré");
+    expect(html).toContain("04 septembre 2026");
+    expect(html).toContain("1,5 kg");
+    expect(html).toContain("Imprimer / PDF");
+    expect(html).toContain("@media(max-width:660px)");
+    expect(html).not.toContain("nth-child(3),td:nth-child(3){display:none}");
+    expect(html).not.toContain("background:#000");
   });
 
   it("escapes customer and product content before inserting it into the document", () => {
@@ -62,6 +88,7 @@ describe("customer invoice document", () => {
     expect(html).not.toContain('<script>alert("client")</script>');
     expect(html).toContain("&lt;script&gt;alert(&quot;client&quot;)&lt;/script&gt;");
     expect(html).toContain("Plantain &lt;premium&gt;");
+    expect(html).not.toContain("javascript:alert");
   });
 
   it("uses a readable delivery service label when the order stores a service code", () => {
@@ -70,5 +97,19 @@ describe("customer invoice document", () => {
     });
 
     expect(html).toContain("Livraison express");
+  });
+
+  it("uses stable invoice metadata and readable payment labels when supplied", () => {
+    const html = buildOrderInvoiceHtml({
+      ...order,
+      invoiceNumber: "FAC-2026-0042",
+      invoicedAt: "2026-09-03T09:30:00.000Z",
+      payments: [{ method: "apple_pay", status: "paid", reference: "pay_0042", createdAt: "2026-09-03T09:29:00.000Z" }],
+    }, "fr", { baseUrl: "https://je-mange-africain.com" });
+
+    expect(html).toContain("FAC-2026-0042");
+    expect(html).toContain("03 septembre 2026");
+    expect(html).toContain("Apple Pay");
+    expect(html).toContain("Réglée le 03 septembre 2026");
   });
 });
