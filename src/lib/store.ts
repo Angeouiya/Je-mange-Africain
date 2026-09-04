@@ -26,6 +26,7 @@ export type ViewId =
   | "info";
 
 export type ThermalClass = "AMBIANT" | "REFRIGERATED" | "FROZEN";
+export type ContactReason = "order" | "delivery" | "product" | "recipe" | "wholesale" | "other";
 
 export interface CartItem {
   id: string; // line id
@@ -62,6 +63,7 @@ export interface ViewParams {
   accountSection?: "profile" | "addresses" | "saved" | "settings";
   returnView?: ViewId;
   infoPage?: "about" | "help" | "contact" | "cgv" | "privacy" | "cookies" | "delivery";
+  contactReason?: ContactReason;
 }
 
 export interface Address {

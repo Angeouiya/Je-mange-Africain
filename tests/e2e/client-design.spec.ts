@@ -880,26 +880,52 @@ test("the help center leads to a contextual and usable contact request", async (
   });
 
   await page.goto("/?view=info&infoPage=help", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: /centre d'aide|help center/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /comment pouvons-nous vous aider|how can we help/i })).toBeVisible();
+  const informationNavigation = page.getByRole("navigation", { name: /information et assistance|information and support/i });
+  await expect(informationNavigation).toBeVisible();
+  await informationNavigation.getByRole("button", { name: /la maison|our company/i }).click();
+  await expect(page.getByRole("heading", { name: /de la source à votre table|from source to table/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /produits|products/i }).last()).toBeVisible();
+  await expect(page.getByRole("button", { name: /recettes|recipes/i }).last()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/about-reference-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await informationNavigation.getByRole("button", { name: /^aide$|^help$/i }).click();
+  await expect(page.getByRole("heading", { name: /comment pouvons-nous vous aider|how can we help/i })).toBeVisible();
+  await expect(page.getByTestId("support-command-center")).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: /rechercher dans le centre d'aide|search the help centre/i })).toBeVisible();
   await page.getByRole("button", { name: /quels moyens de paiement|which payment methods/i }).click();
   await expect(page.getByText(/sécurisé par stripe|secured by stripe/i)).toBeVisible();
   await expect(page.locator("main")).not.toContainText(/paypal|carte cadeau|gift card/i);
+  const helpSearch = page.getByRole("searchbox", { name: /rechercher dans le centre d'aide|search the help centre/i });
+  await helpSearch.fill("remboursement");
+  await expect(page.getByRole("button", { name: /produit manquant ou abîmé|missing or damaged product/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /quels moyens de paiement|which payment methods/i })).toBeHidden();
+  await page.getByRole("button", { name: /effacer la recherche|clear search/i }).click();
+  const deliveryTopic = page.getByTestId("support-topic-delivery");
+  await deliveryTopic.click();
+  await expect(deliveryTopic).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /chaîne du froid|cold chain/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /commander sans compte|order without an account/i })).toBeHidden();
   await expectBrandSafeUiColors(page);
   if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     await page.screenshot({ path: `output/playwright/audit/help-reference-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
   }
 
   await page.getByRole("button", { name: /ouvrir le formulaire|open the form/i }).click();
-  await expect(page).toHaveURL(/view=info&infoPage=contact/);
-  await expect(page.getByRole("heading", { name: /contactez-nous|contact us/i })).toBeVisible();
+  await expect(page).toHaveURL(/view=info&infoPage=contact&contactReason=delivery/);
+  await expect(page.getByRole("heading", { name: /parlez-nous de votre demande|tell us what you need/i })).toBeVisible();
+  const contactReasonSelector = page.getByTestId("contact-reason-selector");
+  await expect(contactReasonSelector.getByRole("button", { name: /livraison|delivery/i })).toHaveAttribute("aria-pressed", "true");
   await page.waitForTimeout(300); // Let the 200 ms workspace transition finish before simulating typing.
-  const contactName = page.getByLabel(/^nom$|^name$/i);
+  const contactName = page.getByLabel(/nom complet|full name/i);
   const contactEmail = page.getByLabel(/e-mail/i);
   await contactName.pressSequentially("Awa Traoré");
   await expect(contactName).toHaveValue("Awa Traoré");
   await contactEmail.pressSequentially("awa@example.fr");
   await expect(contactEmail).toHaveValue("awa@example.fr");
-  await page.getByLabel(/motif|reason/i).selectOption("delivery");
   await expect(contactName).toHaveValue("Awa Traoré");
   await expect(contactEmail).toHaveValue("awa@example.fr");
   await page.getByLabel(/n° de commande|order number/i).fill("JMA-260903-0042");
@@ -911,10 +937,15 @@ test("the help center leads to a contextual and usable contact request", async (
   await page.getByLabel(/^message$/i).fill("Je souhaite vérifier les conditions de transport de mon colis surgelé.");
   await expect(contactName).toHaveValue("Awa Traoré");
   await expect(contactEmail).toHaveValue("awa@example.fr");
-  await page.getByRole("button", { name: /envoyer la demande|send request/i }).click();
+  await expect(page.getByRole("progressbar", { name: /préparation de la demande|request readiness/i })).toHaveAttribute("aria-valuenow", "100");
+  const submitContact = page.getByRole("button", { name: /envoyer la demande|send request/i });
+  await submitContact.focus();
+  await submitContact.press("Enter");
 
   const successMessage = page.getByText(/JMA-CONTACT-260903/);
   await expect(successMessage).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: /préparation de la demande|request readiness/i })).toHaveAttribute("aria-valuenow", "100");
+  await expect(page.getByRole("button", { name: /nouvelle demande|new request/i })).toBeVisible();
   expect(captured.contactRequest).not.toBeNull();
   expect(captured.contactRequest?.subject).toContain("[Livraison]");
   expect(captured.contactRequest?.subject).toContain("JMA-260903-0042");
@@ -924,6 +955,11 @@ test("the help center leads to a contextual and usable contact request", async (
     await successMessage.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `output/playwright/audit/contact-reference-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
   }
+  await page.getByRole("button", { name: /passer la plateforme en anglais|switch the platform to french/i }).click();
+  await expect(page.getByRole("heading", { name: "Tell us what you need" })).toBeVisible();
+  await expect(page.getByText(/Request JMA-CONTACT-260903 recorded/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "New request" })).toBeVisible();
+  await expect(contactReasonSelector.getByRole("button", { name: /delivery/i })).toHaveAttribute("aria-pressed", "true");
   await expectNoSeriousA11yViolations(page);
 });
 

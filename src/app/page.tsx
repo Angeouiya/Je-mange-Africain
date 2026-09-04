@@ -120,10 +120,10 @@ export default function Page() {
         <AnimatePresence mode="wait">
           <motion.div
             key={viewIdentity}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
           >
             {renderView(view)}
           </motion.div>
@@ -173,6 +173,8 @@ function storefrontDestination(searchParams: URLSearchParams): { view: ViewId; p
   if (view === "info") {
     const infoPage = searchParams.get("infoPage");
     if (["about", "help", "contact", "cgv", "privacy", "cookies", "delivery"].includes(infoPage || "")) params.infoPage = infoPage as ViewParams["infoPage"];
+    const contactReason = searchParams.get("contactReason");
+    if (["order", "delivery", "product", "recipe", "wholesale", "other"].includes(contactReason || "")) params.contactReason = contactReason as ViewParams["contactReason"];
   }
 
   return { view, params };
@@ -192,6 +194,7 @@ function storefrontUrl(view: ViewId, params: ViewParams) {
   append("accountSection", params.accountSection);
   append("returnView", params.returnView);
   append("infoPage", params.infoPage);
+  append("contactReason", params.contactReason);
   return `/?${searchParams.toString()}`;
 }
 
