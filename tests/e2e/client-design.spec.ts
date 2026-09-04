@@ -614,6 +614,11 @@ test("the customer workspace edits identity and manages a persistent address boo
   await page.goto("/?view=account", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Awa Traore" })).toBeVisible();
   await expect(page.getByRole("button", { name: /mes adresses|my addresses/i })).toBeVisible();
+  const identityHeader = page.getByTestId("account-identity-header");
+  await expect.poll(() => identityHeader.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 248, 244)");
+  await expect(page.getByTestId("account-command-summary")).toContainText("180 pts");
+  await expect(page.getByTestId("account-command-summary")).toContainText(/commandes\s*0|orders\s*0/i);
+  await expect(page.getByTestId("account-command-summary")).toContainText(/adresses\s*1|addresses\s*1/i);
 
   await page.getByLabel(/prénom|first name/i).fill("Aminata");
   await page.getByRole("button", { name: /enregistrer mes coordonnées|save my details/i }).click();
@@ -621,6 +626,10 @@ test("the customer workspace edits identity and manages a persistent address boo
   await expect(page.getByRole("heading", { name: "Aminata Traore" })).toBeVisible();
 
   await page.getByRole("button", { name: /mes adresses|my addresses/i }).click();
+  await expect(page).toHaveURL(/accountSection=addresses/);
+  await expect(page.getByRole("button", { name: /mes adresses|my addresses/i })).toHaveCSS("background-color", "rgb(138, 48, 66)");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: /mes adresses|my addresses/i })).toBeVisible();
   await expect(page.getByText("12 rue des Cultures")).toBeVisible();
   await expect(page.getByText(/adresse proposée au paiement|address suggested at checkout/i)).toBeVisible();
   await page.getByRole("button", { name: /^ajouter( une adresse)?$|^add( address)?$/i }).first().click();

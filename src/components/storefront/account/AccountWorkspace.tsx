@@ -115,6 +115,7 @@ export function AccountWorkspace() {
 
   const selectSection = (nextSection: AccountSection) => {
     setSection(nextSection);
+    navigate("account", { accountSection: nextSection });
     if (window.matchMedia("(max-width: 767px)").matches) {
       const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
       requestAnimationFrame(() => contentRef.current?.scrollIntoView({ behavior, block: "start" }));
@@ -218,14 +219,19 @@ export function AccountWorkspace() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-7 md:py-9 lg:px-8">
-      <header className="relative overflow-hidden rounded-lg bg-charcoal px-5 py-6 text-white sm:px-7 sm:py-7">
-        <div className="absolute inset-x-0 top-0 h-1 african-kente-stripe" />
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <header className="relative -mx-4 overflow-hidden border-y border-burgundy/12 bg-[#FFF8F4] px-4 pb-0 pt-5 text-charcoal md:-mx-7 md:px-7 lg:-mx-8 lg:px-8" data-testid="account-identity-header">
+        <div className="absolute inset-x-0 top-0 h-[3px] african-kente-stripe" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-terre text-lg font-black text-white shadow-[0_14px_32px_-18px_rgba(214,90,50,0.9)]">{initials(customer.firstName, customer.lastName)}</span>
-            <div className="min-w-0"><p className="text-[10px] font-extrabold uppercase text-gold">{locale === "fr" ? "Espace personnel" : "Personal space"}</p><h1 className="mt-1 truncate font-display text-2xl font-semibold sm:text-3xl">{customer.firstName} {customer.lastName}</h1><p className="mt-1 truncate text-xs text-white/62">{customer.email}</p></div>
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-terre text-lg font-black text-white shadow-[0_14px_32px_-20px_rgba(214,90,50,0.72)]">{initials(customer.firstName, customer.lastName)}</span>
+            <div className="min-w-0"><p className="text-[10px] font-extrabold uppercase text-terre">{locale === "fr" ? "Espace personnel" : "Personal space"}</p><h1 className="mt-1 truncate font-display text-2xl font-semibold sm:text-3xl">{customer.firstName} {customer.lastName}</h1><p className="mt-1 truncate text-xs text-muted-foreground">{customer.email}</p></div>
           </div>
-          <span className="inline-flex w-fit items-center gap-2 rounded-md border border-white/14 bg-white/8 px-3 py-2 text-[11px] font-bold text-white/82"><ShieldCheck className="h-4 w-4 text-gold" />{locale === "fr" ? "Compte protégé" : "Protected account"}</span>
+          <span className="inline-flex w-fit items-center gap-2 rounded-md border border-burgundy/16 bg-white px-3 py-2 text-[11px] font-bold text-burgundy"><ShieldCheck className="h-4 w-4 text-terre" />{locale === "fr" ? "Compte protégé" : "Protected account"}</span>
+        </div>
+        <div className="mt-5 grid grid-cols-3 divide-x divide-burgundy/10 border-t border-burgundy/10" data-testid="account-command-summary">
+          <AccountSummaryFact icon={Star} label={t.account.loyalty} value={`${customer.loyaltyPoints} pts`} />
+          <AccountSummaryFact icon={Package} label={t.account.orders} value={String(orderCount)} />
+          <AccountSummaryFact icon={MapPin} label={t.account.addresses} value={String(addresses.length)} />
         </div>
       </header>
 
@@ -233,7 +239,7 @@ export function AccountWorkspace() {
         {nav.map((item) => {
           const Icon = item.icon;
           const active = section === item.id;
-          return <button key={item.id} type="button" onClick={() => selectSection(item.id)} aria-current={active ? "page" : undefined} className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 text-[9px] font-bold transition sm:flex-row sm:gap-2 sm:text-xs ${active ? "bg-charcoal text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}><Icon className="h-4 w-4 shrink-0" /><span className="max-w-full truncate">{item.label}</span>{item.id === "addresses" && addresses.length ? <span className={`absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded px-1 text-[8px] ${active ? "bg-gold text-charcoal" : "bg-terre/10 text-terre"}`}>{addresses.length}</span> : null}</button>;
+          return <button key={item.id} type="button" onClick={() => selectSection(item.id)} aria-current={active ? "page" : undefined} className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 text-[9px] font-bold transition sm:flex-row sm:gap-2 sm:text-xs ${active ? "bg-burgundy text-white shadow-sm" : "text-muted-foreground hover:bg-burgundy/[0.045] hover:text-charcoal"}`}><Icon className="h-4 w-4 shrink-0" /><span className="max-w-full truncate">{item.label}</span>{item.id === "addresses" && addresses.length ? <span className={`absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded px-1 text-[8px] ${active ? "bg-gold text-charcoal" : "bg-terre/10 text-terre"}`}>{addresses.length}</span> : null}</button>;
         })}
       </nav>
 
@@ -297,6 +303,10 @@ export function AccountWorkspace() {
 
 function SectionHeading({ eyebrow, title, description, id }: { eyebrow: string; title: string; description: string; id: string }) {
   return <div className="min-w-0"><p className="jma-eyebrow">{eyebrow}</p><h2 id={id} className="jma-section-title mt-1">{title}</h2><p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground sm:text-sm">{description}</p></div>;
+}
+
+function AccountSummaryFact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+  return <div className="min-w-0 px-3 py-3 first:pl-0 last:pr-0 sm:px-5 sm:py-4"><p className="flex items-center gap-1.5 text-[8px] font-black uppercase text-muted-foreground sm:text-[9px]"><Icon className="h-3.5 w-3.5 shrink-0 text-terre" /> <span className="truncate">{label}</span></p><p className="mt-1 truncate text-xs font-black text-charcoal sm:text-sm">{value}</p></div>;
 }
 
 function TextField({ id, label, value, onChange, autoComplete, required }: { id: string; label: string; value: string; onChange: (value: string) => void; autoComplete?: string; required?: boolean }) {
