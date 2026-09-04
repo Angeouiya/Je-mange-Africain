@@ -708,15 +708,22 @@ test("the customer workspace edits identity and manages a persistent address boo
   await expect(page.getByTestId("account-command-summary")).toContainText("180 pts");
   await expect(page.getByTestId("account-command-summary")).toContainText(/commandes\s*0|orders\s*0/i);
   await expect(page.getByTestId("account-command-summary")).toContainText(/adresses\s*1|addresses\s*1/i);
+  const accountNavigation = page.getByTestId("account-section-navigation");
+  await expect(accountNavigation.locator('button[aria-current="page"]')).toHaveCount(1);
+  await expect(accountNavigation.locator("button")).toHaveCount(4);
+  await expect(page.getByRole("button", { name: /coordonnées à jour|details up to date/i })).toBeDisabled();
 
   await page.getByLabel(/prénom|first name/i).fill("Aminata");
+  await expect(page.getByRole("button", { name: /enregistrer mes coordonnées|save my details/i })).toBeEnabled();
   await page.getByRole("button", { name: /enregistrer mes coordonnées|save my details/i }).click();
   await expect(page.getByText(/coordonnées sont à jour|contact details are up to date/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Aminata Traore" })).toBeVisible();
 
   await page.getByRole("button", { name: /mes adresses|my addresses/i }).click();
   await expect(page).toHaveURL(/accountSection=addresses/);
-  await expect(page.getByRole("button", { name: /mes adresses|my addresses/i })).toHaveCSS("background-color", "rgb(138, 48, 66)");
+  await expect(page.getByRole("button", { name: /mes adresses|my addresses/i })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("button", { name: /mes adresses|my addresses/i })).toHaveAttribute("data-active", "true");
+  await expect(accountNavigation).toHaveCSS("position", "sticky");
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /mes adresses|my addresses/i })).toBeVisible();
   await expect(page.getByText("12 rue des Cultures")).toBeVisible();
@@ -807,6 +814,62 @@ test("the personal library filters and synchronizes saved products and recipes",
   await expect.poll(() => savedState.recipeIds).toEqual([]);
   await expect(page.getByText(/synchronisé au compte|synced to account/i)).toBeVisible();
   await expectNoHorizontalOverflow(page);
+});
+
+test("account settings synchronize language and protect session actions", async ({ page }) => {
+  let preferredLanguage = "fr";
+  let passwordRequest: { email?: string } | null = null;
+  const customer = { id: "customer-settings", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 180, walletCredit: 12.5, preferredLang: "fr" };
+  const account = { customer, addresses: [] };
+
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: { locale: "fr", cart: [], favorites: [], savedRecipes: [], savedOwnerId: persistedCustomer.id, recentlyViewed: [], customer: persistedCustomer, addresses: [], country: "France", postalCode: "75011", coupon: null },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
+
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
+  await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [] }) }));
+  await page.route("**/api/customer/account", async (route) => {
+    const update = route.request().method() === "PATCH" ? route.request().postDataJSON() : {};
+    if (update.preferredLang) preferredLanguage = update.preferredLang;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...account, customer: { ...customer, preferredLang: preferredLanguage } }) });
+  });
+  await page.route("**/api/auth/customer/password", async (route) => {
+    passwordRequest = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
+  });
+
+  await page.goto("/?view=account&accountSection=settings", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Réglages du compte" })).toBeVisible();
+  const accountNavigation = page.getByTestId("account-section-navigation");
+  await expect(accountNavigation.getByRole("button", { name: "Réglages" })).toHaveAttribute("aria-current", "page");
+  await expect(accountNavigation).toHaveCSS("position", "sticky");
+  await expect(page.getByRole("heading", { name: "Mot de passe" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fermer la session" })).toBeVisible();
+
+  await page.getByRole("button", { name: "English", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
+  await expect.poll(() => preferredLanguage).toBe("en");
+
+  await page.getByRole("button", { name: "Send link" }).click();
+  await expect(page.getByText("A secure link has just been sent to your email address.")).toBeVisible();
+  await expect.poll(() => passwordRequest).toEqual({ email: customer.email });
+
+  await page.locator("#main-content").getByRole("button", { name: "Sign out" }).click();
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation.getByRole("heading", { name: "Sign out?" })).toBeVisible();
+  await expect(confirmation).toContainText("Your local cart stays available");
+  await confirmation.getByRole("button", { name: "Stay signed in" }).click();
+  await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await expectBrandSafeUiColors(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/account-settings-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
 });
 
 test("the help center leads to a contextual and usable contact request", async ({ page }) => {

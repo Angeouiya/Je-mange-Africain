@@ -46,6 +46,7 @@ import { dict } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import { useStore, type Address } from "@/lib/store";
 import { useFetch } from "@/lib/use-fetch";
+import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 
 type AccountSection = "profile" | "addresses" | "saved" | "settings";
 type RequestStatus = "idle" | "busy" | "success" | "error";
@@ -104,14 +105,15 @@ export function AccountWorkspace() {
     setProfile({ firstName: customer.firstName, lastName: customer.lastName, phone: customer.phone });
   }, [customer.firstName, customer.lastName, customer.phone]);
 
-  const nav: Array<{ id: AccountSection; icon: LucideIcon; label: string }> = [
-    { id: "profile", icon: User, label: t.account.profile },
-    { id: "addresses", icon: MapPin, label: t.account.addresses },
-    { id: "saved", icon: Bookmark, label: locale === "fr" ? "Enregistrés" : "Saved" },
-    { id: "settings", icon: Settings, label: locale === "fr" ? "Réglages" : "Settings" },
+  const nav: Array<{ id: AccountSection; icon: LucideIcon; label: string; shortLabel: string; purpose: string; accent: string }> = [
+    { id: "profile", icon: User, label: t.account.profile, shortLabel: locale === "fr" ? "Profil" : "Profile", purpose: locale === "fr" ? "Identité et avantages" : "Identity and benefits", accent: BRAND_COLORS.earth },
+    { id: "addresses", icon: MapPin, label: t.account.addresses, shortLabel: locale === "fr" ? "Adresses" : "Addresses", purpose: locale === "fr" ? "Priorité de livraison" : "Delivery priority", accent: BRAND_COLORS.burgundy },
+    { id: "saved", icon: Bookmark, label: locale === "fr" ? "Enregistrés" : "Saved", shortLabel: locale === "fr" ? "Favoris" : "Saved", purpose: locale === "fr" ? "Produits et recettes" : "Products and recipes", accent: BRAND_COLORS.terracotta },
+    { id: "settings", icon: Settings, label: locale === "fr" ? "Réglages" : "Settings", shortLabel: locale === "fr" ? "Réglages" : "Settings", purpose: locale === "fr" ? "Langue et sécurité" : "Language and security", accent: BRAND_COLORS.gold },
   ];
   const orderCount = orderData?.orders?.length || 0;
   const defaultAddress = useMemo(() => addresses.find((address) => address.isDefault) || addresses[0], [addresses]);
+  const profileDirty = profile.firstName !== customer.firstName || profile.lastName !== customer.lastName || profile.phone !== customer.phone;
 
   const selectSection = (nextSection: AccountSection) => {
     setSection(nextSection);
@@ -124,6 +126,7 @@ export function AccountWorkspace() {
 
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
+    if (!profileDirty) return;
     setProfileStatus("busy");
     setProfileMessage("");
     try {
@@ -135,6 +138,14 @@ export function AccountWorkspace() {
     } catch (error) {
       setProfileStatus("error");
       setProfileMessage(error instanceof Error ? error.message : (locale === "fr" ? "Modification impossible." : "Unable to update your profile."));
+    }
+  };
+
+  const updateProfile = (field: keyof typeof profile, value: string) => {
+    setProfile((current) => ({ ...current, [field]: value }));
+    if (profileStatus !== "busy") {
+      setProfileStatus("idle");
+      setProfileMessage("");
     }
   };
 
@@ -219,11 +230,11 @@ export function AccountWorkspace() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-7 md:py-9 lg:px-8">
-      <header className="relative -mx-4 overflow-hidden border-y border-burgundy/12 bg-[#FFF8F4] px-4 pb-0 pt-5 text-charcoal md:-mx-7 md:px-7 lg:-mx-8 lg:px-8" data-testid="account-identity-header">
+      <header className="relative -mx-4 overflow-hidden border-y border-burgundy/12 bg-[#FFF8F4] bg-[linear-gradient(112deg,#FFF8F4_0%,#FFFCFA_56%,#FFFFFF_100%)] px-4 pb-0 pt-5 text-charcoal md:-mx-7 md:px-7 lg:-mx-8 lg:px-8" data-testid="account-identity-header">
         <div className="absolute inset-x-0 top-0 h-[3px] african-kente-stripe" />
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-terre text-lg font-black text-white shadow-[0_14px_32px_-20px_rgba(214,90,50,0.72)]">{initials(customer.firstName, customer.lastName)}</span>
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md border border-white/70 bg-[linear-gradient(145deg,#D65A32,#B9472B_58%,#8A3042)] text-lg font-black text-white shadow-[0_16px_34px_-21px_rgba(138,48,66,0.72)]">{initials(customer.firstName, customer.lastName)}</span>
             <div className="min-w-0"><p className="text-[10px] font-extrabold uppercase text-terre">{locale === "fr" ? "Espace personnel" : "Personal space"}</p><h1 className="mt-1 truncate font-display text-2xl font-semibold sm:text-3xl">{customer.firstName} {customer.lastName}</h1><p className="mt-1 truncate text-xs text-muted-foreground">{customer.email}</p></div>
           </div>
           <span className="inline-flex w-fit items-center gap-2 rounded-md border border-burgundy/16 bg-white px-3 py-2 text-[11px] font-bold text-burgundy"><ShieldCheck className="h-4 w-4 text-terre" />{locale === "fr" ? "Compte protégé" : "Protected account"}</span>
@@ -235,11 +246,26 @@ export function AccountWorkspace() {
         </div>
       </header>
 
-      <nav className="mt-4 grid grid-cols-4 gap-1 border-y border-border bg-white py-2" aria-label={locale === "fr" ? "Rubriques du compte" : "Account sections"}>
+      <nav className="sticky top-[6.65rem] z-30 -mx-4 mt-4 grid grid-cols-4 gap-1 border-y border-border bg-white/[0.97] px-4 py-2 shadow-[0_14px_30px_-30px_rgba(90,38,50,0.72)] backdrop-blur-xl md:top-[4.4rem] md:-mx-7 md:px-7 lg:-mx-8 lg:px-8" aria-label={locale === "fr" ? "Rubriques du compte" : "Account sections"} data-testid="account-section-navigation">
         {nav.map((item) => {
           const Icon = item.icon;
           const active = section === item.id;
-          return <button key={item.id} type="button" onClick={() => selectSection(item.id)} aria-current={active ? "page" : undefined} className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 text-[9px] font-bold transition sm:flex-row sm:gap-2 sm:text-xs ${active ? "bg-burgundy text-white shadow-sm" : "text-muted-foreground hover:bg-burgundy/[0.045] hover:text-charcoal"}`}><Icon className="h-4 w-4 shrink-0" /><span className="max-w-full truncate">{item.label}</span>{item.id === "addresses" && addresses.length ? <span className={`absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded px-1 text-[8px] ${active ? "bg-gold text-charcoal" : "bg-terre/10 text-terre"}`}>{addresses.length}</span> : null}</button>;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => selectSection(item.id)}
+              aria-label={item.label}
+              aria-current={active ? "page" : undefined}
+              data-active={active ? "true" : "false"}
+              className={`group relative flex min-h-12 min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-md border px-1 text-[9px] font-extrabold transition sm:justify-start sm:gap-2 sm:px-2 sm:text-xs ${active ? "border-burgundy/12 bg-[linear-gradient(118deg,rgba(255,255,255,1),rgba(185,71,43,0.07))] text-charcoal shadow-[0_10px_24px_-20px_rgba(90,38,50,0.8)]" : "border-transparent text-muted-foreground hover:bg-burgundy/[0.04] hover:text-charcoal"}`}
+            >
+              {active ? <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-t-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}14`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><Icon className="h-4 w-4" /></span>
+              <span className="min-w-0 text-left"><span className="block sm:hidden">{item.shortLabel}</span><span className="hidden sm:block">{item.label}</span><span className="mt-0.5 hidden text-[8px] font-semibold leading-none text-muted-foreground lg:block">{item.purpose}</span></span>
+              {item.id === "addresses" && addresses.length ? <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 text-[8px] font-black text-charcoal">{addresses.length}</span> : null}
+            </button>
+          );
         })}
       </nav>
 
@@ -249,12 +275,12 @@ export function AccountWorkspace() {
             <SectionHeading eyebrow={locale === "fr" ? "Identité et avantages" : "Identity and benefits"} title={locale === "fr" ? "Mon profil" : "My profile"} description={locale === "fr" ? "Les coordonnées utilisées pour votre compte, vos factures et le suivi de livraison." : "Contact details used for your account, invoices and delivery tracking."} id="account-profile-title" />
             <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
               <form onSubmit={saveProfile} className="grid gap-4 sm:grid-cols-2">
-                <TextField id="profile-first-name" label={t.checkout.firstName} value={profile.firstName} onChange={(value) => setProfile({ ...profile, firstName: value })} autoComplete="given-name" required />
-                <TextField id="profile-last-name" label={t.checkout.lastName} value={profile.lastName} onChange={(value) => setProfile({ ...profile, lastName: value })} autoComplete="family-name" required />
+                <TextField id="profile-first-name" label={t.checkout.firstName} value={profile.firstName} onChange={(value) => updateProfile("firstName", value)} autoComplete="given-name" required />
+                <TextField id="profile-last-name" label={t.checkout.lastName} value={profile.lastName} onChange={(value) => updateProfile("lastName", value)} autoComplete="family-name" required />
                 <div><Label htmlFor="profile-email" className="mb-1.5 block text-xs font-bold text-charcoal">{t.checkout.email}</Label><div className="relative"><AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="profile-email" value={customer.email} readOnly className="bg-muted/45 pl-9" /></div><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Identifiant principal sécurisé" : "Secure primary identifier"}</p></div>
-                <div><Label htmlFor="profile-phone" className="mb-1.5 block text-xs font-bold text-charcoal">{locale === "fr" ? "Téléphone" : "Phone"}</Label><div className="relative"><Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="profile-phone" type="tel" autoComplete="tel" value={profile.phone} onChange={(event) => setProfile({ ...profile, phone: event.target.value })} className="pl-9" required /></div></div>
+                <div><Label htmlFor="profile-phone" className="mb-1.5 block text-xs font-bold text-charcoal">{locale === "fr" ? "Téléphone" : "Phone"}</Label><div className="relative"><Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="profile-phone" type="tel" autoComplete="tel" value={profile.phone} onChange={(event) => updateProfile("phone", event.target.value)} className="pl-9" required /></div></div>
                 <InlineStatus status={profileStatus} message={profileMessage} className="sm:col-span-2" />
-                <div className="sm:col-span-2"><Button type="submit" disabled={profileStatus === "busy"} className="w-full bg-terre text-white hover:bg-terre-dark sm:w-auto"><Save className="mr-2 h-4 w-4" />{profileStatus === "busy" ? (locale === "fr" ? "Enregistrement..." : "Saving...") : (locale === "fr" ? "Enregistrer mes coordonnées" : "Save my details")}</Button></div>
+                <div className="sm:col-span-2"><Button type="submit" disabled={profileStatus === "busy" || !profileDirty} className="w-full bg-terre text-white hover:bg-terre-dark sm:w-auto">{profileDirty ? <Save className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}{profileStatus === "busy" ? (locale === "fr" ? "Enregistrement..." : "Saving...") : profileDirty ? (locale === "fr" ? "Enregistrer mes coordonnées" : "Save my details") : (locale === "fr" ? "Coordonnées à jour" : "Details up to date")}</Button></div>
               </form>
 
               <aside className="border-y border-border py-1">
@@ -288,9 +314,9 @@ export function AccountWorkspace() {
           <section aria-labelledby="account-settings-title">
             <SectionHeading eyebrow={locale === "fr" ? "Préférences et sécurité" : "Preferences and security"} title={locale === "fr" ? "Réglages du compte" : "Account settings"} description={locale === "fr" ? "Une configuration simple, synchronisée avec votre compte." : "A simple configuration synchronized with your account."} id="account-settings-title" />
             <div className="mt-6 divide-y divide-border border-y border-border">
-              <SettingRow icon={Languages} title={t.account.language} description={locale === "fr" ? "Langue utilisée dans l'application et les contenus." : "Language used in the application and content."}><div className="inline-flex rounded-lg bg-muted p-1">{(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => void changeLanguage(language)} aria-pressed={locale === language} className={`h-9 rounded-md px-4 text-xs font-bold ${locale === language ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{language === "fr" ? "Français" : "English"}</button>)}</div></SettingRow>
-              <SettingRow icon={LockKeyhole} title={locale === "fr" ? "Mot de passe" : "Password"} description={locale === "fr" ? "Recevez un lien sécurisé pour choisir un nouveau mot de passe." : "Receive a secure link to choose a new password."}><Button type="button" variant="outline" size="sm" onClick={() => void requestPasswordChange()} disabled={securityStatus === "busy" || securityStatus === "success"}>{securityStatus === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer le lien" : "Send link")}</Button><InlineStatus status={securityStatus} message={securityMessage} className="mt-3" /></SettingRow>
-              <SettingRow icon={LogOut} title={locale === "fr" ? "Fermer la session" : "Close session"} description={locale === "fr" ? "Votre panier restera sur cet appareil après la déconnexion." : "Your cart will stay on this device after sign-out."}><LogoutConfirmDialog><Button type="button" variant="outline" className="border-destructive/25 text-destructive hover:bg-destructive/5 hover:text-destructive"><LogOut className="mr-2 h-4 w-4" />{t.account.logout}</Button></LogoutConfirmDialog></SettingRow>
+              <SettingRow icon={Languages} accent={BRAND_COLORS.gold} title={t.account.language} description={locale === "fr" ? "Langue utilisée dans l'application et les contenus." : "Language used in the application and content."}><div className="inline-flex rounded-lg bg-muted p-1">{(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => void changeLanguage(language)} aria-pressed={locale === language} className={`h-9 rounded-md px-4 text-xs font-bold ${locale === language ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{language === "fr" ? "Français" : "English"}</button>)}</div></SettingRow>
+              <SettingRow icon={LockKeyhole} accent={BRAND_COLORS.burgundy} title={locale === "fr" ? "Mot de passe" : "Password"} description={locale === "fr" ? "Recevez un lien sécurisé pour choisir un nouveau mot de passe." : "Receive a secure link to choose a new password."}><Button type="button" variant="outline" size="sm" onClick={() => void requestPasswordChange()} disabled={securityStatus === "busy" || securityStatus === "success"}>{securityStatus === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer le lien" : "Send link")}</Button><InlineStatus status={securityStatus} message={securityMessage} className="mt-3" /></SettingRow>
+              <SettingRow icon={LogOut} accent={BRAND_COLORS.chilli} title={locale === "fr" ? "Fermer la session" : "Close session"} description={locale === "fr" ? "Votre panier restera sur cet appareil après la déconnexion." : "Your cart will stay on this device after sign-out."}><LogoutConfirmDialog><Button type="button" variant="outline" className="border-destructive/25 text-destructive hover:bg-destructive/5 hover:text-destructive"><LogOut className="mr-2 h-4 w-4" />{t.account.logout}</Button></LogoutConfirmDialog></SettingRow>
             </div>
           </section>
         ) : null}
@@ -412,8 +438,8 @@ function orderSavedItems<T extends { id: string; country?: string; name?: string
   });
 }
 
-function SettingRow({ icon: Icon, title, description, children }: { icon: LucideIcon; title: string; description: string; children: React.ReactNode }) {
-  return <div className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal"><Icon className="h-4 w-4" /></span><div><h3 className="text-sm font-black text-charcoal">{title}</h3><p className="mt-1 max-w-xl text-xs leading-5 text-muted-foreground">{description}</p></div></div><div>{children}</div></div>;
+function SettingRow({ icon: Icon, accent, title, description, children }: { icon: LucideIcon; accent: string; title: string; description: string; children: React.ReactNode }) {
+  return <div className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border" style={{ backgroundColor: `${accent}0F`, borderColor: `${accent}22`, color: accent }}><Icon className="h-4 w-4" /></span><div><h3 className="text-sm font-black text-charcoal">{title}</h3><p className="mt-1 max-w-xl text-xs leading-5 text-muted-foreground">{description}</p></div></div><div>{children}</div></div>;
 }
 
 function EmptyFeature({ icon: Icon, title, description, actionLabel, onAction }: { icon: LucideIcon; title: string; description: string; actionLabel: string; onAction: () => void }) {
