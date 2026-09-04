@@ -13,6 +13,7 @@ import { deliveryServiceLabel, formatPrice, formatDate, formatDateTime, orderSta
 import { downloadOrderInvoice } from "@/lib/client-actions";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { getOrderDeliveryOverview, getShipmentTrackingHref } from "@/lib/order-experience";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import type { Order } from "@/lib/types";
@@ -35,11 +36,11 @@ export function OrderTrackingView() {
   const { interrupted: isInterrupted, stageIndex, deliveryTimestamp, shipment: primaryShipment, trackingHref: primaryTrackingHref, packageCount } = deliveryOverview;
   const deliveryCopy = getDeliveryCopy(stageIndex, locale);
   const DeliveryIcon = isInterrupted ? AlertCircle : stageIndex === 3 ? CheckCircle2 : stageIndex === 2 ? Truck : stageIndex === 1 ? Package : ShieldCheck;
-  const deliveryStages = [
-    { icon: CheckCircle2, fr: "Confirmée", en: "Confirmed" },
-    { icon: Package, fr: "Préparée", en: "Packed" },
-    { icon: Truck, fr: "En route", en: "On the way" },
-    { icon: MapPin, fr: "Livrée", en: "Delivered" },
+  const deliveryStages: JourneyStage[] = [
+    { id: "confirmed", icon: CheckCircle2, label: locale === "fr" ? "Confirmée" : "Confirmed" },
+    { id: "packed", icon: Package, label: locale === "fr" ? "Préparée" : "Packed" },
+    { id: "transit", icon: Truck, label: locale === "fr" ? "En route" : "On the way" },
+    { id: "delivered", icon: MapPin, label: locale === "fr" ? "Livrée" : "Delivered" },
   ];
 
   return (
@@ -74,10 +75,16 @@ export function OrderTrackingView() {
         </div>
       </section>
 
-      <section className="mb-4 overflow-hidden rounded-lg border border-border bg-white px-3 py-4" aria-label={locale === "fr" ? "Progression de la livraison" : "Delivery progress"}>
-        <span className="sr-only" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={deliveryOverview.progress} aria-label={locale === "fr" ? `Livraison terminée à ${deliveryOverview.progress} %` : `Delivery ${deliveryOverview.progress}% complete`} />
-        <ol className="grid grid-cols-4">{deliveryStages.map((stage, index) => <li key={stage.fr} className="relative flex min-w-0 flex-col items-center text-center">{index > 0 ? <span className={`absolute right-1/2 top-4 h-0.5 w-full ${index <= stageIndex ? "bg-burgundy" : "bg-border"}`} /> : null}<span className={`relative z-10 grid h-8 w-8 place-items-center rounded-full ${index <= stageIndex ? "bg-burgundy text-white" : isInterrupted && index === 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}`}><stage.icon className="h-4 w-4" /></span><span className={`mt-2 truncate text-[9px] font-bold sm:text-[10px] ${index <= stageIndex ? "text-burgundy" : isInterrupted && index === 0 ? "text-destructive" : "text-muted-foreground"}`}>{locale === "fr" ? stage.fr : stage.en}</span></li>)}</ol>
-      </section>
+      <JourneyRail
+        stages={deliveryStages}
+        activeIndex={stageIndex}
+        progress={deliveryOverview.progress}
+        label={locale === "fr" ? "Progression de la livraison" : "Delivery progress"}
+        progressLabel={locale === "fr" ? `Livraison terminée à ${deliveryOverview.progress} %` : `Delivery ${deliveryOverview.progress}% complete`}
+        interrupted={isInterrupted}
+        testId="delivery-progress"
+        className="mb-4"
+      />
 
       <nav className="mb-4 grid grid-cols-2 rounded-md border border-burgundy/12 bg-white p-1 md:hidden" aria-label={locale === "fr" ? "Informations de la commande" : "Order information"} data-testid="tracking-mobile-tabs">
         <button type="button" onClick={() => setMobilePanel("delivery")} aria-pressed={mobilePanel === "delivery"} className={`flex min-h-11 items-center justify-center gap-2 rounded-sm text-xs font-black transition ${mobilePanel === "delivery" ? "bg-terre text-white" : "text-muted-foreground"}`}><Truck className="h-4 w-4" />{locale === "fr" ? "Livraison" : "Delivery"}</button>

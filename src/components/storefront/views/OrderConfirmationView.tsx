@@ -5,7 +5,6 @@ import {
   AlertCircle,
   ArrowRight,
   CalendarDays,
-  Check,
   CheckCircle2,
   Download,
   Home,
@@ -20,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { useStore } from "@/lib/store";
@@ -88,10 +88,10 @@ export function OrderConfirmationView() {
   const progress = confirmationProgress(order.status);
   const deliveryDate = shipment?.estimatedDelivery ? formatDate(shipment.estimatedDelivery, locale) : (isFr ? "À confirmer" : "To be confirmed");
   const firstName = customer.firstName || order.deliveryName?.split(" ")[0] || "";
-  const steps = [
-    { icon: ShieldCheck, title: isFr ? "Paiement validé" : "Payment validated", detail: isFr ? "Transaction sécurisée" : "Secure transaction" },
-    { icon: PackageCheck, title: isFr ? "Préparation" : "Preparation", detail: hasColdChain ? (isFr ? "Température contrôlée" : "Temperature controlled") : (isFr ? "Contrôle des produits" : "Product checks") },
-    { icon: Truck, title: isFr ? "Remise au transporteur" : "Carrier handover", detail: shipment?.carrierName || shipment?.carrier || (isFr ? "Après préparation" : "After preparation") },
+  const steps: JourneyStage[] = [
+    { id: "payment", icon: ShieldCheck, label: isFr ? "Paiement validé" : "Payment validated", detail: isFr ? "Transaction sécurisée" : "Secure transaction" },
+    { id: "preparation", icon: PackageCheck, label: isFr ? "Préparation" : "Preparation", detail: hasColdChain ? (isFr ? "Température contrôlée" : "Temperature controlled") : (isFr ? "Contrôle des produits" : "Product checks") },
+    { id: "handover", icon: Truck, label: isFr ? "Remise au transporteur" : "Carrier handover", detail: shipment?.carrierName || shipment?.carrier || (isFr ? "Après préparation" : "After preparation") },
   ];
 
   return (
@@ -122,22 +122,16 @@ export function OrderConfirmationView() {
           </dl>
         </div>
 
-        <ol className="grid grid-cols-3 border-t border-burgundy/12 bg-white" aria-label={isFr ? "Prochaines étapes de la commande" : "Next order steps"}>
-          {steps.map((step, index) => {
-            const isComplete = index < progress;
-            const isCurrent = index === Math.min(progress, steps.length - 1);
-            return (
-              <li key={step.title} className="relative min-w-0 border-r border-burgundy/10 px-2 py-4 last:border-r-0 sm:px-5">
-                <div className="flex items-start gap-2.5">
-                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md ${isComplete ? "bg-burgundy text-white" : isCurrent ? "bg-gold/25 text-terre-dark ring-1 ring-gold/60" : "bg-muted text-muted-foreground"}`}>
-                    {isComplete ? <Check className="h-4 w-4" /> : <step.icon className="h-4 w-4" />}
-                  </span>
-                  <div className="min-w-0"><p className={`text-[10px] font-black leading-4 sm:text-xs ${isComplete || isCurrent ? "text-charcoal" : "text-muted-foreground"}`}>{step.title}</p><p className="mt-0.5 hidden truncate text-[9px] text-muted-foreground sm:block">{step.detail}</p></div>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+        <JourneyRail
+          stages={steps}
+          activeIndex={progress}
+          progress={(progress / steps.length) * 100}
+          label={isFr ? "Prochaines étapes de la commande" : "Next order steps"}
+          progressLabel={isFr ? `Commande terminée à ${Math.round((progress / steps.length) * 100)} %` : `Order ${Math.round((progress / steps.length) * 100)}% complete`}
+          surface="flush"
+          testId="confirmation-progress"
+          className="border-t border-burgundy/12 px-2 py-2.5 sm:px-5"
+        />
       </section>
 
       <div className="mt-5 grid items-start gap-5 md:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">

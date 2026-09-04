@@ -1134,6 +1134,12 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await page.getByRole("button", { name: /passer la commande|place order/i }).click();
 
   await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
+  const checkoutProgress = page.getByTestId("checkout-progress");
+  await expect(checkoutProgress.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "33");
+  await expect(checkoutProgress.locator('[aria-current="step"]')).toContainText(/livraison|delivery/i);
+  await expect(checkoutProgress).toContainText(/adresse et transport|address and carrier/i);
+  await expect(checkoutProgress).toContainText(/carte sécurisée|secure card/i);
+  await expect(checkoutProgress).toContainText(/contrôle final|final check/i);
   const checkoutDock = page.getByTestId("checkout-action-dock");
   if (isMobile) {
     await expect(checkoutDock).toBeVisible();
@@ -1255,7 +1261,10 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
   await expect(page).toHaveURL(/view=order-confirmation&orderId=order-confirmed/);
   await expect(page.getByRole("heading", { name: /merci awa, c'est confirmé|thank you awa, it is confirmed/i })).toBeVisible();
   await expect(page.getByTestId("confirmation-command-center")).toContainText("JMA-260904-0218");
-  await expect(page.getByRole("list", { name: /prochaines étapes de la commande|next order steps/i })).toContainText(/paiement validé|payment validated/i);
+  const confirmationProgress = page.getByTestId("confirmation-progress");
+  await expect(confirmationProgress.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "33");
+  await expect(confirmationProgress.getByRole("list", { name: /prochaines étapes de la commande|next order steps/i })).toContainText(/paiement validé|payment validated/i);
+  await expect(confirmationProgress.locator('[aria-current="step"]')).toContainText(/préparation|preparation/i);
   await expect(page.getByRole("heading", { name: /articles confirmés|confirmed items/i })).toBeVisible();
   await expectLoadedProductImages(page.getByRole("main").getByRole("img"), 2);
   await expect(page.getByRole("heading", { name: /6 sept\. 2026|6 september 2026/i })).toBeVisible();
@@ -1486,7 +1495,9 @@ test("delivered orders expose carrier tracking and proof without leaking interna
   await expect(deliveryCommandCenter).toContainText(/commande a été remise|order has been delivered/i);
   await expect(deliveryCommandCenter).toContainText(/chrono frais europe/i);
   await expect(deliveryCommandCenter).toContainText(/colis\s*1|parcels\s*1/i);
-  await expect(page.getByRole("progressbar", { name: /livraison terminée|delivery .*complete/i })).toHaveAttribute("aria-valuenow", "100");
+  const deliveryProgress = page.getByTestId("delivery-progress");
+  await expect(deliveryProgress.getByRole("progressbar", { name: /livraison terminée|delivery .*complete/i })).toHaveAttribute("aria-valuenow", "100");
+  await expect(deliveryProgress.locator('[aria-current="step"]')).toContainText(/livrée|delivered/i);
   await expect(page.getByRole("link", { name: /suivre chez le transporteur|track with carrier/i })).toHaveAttribute("href", "https://track.example.com/JMA-FR-260902-PROOF");
   const deliveryProofHeading = page.getByText(/^(preuve de remise|delivery proof)$/i);
   await expect(deliveryProofHeading).toBeVisible();

@@ -1370,6 +1370,10 @@ test("the order workspace saves logistics and confirms each sensitive advancemen
   await expect(dialog.getByRole("heading", { name: "Préparer, tracer et remettre" })).toBeVisible();
   await expect(dialog.getByText("aminata@example.fr")).toBeVisible();
   await expect(dialog.getByText("Livraison standard")).toBeVisible();
+  const orderProgress = dialog.getByTestId("admin-order-progress");
+  await expect(orderProgress.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
+  await expect(orderProgress.locator('[aria-current="step"]')).toContainText("Préparation");
+  await expect(orderProgress).toContainText("Transport et suivi");
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     await page.screenshot({ path: join(directory, `order-control-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });

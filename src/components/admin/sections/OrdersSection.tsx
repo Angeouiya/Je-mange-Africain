@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useFetch } from "@/lib/use-fetch";
 import { formatDate, formatDateTime, formatPrice, formatWeight, normalize, orderStatusColor, thermalLabel } from "@/lib/format";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { OrderFulfillmentControl } from "@/components/admin/OrderFulfillmentControl";
 import { fulfillmentStatusLabel, nextFulfillmentStatus } from "@/lib/admin-order-fulfillment";
 
@@ -67,6 +68,14 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
     deliver: isFr ? "Commandes en livraison" : "Orders being delivered",
     closed: isFr ? "Commandes clôturées" : "Closed orders",
   };
+  const orderStages: JourneyStage[] = [
+    { id: "validate", icon: Clock3, label: isFr ? "À valider" : "To validate", detail: isFr ? "Paiement et stock" : "Payment and stock" },
+    { id: "prepare", icon: PackageCheck, label: isFr ? "Préparation" : "Preparation", detail: isFr ? "Contrôle et colis" : "Checks and parcels" },
+    { id: "deliver", icon: Truck, label: isFr ? "Livraison" : "Delivery", detail: isFr ? "Transport et suivi" : "Carrier and tracking" },
+    { id: "closed", icon: CheckCircle2, label: isFr ? "Clôturée" : "Closed", detail: isFr ? "Livrée ou arrêtée" : "Delivered or stopped" },
+  ];
+  const selectedFlowIndex = selectedOrder ? FLOW_ORDER.indexOf(flowFor(selectedOrder.status)) : 0;
+  const selectedInterrupted = selectedOrder ? ["cancelled", "failed", "refunded"].includes(selectedOrder.status) : false;
 
   return (
     <div className="space-y-6">
@@ -119,6 +128,18 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
         <DialogContent closeLabel={isFr ? "Fermer" : "Close"} className="max-h-[92dvh] overflow-y-auto p-0 sm:max-w-4xl">
           {selectedOrder ? <>
             <DialogHeader className="border-b border-border px-5 py-5 sm:px-6"><div className="flex flex-wrap items-center gap-2 pr-8"><DialogTitle className="text-xl font-black text-terre">{selectedOrder.number}</DialogTitle><Badge className={`border ${orderStatusColor(selectedOrder.status)}`}>{statusLabel(selectedOrder.status, isFr)}</Badge></div><DialogDescription>{formatDateTime(selectedOrder.createdAt, locale)} · {selectedOrder.deliveryName}</DialogDescription><div className="mt-4 grid grid-cols-3 divide-x divide-charcoal/10 border-y border-charcoal/8 py-3 text-left"><OrderDialogFact icon={CircleDollarSign} label={isFr ? "Total" : "Total"} value={formatPrice(selectedOrder.total, locale)} /><OrderDialogFact icon={PackageCheck} label={isFr ? "Préparation" : "Fulfilment"} value={`${selectedOrder.items.length} ${isFr ? "article(s)" : "item(s)"}`} /><OrderDialogFact icon={Truck} label={isFr ? "Expédition" : "Shipping"} value={`${selectedOrder.packageCount} ${isFr ? "colis" : "parcel(s)"}`} /></div></DialogHeader>
+            <JourneyRail
+              stages={orderStages}
+              activeIndex={selectedFlowIndex}
+              progress={selectedInterrupted ? 0 : (selectedFlowIndex + 1) * 25}
+              label={isFr ? "Parcours opérationnel de la commande" : "Order operations journey"}
+              progressLabel={selectedInterrupted
+                ? (isFr ? "Parcours interrompu" : "Journey interrupted")
+                : (isFr ? `Commande traitée à ${(selectedFlowIndex + 1) * 25} %` : `Order ${((selectedFlowIndex + 1) * 25)}% complete`)}
+              interrupted={selectedInterrupted}
+              testId="admin-order-progress"
+              className="mx-5 mt-5 sm:mx-6"
+            />
             <div className="grid gap-7 px-5 py-6 lg:grid-cols-[1.05fr_0.95fr] sm:px-6">
               <div className="space-y-6">
                 <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Articles à préparer" : "Items to fulfil"}</h3><div className="mt-3 divide-y divide-border border-y border-border">{selectedOrder.items.map((item) => <div key={item.id} className="flex items-center gap-3 py-3"><ProductImage src={item.imageUrl} alt={isFr ? item.nameFr : item.nameEn} emoji="" color="#F8F3EF" size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" /><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy/10 text-[10px] font-black text-burgundy">{item.qty}×</span><div className="min-w-0 flex-1"><p className="break-words text-xs font-bold leading-4">{isFr ? item.nameFr : item.nameEn}</p><p className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">{item.salesChannel === "wholesale" ? <span className="inline-flex items-center gap-1 font-bold text-burgundy"><Boxes className="h-3 w-3" />{isFr ? "Gros" : "Wholesale"}</span> : null}<span>{item.sku} · {thermalLabel(item.thermalClass, locale)}</span></p></div><span className="shrink-0 text-xs font-extrabold">{formatPrice(item.lineTotal, locale)}</span></div>)}</div></section>

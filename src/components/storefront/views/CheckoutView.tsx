@@ -4,13 +4,14 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarRange, Check, ChevronDown, ChevronRight, ContactRound, CreditCard, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Snowflake, Truck, Zap, type LucideIcon } from "lucide-react";
+import { ArrowLeft, CalendarRange, ChevronDown, ChevronRight, ContactRound, CreditCard, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Snowflake, Truck, Zap, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { formatEstimatedArrival } from "@/lib/delivery-experience";
 import { formatPrice, formatWeight, thermalLabel } from "@/lib/format";
@@ -262,7 +263,11 @@ export function CheckoutView() {
     );
   }
 
-  const steps = [t.checkout.delivery, t.checkout.payment, t.checkout.review];
+  const checkoutStages: JourneyStage[] = [
+    { id: "delivery", label: t.checkout.delivery, detail: locale === "fr" ? "Adresse et transport" : "Address and carrier", icon: Truck },
+    { id: "payment", label: t.checkout.payment, detail: locale === "fr" ? "Carte sécurisée" : "Secure card", icon: CreditCard },
+    { id: "review", label: t.checkout.review, detail: locale === "fr" ? "Contrôle final" : "Final check", icon: ShieldCheck },
+  ];
   const review = (
     <div className="space-y-4">
       <div className="rounded-lg bg-muted/40 p-3 text-sm">
@@ -301,15 +306,17 @@ export function CheckoutView() {
     <div className="mx-auto max-w-5xl px-4 pb-36 pt-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="cart" className="mb-4" />
       <h1 className="jma-section-title mb-5">{t.checkout.title}</h1>
-      <div className="mb-6 flex items-center gap-1.5" aria-label={locale === "fr" ? "Progression du paiement" : "Checkout progress"}>
-        {steps.map((label, index) => (
-          <div key={label} className="flex min-w-0 flex-1 items-center gap-1.5">
-            <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${index <= step ? "bg-terre text-cream" : "bg-muted text-muted-foreground"}`} aria-current={index === step ? "step" : undefined}>{index < step ? <Check className="h-4 w-4" /> : index + 1}</div>
-            <span className={`hidden truncate text-xs font-medium min-[390px]:block ${index <= step ? "text-charcoal" : "text-muted-foreground"}`}>{label}</span>
-            {index < steps.length - 1 ? <div className={`h-0.5 min-w-2 flex-1 rounded ${index < step ? "bg-terre" : "bg-border"}`} /> : null}
-          </div>
-        ))}
-      </div>
+      <JourneyRail
+        stages={checkoutStages}
+        activeIndex={step}
+        progress={((step + 1) / checkoutStages.length) * 100}
+        label={locale === "fr" ? "Progression du paiement" : "Checkout progress"}
+        progressLabel={locale === "fr" ? `Paiement, étape ${step + 1} sur ${checkoutStages.length}` : `Checkout, step ${step + 1} of ${checkoutStages.length}`}
+        showDetails
+        onStageSelect={setStep}
+        testId="checkout-progress"
+        className="mb-6"
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
         <div className="min-w-0">
