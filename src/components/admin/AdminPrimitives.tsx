@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
-import { AlertCircle, LoaderCircle, Search, X } from "lucide-react";
+import { useId, type KeyboardEvent, type ReactNode } from "react";
+import { AlertCircle, LoaderCircle, Search, X, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
@@ -182,15 +182,73 @@ export function SectionTabs<T extends string>({
   onChange,
   items,
   label,
+  variant = "filter",
 }: {
   value: T;
   onChange: (value: T) => void;
-  items: Array<{ value: T; label: string; count?: number }>;
+  items: Array<{ value: T; label: string; count?: number; description?: string; icon?: LucideIcon; accent?: string }>;
   label: string;
+  variant?: "filter" | "workspace";
 }) {
+  const moveWithKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    let nextIndex = currentIndex;
+    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % items.length;
+    else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + items.length) % items.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = items.length - 1;
+    else return;
+
+    event.preventDefault();
+    onChange(items[nextIndex].value);
+    event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[nextIndex]?.focus();
+  };
+
+  if (variant === "workspace") {
+    return (
+      <div
+        className="grid w-full overflow-hidden rounded-lg border border-burgundy/12 bg-[#FBF7F5] sm:w-fit sm:min-w-[32rem]"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+        role="tablist"
+        aria-orientation="horizontal"
+        aria-label={label}
+        data-testid="workspace-tabs"
+      >
+        {items.map((item, index) => {
+          const active = value === item.value;
+          const Icon = item.icon;
+          const accent = item.accent || "#8A3042";
+          return (
+            <button
+              key={item.value}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              aria-label={typeof item.count === "number" ? `${item.label}, ${item.count}` : item.label}
+              onClick={() => onChange(item.value)}
+              onKeyDown={(event) => moveWithKeyboard(event, index)}
+              className={`group relative flex min-h-[4.75rem] min-w-0 items-center gap-2.5 px-3 py-2.5 text-left transition sm:min-w-[15rem] sm:px-4 ${index ? "border-l border-burgundy/10" : ""} ${active ? "bg-white text-charcoal shadow-[0_14px_30px_-26px_rgba(90,38,50,0.75)]" : "text-muted-foreground hover:bg-white/65 hover:text-charcoal"}`}
+            >
+              {active ? <span className="absolute inset-x-3 top-0 h-[3px] rounded-b-full" style={{ backgroundColor: accent }} aria-hidden="true" /> : null}
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? accent : `${accent}0D`, borderColor: active ? accent : `${accent}20`, color: active ? getBrandAccentForeground(accent) : getReadableBrandAccent(accent) }}>
+                {Icon ? <Icon className="h-[1.05rem] w-[1.05rem]" /> : <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex min-w-0 items-start gap-1.5">
+                  <span className="line-clamp-2 min-w-0 text-[11px] font-black leading-3.5 sm:text-xs sm:leading-4">{item.label}</span>
+                  {typeof item.count === "number" ? <span aria-hidden="true" className={`grid min-w-5 shrink-0 place-items-center rounded px-1.5 py-0.5 text-[8px] font-black tabular-nums ${active ? "bg-burgundy/[0.07] text-burgundy" : "bg-white text-muted-foreground"}`}>{item.count}</span> : null}
+                </span>
+                {item.description ? <span className="mt-0.5 block line-clamp-2 text-[8px] font-semibold leading-3.5 text-muted-foreground sm:text-[9px]">{item.description}</span> : null}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
-    <div className="scroll-pretty flex w-full max-w-full gap-1 overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-white p-1 sm:w-fit" role="tablist" aria-label={label}>
-      {items.map((item) => (
+    <div className="scroll-pretty flex w-full max-w-full gap-1 overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-white p-1 sm:w-fit" role="tablist" aria-label={label} aria-orientation="horizontal">
+      {items.map((item, index) => (
         <button
           key={item.value}
           type="button"
@@ -198,6 +256,7 @@ export function SectionTabs<T extends string>({
           aria-selected={value === item.value}
           aria-label={typeof item.count === "number" ? `${item.label}, ${item.count}` : item.label}
           onClick={() => onChange(item.value)}
+          onKeyDown={(event) => moveWithKeyboard(event, index)}
           className={`flex h-9 min-w-max flex-1 shrink-0 items-center justify-center gap-2 rounded-md px-3 text-xs font-bold transition-colors sm:flex-none ${value === item.value ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}
         >
           {item.label}

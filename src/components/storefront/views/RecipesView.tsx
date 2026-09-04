@@ -86,9 +86,15 @@ export function RecipesView() {
       </section>
 
       <Tabs value={mode} onValueChange={changeMode} className="gap-3">
-        <TabsList className="grid h-11 w-full grid-cols-2 border border-burgundy/10 bg-[#F7F2F0] p-1 sm:w-[32rem]">
-          <TabsTrigger value="recipes" className="h-full min-w-0 text-xs"><UtensilsCrossed className="h-4 w-4 shrink-0" /> {isFr ? "Recettes à cuisiner" : "Recipes to cook"}</TabsTrigger>
-          <TabsTrigger value="library" className="h-full min-w-0 text-xs"><BookOpen className="h-4 w-4 shrink-0" /> {isFr ? "Atlas des plats" : "Dish atlas"}</TabsTrigger>
+        <TabsList className="grid h-auto min-h-[4.75rem] w-full grid-cols-2 overflow-hidden border border-burgundy/12 bg-[#FBF7F5] p-0 sm:w-[36rem]">
+          <TabsTrigger value="recipes" className="group relative h-auto min-w-0 justify-start gap-2.5 rounded-none border-0 px-3 py-2.5 text-left shadow-none data-[state=active]:bg-white data-[state=active]:shadow-[0_14px_30px_-26px_rgba(90,38,50,0.75)] sm:px-4">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-terre/15 bg-terre/[0.07] text-terre group-data-[state=active]:border-terre/35 group-data-[state=active]:bg-[#FFF0E9]"><UtensilsCrossed className="h-4 w-4" /></span>
+            <span className="min-w-0"><span className="block truncate text-[11px] font-black text-charcoal sm:text-xs">{isFr ? "Recettes à cuisiner" : "Recipes to cook"}</span><span className="mt-0.5 block line-clamp-2 whitespace-normal text-[8px] font-semibold leading-3.5 text-muted-foreground sm:text-[9px]">{isFr ? "Personnaliser puis créer le panier" : "Customise then build the basket"}</span></span>
+          </TabsTrigger>
+          <TabsTrigger value="library" className="group relative h-auto min-w-0 justify-start gap-2.5 rounded-none border-0 border-l border-burgundy/10 px-3 py-2.5 text-left shadow-none data-[state=active]:bg-white data-[state=active]:shadow-[0_14px_30px_-26px_rgba(90,38,50,0.75)] sm:px-4">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-burgundy/15 bg-burgundy/[0.06] text-burgundy group-data-[state=active]:border-burgundy/35 group-data-[state=active]:bg-[#F8EBEE]"><BookOpen className="h-4 w-4" /></span>
+            <span className="min-w-0"><span className="block truncate text-[11px] font-black text-charcoal sm:text-xs">{isFr ? "Atlas des plats" : "Dish atlas"}</span><span className="mt-0.5 block line-clamp-2 whitespace-normal text-[8px] font-semibold leading-3.5 text-muted-foreground sm:text-[9px]">{isFr ? "Explorer les cuisines par origine" : "Explore cuisines by origin"}</span></span>
+          </TabsTrigger>
         </TabsList>
 
         <section className="border-y border-charcoal/10 py-3" aria-label={isFr ? "Filtres de la bibliothèque" : "Library filters"}>

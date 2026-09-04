@@ -676,6 +676,8 @@ test("the audit center qualifies, filters and exports operational evidence", asy
   });
 
   await page.goto("/admin#governance", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Acteurs, actions et preuves", { exact: true })).toBeVisible();
+  await expect(page.getByText("Pays, marques et catégories", { exact: true })).toBeVisible();
   await expect(page.getByText("Complétude moyenne", { exact: true })).toBeVisible();
   await expect(page.getByText("86,7 %", { exact: true })).toBeVisible();
   await expect(page.getByText(/2 actions sensibles figurent/)).toBeVisible();
@@ -733,6 +735,8 @@ test("the team cockpit grants least-privilege access and documents sensitive dec
   await mockAdminApi(page);
   await page.goto("/admin#team", { waitUntil: "domcontentloaded" });
 
+  await expect(page.getByText("Inviter, suspendre et suivre", { exact: true })).toBeVisible();
+  await expect(page.getByText("Comparer chaque autorisation", { exact: true })).toBeVisible();
   await expect(page.getByText("Couverture déléguée", { exact: true })).toBeVisible();
   await expect(page.getByText("6/10", { exact: true })).toBeVisible();
   await expect(page.getByText(/1 invitation en attente · 1 compte suspendu/)).toBeVisible();
@@ -878,6 +882,15 @@ test("the finance cockpit explains margin, exports records and leads to action",
   await page.goto("/admin#finance", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("heading", { name: "Rentabilité et encaissements" })).toBeVisible();
+  await expect(page.getByText("Coûts, marges et décisions", { exact: true })).toBeVisible();
+  await expect(page.getByText("Transactions et rapprochements", { exact: true })).toBeVisible();
+  const profitabilityTab = page.getByRole("tab", { name: "Rentabilité" });
+  const paymentsTab = page.getByRole("tab", { name: "Encaissements" });
+  await profitabilityTab.focus();
+  await profitabilityTab.press("ArrowRight");
+  await expect(paymentsTab).toHaveAttribute("aria-selected", "true");
+  await paymentsTab.press("ArrowLeft");
+  await expect(profitabilityTab).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("profitability-bridge")).toContainText("Chaque euro de vente expliqué");
   await expect(page.getByTestId("profitability-bridge")).toContainText("86,4 %");
   await expect(page.getByRole("heading", { name: "Produits qui entraînent la demande" })).toBeVisible();

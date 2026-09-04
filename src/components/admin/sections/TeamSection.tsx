@@ -36,7 +36,10 @@ export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
 
       <TeamAttention summary={summary} locale={locale} />
 
-      <SectionTabs value={tab} onChange={setTab} label={isFr ? "Espaces de gestion de l'équipe" : "Team management workspaces"} items={[{ value: "members", label: isFr ? "Identités" : "Identities", count: data.members.length }, { value: "roles", label: isFr ? "Matrice des rôles" : "Role matrix", count: roleCatalog.length }]} />
+      <SectionTabs variant="workspace" value={tab} onChange={setTab} label={isFr ? "Espaces de gestion de l'équipe" : "Team management workspaces"} items={[
+        { value: "members", label: isFr ? "Identités" : "Identities", description: isFr ? "Inviter, suspendre et suivre" : "Invite, suspend and monitor", count: data.members.length, icon: UsersRound, accent: "#C92A3E" },
+        { value: "roles", label: isFr ? "Matrice des rôles" : "Role matrix", description: isFr ? "Comparer chaque autorisation" : "Compare every permission", count: roleCatalog.length, icon: ShieldCheck, accent: "#8A3042" },
+      ]} />
       {tab === "members" ? <TeamMemberWorkspace members={data.members} roles={data.roles} locale={locale} onUpdated={request.refetch} /> : <TeamRoleWorkspace roles={roleCatalog} members={data.members} locale={locale} />}
     </> : null}
   </div>;

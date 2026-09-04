@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CircleDollarSign } from "lucide-react";
+import { ChartNoAxesCombined, CircleDollarSign, Landmark } from "lucide-react";
 import { AdminPageHeader, SectionTabs } from "@/components/admin/AdminPrimitives";
 import { FinancePaymentLedger } from "@/components/admin/FinancePaymentLedger";
 import { ProfitabilityPanel } from "@/components/admin/ProfitabilityPanel";
@@ -24,9 +24,9 @@ export default function FinanceSection({ locale, onNavigate }: { locale: "fr" | 
         description={isFr ? "Comprenez chaque euro vendu, arbitrez les familles et les lots, puis rapprochez les paiements dans un registre traçable." : "Understand every sales euro, manage families and batches, then reconcile payments in a traceable ledger."}
       />
 
-      <SectionTabs value={view} onChange={setView} label={isFr ? "Espaces financiers" : "Finance workspaces"} items={[
-        { value: "profitability", label: isFr ? "Rentabilité" : "Profitability" },
-        { value: "payments", label: isFr ? "Encaissements" : "Payments" },
+      <SectionTabs variant="workspace" value={view} onChange={setView} label={isFr ? "Espaces financiers" : "Finance workspaces"} items={[
+        { value: "profitability", label: isFr ? "Rentabilité" : "Profitability", description: isFr ? "Coûts, marges et décisions" : "Costs, margins and decisions", icon: ChartNoAxesCombined, accent: "#8A3042" },
+        { value: "payments", label: isFr ? "Encaissements" : "Payments", description: isFr ? "Transactions et rapprochements" : "Transactions and reconciliation", icon: Landmark, accent: "#B9472B" },
       ]} />
 
       {view === "profitability" ? <ProfitabilityPanel locale={locale} onNavigate={onNavigate} /> : <FinancePaymentLedger locale={locale} onNavigate={onNavigate} />}

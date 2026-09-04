@@ -142,6 +142,8 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await page.getByRole("button", { name: /recettes|cuisiner une recette|cook a recipe/i }).first().click();
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();
   await expect(page.getByRole("tab", { name: /atlas des plats|dish atlas/i })).toBeVisible();
+  await expect(page.getByText(/personnaliser puis créer le panier|customise then build the basket/i)).toBeVisible();
+  await expect(page.getByText(/explorer les cuisines par origine|explore cuisines by origin/i)).toBeVisible();
   await expect(page.getByLabel(/rechercher une recette ou un plat|search for a recipe or dish/i)).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
   const recipeHeroBox = await page.getByTestId("recipes-hero").boundingBox();
