@@ -58,14 +58,14 @@ export function Header() {
     setMobileOpen(false);
   };
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-charcoal/10 bg-white/94 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-burgundy/10 bg-white/[0.97] shadow-[0_12px_28px_-28px_rgba(90,38,50,0.55)] backdrop-blur-xl">
       <div className="african-kente-stripe h-0.5 md:h-[3px]" />
       <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-1.5 px-2.5 md:h-[4.25rem] md:gap-4 md:px-7">
         {/* mobile menu */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 text-charcoal md:hidden" aria-label="Menu">
-              <Menu className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-md text-charcoal hover:bg-terre/[0.07] hover:text-terre md:hidden" aria-label="Menu">
+              <Menu className="h-[1.15rem] w-[1.15rem]" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[min(22rem,calc(100vw-1rem))] bg-white p-0">
@@ -128,14 +128,14 @@ export function Header() {
         </Sheet>
 
         {/* logo */}
-        <button onClick={() => go("home")} className="flex items-center gap-2 md:hidden" aria-label={locale === "fr" ? "Accueil" : "Home"}>
-          <BrandLockup compact responsive locale={locale} />
+        <button onClick={() => go("home")} className="flex min-h-11 items-center gap-2 rounded-md px-0.5 transition hover:bg-terre/[0.035] md:hidden" aria-label={locale === "fr" ? "Accueil" : "Home"}>
+          <BrandLockup compact responsive locale={locale} className="[&>span:first-child]:h-12 [&>span:first-child]:w-12" />
         </button>
 
         <div className="hidden min-w-0 flex-1 md:block">
           {searchContext ? (
             <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-md bg-terre/10 text-terre"><searchContext.icon className="h-4 w-4" /></span>
+              <span className="grid h-9 w-9 place-items-center rounded-md border border-terre/10 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre"><searchContext.icon className="h-4 w-4" /></span>
               <div className="min-w-0"><p className="text-xs font-black text-charcoal">{searchContext.label}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{searchContext.detail}</p></div>
             </div>
           ) : <div className="max-w-2xl"><SearchBar /></div>}

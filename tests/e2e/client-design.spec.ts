@@ -199,6 +199,39 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expectNoHorizontalOverflow(page);
 });
 
+test("the adaptive client navigation keeps every destination clear and touch friendly", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  const navigation = page.getByTestId(isMobile ? "mobile-navigation" : "client-sidebar");
+  await expect(navigation).toBeVisible();
+
+  const activeItem = navigation.locator('button[aria-current="page"]');
+  await expect(activeItem).toHaveCount(1);
+  await expect(activeItem).toContainText(isMobile ? /accueil|home/i : /découvrir|discover/i);
+  await expect(activeItem).toHaveAttribute("data-active", "true");
+
+  if (isMobile) {
+    const destinationButtons = navigation.locator(":scope > div > button");
+    await expect(destinationButtons).toHaveCount(5);
+    const targets = await destinationButtons.evaluateAll((buttons) => buttons.map((button) => {
+      const box = button.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    }));
+    expect(targets.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
+    await navigation.getByRole("button", { name: /catégories|categories/i }).click();
+    await expect(navigation.locator('button[aria-current="page"]')).toContainText(/catégories|categories/i);
+  } else {
+    await navigation.getByRole("button", { name: /acheter les produits|shop products/i }).click();
+    await expect(navigation.locator('button[aria-current="page"]')).toContainText(/acheter les produits|shop products/i);
+    await expect(navigation.getByText(/rayons, origine et disponibilité|categories, origin and availability/i)).toBeVisible();
+  }
+
+  await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectBrandSafeUiColors(page);
+  await expectNoSeriousA11yViolations(page);
+});
+
 test("the wholesale market applies volume pricing and preserves case quantities in the basket", async ({ page }) => {
   let quotePayload: { message?: string } | null = null;
   const wholesaleProduct = {

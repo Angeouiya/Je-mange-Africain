@@ -219,9 +219,9 @@ export function NotificationCenter() {
             : (locale === "fr" ? "Suivi de commande en temps réel" : "Live order updates");
 
   const trigger = (
-    <Button variant="ghost" size="icon" className="relative" aria-label={locale === "fr" ? `Notifications, ${unread} non lues` : `Notifications, ${unread} unread`}>
-      <Bell className="h-5 w-5" />
-      {unread > 0 ? <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-terre px-1 text-[9px] font-bold text-white">{unread > 9 ? "9+" : unread}</span> : null}
+    <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-md border border-transparent text-charcoal hover:border-terre/10 hover:bg-terre/[0.07] hover:text-terre" aria-label={locale === "fr" ? `Notifications, ${unread} non lues` : `Notifications, ${unread} unread`}>
+      <Bell className="h-[1.15rem] w-[1.15rem]" />
+      {unread > 0 ? <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white shadow-sm">{unread > 9 ? "9+" : unread}</span> : null}
     </Button>
   );
   const panel = (
