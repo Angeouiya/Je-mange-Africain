@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { ChefHat, Clock3, GripVertical, LoaderCircle, PackageSearch, Plus, Trash2, UsersRound } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, ChefHat, Clock3, LoaderCircle, PackageSearch, PencilLine, Plus, Trash2, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -54,10 +54,35 @@ type RecipeDraft = {
   isPopular: boolean;
   isNew: boolean;
   isRecommended: boolean;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   stepsFr: string[];
   stepsEn: string[];
   ingredients: IngredientDraft[];
+};
+
+export type EditableRecipe = { id: string; title: string };
+
+type RecipeEditPayload = {
+  id: string;
+  titleFr: string;
+  titleEn: string;
+  descriptionFr: string;
+  descriptionEn: string;
+  country: string;
+  category: RecipeDraft["category"];
+  difficulty: RecipeDraft["difficulty"];
+  timeMinutes: number;
+  baseServings: number;
+  imageEmoji: string;
+  imageUrl: string;
+  imageColor: string;
+  isPopular: boolean;
+  isNew: boolean;
+  isRecommended: boolean;
+  status: RecipeDraft["status"];
+  stepsFr: string[];
+  stepsEn: string[];
+  ingredients: Array<Omit<IngredientDraft, "quantityPerBase"> & { quantityPerBase: number }>;
 };
 
 const emptyIngredient = (): IngredientDraft => ({ productId: "", quantityPerBase: "", unit: "g", role: "base", optional: false });
@@ -90,15 +115,43 @@ const initialDraft = (): RecipeDraft => ({
   ingredients: [emptyIngredient()],
 });
 
-export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en"; onCreated: () => void }) {
+const draftFromRecipe = (recipe: RecipeEditPayload): RecipeDraft => ({
+  titleFr: recipe.titleFr,
+  titleEn: recipe.titleEn,
+  descriptionFr: recipe.descriptionFr,
+  descriptionEn: recipe.descriptionEn,
+  country: recipe.country,
+  category: recipe.category,
+  difficulty: recipe.difficulty,
+  timeMinutes: String(recipe.timeMinutes),
+  baseServings: String(recipe.baseServings),
+  imageEmoji: recipe.imageEmoji,
+  imageUrl: recipe.imageUrl,
+  imageColor: recipe.imageColor,
+  isPopular: recipe.isPopular,
+  isNew: recipe.isNew,
+  isRecommended: recipe.isRecommended,
+  status: recipe.status,
+  stepsFr: recipe.stepsFr.length ? recipe.stepsFr : ["", ""],
+  stepsEn: recipe.stepsEn.length ? recipe.stepsEn : ["", ""],
+  ingredients: recipe.ingredients.length ? recipe.ingredients.map((ingredient) => ({ ...ingredient, quantityPerBase: String(ingredient.quantityPerBase) })) : [emptyIngredient()],
+});
+
+export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr" | "en"; onCreated: () => void; recipe?: EditableRecipe }) {
   const isFr = locale === "fr";
+  const editing = Boolean(recipe);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<RecipeDraft>(initialDraft);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const { data: productData, loading: productsLoading } = useFetch<{ products: ProductOption[] }>(open ? `/api/admin/products?locale=${locale}` : null, [open, locale]);
+  const editRequest = useFetch<RecipeEditPayload>(open && recipe ? `/api/admin/recipes/${recipe.id}?locale=${locale}` : null, [open, recipe?.id, locale]);
   const products = productData?.products || [];
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+
+  useEffect(() => {
+    if (open && editRequest.data) setDraft(draftFromRecipe(editRequest.data));
+  }, [open, editRequest.data]);
 
   const completeSteps = draft.stepsFr.every((step) => step.trim().length >= 5) && draft.stepsEn.every((step) => step.trim().length >= 5);
   const completeIngredients = draft.ingredients.length > 0 && draft.ingredients.every((ingredient) => ingredient.productId && Number(ingredient.quantityPerBase) > 0);
@@ -117,6 +170,15 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
   const update = <K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const updateStep = (language: "stepsFr" | "stepsEn", index: number, value: string) => update(language, draft[language].map((step, stepIndex) => stepIndex === index ? value : step));
   const addStep = () => setDraft((current) => ({ ...current, stepsFr: [...current.stepsFr, ""], stepsEn: [...current.stepsEn, ""] }));
+  const moveStep = (index: number, direction: -1 | 1) => setDraft((current) => {
+    const target = index + direction;
+    if (target < 0 || target >= current.stepsFr.length) return current;
+    const stepsFr = [...current.stepsFr];
+    const stepsEn = [...current.stepsEn];
+    [stepsFr[index], stepsFr[target]] = [stepsFr[target], stepsFr[index]];
+    [stepsEn[index], stepsEn[target]] = [stepsEn[target], stepsEn[index]];
+    return { ...current, stepsFr, stepsEn };
+  });
   const removeStep = (index: number) => {
     if (draft.stepsFr.length <= 2) return;
     setDraft((current) => ({ ...current, stepsFr: current.stepsFr.filter((_, stepIndex) => stepIndex !== index), stepsEn: current.stepsEn.filter((_, stepIndex) => stepIndex !== index) }));
@@ -126,7 +188,7 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
   const handleOpen = (nextOpen: boolean) => {
     if (submitting) return;
     setOpen(nextOpen);
-    if (!nextOpen) {
+    if (!nextOpen || !editing) {
       setDraft(initialDraft());
       setSubmitError("");
     }
@@ -138,8 +200,8 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
     setSubmitting(true);
     setSubmitError("");
     try {
-      const response = await fetch("/api/admin/recipes", {
-        method: "POST",
+      const response = await fetch(editing ? `/api/admin/recipes/${recipe!.id}` : "/api/admin/recipes", {
+        method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draft),
       });
@@ -158,14 +220,16 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-burgundy text-white hover:bg-burgundy-dark"><ChefHat className="mr-1.5 h-4 w-4" /> {isFr ? "Nouvelle recette" : "New recipe"}</Button>
+        {editing ? <Button type="button" variant="outline" size="icon" className="h-8 w-8 bg-white" aria-label={isFr ? `Modifier la fiche ${recipe!.title}` : `Edit ${recipe!.title}`} title={isFr ? "Modifier la fiche complète" : "Edit full record"}><PencilLine className="h-4 w-4" /></Button> : <Button size="sm" className="bg-burgundy text-white hover:bg-burgundy-dark"><ChefHat className="mr-1.5 h-4 w-4" /> {isFr ? "Nouvelle recette" : "New recipe"}</Button>}
       </DialogTrigger>
       <DialogContent className="max-h-[94dvh] overflow-hidden p-0 sm:max-w-6xl">
-        <form onSubmit={submit} className="flex max-h-[94dvh] min-h-0 flex-col">
+        <form onSubmit={submit} className="relative flex max-h-[94dvh] min-h-0 flex-col">
           <DialogHeader className="shrink-0 border-b border-border px-5 py-5 sm:px-7">
-            <DialogTitle className="flex items-center gap-2 pr-8 text-xl font-black text-charcoal"><ChefHat className="h-5 w-5 text-burgundy" /> {isFr ? "Composer une recette achetable" : "Compose a shoppable recipe"}</DialogTitle>
-            <DialogDescription>{isFr ? "Les deux langues, les étapes et chaque produit lié sont contrôlés avant publication." : "Both languages, preparation steps and every linked product are validated before publishing."}</DialogDescription>
+            <DialogTitle className="flex items-center gap-2 pr-8 text-xl font-black text-charcoal">{editing ? <PencilLine className="h-5 w-5 text-burgundy" /> : <ChefHat className="h-5 w-5 text-burgundy" />} {editing ? (isFr ? "Modifier la recette achetable" : "Edit shoppable recipe") : (isFr ? "Composer une recette achetable" : "Compose a shoppable recipe")}</DialogTitle>
+            <DialogDescription>{editing ? (isFr ? "Mettez à jour les langues, l'ordre de préparation et les produits liés au stock depuis une seule fiche." : "Update languages, preparation order and stock-linked products from one record.") : (isFr ? "Les deux langues, les étapes et chaque produit lié sont contrôlés avant publication." : "Both languages, preparation steps and every linked product are validated before publishing.")}</DialogDescription>
           </DialogHeader>
+
+          {editing && editRequest.loading && !editRequest.data ? <div className="absolute inset-x-0 bottom-0 top-[6.5rem] z-20 grid place-items-center bg-white/94 backdrop-blur-sm"><div className="flex items-center gap-2 text-sm font-bold text-charcoal"><LoaderCircle className="h-5 w-5 animate-spin text-terre" />{isFr ? "Chargement de la recette..." : "Loading recipe..."}</div></div> : null}
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="grid gap-5 px-5 py-6 sm:px-7 lg:grid-cols-[1fr_1fr]" aria-labelledby="recipe-identity-title">
@@ -190,7 +254,7 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
                   <Field label={isFr ? "Difficulté" : "Difficulty"} required><select aria-label={isFr ? "Difficulté" : "Difficulty"} value={draft.difficulty} onChange={(event) => update("difficulty", event.target.value as RecipeDraft["difficulty"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="easy">{isFr ? "Facile" : "Easy"}</option><option value="medium">{isFr ? "Intermédiaire" : "Medium"}</option><option value="hard">{isFr ? "Avancée" : "Advanced"}</option></select></Field>
                   <Field label={isFr ? "Repère visuel" : "Visual marker"}><Input aria-label={isFr ? "Repère visuel" : "Visual marker"} value={draft.imageEmoji} onChange={(event) => update("imageEmoji", event.target.value)} maxLength={12} /></Field>
                   <Field label={isFr ? "Couleur de marque" : "Brand colour"}><RecipeColourPicker value={draft.imageColor} onChange={(imageColor) => update("imageColor", imageColor)} locale={locale} /></Field>
-                  <Field label={isFr ? "Publication" : "Publishing"}><select aria-label={isFr ? "État de publication" : "Publishing status"} value={draft.status} onChange={(event) => update("status", event.target.value as RecipeDraft["status"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="draft">{isFr ? "Brouillon" : "Draft"}</option><option value="published">{isFr ? "Publier" : "Publish"}</option></select></Field>
+                  <Field label={isFr ? "Publication" : "Publishing"}><select aria-label={isFr ? "État de publication" : "Publishing status"} value={draft.status} onChange={(event) => update("status", event.target.value as RecipeDraft["status"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="draft">{isFr ? "Brouillon" : "Draft"}</option><option value="published">{isFr ? "Publier" : "Publish"}</option>{editing ? <option value="archived">{isFr ? "Désactivée" : "Disabled"}</option> : null}</select></Field>
                 </div>
                 <div className="grid gap-2 border-y border-border py-3 sm:grid-cols-3">
                   <RecipeFlag checked={draft.isNew} onChange={(isNew) => update("isNew", isNew)} label={isFr ? "Nouveauté" : "New"} />
@@ -202,7 +266,7 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
 
             <section className="border-y border-border bg-[#F7F7F4] px-5 py-6 sm:px-7" aria-labelledby="recipe-steps-title">
               <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation ordonnée" : "Ordered preparation"} description={isFr ? "Chaque étape possède sa version française et anglaise. L'ordre affiché ici sera celui du client." : "Every step has a French and English version. This order is shown to customers."} />
-              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onAdd={addStep} onRemove={removeStep} isFr={isFr} />
+              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onAdd={addStep} onRemove={removeStep} onMove={moveStep} isFr={isFr} />
             </section>
 
             <section className="px-5 py-6 sm:px-7" aria-labelledby="recipe-ingredients-title">
@@ -224,9 +288,9 @@ export function RecipeCreateDialog({ locale, onCreated }: { locale: "fr" | "en";
           </div>
 
           <DialogFooter className="shrink-0 border-t border-border bg-white px-5 py-4 sm:px-7">
-            {submitError ? <p role="alert" className="mr-auto max-w-xl self-center text-xs leading-5 text-destructive">{submitError}</p> : <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{isFr ? "Les champs marqués sont obligatoires." : "Marked fields are required."}</p>}
+            {submitError || editRequest.error ? <p role="alert" className="mr-auto max-w-xl self-center text-xs leading-5 text-destructive">{submitError || (isFr ? "La recette n'a pas pu être chargée." : "The recipe could not be loaded.")}</p> : <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{isFr ? "Les champs marqués sont obligatoires." : "Marked fields are required."}</p>}
             <Button type="button" variant="outline" onClick={() => handleOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>
-            <Button type="submit" disabled={!isValid || submitting} className="bg-burgundy text-white hover:bg-burgundy-dark">{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <ChefHat className="mr-2 h-4 w-4" />}{submitting ? (isFr ? "Enregistrement..." : "Saving...") : draft.status === "published" ? (isFr ? "Publier la recette" : "Publish recipe") : (isFr ? "Enregistrer le brouillon" : "Save draft")}</Button>
+            <Button type="submit" disabled={!isValid || submitting || (editing && !editRequest.data)} className="bg-burgundy text-white hover:bg-burgundy-dark">{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : editing ? <PencilLine className="mr-2 h-4 w-4" /> : <ChefHat className="mr-2 h-4 w-4" />}{submitting ? (isFr ? "Enregistrement..." : "Saving...") : editing ? (isFr ? "Enregistrer les modifications" : "Save changes") : draft.status === "published" ? (isFr ? "Publier la recette" : "Publish recipe") : (isFr ? "Enregistrer le brouillon" : "Save draft")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -250,6 +314,19 @@ function RecipeColourPicker({ value, onChange, locale }: { value: string; onChan
   return <div className="flex min-h-9 flex-wrap items-center gap-1" role="group" aria-label={locale === "fr" ? "Nuancier de la recette" : "Recipe colour palette"}>{recipeColours.map((colour) => <button key={colour.value} type="button" onClick={() => onChange(colour.value)} aria-label={locale === "fr" ? colour.fr : colour.en} aria-pressed={value === colour.value} title={locale === "fr" ? colour.fr : colour.en} className={`h-7 w-7 shrink-0 rounded-md border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/35 ${value === colour.value ? "border-charcoal ring-2 ring-charcoal/15" : "border-white shadow-sm hover:border-charcoal/25"}`} style={{ backgroundColor: colour.value }} />)}</div>;
 }
 
-function PreparationSteps({ stepsFr, stepsEn, onChangeFr, onChangeEn, onAdd, onRemove, isFr }: { stepsFr: string[]; stepsEn: string[]; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onAdd: () => void; onRemove: (index: number) => void; isFr: boolean }) {
-  return <div className="mt-5"><div className="hidden grid-cols-[2rem_2rem_1fr_1fr_2.5rem] gap-2 px-1 pb-2 text-[10px] font-black uppercase text-muted-foreground lg:grid"><span /><span /><span>{isFr ? "Français" : "French"}</span><span>English</span><span /></div><ol className="space-y-3">{stepsFr.map((step, index) => <li key={index} className="grid gap-2 border-y border-border bg-white px-2 py-3 lg:grid-cols-[2rem_2rem_1fr_1fr_2.5rem] lg:items-start"><span className="hidden pt-3 text-muted-foreground lg:block"><GripVertical className="h-4 w-4" /></span><span className="grid h-8 w-8 place-items-center rounded-md bg-charcoal text-[10px] font-black text-white">{index + 1}</span><div><Label className="mb-1.5 block lg:hidden">{isFr ? "Français" : "French"}</Label><Textarea aria-label={isFr ? `Étape ${index + 1} en français` : `Step ${index + 1} in French`} value={step} onChange={(event) => onChangeFr(index, event.target.value)} rows={2} className="min-h-16 resize-y" placeholder={isFr ? `Étape ${index + 1}` : `French step ${index + 1}`} /></div><div><Label className="mb-1.5 block lg:hidden">English</Label><Textarea aria-label={`Step ${index + 1} in English`} value={stepsEn[index] || ""} onChange={(event) => onChangeEn(index, event.target.value)} rows={2} className="min-h-16 resize-y" placeholder={`English step ${index + 1}`} /></div><Button type="button" variant="ghost" size="icon" disabled={stepsFr.length <= 2} onClick={() => onRemove(index)} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'étape ${index + 1}` : `Remove step ${index + 1}`}><Trash2 className="h-4 w-4" /></Button></li>)}</ol><Button type="button" variant="outline" size="sm" onClick={onAdd} className="mt-3"><Plus className="mr-1.5 h-4 w-4" /> {isFr ? "Ajouter une étape bilingue" : "Add bilingual step"}</Button></div>;
+function PreparationSteps({ stepsFr, stepsEn, onChangeFr, onChangeEn, onAdd, onRemove, onMove, isFr }: { stepsFr: string[]; stepsEn: string[]; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onAdd: () => void; onRemove: (index: number) => void; onMove: (index: number, direction: -1 | 1) => void; isFr: boolean }) {
+  return <div className="mt-5">
+    <div className="hidden grid-cols-[2rem_1fr_1fr_7.5rem] gap-2 px-1 pb-2 text-[10px] font-black uppercase text-muted-foreground lg:grid"><span /><span>{isFr ? "Français" : "French"}</span><span>English</span><span>{isFr ? "Ordre" : "Order"}</span></div>
+    <ol className="space-y-3">{stepsFr.map((step, index) => <li key={index} className="grid gap-3 border-y border-border bg-white px-3 py-3 lg:grid-cols-[2rem_1fr_1fr_7.5rem] lg:items-start">
+      <span className="grid h-8 w-8 place-items-center rounded-md bg-burgundy text-[10px] font-black text-white">{index + 1}</span>
+      <div><Label className="mb-1.5 block lg:hidden">{isFr ? "Français" : "French"}</Label><Textarea aria-label={isFr ? `Étape ${index + 1} en français` : `Step ${index + 1} in French`} value={step} onChange={(event) => onChangeFr(index, event.target.value)} rows={2} className="min-h-16 resize-y" placeholder={isFr ? `Étape ${index + 1}` : `French step ${index + 1}`} /></div>
+      <div><Label className="mb-1.5 block lg:hidden">English</Label><Textarea aria-label={`Step ${index + 1} in English`} value={stepsEn[index] || ""} onChange={(event) => onChangeEn(index, event.target.value)} rows={2} className="min-h-16 resize-y" placeholder={`English step ${index + 1}`} /></div>
+      <div className="flex items-center justify-end gap-1 lg:justify-start" aria-label={isFr ? `Ordre de l'étape ${index + 1}` : `Step ${index + 1} order`}>
+        <Button type="button" variant="outline" size="icon" disabled={index === 0} onClick={() => onMove(index, -1)} className="h-9 w-9 bg-white" aria-label={isFr ? `Monter l'étape ${index + 1}` : `Move step ${index + 1} up`}><ArrowUp className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" size="icon" disabled={index === stepsFr.length - 1} onClick={() => onMove(index, 1)} className="h-9 w-9 bg-white" aria-label={isFr ? `Descendre l'étape ${index + 1}` : `Move step ${index + 1} down`}><ArrowDown className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" disabled={stepsFr.length <= 2} onClick={() => onRemove(index)} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'étape ${index + 1}` : `Remove step ${index + 1}`}><Trash2 className="h-4 w-4" /></Button>
+      </div>
+    </li>)}</ol>
+    <Button type="button" variant="outline" size="sm" onClick={onAdd} className="mt-3"><Plus className="mr-1.5 h-4 w-4" /> {isFr ? "Ajouter une étape bilingue" : "Add bilingual step"}</Button>
+  </div>;
 }

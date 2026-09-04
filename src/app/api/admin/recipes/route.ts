@@ -1,53 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
-import { normalize } from "@/lib/format";
 import { getBrandAccentColor, getRecipePhoto } from "@/lib/market-media";
 import { recipeStepCount, recipeStockReadiness } from "@/lib/recipe-operations";
+import { recipeAdminInput, recipeSlug } from "@/lib/admin-recipe-schema";
 
 export const dynamic = "force-dynamic";
-
-const IngredientInput = z.object({
-  productId: z.string().trim().min(1),
-  variantId: z.string().trim().min(1).nullable().optional(),
-  quantityPerBase: z.coerce.number().positive().max(100000),
-  unit: z.enum(["g", "kg", "ml", "L", "piece", "tbsp", "tsp"]),
-  role: z.enum(["protein", "base", "aromatic", "spice", "fat", "side", "optional"]),
-  optional: z.boolean().default(false),
-  note: z.string().trim().max(240).nullable().optional(),
-});
-
-const RecipeInput = z.object({
-  titleFr: z.string().trim().min(2).max(120),
-  titleEn: z.string().trim().min(2).max(120),
-  descriptionFr: z.string().trim().min(20).max(1200),
-  descriptionEn: z.string().trim().min(20).max(1200),
-  country: z.string().trim().min(2).max(80),
-  category: z.enum(["sauces", "mains", "sides", "grill", "drinks", "desserts", "porridge", "family", "events"]),
-  difficulty: z.enum(["easy", "medium", "hard"]),
-  timeMinutes: z.coerce.number().int().min(5).max(720),
-  baseServings: z.coerce.number().int().min(1).max(50),
-  imageEmoji: z.string().trim().min(1).max(12),
-  imageUrl: z.string().url().max(1000),
-  imageColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  isPopular: z.boolean().default(false),
-  isNew: z.boolean().default(false),
-  isRecommended: z.boolean().default(false),
-  status: z.enum(["draft", "published"]),
-  stepsFr: z.array(z.string().trim().min(5).max(500)).min(2).max(30),
-  stepsEn: z.array(z.string().trim().min(5).max(500)).min(2).max(30),
-  ingredients: z.array(IngredientInput).min(1).max(60),
-}).superRefine((input, context) => {
-  if (input.stepsFr.length !== input.stepsEn.length) {
-    context.addIssue({ code: "custom", path: ["stepsEn"], message: "Chaque étape française doit posséder sa version anglaise." });
-  }
-});
-
-const recipeSlug = (title: string) => normalize(title)
-  .replace(/[^a-z0-9]+/g, "-")
-  .replace(/^-|-$/g, "")
-  .slice(0, 80);
 
 export async function GET(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request, { module: "recipes", action: "read" });
@@ -97,7 +55,7 @@ export async function POST(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request, { module: "recipes", action: "create" });
   if (!authorization.ok) return authorization.response;
 
-  const parsed = RecipeInput.safeParse(await request.json().catch(() => null));
+  const parsed = recipeAdminInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "La recette est incomplète ou contient des valeurs invalides.", details: parsed.error.flatten() }, { status: 400 });
   }

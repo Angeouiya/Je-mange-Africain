@@ -22,6 +22,7 @@ import { shareRecipe } from "@/lib/client-actions";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { getPreparationProgress, togglePreparationStep } from "@/lib/recipe-preparation";
+import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 
 interface CalcResult {
   ingredients: any[];
@@ -34,6 +35,8 @@ interface CalcResult {
   unavailableCount: number;
   leftoverCount: number;
 }
+
+type RecipeStage = "settings" | "ingredients" | "preparation";
 
 export function RecipeConfiguratorView() {
   const locale = useStore((s) => s.locale);
@@ -64,6 +67,7 @@ export function RecipeConfiguratorView() {
   const [calcLoading, setCalcLoading] = useState(false);
   const [calcError, setCalcError] = useState("");
   const [shared, setShared] = useState(false);
+  const [mobileStage, setMobileStage] = useState<RecipeStage>("settings");
   const calcRequestRef = useRef(0);
 
   const servings = Math.max(1, adults + children);
@@ -173,6 +177,16 @@ export function RecipeConfiguratorView() {
     setSpiceLevel("medium");
     setFormula("standard");
   };
+  const openStage = (stage: RecipeStage) => {
+    setMobileStage(stage);
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(`recipe-${stage}`);
+      if (!target) return;
+      const topOffset = window.matchMedia("(min-width: 1024px)").matches ? 96 : 172;
+      const targetTop = window.scrollY + target.getBoundingClientRect().top - topOffset;
+      window.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+    });
+  };
   const updateAdults = (value: number) => setAdults(Math.max(children === 0 ? 1 : 0, Math.min(24 - children, value)));
   const updateChildren = (value: number) => setChildren(Math.max(adults === 0 ? 1 : 0, Math.min(24 - adults, value)));
   const hasManualChoices = haveAtHome.length > 0 || excludedIngredients.length > 0 || Object.keys(replacements).length > 0 || Object.keys(packOverrides).length > 0 || adults !== (recipe?.baseServings || 4) || children !== 0 || portion !== "normal" || protein !== "recipe" || kplo || spiceLevel !== "medium" || formula !== "standard";
@@ -257,7 +271,7 @@ export function RecipeConfiguratorView() {
         image={recipePhoto}
         structuredData={recipeStructuredData}
       />
-      <div className="mx-auto max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 pb-40 pt-5 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="recipes" className="mb-3" />
 
       {/* recipe header */}
@@ -285,27 +299,15 @@ export function RecipeConfiguratorView() {
         </div>
       </div>
 
-      <nav aria-label={locale === "fr" ? "Parcours de la recette" : "Recipe journey"} className="mb-4 grid grid-cols-3 rounded-md border border-border bg-white p-1" data-testid="recipe-flow-nav">
-        <RecipeFlowLink href="#recipe-settings" icon={Sliders} number="1" label={locale === "fr" ? "Configurer" : "Configure"} detail={`${servings} ${t.config.peopleUnit}`} />
-        <RecipeFlowLink href="#recipe-ingredients" icon={Package} number="2" label={locale === "fr" ? "Ingrédients" : "Ingredients"} detail={calcLoading ? (locale === "fr" ? "Actualisation…" : "Updating…") : `${purchasableCount} ${locale === "fr" ? "achats" : "items"}`} />
-        <RecipeFlowLink href="#recipe-preparation" icon={Sparkles} number="3" label={locale === "fr" ? "Préparation" : "Preparation"} detail={`${completedStepCount}/${preparationSteps.length} ${locale === "fr" ? "terminées" : "complete"}`} />
+      <nav aria-label={locale === "fr" ? "Parcours de la recette" : "Recipe journey"} className="sticky top-[6.35rem] z-20 -mx-1 mb-4 grid grid-cols-3 rounded-md border border-burgundy/12 bg-white/96 p-1 shadow-[0_12px_28px_-26px_rgba(90,38,50,0.8)] backdrop-blur-xl lg:static lg:mx-0 lg:shadow-none" data-testid="recipe-flow-nav">
+        <RecipeFlowButton active={mobileStage === "settings"} onClick={() => openStage("settings")} icon={Sliders} number="1" label={locale === "fr" ? "Configurer" : "Configure"} detail={`${servings} ${t.config.peopleUnit}`} />
+        <RecipeFlowButton active={mobileStage === "ingredients"} onClick={() => openStage("ingredients")} icon={Package} number="2" label={locale === "fr" ? "Ingrédients" : "Ingredients"} detail={calcLoading ? (locale === "fr" ? "Actualisation…" : "Updating…") : `${purchasableCount} ${locale === "fr" ? "achats" : "items"}`} />
+        <RecipeFlowButton active={mobileStage === "preparation"} onClick={() => openStage("preparation")} icon={Sparkles} number="3" label={locale === "fr" ? "Préparation" : "Preparation"} detail={`${completedStepCount}/${preparationSteps.length} ${locale === "fr" ? "terminées" : "complete"}`} />
       </nav>
-
-      {calc ? (
-        <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-y border-charcoal/10 py-3 lg:hidden" data-testid="recipe-live-summary">
-          <div className="min-w-0">
-            <p className="truncate text-[10px] font-black uppercase text-muted-foreground">{servings} {t.config.peopleUnit} · {purchasableCount} {locale === "fr" ? "produits" : "products"}</p>
-            <p className="mt-0.5 text-sm font-bold text-charcoal"><span aria-live="polite" className="text-xl font-black text-terre">{formatPrice(calc.totalCost, locale)}</span> <span className="text-[10px] font-semibold text-muted-foreground">{locale === "fr" ? "au total" : "total"}</span></p>
-          </div>
-          <Button onClick={addAllToCart} disabled={purchasableCount === 0 || calcLoading} className="h-10 bg-terre px-4 text-cream hover:bg-terre-dark" aria-label={t.config.addAllToCart}>
-            <ShoppingCart className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Ajouter" : "Add"}
-          </Button>
-        </div>
-      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         {/* LEFT: config form */}
-        <aside id="recipe-settings" className="scroll-mt-24 lg:sticky lg:top-24 lg:self-start">
+        <aside id="recipe-settings" className={`scroll-mt-36 lg:sticky lg:top-24 lg:block lg:self-start ${mobileStage !== "settings" ? "hidden" : ""}`}>
           <div className="rounded-md border border-charcoal/10 bg-white p-4 md:rounded-lg">
             <div className="mb-3 flex items-center gap-2">
               <Sliders className="h-4 w-4 text-terre" />
@@ -397,7 +399,7 @@ export function RecipeConfiguratorView() {
         {/* RIGHT: results */}
         <div className="min-w-0 space-y-5">
           {/* ingredients table */}
-          <div id="recipe-ingredients" className="scroll-mt-24 overflow-hidden rounded-md border border-charcoal/10 bg-white md:rounded-lg">
+          <div id="recipe-ingredients" className={`scroll-mt-36 overflow-hidden rounded-md border border-charcoal/10 bg-white md:rounded-lg lg:block ${mobileStage !== "ingredients" ? "hidden" : ""}`}>
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="text-sm font-bold text-charcoal">{t.config.ingredientsNeeded}</h2>
               {hasManualChoices && (
@@ -425,7 +427,7 @@ export function RecipeConfiguratorView() {
 
           {/* summary card */}
           {calc && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg border border-terre/25 bg-terre/[0.035] p-5">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="hidden rounded-lg border border-terre/25 bg-terre/[0.035] p-5 lg:block">
               <h2 className="mb-3 text-sm font-bold text-charcoal">{t.config.summary}</h2>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div>
@@ -481,7 +483,7 @@ export function RecipeConfiguratorView() {
 
           {/* preparation follows ingredient choices so every adaptation is reflected here */}
           {preparationSteps.length > 0 && (
-            <div id="recipe-preparation" className="scroll-mt-24">
+            <div id="recipe-preparation" className={`scroll-mt-36 lg:block ${mobileStage !== "preparation" ? "hidden" : ""}`}>
               <Accordion type="single" collapsible defaultValue="steps" className="rounded-md border border-charcoal/10 bg-white px-2 md:rounded-lg">
                 <AccordionItem value="steps" className="border-0">
                   <AccordionTrigger className="px-3 text-sm font-bold text-charcoal">
@@ -558,6 +560,32 @@ export function RecipeConfiguratorView() {
         </div>
       </div>
       </div>
+
+      {calc ? (
+        <MobileActionDock testId="recipe-live-summary">
+          <div className="mx-auto flex max-w-xl items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[9px] font-black uppercase text-muted-foreground">
+                {locale === "fr" ? "Total personnalisé" : "Custom total"} · {purchasableCount} {locale === "fr" ? "produits" : "products"}
+              </p>
+              <p className="mt-0.5 leading-none"><span aria-live="polite" className="text-lg font-black text-terre">{formatPrice(calc.totalCost, locale)}</span> <span className="text-[9px] font-semibold text-muted-foreground">{locale === "fr" ? "au total" : "total"}</span></p>
+            </div>
+            {mobileStage === "settings" ? (
+              <Button type="button" onClick={() => openStage("ingredients")} disabled={calcLoading} className="h-10 bg-terre px-3 text-white hover:bg-terre-dark">
+                <Package className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Voir les ingrédients" : "View ingredients"} <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            ) : mobileStage === "ingredients" ? (
+              <Button type="button" onClick={() => openStage("preparation")} className="h-10 bg-burgundy px-3 text-white hover:bg-burgundy-dark">
+                <ChefHat className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Préparation" : "Preparation"} <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button type="button" onClick={addAllToCart} disabled={purchasableCount === 0 || calcLoading} className="h-10 bg-terre px-3 text-white hover:bg-terre-dark" aria-label={t.config.addAllToCart}>
+                <ShoppingCart className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Ajouter le panier" : "Add basket"}
+              </Button>
+            )}
+          </div>
+        </MobileActionDock>
+      ) : null}
     </>
   );
 }
@@ -572,13 +600,14 @@ function RecipeMetric({ icon: Icon, label, value }: { icon: React.ComponentType<
   );
 }
 
-function RecipeFlowLink({ href, icon: Icon, number, label, detail }: { href: string; icon: React.ComponentType<{ className?: string }>; number: string; label: string; detail: string }) {
+function RecipeFlowButton({ active, onClick, icon: Icon, number, label, detail }: { active: boolean; onClick: () => void; icon: React.ComponentType<{ className?: string }>; number: string; label: string; detail: string }) {
   return (
-    <a href={href} className="flex min-w-0 items-center justify-center gap-1.5 rounded-sm px-1.5 py-2 text-charcoal transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/40">
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-terre text-[9px] text-white">{number}</span>
-      <Icon className="hidden h-3.5 w-3.5 shrink-0 text-terre sm:block" />
+    <button type="button" onClick={onClick} aria-pressed={active} className={`relative flex min-w-0 items-center justify-center gap-1.5 rounded-sm px-1.5 py-2 text-charcoal transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/40 ${active ? "bg-terre/[0.08]" : "hover:bg-muted"}`}>
+      <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9px] ${active ? "bg-terre text-white" : "bg-burgundy/[0.08] text-burgundy"}`}>{number}</span>
+      <Icon className={`hidden h-3.5 w-3.5 shrink-0 sm:block ${active ? "text-terre" : "text-burgundy"}`} />
       <span className="min-w-0"><span className="block truncate text-[10px] font-bold md:text-xs">{label}</span><span className="block truncate text-[8px] font-semibold text-muted-foreground md:text-[9px]">{detail}</span></span>
-    </a>
+      {active ? <span className="absolute inset-x-3 bottom-0 h-0.5 bg-terre" /> : null}
+    </button>
   );
 }
 
@@ -618,6 +647,9 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
   const pantryActionLabel = locale === "fr"
     ? (pantryRemoved ? `Retirer ${localizedName} de mes ingrédients disponibles` : `J'ai déjà ${localizedName} à la maison`)
     : (pantryRemoved ? `Remove ${localizedName} from pantry` : `I already have ${localizedName} at home`);
+  const removalActionLabel = locale === "fr"
+    ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette")
+    : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe");
 
   return (
     <div className={`space-y-3 p-4 transition ${ing.removed ? "bg-muted/20" : ""}`}>
@@ -633,14 +665,23 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
             {ing.isReplacement ? <span className="rounded bg-terre/10 px-1.5 py-0.5 text-[9px] font-bold text-terre">{locale === "fr" ? `Remplace ${originalName}` : `Replaces ${originalName}`}</span> : null}
           </div>
         </div>
-        <div className="flex shrink-0 gap-1">
+        <div className="hidden shrink-0 gap-1 sm:flex">
           <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} aria-label={pantryActionLabel} title={pantryActionLabel} className={`grid h-9 w-9 place-items-center rounded-md border transition ${pantryRemoved ? "border-burgundy bg-burgundy text-white" : "border-border text-muted-foreground hover:border-burgundy hover:text-burgundy"}`}>
             <House className="h-4 w-4" />
           </button>
-          {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} title={locale === "fr" ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette") : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe")} aria-label={locale === "fr" ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette") : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe")} className={`grid h-9 w-9 place-items-center rounded-md border transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-border text-muted-foreground hover:border-terre hover:text-terre"}`}>
+          {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} title={removalActionLabel} aria-label={removalActionLabel} className={`grid h-9 w-9 place-items-center rounded-md border transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-border text-muted-foreground hover:border-terre hover:text-terre"}`}>
             {deliberatelyRemoved ? <Undo2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
           </button> : null}
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:hidden" aria-label={locale === "fr" ? `Actions pour ${localizedName}` : `Actions for ${localizedName}`}>
+        <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} aria-label={pantryActionLabel} className={`flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-2 text-[10px] font-bold transition ${pantryRemoved ? "border-burgundy bg-burgundy text-white" : "border-burgundy/20 bg-burgundy/[0.035] text-burgundy"}`}>
+          <House className="h-3.5 w-3.5" /> {pantryRemoved ? (locale === "fr" ? "À acheter" : "Buy it") : (locale === "fr" ? "Déjà chez moi" : "Already at home")}
+        </button>
+        {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} aria-pressed={deliberatelyRemoved} aria-label={removalActionLabel} className={`flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-2 text-[10px] font-bold transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-terre/25 bg-terre/[0.035] text-terre"}`}>
+          {deliberatelyRemoved ? <Undo2 className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />} {deliberatelyRemoved ? (locale === "fr" ? "Réintégrer" : "Restore") : (locale === "fr" ? "Retirer" : "Remove")}
+        </button> : <span />}
       </div>
 
       {ing.removed ? (
@@ -673,7 +714,10 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
       <details className="group rounded-md border border-border bg-muted/15">
         <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 px-3 text-[11px] font-bold text-charcoal marker:hidden [&::-webkit-details-marker]:hidden">
           <RefreshCw className="h-3.5 w-3.5 text-terre" />
-          <span className="min-w-0 flex-1 truncate">{locale === "fr" ? `Personnaliser ou remplacer ${localizedName}` : `Customize or replace ${localizedName}`}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate">{locale === "fr" ? "Changer cet ingrédient" : "Change this ingredient"}</span>
+            <span className="mt-0.5 block truncate text-[9px] font-medium text-muted-foreground">{ing.isReplacement ? (locale === "fr" ? `${originalName} remplacé par ${localizedName}` : `${originalName} replaced by ${localizedName}`) : (locale === "fr" ? `${replacementOptions.length} alternative(s) compatible(s)` : `${replacementOptions.length} compatible alternative(s)`)}</span>
+          </span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition group-open:rotate-180" />
         </summary>
         <div className="grid gap-2 border-t border-border p-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">

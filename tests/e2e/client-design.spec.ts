@@ -908,13 +908,35 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/ingrédients|ingredients/i);
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/préparation|preparation/i);
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/\d+\/\d+ (terminées|complete)/i);
-  await expect(page.getByText(/ingrédients nécessaires|ingredients needed/i)).toBeVisible();
-  await expect(page.getByText(/coût total|total cost/i)).toBeVisible();
+  const recipeFlow = page.getByTestId("recipe-flow-nav");
+  const settingsStage = recipeFlow.getByRole("button", { name: /configurer|configure/i });
+  const ingredientsStage = recipeFlow.getByRole("button", { name: /ingrédients|ingredients/i });
+  const preparationStage = recipeFlow.getByRole("button", { name: /préparation|preparation/i });
+  await expect(settingsStage).toHaveAttribute("aria-pressed", "true");
   if (isMobile) {
-    await expect(page.getByTestId("recipe-live-summary")).toBeVisible();
-    await expect(page.getByTestId("recipe-live-summary")).toContainText(/au total|total/i);
+    const recipeDock = page.getByTestId("recipe-live-summary");
+    await expect(recipeDock).toBeVisible();
+    await expect(recipeDock).toContainText(/au total|total/i);
+    const recipeDockBox = await recipeDock.boundingBox();
+    const navigationBox = await page.getByTestId("mobile-navigation").boundingBox();
+    expect(Math.abs((recipeDockBox?.y || 0) + (recipeDockBox?.height || 0) - (navigationBox?.y || 0))).toBeLessThanOrEqual(2);
+    await expect(page.getByText(/ingrédients nécessaires|ingredients needed/i)).toBeHidden();
+    if (process.env.CLIENT_SCREENSHOTS) {
+      await page.screenshot({ path: "output/playwright/audit/configurator-settings-mobile.png", scale: "css" });
+    }
+    await recipeDock.getByRole("button", { name: /voir les ingrédients|view ingredients/i }).click();
+    await expect(ingredientsStage).toHaveAttribute("aria-pressed", "true");
   } else {
     await expect(page.getByTestId("recipe-live-summary")).toBeHidden();
+  }
+  await expect(page.getByText(/ingrédients nécessaires|ingredients needed/i)).toBeVisible();
+  if (!isMobile) await expect(page.getByText(/coût total|total cost/i)).toBeVisible();
+  if (isMobile) {
+    await expect(page.getByRole("button", { name: /j'ai déjà .* à la maison|i already have .* at home/i }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /retirer de la recette|remove from recipe/i }).first()).toBeVisible();
+    if (process.env.CLIENT_SCREENSHOTS) {
+      await page.screenshot({ path: "output/playwright/audit/configurator-ingredients-mobile.png", scale: "css" });
+    }
   }
 
   const remove = page.getByRole("button", { name: /retirer de la recette|remove from recipe/i }).first();
@@ -928,6 +950,10 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   expect(await replacement.locator("option").count()).toBeGreaterThan(1);
   await replacement.selectOption({ index: 1 });
   await expect(page.getByText(/remplace |replaces /i).first()).toBeVisible();
+  if (isMobile) {
+    await page.getByTestId("recipe-live-summary").getByRole("button", { name: /préparation|preparation/i }).click();
+    await expect(preparationStage).toHaveAttribute("aria-pressed", "true");
+  }
   const preparationList = page.locator("#recipe-preparation ol");
   await expect(preparationList).toContainText(/Égousi|Egusi/i);
   await expect(preparationList).not.toContainText(/Pâte d'arachide|Peanut paste/i);
@@ -956,6 +982,14 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   }
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
+
+  const configuredIngredientCount = await page.locator("#recipe-ingredients img").count();
+  const addConfiguredBasket = isMobile
+    ? page.getByTestId("recipe-live-summary").getByRole("button", { name: /ajouter tout au panier|add all to cart/i })
+    : page.getByRole("button", { name: /ajouter tout au panier|add all to cart/i }).first();
+  await addConfiguredBasket.click();
+  await expect(page.getByRole("heading", { name: /panier|basket|cart/i }).first()).toBeVisible();
+  await expect(page.getByRole("main").getByRole("img")).toHaveCount(configuredIngredientCount);
 });
 
 test("delivered orders expose carrier tracking and proof without leaking internal notes", async ({ page }) => {

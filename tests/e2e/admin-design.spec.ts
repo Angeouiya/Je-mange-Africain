@@ -340,6 +340,32 @@ async function mockAdminApi(page: Page) {
     else if (path === "/api/admin/recipes") payload = {
       recipes: [{ id: "recipe-1", title: "Attiéké poisson braisé", description: "Le grand classique ivoirien, composé avec des produits disponibles.", country: "Côte d'Ivoire", category: "Plats", difficulty: "intermediate", timeMinutes: 55, baseServings: 4, imageColor: "#D65A32", imageEmoji: "", imageUrl: "/recipes/attieke-poisson.webp", isPopular: true, isNew: false, isRecommended: true, status: "published", ingredientCount: 8, requiredIngredientCount: 8, availableIngredientCount: 7, stockCoverageRate: 88, needsAttention: true, stepCount: 5, updatedAt: now }],
     };
+    else if (path === "/api/admin/recipes/recipe-1" && request.method() === "PATCH") payload = { recipe: { id: "recipe-1", slug: "attieke-poisson-braise", status: request.postDataJSON().status } };
+    else if (path === "/api/admin/recipes/recipe-1") payload = {
+      id: "recipe-1",
+      title: "Attiéké poisson braisé",
+      description: "Le grand classique ivoirien, composé avec des produits disponibles.",
+      titleFr: "Attiéké poisson braisé",
+      titleEn: "Attieke with grilled fish",
+      descriptionFr: "Le grand classique ivoirien, composé avec des produits disponibles.",
+      descriptionEn: "An Ivorian classic built with products currently available in stock.",
+      country: "Côte d'Ivoire",
+      category: "mains",
+      difficulty: "medium",
+      timeMinutes: 55,
+      baseServings: 4,
+      imageColor: "#D65A32",
+      imageEmoji: "🍲",
+      imageUrl: "/recipes/attieke-poisson.webp",
+      isPopular: true,
+      isNew: false,
+      isRecommended: true,
+      status: "published",
+      steps: ["Assaisonner le poisson.", "Braiser et servir avec l'attiéké."],
+      stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
+      stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
+      ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, imageUrl: "/products/attieke.webp" } }],
+    };
     else if (path === "/api/orders") payload = { orders: [order] };
     else if (path === "/api/admin/stock" && request.method() === "POST") payload = { batch: { id: "batch-2", lotNumber: "ATT-2609-FR" } };
     else if (path === "/api/admin/stock/batch-1" && request.method() === "PATCH") {
@@ -1239,4 +1265,47 @@ test("advanced recipe, advertising and team editors remain accessible and bounde
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
   }
+});
+
+test("the recipe studio edits bilingual preparation and stock-linked ingredients", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Construire des recettes achetables" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Modifier la fiche Attiéké poisson braisé" }).click();
+  const dialog = page.getByRole("dialog", { name: "Modifier la recette achetable" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Titre français")).toHaveValue("Attiéké poisson braisé");
+  await expect(dialog.getByLabel("Titre anglais")).toHaveValue("Attieke with grilled fish");
+  await expect(dialog.getByLabel("Étape 1 en français")).toHaveValue("Assaisonner soigneusement le poisson.");
+  await expect(dialog.getByLabel("Step 1 in English")).toHaveValue("Season the fish thoroughly.");
+  await expect(dialog.getByLabel("Produit 1")).toHaveValue("product-1");
+  await expect(dialog.getByText(/84 en stock/)).toBeVisible();
+  const dialogOverflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(dialogOverflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blockingAccessibility = accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blockingAccessibility, blockingAccessibility.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+
+  await dialog.getByRole("button", { name: "Descendre l'étape 1" }).click();
+  await expect(dialog.getByLabel("Étape 1 en français")).toHaveValue("Braiser puis servir avec l'attiéké.");
+  await expect(dialog.getByLabel("Step 1 in English")).toHaveValue("Grill and serve with the attieke.");
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `recipe-editor-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), scale: "css" });
+  }
+
+  const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/admin/recipes/recipe-1" && request.method() === "PATCH");
+  await dialog.getByRole("button", { name: "Enregistrer les modifications" }).click();
+  const updateRequest = await requestPromise;
+  const update = updateRequest.postDataJSON() as { stepsFr: string[]; stepsEn: string[]; ingredients: Array<{ productId: string; quantityPerBase: string }> };
+  expect(update.stepsFr[0]).toBe("Braiser puis servir avec l'attiéké.");
+  expect(update.stepsEn[0]).toBe("Grill and serve with the attieke.");
+  expect(update.ingredients[0]).toMatchObject({ productId: "product-1", quantityPerBase: "500" });
+  await expect(dialog).toBeHidden();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  await expectBrandSafeUiColors(page);
 });
