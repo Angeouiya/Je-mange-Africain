@@ -29,6 +29,7 @@ export default function Page() {
   const navigate = useStore((s) => s.navigate);
   const customer = useStore((s) => s.customer);
   const [mounted, setMounted] = useState(false);
+  const viewKey = `${view}:${JSON.stringify(params)}`;
 
   useEffect(() => {
     const sessionSubject = useStore.getState().customer?.id || null;
@@ -74,6 +75,18 @@ export default function Page() {
     if (currentUrl !== nextUrl) window.history.replaceState(window.history.state, "", nextUrl);
   }, [mounted, params, view]);
 
+  useEffect(() => {
+    if (!mounted) return;
+    const reset = () => window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    reset();
+    const frame = window.requestAnimationFrame(reset);
+    const settled = window.setTimeout(reset, 240);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(settled);
+    };
+  }, [mounted, viewKey]);
+
   // Avoid hydration mismatch: render a stable shell on first paint
   if (!mounted) {
     return (
@@ -98,7 +111,7 @@ export default function Page() {
       <main id="main-content" tabIndex={-1} className={isPublicAuthGate ? "flex-1" : "flex-1 pb-20 md:pb-0"}>
         <AnimatePresence mode="wait">
           <motion.div
-            key={view + JSON.stringify(useStore.getState().params)}
+            key={viewKey}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}

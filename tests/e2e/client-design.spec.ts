@@ -141,25 +141,53 @@ test("the client application exposes clear catalogue, recipe and basket workspac
 
   await page.getByRole("button", { name: /recettes|cuisiner une recette|cook a recipe/i }).first().click();
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /bibliothèque|dish library/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /atlas des plats|dish atlas/i })).toBeVisible();
   await expect(page.getByLabel(/rechercher une recette ou un plat|search for a recipe or dish/i)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
   const recipeHeroBox = await page.getByTestId("recipes-hero").boundingBox();
-  if (isMobile) expect(recipeHeroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(320);
-  else expect(recipeHeroBox?.height || 0).toBeGreaterThanOrEqual(384);
+  if (isMobile) expect(recipeHeroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(250);
+  else {
+    expect(recipeHeroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(280);
+    expect(recipeHeroBox?.height || 0).toBeGreaterThanOrEqual(240);
+  }
   const recipeGrid = page.getByTestId("recipes-grid");
   await expect(recipeGrid).toBeVisible();
   await expectLoadedProductImages(recipeGrid.getByRole("img"));
   const recipeColumns = await recipeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(recipeColumns).toBe(isMobile ? 2 : 3);
   if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
+    const headingBox = await page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i }).boundingBox();
+    const visibleHeroBox = await page.getByTestId("recipes-hero").boundingBox();
+    expect(headingBox?.y || 0).toBeGreaterThanOrEqual((visibleHeroBox?.y || 0) - 1);
     await page.screenshot({ path: `output/playwright/audit/recipes-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
-  await page.getByRole("tab", { name: /bibliothèque|dish library/i }).click();
+  await page.getByRole("tab", { name: /atlas des plats|dish atlas/i }).click();
   const dishGrid = page.getByTestId("dish-library-grid");
   await expect(dishGrid).toBeVisible();
+  await expect(page.getByRole("heading", { name: /explorez les plats par origine|explore dishes by origin/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /toute l'afrique|all africa/i })).toHaveAttribute("aria-pressed", "true");
+  await expectLoadedProductImages(dishGrid.getByRole("img"));
   const dishColumns = await dishGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(dishColumns).toBe(isMobile ? 2 : 3);
   await expectNoHorizontalOverflow(page);
+  await expectBrandSafeUiColors(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: `output/playwright/audit/dish-atlas-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await dishGrid.getByRole("button", { name: /voir la fiche|view record/i }).first().click();
+  const dishDialog = page.getByRole("dialog");
+  await expect(dishDialog.getByRole("heading", { name: /ingrédients|ingredients/i })).toBeVisible();
+  await expect(dishDialog.getByRole("heading", { name: /préparation|preparation/i })).toBeVisible();
+  await expectLoadedProductImages(dishDialog.getByRole("img"), 1);
+  await expectNoHorizontalOverflow(page, dishDialog);
+  await expectBrandSafeUiColors(page);
+  if (process.env.CLIENT_SCREENSHOTS) await page.screenshot({ path: `output/playwright/audit/dish-details-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  await page.keyboard.press("Escape");
+  await expect(dishDialog).toBeHidden();
 
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
   await expect(page.getByText(/votre panier est vide|your cart is empty/i)).toBeVisible();

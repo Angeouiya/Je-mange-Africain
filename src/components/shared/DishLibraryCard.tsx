@@ -49,7 +49,7 @@ export function DishLibraryCard({ dish, onSelect, compact = false, index = 0 }: 
     <article className={`group flex h-full flex-col overflow-hidden border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-lg ${compact ? "rounded-md [contain-intrinsic-size:390px] [content-visibility:auto]" : "rounded-lg"}`}>
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <ProductImage src={photo} alt={dish.name} emoji="🍽️" color="#8A3042" size="lg" priority={index < 2} className="h-full w-full transition duration-500 group-hover:scale-[1.03]" rounded="rounded-none" />
-        <Badge className={`absolute border-0 bg-charcoal/85 text-white backdrop-blur ${compact ? "bottom-2 left-2 px-1.5 py-0.5 text-[8px]" : "left-3 top-3"}`}>{dish.country}</Badge>
+        <Badge className={`absolute border-0 bg-burgundy/90 text-white backdrop-blur ${compact ? "bottom-2 left-2 px-1.5 py-0.5 text-[8px]" : "left-3 top-3"}`}>{dish.country}</Badge>
         {dish.featured ? <Badge className={`absolute border-0 bg-gold text-charcoal ${compact ? "right-2 top-2 px-1.5 py-0.5 text-[8px]" : "right-3 top-3"}`}>{locale === "fr" ? "Incontournable" : "Essential"}</Badge> : null}
       </div>
       <div className={`flex flex-1 flex-col ${compact ? "p-2.5" : "p-4"}`}>
@@ -76,15 +76,15 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
   return (
     <Dialog open={Boolean(dish)} onOpenChange={(open) => { if (!open) onClose(); }}>
       {dish ? (
-        <DialogContent className="max-h-[92vh] overflow-y-auto p-0 sm:max-w-4xl">
-          <div className="relative aspect-[16/6] min-h-52 overflow-hidden rounded-t-lg bg-muted">
+        <DialogContent closeLabel={locale === "fr" ? "Fermer" : "Close"} className="min-w-0 max-h-[calc(100svh-1rem)] overflow-x-hidden overflow-y-auto p-0 sm:max-w-4xl">
+          <div className="relative h-60 min-w-0 max-w-full overflow-hidden rounded-t-lg bg-muted sm:h-auto sm:aspect-[16/6] sm:min-h-52">
             <ProductImage src={getRecipePhoto({ name: dish.name, title: dish.name, country: dish.country, category: dish.categoryLabel })} alt={dish.name} emoji="🍽️" color="#8A3042" size="lg" className="h-full w-full" rounded="rounded-none" />
-            <div className="absolute inset-0 bg-gradient-to-t from-charcoal/85 via-charcoal/10 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-7">
-              <p className="text-xs font-bold uppercase tracking-wider text-gold">{dish.country} · {dish.region}</p>
-              <DialogHeader className="mt-1 text-left">
-                <DialogTitle className="text-2xl font-extrabold sm:text-3xl">{dish.name}</DialogTitle>
-                <DialogDescription className="max-w-2xl whitespace-normal break-words pr-6 text-xs leading-5 text-white/80 sm:text-sm">{dish.description}</DialogDescription>
+            <div className="absolute inset-0 bg-gradient-to-t from-burgundy/95 via-burgundy/15 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 min-w-0 p-4 text-white sm:p-7">
+              <p className="truncate text-[10px] font-bold uppercase text-gold sm:text-xs">{dish.country} · {dish.region}</p>
+              <DialogHeader className="mt-1 min-w-0 text-left">
+                <DialogTitle className="max-w-full whitespace-normal break-words text-xl font-extrabold leading-tight text-white sm:text-3xl">{dish.name}</DialogTitle>
+                <DialogDescription className="line-clamp-3 max-w-full whitespace-normal break-words text-[11px] leading-5 text-white/85 sm:max-w-2xl sm:text-sm">{dish.description}</DialogDescription>
               </DialogHeader>
             </div>
           </div>
