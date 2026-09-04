@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const CLIENT_DOMAIN = "je-mange-africain.com";
 const ADMIN_DOMAIN = "admin.je-mange-africain.com";
 
 export function proxy(request: NextRequest) {
@@ -9,10 +8,6 @@ export function proxy(request: NextRequest) {
 
   if (host === ADMIN_DOMAIN && pathname === "/") {
     return NextResponse.rewrite(new URL("/admin", request.url));
-  }
-
-  if ((host === CLIENT_DOMAIN || host === `www.${CLIENT_DOMAIN}`) && pathname.startsWith("/admin")) {
-    return NextResponse.redirect(new URL("https://admin.je-mange-africain.com"));
   }
 
   return NextResponse.next();
