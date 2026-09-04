@@ -8,6 +8,7 @@ import { sendPushToSubscriptionId } from "@/lib/push-server";
 import { enforceRateLimit } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 import { deliveryContactFingerprint } from "@/lib/checkout-security";
+import { paymentMethodUsed } from "@/lib/stripe-payment-method";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const pricing = await priceCheckout({ items: body.items, country: body.address.country, postalCode: body.address.postalCode, deliveryService: body.deliverySlot, coupon: body.coupon, locale: body.locale });
-    const intent = await stripe.paymentIntents.retrieve(body.paymentIntentId);
+    const intent = await stripe.paymentIntents.retrieve(body.paymentIntentId, { expand: ["payment_method", "latest_charge"] });
     const expectedAmount = Math.round(pricing.total * 100);
     const addressFingerprint = deliveryContactFingerprint(body.address);
 
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
       where: { name: pricing.shippingQuote.carrier },
     }) || await db.carrier.findFirst({ orderBy: { rating: "desc" } });
     const number = `JMA-${new Date().getUTCFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
-    const paymentMethod = intent.payment_method_types[0] || "card";
+    const paymentMethod = paymentMethodUsed(intent);
     const fraudScore = Math.max(0, Math.min(100, Number(intent.metadata.risk_score) || 0));
     const wholesalePackages = pricing.validatedItems.filter((item) => item.salesChannel === "wholesale").reduce((sum, item) => sum + item.qty, 0);
     const retailPackages = new Set(pricing.validatedItems.filter((item) => item.salesChannel === "retail").map((item) => item.thermalClass)).size;

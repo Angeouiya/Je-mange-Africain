@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, ChefHat, Clock, Flame, MapPin, Search, ShieldAlert, Users } from "lucide-react";
+import { BookOpen, ChefHat, Clock, Eye, Flame, MapPin, Search, ShieldAlert, Timer, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 import { ProductImage } from "@/components/shared/ProductImage";
 import { getRecipePhoto } from "@/lib/market-media";
 import { useStore } from "@/lib/store";
+import { buildRecipeStepGuides } from "@/lib/recipe-step-guide";
 
 export type DishLibraryItem = {
   slug: string;
@@ -72,6 +73,7 @@ export function DishLibraryCard({ dish, onSelect, compact = false, index = 0 }: 
 export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | null; onClose: () => void }) {
   const locale = useStore((state) => state.locale);
   const navigate = useStore((state) => state.navigate);
+  const preparationGuides = buildRecipeStepGuides(dish?.steps || [], locale);
 
   return (
     <Dialog open={Boolean(dish)} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -119,11 +121,19 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
 
               <section>
                 <h4 className="text-base font-extrabold text-charcoal">{locale === "fr" ? "Préparation" : "Preparation"}</h4>
-                <ol className="mt-3 space-y-3">
-                  {dish.steps.map((step, index) => (
-                    <li key={index} className="flex gap-3">
+                <p className="mt-1 text-xs text-muted-foreground">{locale === "fr" ? `${preparationGuides.length} actions guidées, avec repères de cuisson` : `${preparationGuides.length} guided actions with cooking cues`}</p>
+                <ol className="mt-3 divide-y divide-border border-y border-border" data-testid="dish-detailed-steps">
+                  {preparationGuides.map((guide, index) => (
+                    <li key={index} className="flex gap-3 border-l-2 border-l-terre/35 px-1 py-3">
                       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-burgundy text-xs font-bold text-white">{index + 1}</span>
-                      <p className="pt-0.5 text-sm leading-6 text-charcoal">{step}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                          <p className="text-xs font-black text-charcoal">{guide.title}</p>
+                          <span className="inline-flex shrink-0 items-center gap-2 text-[9px] font-bold text-muted-foreground"><span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span><span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-gold" />{guide.heatLabel}</span></span>
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-charcoal/80 sm:text-sm sm:leading-6">{guide.instruction}</p>
+                        <p className="mt-1.5 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Eye className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Résultat :" : "Result:"}</strong> {guide.cue}</span></p>
+                      </div>
                     </li>
                   ))}
                 </ol>

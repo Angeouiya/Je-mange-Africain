@@ -49,6 +49,14 @@ describe("admin recipe contract", () => {
     expect(recipeAdminInput.safeParse({ ...validRecipe, imageUrl: "/api/admin/recipes" }).success).toBe(false);
   });
 
+  it("accepts detailed bilingual cooking instructions", () => {
+    const detailedStep = "Cuire à feu doux pendant 20 minutes en remuant régulièrement, jusqu'à ce que la sauce soit brillante et nappe la cuillère.";
+    const detailedStepEn = "Cook over low heat for 20 minutes, stirring regularly, until the sauce is glossy and coats a spoon.";
+
+    expect(recipeAdminInput.safeParse({ ...validRecipe, stepsFr: [detailedStep, detailedStep], stepsEn: [detailedStepEn, detailedStepEn] }).success).toBe(true);
+    expect(recipeAdminInput.safeParse({ ...validRecipe, stepsFr: ["a".repeat(801), detailedStep], stepsEn: [detailedStepEn, detailedStepEn] }).success).toBe(false);
+  });
+
   it("creates a stable URL slug from an accented French title", () => {
     expect(recipeSlug("Kédjénou de poulet à l'ivoirienne")).toBe("kedjenou-de-poulet-a-l-ivoirienne");
   });

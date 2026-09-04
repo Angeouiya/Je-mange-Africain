@@ -1550,6 +1550,8 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   await expect(dialog.getByLabel("Titre anglais")).toHaveValue("Attieke with grilled fish");
   await expect(dialog.getByLabel("Étape 1 en français")).toHaveValue("Assaisonner soigneusement le poisson.");
   await expect(dialog.getByLabel("Step 1 in English")).toHaveValue("Season the fish thoroughly.");
+  await expect(dialog.getByTestId("recipe-step-preview-1")).toContainText(/aperçu du guide client|customer guide preview/i);
+  await expect(dialog.getByTestId("recipe-step-preview-1")).toContainText(/résultat attendu|expected result/i);
   await expect(dialog.getByLabel("Produit 1")).toHaveValue("product-1");
   await expect(dialog.getByText(/84 en stock/)).toBeVisible();
   const dialogOverflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);

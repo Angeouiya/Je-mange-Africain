@@ -184,6 +184,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   const dishDialog = page.getByRole("dialog");
   await expect(dishDialog.getByRole("heading", { name: /ingrédients|ingredients/i })).toBeVisible();
   await expect(dishDialog.getByRole("heading", { name: /préparation|preparation/i })).toBeVisible();
+  await expect(dishDialog.getByTestId("dish-detailed-steps")).toContainText(/résultat|result/i);
   await expectLoadedProductImages(dishDialog.getByRole("img"), 1);
   await expectNoHorizontalOverflow(page, dishDialog);
   await expectBrandSafeUiColors(page);
@@ -1370,6 +1371,9 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   const cookingFocus = page.getByTestId("recipe-cooking-focus");
   await expect(cookingFocus).toContainText(/à faire maintenant|do this now/i);
   await expect(cookingFocus).toContainText(/progression\s*0 %|progress\s*0 %/i);
+  await expect(cookingFocus).toContainText(/repère de réussite|success cue/i);
+  await expect(cookingFocus).toContainText(/conseil cuisine|kitchen tip/i);
+  await expect(page.getByTestId("recipe-detailed-steps")).toContainText(/résultat|result/i);
   const preparationProgress = page.locator("#recipe-preparation").getByRole("progressbar");
   await expect(preparationProgress).toHaveAttribute("aria-valuenow", "0");
   await cookingFocus.getByRole("button", { name: /terminer et continuer|complete and continue/i }).click();

@@ -33,8 +33,8 @@ export const recipeAdminInput = z.object({
   isNew: z.boolean().default(false),
   isRecommended: z.boolean().default(false),
   status: z.enum(["draft", "published", "archived"]),
-  stepsFr: z.array(z.string().trim().min(5).max(500)).min(2).max(30),
-  stepsEn: z.array(z.string().trim().min(5).max(500)).min(2).max(30),
+  stepsFr: z.array(z.string().trim().min(5).max(800)).min(2).max(30),
+  stepsEn: z.array(z.string().trim().min(5).max(800)).min(2).max(30),
   ingredients: z.array(recipeIngredientAdminInput).min(1).max(60),
 }).superRefine((input, context) => {
   if (input.stepsFr.length !== input.stepsEn.length) {

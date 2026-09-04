@@ -31,6 +31,7 @@ const IntentRequest = z.object({
   deliverySlot: z.enum(["standard", "express", "relay"]).default("standard"),
   coupon: z.string().trim().max(50).nullable().optional(),
   locale: z.enum(["fr", "en"]).default("fr"),
+  checkoutAttemptId: z.string().uuid(),
 });
 
 export async function POST(request: NextRequest) {
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     const intent = await stripe.paymentIntents.create({
       amount: Math.round(pricing.total * 100),
       currency: "eur",
-      payment_method_types: ["card"],
+      automatic_payment_methods: { enabled: true },
       receipt_email: parsed.data.address.email,
       description: "Commande Je mange Africain",
       metadata: {
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
         risk_level: risk.level,
         delivery_service: pricing.shippingQuote.service,
         address_fingerprint: addressFingerprint,
+        checkout_attempt_id: parsed.data.checkoutAttemptId,
       },
       shipping: {
         name: `${parsed.data.address.firstName} ${parsed.data.address.lastName}`.trim(),
@@ -90,13 +92,14 @@ export async function POST(request: NextRequest) {
           country: countryCode(parsed.data.address.country),
         },
       },
-    }, { idempotencyKey: `jma:${customer.id}:${pricing.fingerprint}:${addressFingerprint}` });
+    }, { idempotencyKey: `jma:${customer.id}:${parsed.data.checkoutAttemptId}` });
 
     return NextResponse.json({
       paymentIntentId: intent.id,
       clientSecret: intent.client_secret,
       amount: pricing.total,
       currency: "EUR",
+      paymentMethodTypes: intent.payment_method_types,
       riskLevel: risk.level,
       pricing: {
         subtotal: pricing.subtotal,

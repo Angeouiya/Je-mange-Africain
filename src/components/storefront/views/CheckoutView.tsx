@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarRange, ChevronDown, ChevronRight, ContactRound, CreditCard, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Snowflake, Truck, Zap, type LucideIcon } from "lucide-react";
+import { ArrowLeft, CalendarRange, ChevronDown, ChevronRight, ContactRound, CreditCard, Landmark, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Smartphone, Snowflake, Truck, WalletCards, Zap, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import { formatPrice, formatWeight, thermalLabel } from "@/lib/format";
 import { dict } from "@/lib/i18n";
 import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStore } from "@/lib/store";
 import { postJSON } from "@/lib/use-fetch";
+import { clearPendingCheckout, readPendingCheckout, rememberPendingCheckout, type PendingCheckoutPayload } from "@/lib/checkout-return";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -28,6 +29,7 @@ type IntentResponse = {
   clientSecret: string;
   amount: number;
   currency: string;
+  paymentMethodTypes: string[];
   pricing: { subtotal: number; promoDiscount: number; shipping: number; vat: number; packages: number; carrier: string; service: DeliveryService; minDelayHours: number; maxDelayHours: number };
 };
 
@@ -78,6 +80,7 @@ export function CheckoutView() {
   const [shipLoading, setShipLoading] = useState(false);
   const [promotion, setPromotion] = useState<{ discount: number; freeShipping?: boolean } | null>(null);
   const [promotionLoading, setPromotionLoading] = useState(false);
+  const paymentReturnHandled = useRef(false);
 
   const updateForm = (field: keyof typeof form, value: string) => {
     setSelectedAddressId("custom");
@@ -131,7 +134,7 @@ export function CheckoutView() {
         : baseEstimate;
   const shipFee = promotion?.freeShipping ? 0 : quotedFee;
   const displayTotal = intent?.amount ?? Math.max(0, subtotal - promoDiscount) + shipFee;
-  const checkoutItems = cart.map((item) => ({
+  const checkoutItems: PendingCheckoutPayload["items"] = cart.map((item) => ({
     productId: item.productId,
     qty: item.qty,
     recipeId: item.recipeId,
@@ -139,6 +142,13 @@ export function CheckoutView() {
     recipeNameEn: item.recipeName,
     salesChannel: item.salesChannel,
   }));
+  const checkoutPayload: PendingCheckoutPayload = {
+    items: checkoutItems,
+    address: form,
+    deliverySlot: slot,
+    coupon,
+    locale,
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -203,11 +213,8 @@ export function CheckoutView() {
     setPaymentError("");
     try {
       const response = await postJSON<IntentResponse>("/api/payments/intent", {
-        items: checkoutItems,
-        address: form,
-        deliverySlot: slot,
-        coupon,
-        locale,
+        ...checkoutPayload,
+        checkoutAttemptId: window.crypto.randomUUID(),
       });
       if (!response.clientSecret) throw new Error(locale === "fr" ? "Le paiement sécurisé n'a pas pu démarrer." : "Secure checkout could not start.");
       setIntent(response);
@@ -219,19 +226,16 @@ export function CheckoutView() {
     }
   };
 
-  const finalizeOrder = async (paymentIntentId: string) => {
+  const finalizeOrder = async (paymentIntentId: string, payload = checkoutPayload) => {
     setProcessing(true);
     setPaymentError("");
     try {
       const response = await postJSON<{ order: { id: string; number: string; total: number } }>("/api/checkout", {
-        items: checkoutItems,
-        address: form,
-        deliverySlot: slot,
+        ...payload,
         paymentIntentId,
-        coupon,
-        locale,
         pushSubscriptionId: localStorage.getItem("jma-push-subscription-v1") || undefined,
       });
+      clearPendingCheckout();
       clearCart();
       navigate("order-confirmation", { orderId: response.order.id });
     } catch (error) {
@@ -240,6 +244,26 @@ export function CheckoutView() {
       setProcessing(false);
     }
   };
+
+  useEffect(() => {
+    if (!customer || paymentReturnHandled.current) return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const returnedPaymentIntentId = searchParams.get("payment_intent");
+    if (!returnedPaymentIntentId) return;
+    paymentReturnHandled.current = true;
+
+    const pendingPayload = readPendingCheckout(returnedPaymentIntentId);
+    if (!pendingPayload) {
+      setPaymentError(locale === "fr"
+        ? "Cette reprise de paiement a expiré ou ne correspond pas à ce panier. Vérifiez la commande avant de recommencer."
+        : "This payment return has expired or does not match this basket. Review the order before trying again.");
+      stripPaymentReturnParams();
+      return;
+    }
+
+    setStep(2);
+    void finalizeOrder(returnedPaymentIntentId, pendingPayload);
+  }, [customer, locale]);
 
   if (cart.length === 0) {
     return <div className="mx-auto max-w-2xl px-4 py-20 text-center"><p className="text-muted-foreground">{t.cart.empty}</p><Button onClick={() => navigate("catalog")} className="mt-4 bg-terre text-cream">{t.cart.emptyCta}</Button></div>;
@@ -265,7 +289,7 @@ export function CheckoutView() {
 
   const checkoutStages: JourneyStage[] = [
     { id: "delivery", label: t.checkout.delivery, detail: locale === "fr" ? "Adresse et transport" : "Address and carrier", icon: Truck },
-    { id: "payment", label: t.checkout.payment, detail: locale === "fr" ? "Carte sécurisée" : "Secure card", icon: CreditCard },
+    { id: "payment", label: t.checkout.payment, detail: locale === "fr" ? "Carte, PayPal et wallets" : "Card, PayPal and wallets", icon: CreditCard },
     { id: "review", label: t.checkout.review, detail: locale === "fr" ? "Contrôle final" : "Final check", icon: ShieldCheck },
   ];
   const review = (
@@ -403,7 +427,19 @@ export function CheckoutView() {
               </motion.div>
             ) : intent && stripePromise ? (
               <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#B9472B", colorText: "#3F2930", borderRadius: "8px", fontFamily: "Manrope, sans-serif" } } }}>
-                <SecurePaymentStages step={step} setStep={setStep} clientSecret={intent.clientSecret} processing={processing} paymentError={paymentError} setPaymentError={setPaymentError} amount={displayTotal} locale={locale} review={review} onConfirm={finalizeOrder} />
+                <SecurePaymentStages
+                  step={step}
+                  setStep={setStep}
+                  clientSecret={intent.clientSecret}
+                  processing={processing}
+                  paymentError={paymentError}
+                  setPaymentError={setPaymentError}
+                  amount={displayTotal}
+                  locale={locale}
+                  review={review}
+                  onBeforeConfirm={() => rememberPendingCheckout(intent.paymentIntentId, checkoutPayload)}
+                  onConfirm={finalizeOrder}
+                />
               </Elements>
             ) : null}
           </div>
@@ -481,7 +517,7 @@ function CheckoutBasketPreview({
   );
 }
 
-function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentError, setPaymentError, amount, locale, review, onConfirm }: {
+function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentError, setPaymentError, amount, locale, review, onBeforeConfirm, onConfirm }: {
   step: number;
   setStep: (step: number) => void;
   clientSecret: string;
@@ -491,6 +527,7 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   amount: number;
   locale: "fr" | "en";
   review: ReactNode;
+  onBeforeConfirm: () => boolean;
   onConfirm: (paymentIntentId: string) => Promise<void>;
 }) {
   const stripe = useStripe();
@@ -519,11 +556,17 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
         await onConfirm(confirmedPaymentIntentId);
         return;
       }
+      if (!onBeforeConfirm()) {
+        setPaymentError(locale === "fr"
+          ? "Votre navigateur ne permet pas de sécuriser le retour du paiement. Autorisez le stockage de session puis réessayez."
+          : "Your browser cannot secure the payment return. Allow session storage and try again.");
+        return;
+      }
       const result = await stripe.confirmPayment({
         elements,
         clientSecret,
         redirect: "if_required",
-        confirmParams: { return_url: `${window.location.origin}/?view=orders` },
+        confirmParams: { return_url: `${window.location.origin}/?view=checkout&paymentReturn=1` },
       });
       if (result.error) {
         setPaymentError(result.error.message || (locale === "fr" ? "Le paiement a été refusé." : "Payment was declined."));
@@ -543,9 +586,14 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
       <div className={step === 1 ? "space-y-4" : "hidden"} aria-hidden={step !== 1}>
-        <div>
-          <p className="mb-3 text-xs font-semibold text-charcoal">{t.checkout.paymentMethod}</p>
-          <PaymentElement options={{ layout: "accordion", business: { name: "Je mange Africain" } }} />
+        <PaymentCapabilityPanel locale={locale} />
+        <div className="border-t border-charcoal/8 pt-4">
+          <p className="mb-3 text-xs font-extrabold text-charcoal">{t.checkout.paymentMethod}</p>
+          <PaymentElement options={{
+            layout: { type: "accordion", defaultCollapsed: false, radios: "always", spacedAccordionItems: false },
+            business: { name: "Je mange Africain" },
+            paymentMethodOrder: ["paypal", "apple_pay", "google_pay", "card", "link", "klarna", "ideal", "bancontact"],
+          }} />
         </div>
         <p className="flex items-start gap-1.5 text-[11px] leading-5 text-muted-foreground"><Lock className="mt-0.5 h-3 w-3 shrink-0" />{locale === "fr" ? "Les données bancaires sont chiffrées et traitées directement par Stripe." : "Bank details are encrypted and processed directly by Stripe."}</p>
       </div>
@@ -576,6 +624,36 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
       />
     </motion.div>
   );
+}
+
+function PaymentCapabilityPanel({ locale }: { locale: "fr" | "en" }) {
+  const methods = [
+    { icon: CreditCard, label: locale === "fr" ? "Cartes" : "Cards", detail: "Visa · Mastercard" },
+    { icon: WalletCards, label: "PayPal", detail: locale === "fr" ? "Selon éligibilité" : "When eligible" },
+    { icon: Smartphone, label: locale === "fr" ? "Wallets" : "Wallets", detail: "Apple Pay · Google Pay" },
+    { icon: Landmark, label: locale === "fr" ? "Méthodes locales" : "Local methods", detail: locale === "fr" ? "Selon le pays" : "Country based" },
+  ];
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_58%,#FFF5E6_100%)]" aria-labelledby="payment-choice-title" data-testid="payment-capabilities">
+      <div className="flex items-start gap-3 border-b border-burgundy/10 px-3.5 py-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white shadow-[0_10px_24px_-16px_rgba(138,48,66,0.9)]"><ShieldCheck className="h-4 w-4" /></span>
+        <div className="min-w-0">
+          <h2 id="payment-choice-title" className="text-xs font-black text-charcoal">{locale === "fr" ? "Choisissez votre moyen de paiement" : "Choose your payment method"}</h2>
+          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{locale === "fr" ? "Les options compatibles apparaissent selon votre pays, votre appareil et le montant." : "Compatible options appear according to your country, device and order amount."}</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4">
+        {methods.map((method, index) => <div key={method.label} className={`flex min-w-0 items-center gap-2 px-3 py-3 ${index % 2 === 0 ? "border-r border-burgundy/10" : ""} ${index < 2 ? "border-b border-burgundy/10 sm:border-b-0" : ""} ${index > 0 ? "sm:border-l sm:border-burgundy/10" : ""}`}><method.icon className="h-4 w-4 shrink-0 text-terre" /><span className="min-w-0"><strong className="block truncate text-[10px] text-charcoal">{method.label}</strong><span className="mt-0.5 block truncate text-[8px] text-muted-foreground">{method.detail}</span></span></div>)}
+      </div>
+    </section>
+  );
+}
+
+function stripPaymentReturnParams() {
+  const url = new URL(window.location.href);
+  for (const key of ["paymentReturn", "payment_intent", "payment_intent_client_secret", "redirect_status"]) url.searchParams.delete(key);
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 function CheckoutMobileDock({ stepLabel, statusLabel, amount, locale, primaryLabel, primaryIcon: PrimaryIcon, primaryIconSpins = false, onPrimary, primaryDisabled, describedBy, onBack, backDisabled = false }: {

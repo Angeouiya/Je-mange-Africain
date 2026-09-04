@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, Search, Trash2, UsersRound } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, Eye, Flame, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, Search, Timer, Trash2, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -29,6 +29,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { getRecipePhoto } from "@/lib/market-media";
+import { buildRecipeStepGuide, recipeStepDetailScore } from "@/lib/recipe-step-guide";
 
 type ProductOption = {
   id: string;
@@ -408,7 +409,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
             </section>
 
             <section className="border-y border-border bg-[#F7F7F4] px-5 py-6 sm:px-7" aria-labelledby="recipe-steps-title">
-              <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation ordonnée" : "Ordered preparation"} description={isFr ? "Chaque étape possède sa version française et anglaise. L'ordre affiché ici sera celui du client." : "Every step has a French and English version. This order is shown to customers."} />
+              <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation guidée" : "Guided preparation"} description={isFr ? "Décrivez une action précise avec sa durée, son niveau de feu et le résultat que le client doit observer." : "Describe one precise action with its duration, heat level and the result the customer should observe."} />
               <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onAdd={addStep} onRemove={removeStep} onMove={moveStep} isFr={isFr} />
             </section>
 
@@ -491,17 +492,41 @@ function RecipeColourPicker({ value, onChange, locale }: { value: string; onChan
 
 function PreparationSteps({ stepsFr, stepsEn, onChangeFr, onChangeEn, onAdd, onRemove, onMove, isFr }: { stepsFr: string[]; stepsEn: string[]; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onAdd: () => void; onRemove: (index: number) => void; onMove: (index: number, direction: -1 | 1) => void; isFr: boolean }) {
   return <div className="mt-5">
+    <div className="mb-4 grid grid-cols-3 divide-x divide-border border-y border-border bg-white py-3 text-center" aria-label={isFr ? "Repères attendus dans chaque étape" : "Expected details in every step"}>
+      <div className="min-w-0 px-2"><Timer className="mx-auto h-4 w-4 text-terre" /><p className="mt-1 text-[9px] font-black uppercase text-charcoal">{isFr ? "Durée" : "Duration"}</p></div>
+      <div className="min-w-0 px-2"><Flame className="mx-auto h-4 w-4 text-gold" /><p className="mt-1 text-[9px] font-black uppercase text-charcoal">{isFr ? "Chaleur" : "Heat"}</p></div>
+      <div className="min-w-0 px-2"><Eye className="mx-auto h-4 w-4 text-burgundy" /><p className="mt-1 text-[9px] font-black uppercase text-charcoal">{isFr ? "Résultat visible" : "Visible result"}</p></div>
+    </div>
     <div className="hidden grid-cols-[2rem_1fr_1fr_7.5rem] gap-2 px-1 pb-2 text-[10px] font-black uppercase text-muted-foreground lg:grid"><span /><span>{isFr ? "Français" : "French"}</span><span>English</span><span>{isFr ? "Ordre" : "Order"}</span></div>
-    <ol className="space-y-3">{stepsFr.map((step, index) => <li key={index} className="grid gap-3 border-y border-border bg-white px-3 py-3 lg:grid-cols-[2rem_1fr_1fr_7.5rem] lg:items-start">
-      <span className="grid h-8 w-8 place-items-center rounded-md bg-burgundy text-[10px] font-black text-white">{index + 1}</span>
-      <div><Label className="mb-1.5 block lg:hidden">{isFr ? "Français" : "French"}</Label><Textarea aria-label={isFr ? `Étape ${index + 1} en français` : `Step ${index + 1} in French`} value={step} onChange={(event) => onChangeFr(index, event.target.value)} rows={2} className="min-h-16 resize-y" placeholder={isFr ? `Étape ${index + 1}` : `French step ${index + 1}`} /></div>
-      <div><Label className="mb-1.5 block lg:hidden">English</Label><Textarea aria-label={`Step ${index + 1} in English`} value={stepsEn[index] || ""} onChange={(event) => onChangeEn(index, event.target.value)} rows={2} className="min-h-16 resize-y" placeholder={`English step ${index + 1}`} /></div>
-      <div className="flex items-center justify-end gap-1 lg:justify-start" aria-label={isFr ? `Ordre de l'étape ${index + 1}` : `Step ${index + 1} order`}>
-        <Button type="button" variant="outline" size="icon" disabled={index === 0} onClick={() => onMove(index, -1)} className="h-9 w-9 bg-white" aria-label={isFr ? `Monter l'étape ${index + 1}` : `Move step ${index + 1} up`}><ArrowUp className="h-4 w-4" /></Button>
-        <Button type="button" variant="outline" size="icon" disabled={index === stepsFr.length - 1} onClick={() => onMove(index, 1)} className="h-9 w-9 bg-white" aria-label={isFr ? `Descendre l'étape ${index + 1}` : `Move step ${index + 1} down`}><ArrowDown className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" disabled={stepsFr.length <= 2} onClick={() => onRemove(index)} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'étape ${index + 1}` : `Remove step ${index + 1}`}><Trash2 className="h-4 w-4" /></Button>
-      </div>
-    </li>)}</ol>
+    <ol className="space-y-3">{stepsFr.map((step, index) => {
+      const previewLocale = isFr ? "fr" : "en";
+      const previewText = isFr ? step : (stepsEn[index] || "");
+      const guide = buildRecipeStepGuide(previewText, index, previewLocale);
+      const detailScore = Math.min(recipeStepDetailScore(step), recipeStepDetailScore(stepsEn[index] || ""));
+      const quality = detailScore >= 3
+        ? { label: isFr ? "Guidage complet" : "Complete guidance", className: "bg-burgundy/[0.08] text-burgundy" }
+        : detailScore >= 2
+          ? { label: isFr ? "À enrichir" : "Add more detail", className: "bg-gold/15 text-charcoal" }
+          : { label: isFr ? "Trop bref" : "Too brief", className: "bg-terre/[0.08] text-terre" };
+      return <li key={index} className="grid gap-3 border-y border-border bg-white px-3 py-3 lg:grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem] lg:items-start">
+        <span className="grid h-8 w-8 place-items-center rounded-md bg-burgundy text-[10px] font-black text-white">{index + 1}</span>
+        <div><Label className="mb-1.5 block lg:hidden">{isFr ? "Français" : "French"}</Label><Textarea aria-label={isFr ? `Étape ${index + 1} en français` : `Step ${index + 1} in French`} value={step} onChange={(event) => onChangeFr(index, event.target.value)} rows={4} maxLength={800} className="min-h-28 resize-y leading-5" placeholder="Ex. Cuire à feu doux 12 minutes en remuant toutes les 2 minutes, jusqu’à ce que la sauce soit brillante et nappe la cuillère." /></div>
+        <div><Label className="mb-1.5 block lg:hidden">English</Label><Textarea aria-label={`Step ${index + 1} in English`} value={stepsEn[index] || ""} onChange={(event) => onChangeEn(index, event.target.value)} rows={4} maxLength={800} className="min-h-28 resize-y leading-5" placeholder="E.g. Cook over low heat for 12 minutes, stirring every 2 minutes, until the sauce is glossy and coats a spoon." /></div>
+        <div className="flex items-center justify-end gap-1 lg:justify-start" aria-label={isFr ? `Ordre de l'étape ${index + 1}` : `Step ${index + 1} order`}>
+          <Button type="button" variant="outline" size="icon" disabled={index === 0} onClick={() => onMove(index, -1)} className="h-9 w-9 bg-white" aria-label={isFr ? `Monter l'étape ${index + 1}` : `Move step ${index + 1} up`}><ArrowUp className="h-4 w-4" /></Button>
+          <Button type="button" variant="outline" size="icon" disabled={index === stepsFr.length - 1} onClick={() => onMove(index, 1)} className="h-9 w-9 bg-white" aria-label={isFr ? `Descendre l'étape ${index + 1}` : `Move step ${index + 1} down`}><ArrowDown className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="icon" disabled={stepsFr.length <= 2} onClick={() => onRemove(index)} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'étape ${index + 1}` : `Remove step ${index + 1}`}><Trash2 className="h-4 w-4" /></Button>
+        </div>
+        {previewText.trim() ? <div className="min-w-0 border-l-2 border-terre bg-[#F7F7F4] px-3 py-2.5 lg:col-span-2 lg:col-start-2" data-testid={`recipe-step-preview-${index + 1}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[9px] font-black uppercase text-charcoal">{isFr ? "Aperçu du guide client" : "Customer guide preview"}</p>
+            <span className={`rounded px-1.5 py-0.5 text-[8px] font-black uppercase ${quality.className}`}>{quality.label}</span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-bold text-muted-foreground"><span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span><span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-gold" />{guide.heatLabel}</span></div>
+          <p className="mt-1.5 text-[10px] leading-4 text-muted-foreground"><strong className="text-charcoal/75">{isFr ? "Résultat attendu :" : "Expected result:"}</strong> {guide.cue}</p>
+        </div> : null}
+      </li>;
+    })}</ol>
     <Button type="button" variant="outline" size="sm" onClick={onAdd} className="mt-3"><Plus className="mr-1.5 h-4 w-4" /> {isFr ? "Ajouter une étape bilingue" : "Add bilingual step"}</Button>
   </div>;
 }

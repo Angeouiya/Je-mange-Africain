@@ -78,6 +78,7 @@ export default function Page() {
   useEffect(() => {
     if (!mounted) return;
     if (view === "home" && !new URLSearchParams(window.location.search).has("view")) return;
+    if (view === "checkout" && new URLSearchParams(window.location.search).has("payment_intent")) return;
     const nextUrl = storefrontUrl(view, params);
     const currentUrl = `${window.location.pathname}${window.location.search}`;
     if (currentUrl !== nextUrl) window.history.replaceState(window.history.state, "", nextUrl);

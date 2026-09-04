@@ -6,6 +6,7 @@ import {
   Users, Clock, Flame, Minus, Plus, ShoppingCart, RotateCcw,
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
   Trash2, Undo2, RefreshCw, House, ChevronDown, ChefHat, ArrowRight,
+  Timer, Eye, Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import { shareRecipe } from "@/lib/client-actions";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { getPreparationProgress, togglePreparationStep } from "@/lib/recipe-preparation";
+import { buildRecipeStepGuides } from "@/lib/recipe-step-guide";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 
 interface CalcResult {
@@ -222,9 +224,10 @@ export function RecipeConfiguratorView() {
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
   const recipePhoto = getRecipePhoto(recipe);
   const preparationSteps = calc?.steps?.[locale as "fr" | "en"] || recipe.steps || [];
+  const preparationGuides = buildRecipeStepGuides(preparationSteps, locale);
   const preparationProgress = getPreparationProgress(preparationSteps.length, completedSteps);
   const completedStepCount = preparationProgress.completedCount;
-  const currentPreparationStep = preparationProgress.nextStepIndex === null ? null : preparationSteps[preparationProgress.nextStepIndex];
+  const currentPreparationGuide = preparationProgress.nextStepIndex === null ? null : preparationGuides[preparationProgress.nextStepIndex];
   const toggleStep = (index: number) => setCompletedSteps((previous) => togglePreparationStep(preparationSteps.length, previous, index));
   const completeCurrentStep = () => {
     if (preparationProgress.nextStepIndex === null) return;
@@ -518,36 +521,60 @@ export function RecipeConfiguratorView() {
                         </ul>
                       </div>
                     ) : null}
-                    <section className="mb-3 overflow-hidden border-y border-burgundy/15 bg-burgundy/[0.035]" data-testid="recipe-cooking-focus" aria-live="polite">
+                    <section className="mb-4 overflow-hidden border-y border-burgundy/15 bg-[linear-gradient(135deg,rgba(214,90,50,0.055),rgba(242,169,0,0.045),rgba(255,255,255,0.92))]" data-testid="recipe-cooking-focus" aria-live="polite">
                       <div className="flex items-start gap-3 px-3 py-3 md:px-4 md:py-4">
                         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${preparationProgress.isComplete ? "bg-burgundy text-white" : "bg-terre text-white"}`}>
                           {preparationProgress.isComplete ? <Check className="h-5 w-5" /> : <ChefHat className="h-5 w-5" />}
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-[9px] font-black uppercase text-terre">{preparationProgress.isComplete ? (locale === "fr" ? "Service" : "Serving") : (locale === "fr" ? "À faire maintenant" : "Do this now")}</p>
-                          <h3 className="mt-0.5 text-sm font-black leading-5 text-charcoal">{preparationProgress.isComplete ? (locale === "fr" ? "Votre recette est prête à servir" : "Your recipe is ready to serve") : `${locale === "fr" ? "Étape" : "Step"} ${(preparationProgress.nextStepIndex || 0) + 1}`}</h3>
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{preparationProgress.isComplete ? (locale === "fr" ? "Toutes les étapes sont terminées. Servez pendant que les textures et les arômes sont à leur meilleur." : "Every step is complete. Serve while textures and aromas are at their best.") : currentPreparationStep}</p>
+                          <h3 className="mt-0.5 text-sm font-black leading-5 text-charcoal">{preparationProgress.isComplete ? (locale === "fr" ? "Votre recette est prête à servir" : "Your recipe is ready to serve") : `${locale === "fr" ? "Étape" : "Step"} ${(preparationProgress.nextStepIndex || 0) + 1} · ${currentPreparationGuide?.title}`}</h3>
+                          <p className="mt-1.5 text-xs font-medium leading-5 text-charcoal/80">{preparationProgress.isComplete ? (locale === "fr" ? "Toutes les étapes sont terminées. Servez pendant que les textures et les arômes sont à leur meilleur." : "Every step is complete. Serve while textures and aromas are at their best.") : currentPreparationGuide?.instruction}</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 divide-x divide-burgundy/10 border-y border-burgundy/10 bg-white/70 py-2 text-center">
-                        <PreparationMetric label={locale === "fr" ? "Table" : "Table"} value={`${servings} ${locale === "fr" ? "pers." : "people"}`} />
-                        <PreparationMetric label={locale === "fr" ? "Temps" : "Time"} value={`${recipe.timeMinutes} min`} />
+                      <div className="grid grid-cols-4 divide-x divide-burgundy/10 border-y border-burgundy/10 bg-white/75 py-2.5 text-center">
+                        <PreparationMetric label={locale === "fr" ? "Étape" : "Step time"} value={currentPreparationGuide?.durationLabel || "—"} />
+                        <PreparationMetric label={locale === "fr" ? "Chaleur" : "Heat"} value={currentPreparationGuide?.heatLabel || (locale === "fr" ? "Service" : "Serving")} />
+                        <PreparationMetric label={locale === "fr" ? "Recette" : "Recipe"} value={`${recipe.timeMinutes} min`} />
                         <PreparationMetric label={locale === "fr" ? "Progression" : "Progress"} value={`${preparationProgress.progressPercent} %`} />
                       </div>
+                      {!preparationProgress.isComplete && currentPreparationGuide ? (
+                        <div className="divide-y divide-burgundy/10 bg-white/55 px-3 md:px-4">
+                          <PreparationInsight icon={Eye} label={locale === "fr" ? "Repère de réussite" : "Success cue"} text={currentPreparationGuide.cue} tone="success" />
+                          <PreparationInsight icon={Lightbulb} label={locale === "fr" ? "Conseil cuisine" : "Kitchen tip"} text={currentPreparationGuide.tip} tone="tip" />
+                          {currentPreparationGuide.warning ? <PreparationInsight icon={AlertTriangle} label={locale === "fr" ? "Vigilance" : "Take care"} text={currentPreparationGuide.warning} tone="warning" /> : null}
+                        </div>
+                      ) : null}
                       <div className="flex flex-wrap items-center gap-2 px-3 py-3 md:px-4">
                         {!preparationProgress.isComplete ? <Button type="button" size="sm" onClick={completeCurrentStep} className="h-9 flex-1 bg-terre text-white hover:bg-terre-dark"><Check className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Terminer et continuer" : "Complete and continue"}<ArrowRight className="ml-1.5 h-4 w-4" /></Button> : <Button type="button" size="sm" onClick={() => setCompletedSteps([])} className="h-9 flex-1 bg-burgundy text-white hover:bg-burgundy-dark"><RotateCcw className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Refaire la préparation" : "Cook again"}</Button>}
                         <Button type="button" size="sm" variant="outline" onClick={undoLastStep} disabled={preparationProgress.lastCompletedStepIndex === null} className="h-9 border-burgundy/20 px-3 text-burgundy" aria-label={locale === "fr" ? "Revenir d'une étape" : "Go back one step"}><Undo2 className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Revenir" : "Back"}</Button>
                       </div>
                     </section>
-                    <p className="px-1 pb-1 text-[9px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Plan complet" : "Full method"}</p>
-                    <ol className="divide-y divide-border">
-                      {preparationSteps.map((s: string, i: number) => (
+                    <div className="flex items-end justify-between gap-3 px-1 pb-2">
+                      <div>
+                        <p className="text-[9px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Plan de cuisson complet" : "Full cooking method"}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Touchez une étape pour la marquer comme terminée." : "Tap a step to mark it as complete."}</p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-bold text-burgundy">{servings} {locale === "fr" ? "pers." : "people"}</span>
+                    </div>
+                    <ol className="divide-y divide-border" data-testid="recipe-detailed-steps">
+                      {preparationGuides.map((guide, i: number) => (
                         <li key={i} className={`border-l-2 py-1 transition ${preparationProgress.nextStepIndex === i ? "border-l-terre bg-terre/[0.035]" : "border-l-transparent"}`}>
-                          <button type="button" onClick={() => toggleStep(i)} aria-pressed={completedSteps.includes(i)} aria-label={locale === "fr" ? `Étape ${i + 1} : ${s}` : `Step ${i + 1}: ${s}`} className="flex w-full gap-3 px-1 py-3 text-left text-sm text-charcoal transition hover:bg-muted/40">
+                          <button type="button" onClick={() => toggleStep(i)} aria-pressed={completedSteps.includes(i)} aria-label={locale === "fr" ? `Étape ${i + 1} : ${guide.instruction}` : `Step ${i + 1}: ${guide.instruction}`} className="flex w-full gap-3 px-1 py-3 text-left text-sm text-charcoal transition hover:bg-muted/40">
                             <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${completedSteps.includes(i) ? "bg-burgundy text-white" : "bg-terre text-cream"}`}>
                               {completedSteps.includes(i) ? <Check className="h-4 w-4" /> : i + 1}
                             </span>
-                            <span className={`pt-1 leading-relaxed ${completedSteps.includes(i) ? "text-muted-foreground line-through" : ""}`}>{s}</span>
+                            <span className={`min-w-0 flex-1 ${completedSteps.includes(i) ? "text-muted-foreground" : ""}`}>
+                              <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                                <span className={`font-black leading-5 ${completedSteps.includes(i) ? "line-through" : "text-charcoal"}`}>{guide.title}</span>
+                                <span className="inline-flex shrink-0 items-center gap-2 text-[9px] font-bold text-muted-foreground">
+                                  <span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span>
+                                  <span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-gold" />{guide.heatLabel}</span>
+                                </span>
+                              </span>
+                              <span className={`mt-1 block text-xs leading-5 ${completedSteps.includes(i) ? "line-through" : "text-charcoal/75"}`}>{guide.instruction}</span>
+                              <span className="mt-2 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Eye className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Résultat :" : "Result:"}</strong> {guide.cue}</span></span>
+                            </span>
                           </button>
                         </li>
                       ))}
@@ -613,6 +640,16 @@ function RecipeFlowButton({ active, onClick, icon: Icon, number, label, detail }
 
 function PreparationMetric({ label, value }: { label: string; value: string }) {
   return <div className="min-w-0 px-1.5"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className="mt-0.5 truncate text-[10px] font-extrabold text-charcoal md:text-xs">{value}</p></div>;
+}
+
+function PreparationInsight({ icon: Icon, label, text, tone }: { icon: React.ComponentType<{ className?: string }>; label: string; text: string; tone: "success" | "tip" | "warning" }) {
+  const toneClasses = tone === "success" ? "text-burgundy" : tone === "warning" ? "text-terre" : "text-charcoal";
+  return (
+    <div className="flex items-start gap-2 py-2.5">
+      <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${toneClasses}`} />
+      <p className="min-w-0 text-[10px] leading-4 text-muted-foreground"><strong className="mr-1 font-black uppercase text-charcoal/75">{label}</strong>{text}</p>
+    </div>
+  );
 }
 
 function CounterField({ label, value, onChange, max, locale }: { label: string; value: number; onChange: (value: number) => void; max: number; locale: "fr" | "en" }) {
