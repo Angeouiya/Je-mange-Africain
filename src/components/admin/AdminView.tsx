@@ -198,6 +198,7 @@ export function AdminView({
 
   const current = useMemo(() => availableItems.find((item) => item.id === section) || availableItems[0] || ALL_ITEMS[0], [availableItems, section]);
   const currentGroup = useMemo(() => availableGroups.find((group) => group.items.some((item) => item.id === current.id)) || availableGroups[0], [availableGroups, current.id]);
+  const moreActive = !quickItems.some((item) => item.id === section);
   const isFr = locale === "fr";
 
   const selectSection = (next: AdminSectionId) => {
@@ -251,10 +252,12 @@ export function AdminView({
                       type="button"
                       onClick={() => selectSection(item.id)}
                       aria-current={active ? "page" : undefined}
-                      className={`group relative flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-left transition-all ${active ? "bg-white text-charcoal shadow-[0_8px_22px_-18px_rgba(90,38,50,0.5)]" : "border-transparent text-charcoal hover:bg-burgundy/[0.045]"}`}
-                      style={active ? { borderLeftColor: item.accent } : undefined}
+                      data-active={active ? "true" : "false"}
+                      className={`group relative isolate flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2.5 text-left transition-all ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.72)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}
                     >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-colors" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : getReadableBrandAccent(item.accent) }}>
+                      {active ? <motion.span layoutId="admin-sidebar-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
+                      {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : getReadableBrandAccent(item.accent) }}>
                         <item.icon className="h-[18px] w-[18px]" />
                       </span>
                       <span className="min-w-0 flex-1">
@@ -304,8 +307,8 @@ export function AdminView({
       {sidebarOpen ? <button type="button" className="fixed inset-0 z-40 bg-burgundy-dark/45 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} aria-label={isFr ? "Fermer la navigation" : "Close navigation"} /> : null}
 
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
-        <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/94 px-4 backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
-          <button type="button" onClick={() => setSidebarOpen(true)} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-border bg-white md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><Menu className="h-5 w-5" /></button>
+        <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/[0.97] px-4 shadow-[0_12px_28px_-28px_rgba(90,38,50,0.55)] backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
+          <button type="button" onClick={() => setSidebarOpen(true)} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.09),rgba(242,169,0,0.05))] text-charcoal transition hover:text-terre md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><Menu className="h-[1.15rem] w-[1.15rem]" /></button>
           <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><current.icon className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0 flex-1">
             <p className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{current.marker} · {isFr ? currentGroup?.labelFr : currentGroup?.labelEn}</p>
@@ -334,11 +337,25 @@ export function AdminView({
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[4.4rem] border-t border-charcoal/10 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ gridTemplateColumns: `repeat(${quickItems.length + 1}, minmax(0, 1fr))` }} aria-label={isFr ? "Navigation rapide" : "Quick navigation"}>
-        {quickItems.map((item) => (
-          <button key={item.id} type="button" onClick={() => selectSection(item.id)} className="relative flex min-w-0 flex-col items-center justify-center gap-1 text-[9px] font-bold text-muted-foreground" style={section === item.id ? { color: item.accent } : undefined} aria-current={section === item.id ? "page" : undefined}>{section === item.id ? <span className="absolute inset-x-3 top-0 h-0.5" style={{ backgroundColor: item.accent }} /> : null}<item.icon className="h-5 w-5" /><span className="max-w-full truncate px-1">{isFr ? item.mobileFr : item.mobileEn}</span></button>
-        ))}
-        <button type="button" onClick={() => setSidebarOpen(true)} className="flex min-w-0 flex-col items-center justify-center gap-1 text-[9px] font-bold text-muted-foreground"><Menu className="h-5 w-5" /><span>{isFr ? "Plus" : "More"}</span></button>
+      <nav data-testid="admin-mobile-navigation" className="fixed inset-x-0 bottom-0 z-30 grid h-[4.4rem] border-t border-burgundy/10 bg-white/[0.97] px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_34px_-28px_rgba(90,38,50,0.72)] backdrop-blur-xl md:hidden" style={{ gridTemplateColumns: `repeat(${quickItems.length + 1}, minmax(0, 1fr))` }} aria-label={isFr ? "Navigation rapide" : "Quick navigation"}>
+        {quickItems.map((item) => {
+          const active = section === item.id;
+          const count = badgeFor(item.id);
+          return (
+            <button key={item.id} type="button" onClick={() => selectSection(item.id)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-terre" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
+              {active ? <motion.span layoutId="admin-mobile-nav-active" className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-terre/15 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.07))] shadow-[0_8px_22px_-18px_rgba(185,71,43,0.85)]" transition={{ type: "spring", stiffness: 460, damping: 38 }} /> : null}
+              <span className="relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95" style={{ color: active ? item.accent : undefined }}><item.icon className={`h-[1.18rem] w-[1.18rem] ${active ? "stroke-[2.5]" : "stroke-[1.9]"}`} />{count > 0 ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">{count > 99 ? "99+" : count}</span> : null}</span>
+              <span className="block max-w-full leading-[1.05]">{isFr ? item.mobileFr : item.mobileEn}</span>
+              {active ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-gold" aria-hidden="true" /> : null}
+            </button>
+          );
+        })}
+        <button type="button" onClick={() => setSidebarOpen(true)} aria-expanded={sidebarOpen} data-testid="admin-mobile-more" data-active={moreActive ? "true" : "false"} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${moreActive ? "text-burgundy" : "text-muted-foreground hover:text-charcoal"}`}>
+          {moreActive ? <span className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-burgundy/15 bg-[linear-gradient(145deg,rgba(138,48,66,0.11),rgba(242,169,0,0.06))]" /> : null}
+          <span className="grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95"><Menu className={`h-[1.18rem] w-[1.18rem] ${moreActive ? "stroke-[2.5]" : "stroke-[1.9]"}`} /></span>
+          <span>{isFr ? "Plus" : "More"}</span>
+          {moreActive ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-gold" aria-hidden="true" /> : null}
+        </button>
       </nav>
     </div>
   );

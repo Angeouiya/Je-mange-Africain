@@ -525,6 +525,67 @@ test("every professional workspace has a clear purpose and stays inside the view
   }
 });
 
+test("the adaptive professional navigation distinguishes quick and secondary workspaces", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#overview", { waitUntil: "domcontentloaded" });
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+  const sidebar = page.getByTestId("admin-sidebar");
+
+  if (mobile) {
+    const quickNavigation = page.getByTestId("admin-mobile-navigation");
+    await expect(quickNavigation).toBeVisible();
+    const quickButtons = quickNavigation.locator(":scope > button");
+    await expect(quickButtons).toHaveCount(5);
+    const targets = await quickButtons.evaluateAll((buttons) => buttons.map((button) => {
+      const box = button.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    }));
+    expect(targets.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
+    await expect(quickNavigation.locator('button[aria-current="page"]')).toHaveCount(1);
+    await expect(quickNavigation.getByRole("button", { name: "Cockpit" })).toHaveAttribute("data-active", "true");
+
+    const more = page.getByTestId("admin-mobile-more");
+    await more.click();
+    await expect(sidebar).toBeVisible();
+    await expect(more).toHaveAttribute("aria-expanded", "true");
+    await page.getByRole("navigation", { name: "Navigation professionnelle" }).getByRole("button", { name: /^Mesurer la rentabilité/ }).click();
+    await expect(page.locator("header h1")).toHaveText("Mesurer la rentabilité");
+    await expect(page.locator("main").getByRole("heading", { name: "Rentabilité et encaissements" })).toBeVisible();
+    await expect(more).toHaveAttribute("data-active", "true");
+    await expect(quickNavigation.locator('button[aria-current="page"]')).toHaveCount(0);
+    if (process.env.ADMIN_SCREENSHOTS) {
+      const directory = join(process.cwd(), "output", "playwright", "admin-review");
+      mkdirSync(directory, { recursive: true });
+      await page.screenshot({ path: join(directory, "admin-shell-secondary-mobile.png"), scale: "css" });
+    }
+
+    await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
+    await expect(page.getByRole("navigation", { name: "Navigation professionnelle" }).locator('button[aria-current="page"]')).toContainText("Mesurer la rentabilité");
+  } else {
+    await expect(sidebar).toBeVisible();
+    const professionalNavigation = page.getByRole("navigation", { name: "Navigation professionnelle" });
+    await expect(professionalNavigation.locator('button[aria-current="page"]')).toHaveCount(1);
+    await professionalNavigation.getByRole("button", { name: /^Mesurer la rentabilité/ }).click();
+    const financeItem = professionalNavigation.getByRole("button", { name: /^Mesurer la rentabilité/ });
+    await expect(page.locator("main").getByRole("heading", { name: "Rentabilité et encaissements" })).toBeVisible();
+    await expect(financeItem).toHaveAttribute("aria-current", "page");
+    await expect(financeItem).toHaveAttribute("data-active", "true");
+    await expect(financeItem).toContainText("Coûts bruts, marges et ventes par famille");
+    await expect(page.getByTestId("admin-mobile-navigation")).toBeHidden();
+    if (process.env.ADMIN_SCREENSHOTS) {
+      const directory = join(process.cwd(), "output", "playwright", "admin-review");
+      mkdirSync(directory, { recursive: true });
+      await page.screenshot({ path: join(directory, "admin-shell-sidebar-desktop.png"), scale: "css" });
+    }
+  }
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+});
+
 test("the operations home turns live signals into clear decisions", async ({ page }) => {
   await mockAdminApi(page);
   await page.goto("/admin#overview", { waitUntil: "domcontentloaded" });
