@@ -794,3 +794,30 @@ export function localizeDish(dish: CulinaryDish, locale: DishLocale, score = 0) 
     steps: dish.steps.map((step) => step[locale]),
   };
 }
+
+export function serializeDishTemplate(dish: CulinaryDish, score = 0) {
+  return {
+    slug: dish.slug,
+    nameFr: dish.name.fr,
+    nameEn: dish.name.en,
+    country: dish.country,
+    region: dish.region,
+    category: dish.category,
+    difficulty: dish.difficulty,
+    timeMinutes: dish.timeMinutes,
+    servings: dish.servings,
+    featured: Boolean(dish.featured),
+    descriptionFr: dish.description.fr,
+    descriptionEn: dish.description.en,
+    recommendationScore: score,
+    ingredients: dish.ingredients.map((item) => ({
+      nameFr: item.name.fr,
+      nameEn: item.name.en,
+      quantity: item.quantity,
+      role: item.role,
+      optional: Boolean(item.optional),
+    })),
+    stepsFr: dish.steps.map((step) => step.fr),
+    stepsEn: dish.steps.map((step) => step.en),
+  };
+}

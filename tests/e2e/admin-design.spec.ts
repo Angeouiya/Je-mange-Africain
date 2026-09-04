@@ -48,6 +48,31 @@ const dashboard = {
   ],
 };
 
+const dishTemplatePayload = {
+  countries: ["Côte d'Ivoire", "Sénégal", "Cameroun"],
+  dishes: [{
+    slug: "garba-ivoirien",
+    nameFr: "Garba ivoirien",
+    nameEn: "Ivorian garba",
+    country: "Côte d'Ivoire",
+    region: "Abidjan",
+    category: "street-food",
+    difficulty: "easy",
+    timeMinutes: 25,
+    servings: 4,
+    featured: true,
+    descriptionFr: "Attiéké servi avec du thon frit, des oignons, de la tomate et du piment frais.",
+    descriptionEn: "Attieke served with fried tuna, onions, tomato and fresh chilli.",
+    recommendationScore: 12,
+    ingredients: [
+      { nameFr: "Attiéké", nameEn: "Attieke", quantity: "600 g", role: "base", optional: false },
+      { nameFr: "Thon frais", nameEn: "Fresh tuna", quantity: "600 g", role: "protein", optional: false },
+    ],
+    stepsFr: ["Saler le thon et le laisser reposer dix minutes.", "Frire le thon puis servir avec l'attiéké chaud."],
+    stepsEn: ["Salt the tuna and leave it to rest for ten minutes.", "Fry the tuna, then serve it with warm attieke."],
+  }],
+};
+
 const order = {
   id: "order-1",
   number: "JMA-260902-0142",
@@ -366,6 +391,7 @@ async function mockAdminApi(page: Page) {
       stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
       ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, imageUrl: "/products/attieke.webp" } }],
     };
+    else if (path === "/api/dishes") payload = dishTemplatePayload;
     else if (path === "/api/orders") payload = { orders: [order] };
     else if (path === "/api/admin/stock" && request.method() === "POST") payload = { batch: { id: "batch-2", lotNumber: "ATT-2609-FR" } };
     else if (path === "/api/admin/stock/batch-1" && request.method() === "PATCH") {
@@ -1072,6 +1098,56 @@ test("professional creation studios remain fully English and use brand-safe reci
   expect(overflow).toBeLessThanOrEqual(1);
   await expectBrandSafeUiColors(page);
   if (process.env.ADMIN_SCREENSHOTS) await page.screenshot({ path: join(screenshotDirectory, `advertising-studio-en-${mobile ? "mobile" : "desktop"}.png`) });
+});
+
+test("the recipe studio imports a documented dish and exposes every unresolved stock link", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Nouvelle recette" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Composer une recette achetable" });
+  const importer = dialog.getByTestId("recipe-template-importer");
+  await importer.getByRole("button", { name: "Choisir un plat" }).click();
+  await importer.getByLabel("Rechercher dans la bibliothèque").fill("garba");
+  await expect(importer.getByTestId("recipe-template-results")).toContainText("Garba ivoirien");
+  await expect(importer.getByText("1/2", { exact: false })).toBeVisible();
+  await importer.getByRole("button", { name: "Importer Garba ivoirien" }).click();
+
+  await expect(dialog.getByLabel("Titre français")).toHaveValue("Garba ivoirien");
+  await expect(dialog.getByLabel("Titre anglais")).toHaveValue("Ivorian garba");
+  await expect(dialog.getByLabel("Pays d'origine")).toHaveValue("Côte d'Ivoire");
+  await expect(dialog.getByLabel("Durée en minutes")).toHaveValue("25");
+  await expect(dialog.getByLabel("Nombre de portions")).toHaveValue("4");
+  await expect(importer).toContainText("1/2");
+
+  const linkedProduct = dialog.getByLabel("Produit 1");
+  const unresolvedProduct = dialog.getByLabel("Produit 2");
+  await expect(linkedProduct).toHaveValue("product-1");
+  await expect(dialog.getByLabel("Quantité 1")).toHaveValue("600");
+  await expect(unresolvedProduct).toHaveValue("");
+  await expect(dialog.getByText(/Thon frais \/ Fresh tuna.*à relier/)).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Enregistrer le brouillon" })).toBeDisabled();
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await unresolvedProduct.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(directory, `recipe-library-import-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+
+  await unresolvedProduct.selectOption("product-1");
+  await expect(dialog.getByRole("button", { name: "Enregistrer le brouillon" })).toBeEnabled();
+  await dialog.getByLabel("Titre français").fill("Garba maison");
+  await importer.getByRole("button", { name: "Changer de plat" }).click();
+  await importer.getByRole("button", { name: "Importer Garba ivoirien" }).click();
+  const replacement = page.getByRole("alertdialog", { name: "Remplacer la fiche en cours ?" });
+  await expect(replacement).toContainText("La recette restera en brouillon");
+  await replacement.getByRole("button", { name: "Conserver ma saisie" }).click();
+  await expect(dialog.getByLabel("Titre français")).toHaveValue("Garba maison");
+
+  const overflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
 });
 
 test("the order workspace saves logistics and confirms each sensitive advancement", async ({ page }) => {
