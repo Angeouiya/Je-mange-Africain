@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, type ReactNode, useDeferredValue, useMemo, useState } from "react";
-import { BookOpen, Boxes, Calculator, ChefHat, LoaderCircle, PackagePlus, PencilLine, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Boxes, Calculator, Check, ChefHat, ImageIcon, LoaderCircle, PackagePlus, PencilLine, Sparkles, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,6 +53,8 @@ type ProductDraft = {
   isRecommended: boolean;
   isBestseller: boolean;
 };
+
+type ProductStudioStep = "identity" | "pricing" | "logistics" | "publishing";
 
 export type EditableProduct = {
   id: string;
@@ -126,6 +129,8 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
   const editing = Boolean(product);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => draftFor(product));
+  const [activeStep, setActiveStep] = useState<ProductStudioStep>("identity");
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const { data: categoriesData } = useFetch(`/api/categories?locale=${locale}`, [locale]);
@@ -168,16 +173,43 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
     ),
     [draft, salePrice, wholesaleValid]
   );
+  const identityComplete = Boolean(draft.nameFr.trim() && draft.nameEn.trim() && draft.traditionalName.trim() && draft.sku.trim() && draft.categoryId && draft.packaging.trim() && draft.descriptionFr.trim().length >= 10 && draft.descriptionEn.trim().length >= 10);
+  const pricingComplete = Boolean(Number(draft.costPrice) > 0 && draft.profitMargin !== "" && Number(draft.profitMargin) >= 0 && (!draft.promoPrice || (Number(draft.promoPrice) > 0 && Number(draft.promoPrice) < salePrice)) && wholesaleValid);
+  const logisticsComplete = Number(draft.stockQty) >= 0 && Number(draft.netWeightGrams) > 0;
+  const publishingComplete = Boolean(draft.imageUrl && draft.status);
+  const studioSteps: Array<{ id: ProductStudioStep; icon: typeof PackagePlus; label: string; complete: boolean }> = [
+    { id: "identity", icon: PackagePlus, label: locale === "fr" ? "Identité" : "Identity", complete: identityComplete },
+    { id: "pricing", icon: Calculator, label: locale === "fr" ? "Prix" : "Pricing", complete: pricingComplete },
+    { id: "logistics", icon: Boxes, label: locale === "fr" ? "Logistique" : "Logistics", complete: logisticsComplete },
+    { id: "publishing", icon: ImageIcon, label: locale === "fr" ? "Publication" : "Publishing", complete: publishingComplete },
+  ];
+  const activeStepIndex = studioSteps.findIndex((step) => step.id === activeStep);
+  const completedSteps = studioSteps.filter((step) => step.complete).length;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(draftFor(product));
 
   const update = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
 
   const handleOpen = (nextOpen: boolean) => {
     if (submitting) return;
-    setOpen(nextOpen);
     if (nextOpen) {
       setDraft(draftFor(product));
       setSubmitError("");
+      setActiveStep("identity");
+      setOpen(true);
+      return;
     }
+    if (dirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    setOpen(false);
+  };
+
+  const discardChanges = () => {
+    setDraft(draftFor(product));
+    setSubmitError("");
+    setDiscardOpen(false);
+    setOpen(false);
   };
 
   const submit = async (event: FormEvent) => {
@@ -207,164 +239,120 @@ export function ProductCreateDialog({ locale, onCreated, product }: { locale: "f
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogTrigger asChild>
-        {editing ? <Button type="button" variant="outline" size="icon" className="h-8 w-8 bg-white" aria-label={locale === "fr" ? `Modifier la fiche ${product!.nameFr}` : `Edit ${product!.nameEn}`} title={locale === "fr" ? "Modifier la fiche complète" : "Edit full record"}><PencilLine className="h-4 w-4" /></Button> : <Button size="sm" className="bg-terre text-cream hover:bg-terre-dark"><PackagePlus className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Nouveau produit" : "New product"}</Button>}
-      </DialogTrigger>
-      <DialogContent className="max-h-[94vh] overflow-y-auto p-0 sm:max-w-5xl">
-        <form onSubmit={submit}>
-          <DialogHeader className="border-b border-border px-5 py-5 sm:px-7">
-            <DialogTitle className="flex items-center gap-2 text-xl text-charcoal">{editing ? <PencilLine className="h-5 w-5 text-terre" /> : <PackagePlus className="h-5 w-5 text-terre" />} {editing ? (locale === "fr" ? "Modifier la fiche produit" : "Edit product record") : (locale === "fr" ? "Enregistrer un produit" : "Register a product")}</DialogTitle>
-            <DialogDescription>{editing ? (locale === "fr" ? "Mettez à jour les deux langues, le prix interne, le stock et la publication depuis une seule fiche contrôlée." : "Update both languages, internal pricing, stock and publishing from one controlled record.") : (locale === "fr" ? "La bibliothèque culinaire analyse la fiche et propose immédiatement les plats dans lesquels ce produit peut être valorisé." : "The culinary library analyses the record and instantly suggests dishes where this product can be featured.")}</DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-7 px-5 py-6 sm:px-7 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="space-y-5">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={locale === "fr" ? "Nom commercial français" : "French product name"} required><Input value={draft.nameFr} onChange={(event) => update("nameFr", event.target.value)} placeholder="Attiéké frais premium" /></Field>
-                <Field label={locale === "fr" ? "Nom commercial anglais" : "English product name"} required><Input value={draft.nameEn} onChange={(event) => update("nameEn", event.target.value)} placeholder="Premium fresh attieke" /></Field>
-                <Field label={locale === "fr" ? "Nom traditionnel" : "Traditional name"} required><Input value={draft.traditionalName} onChange={(event) => update("traditionalName", event.target.value)} placeholder="Attiéké" /></Field>
-                <Field label="SKU" required><Input value={draft.sku} onChange={(event) => update("sku", event.target.value.toUpperCase())} placeholder="JMA-ATT-001" /></Field>
-                <Field label={locale === "fr" ? "Catégorie" : "Category"} required>
-                  <select value={draft.categoryId} onChange={(event) => update("categoryId", event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
-                    <option value="">{locale === "fr" ? "Sélectionner" : "Select"}</option>
-                    {categoriesData?.categories?.map((category: any) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                  </select>
-                </Field>
-                <Field label={locale === "fr" ? "Pays d'origine" : "Country of origin"} required><Input value={draft.country} onChange={(event) => update("country", event.target.value)} /></Field>
-                <Field label={locale === "fr" ? "Conditionnement" : "Packaging"} required><Input value={draft.packaging} onChange={(event) => update("packaging", event.target.value)} placeholder="Sachet 500 g" /></Field>
+    <>
+      <Dialog open={open} onOpenChange={handleOpen}>
+        <DialogTrigger asChild>
+          {editing ? <Button type="button" variant="outline" size="icon" className="h-8 w-8 bg-white" aria-label={locale === "fr" ? `Modifier la fiche ${product!.nameFr}` : `Edit ${product!.nameEn}`} title={locale === "fr" ? "Modifier la fiche complète" : "Edit full record"}><PencilLine className="h-4 w-4" /></Button> : <Button size="sm" className="bg-terre text-cream hover:bg-terre-dark"><PackagePlus className="mr-1.5 h-4 w-4" /> {locale === "fr" ? "Nouveau produit" : "New product"}</Button>}
+        </DialogTrigger>
+        <DialogContent closeLabel={locale === "fr" ? "Fermer" : "Close"} className="flex max-h-[calc(100svh-1rem)] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
+          <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <DialogHeader className="shrink-0 border-b border-border px-5 py-4 pr-16 text-left sm:px-7 sm:pr-16">
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-terre text-white">{editing ? <PencilLine className="h-5 w-5" /> : <PackagePlus className="h-5 w-5" />}</span>
+                <div className="min-w-0"><p className="text-[9px] font-black uppercase text-terre">{locale === "fr" ? "Studio catalogue" : "Catalogue studio"}</p><DialogTitle className="mt-0.5 text-xl text-charcoal">{editing ? (locale === "fr" ? "Modifier la fiche produit" : "Edit product record") : (locale === "fr" ? "Enregistrer un produit" : "Register a product")}</DialogTitle><DialogDescription className="mt-1 text-xs leading-5">{editing ? (locale === "fr" ? "Mettez à jour les langues, les prix, le stock et la diffusion." : "Update languages, pricing, stock and publishing.") : (locale === "fr" ? "Créez une fiche bilingue, rentable et prête pour la boutique." : "Build a bilingual, profitable record ready for the storefront.")}</DialogDescription></div>
               </div>
+            </DialogHeader>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={locale === "fr" ? "Description française" : "French description"} required><Textarea value={draft.descriptionFr} onChange={(event) => update("descriptionFr", event.target.value)} rows={5} placeholder="Origine, goût, texture, usage et conservation..." /></Field>
-                <Field label={locale === "fr" ? "Description anglaise" : "English description"} required><Textarea value={draft.descriptionEn} onChange={(event) => update("descriptionEn", event.target.value)} rows={5} placeholder="Origin, flavour, texture, use and storage..." /></Field>
+            <nav className="shrink-0 border-b border-border bg-[#FFFCFA] px-3 py-2 sm:px-6" role="tablist" aria-label={locale === "fr" ? "Étapes de la fiche produit" : "Product record steps"} data-testid="product-studio-steps">
+              <div className="grid grid-cols-4 gap-1">
+                {studioSteps.map((step, index) => {
+                  const StepIcon = step.icon;
+                  const selected = activeStep === step.id;
+                  return <button key={step.id} id={`product-step-${step.id}`} type="button" role="tab" aria-selected={selected} aria-controls={`product-panel-${step.id}`} onClick={() => setActiveStep(step.id)} className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 text-[8px] font-black leading-3 transition sm:min-h-11 sm:flex-row sm:gap-1.5 sm:px-1.5 sm:text-xs ${selected ? "bg-burgundy text-white shadow-sm" : "text-muted-foreground hover:bg-burgundy/[0.045] hover:text-charcoal"}`}><span className={`grid h-6 w-6 shrink-0 place-items-center rounded ${selected ? "bg-white/15" : step.complete ? "bg-burgundy/10 text-burgundy" : "bg-white"}`}>{step.complete && !selected ? <Check className="h-3.5 w-3.5" /> : <StepIcon className="h-3.5 w-3.5" />}</span><span className="max-w-full text-center sm:truncate">{step.label}</span><span className={`absolute bottom-0.5 h-0.5 rounded-full transition-all ${selected ? "w-5 bg-gold" : "w-0"}`} /><span className="sr-only">{locale === "fr" ? `Étape ${index + 1} sur 4` : `Step ${index + 1} of 4`}</span></button>;
+                })}
               </div>
+            </nav>
 
-              <section className="overflow-hidden rounded-lg border border-terre/20 bg-terre/[0.035]">
-                <div className="flex items-start gap-3 border-b border-terre/15 px-4 py-3">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-terre text-white"><Calculator className="h-4 w-4" /></span>
-                  <div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Construction du prix" : "Price composition"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Ces données restent internes. Le client voit uniquement le prix de vente calculé." : "These values remain internal. Customers only see the calculated selling price."}</p></div>
-                </div>
-                <div className="grid gap-4 p-4 sm:grid-cols-[1fr_1fr_1.05fr]">
-                  <Field label={locale === "fr" ? "Coût brut d'achat (€)" : "Gross purchase cost (€)"} required><Input type="number" inputMode="decimal" min="0.01" max="10000" step="0.01" value={draft.costPrice} onChange={(event) => update("costPrice", event.target.value)} placeholder={locale === "fr" ? "1,80" : "1.80"} /></Field>
-                  <Field label={locale === "fr" ? "Marge bénéficiaire (€)" : "Profit margin (€)"} required><Input type="number" inputMode="decimal" min="0" max="10000" step="0.01" value={draft.profitMargin} onChange={(event) => update("profitMargin", event.target.value)} placeholder={locale === "fr" ? "1,20" : "1.20"} /></Field>
-                  <div className="rounded-md bg-charcoal px-4 py-3 text-white" aria-live="polite">
-                    <p className="text-[10px] font-bold uppercase text-white/60">{locale === "fr" ? "Prix affiché au client" : "Customer price"}</p>
-                    <p className="mt-1 text-2xl font-black text-gold">{salePrice.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
-                    <p className="mt-1 text-[10px] text-white/60">{locale === "fr" ? "Coût + marge" : "Cost + margin"} · {marginRate.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { maximumFractionDigits: 1 })}% {locale === "fr" ? "de marge" : "margin"}</p>
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-5 sm:px-7" data-testid="product-studio-panel">
+              {activeStep === "identity" ? (
+                <section id="product-panel-identity" role="tabpanel" aria-labelledby="product-step-identity" className="space-y-5">
+                  <StudioPanelHeading icon={PackagePlus} eyebrow={locale === "fr" ? "01 · Référentiel" : "01 · Record"} title={locale === "fr" ? "Identité commerciale bilingue" : "Bilingual commercial identity"} description={locale === "fr" ? "Nommez précisément le produit et rendez-le trouvable dans les deux langues." : "Name the product precisely and make it discoverable in both languages."} />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label={locale === "fr" ? "Nom commercial français" : "French product name"} required><Input value={draft.nameFr} onChange={(event) => update("nameFr", event.target.value)} placeholder="Attiéké frais premium" /></Field>
+                    <Field label={locale === "fr" ? "Nom commercial anglais" : "English product name"} required><Input value={draft.nameEn} onChange={(event) => update("nameEn", event.target.value)} placeholder="Premium fresh attieke" /></Field>
+                    <Field label={locale === "fr" ? "Nom traditionnel" : "Traditional name"} required><Input value={draft.traditionalName} onChange={(event) => update("traditionalName", event.target.value)} placeholder="Attiéké" /></Field>
+                    <Field label="SKU" required><Input value={draft.sku} onChange={(event) => update("sku", event.target.value.toUpperCase())} placeholder="JMA-ATT-001" /></Field>
+                    <Field label={locale === "fr" ? "Catégorie" : "Category"} required><select value={draft.categoryId} onChange={(event) => update("categoryId", event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"><option value="">{locale === "fr" ? "Sélectionner" : "Select"}</option>{categoriesData?.categories?.map((category: any) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></Field>
+                    <Field label={locale === "fr" ? "Pays d'origine" : "Country of origin"} required><Input value={draft.country} onChange={(event) => update("country", event.target.value)} /></Field>
+                    <Field label={locale === "fr" ? "Conditionnement" : "Packaging"} required><Input value={draft.packaging} onChange={(event) => update("packaging", event.target.value)} placeholder="Sachet 500 g" /></Field>
                   </div>
-                </div>
-              </section>
-
-              <section className="overflow-hidden rounded-lg border border-burgundy/20 bg-burgundy/[0.035]">
-                <div className="flex items-center gap-3 border-b border-burgundy/15 px-4 py-3">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white"><Boxes className="h-4 w-4" /></span>
-                  <div className="min-w-0 flex-1"><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Marché de gros" : "Wholesale market"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Publiez un conditionnement professionnel et des prix dégressifs protégés au paiement." : "Publish professional packaging and tiered prices protected at checkout."}</p></div>
-                  <Switch
-                    checked={draft.isWholesale}
-                    onCheckedChange={(checked) => setDraft((current) => ({
-                      ...current,
-                      isWholesale: checked,
-                      wholesalePrice: checked && !current.wholesalePrice
-                        ? String(Math.round(salePrice * Number(current.wholesaleUnitsPerPack || 6) * 0.9 * 100) / 100)
-                        : current.wholesalePrice,
-                    }))}
-                    aria-label={locale === "fr" ? "Activer la vente en gros" : "Enable wholesale sales"}
-                  />
-                </div>
-                {draft.isWholesale ? (
-                  <div className="space-y-4 p-4">
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <Field label={locale === "fr" ? "Conditionnement de gros" : "Wholesale packaging"} required><Input value={draft.wholesalePackLabel} onChange={(event) => update("wholesalePackLabel", event.target.value)} placeholder={locale === "fr" ? "Carton de 6 sachets" : "Case of 6 packs"} /></Field>
-                      <Field label={locale === "fr" ? "Unités par colis" : "Units per case"} required><Input type="number" min="1" max="10000" value={draft.wholesaleUnitsPerPack} onChange={(event) => update("wholesaleUnitsPerPack", event.target.value)} /></Field>
-                      <Field label={locale === "fr" ? "Minimum de colis" : "Minimum cases"} required><Input type="number" min="1" max="99" value={draft.wholesaleMinPacks} onChange={(event) => update("wholesaleMinPacks", event.target.value)} /></Field>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-[1fr_1fr_1.05fr]">
-                      <Field label={locale === "fr" ? "Prix par colis (€)" : "Price per case (€)"} required><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesalePrice} onChange={(event) => update("wholesalePrice", event.target.value)} /></Field>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label={locale === "fr" ? "Palier 2" : "Tier 2"}><Input type="number" min="2" placeholder={locale === "fr" ? "Colis" : "Cases"} value={draft.wholesaleTier2MinPacks} onChange={(event) => update("wholesaleTier2MinPacks", event.target.value)} /></Field>
-                        <Field label={locale === "fr" ? "Prix (€)" : "Price (€)"}><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesaleTier2Price} onChange={(event) => update("wholesaleTier2Price", event.target.value)} /></Field>
-                      </div>
-                      <div className="rounded-md bg-charcoal px-4 py-3 text-white" aria-live="polite">
-                        <p className="text-[10px] font-bold uppercase text-white/60">{locale === "fr" ? "Marge par colis" : "Margin per case"}</p>
-                        <p className={`mt-1 text-xl font-black ${wholesaleMargin >= 0 ? "text-gold" : "text-cream"}`}>{wholesaleMargin.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
-                        <p className="mt-1 text-[10px] text-white/60">{locale === "fr" ? "Coût brut du colis" : "Gross case cost"} · {wholesalePackCost.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 sm:max-w-md">
-                      <Field label={locale === "fr" ? "Palier 3 (colis)" : "Tier 3 (cases)"}><Input type="number" min="3" value={draft.wholesaleTier3MinPacks} onChange={(event) => update("wholesaleTier3MinPacks", event.target.value)} /></Field>
-                      <Field label={locale === "fr" ? "Prix palier 3 (€)" : "Tier 3 price (€)"}><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesaleTier3Price} onChange={(event) => update("wholesaleTier3Price", event.target.value)} /></Field>
-                    </div>
-                    {!wholesaleValid ? <p role="alert" className="text-[11px] font-semibold leading-5 text-destructive">{locale === "fr" ? "Le prix doit couvrir le coût brut, rester inférieur au détail équivalent et diminuer à chaque palier complet." : "Prices must cover gross cost, stay below equivalent retail and decrease at every complete tier."}</p> : null}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label={locale === "fr" ? "Description française" : "French description"} required><Textarea value={draft.descriptionFr} onChange={(event) => update("descriptionFr", event.target.value)} rows={4} placeholder="Origine, goût, texture, usage et conservation..." /></Field>
+                    <Field label={locale === "fr" ? "Description anglaise" : "English description"} required><Textarea value={draft.descriptionEn} onChange={(event) => update("descriptionEn", event.target.value)} rows={4} placeholder="Origin, flavour, texture, use and storage..." /></Field>
                   </div>
-                ) : null}
-              </section>
+                </section>
+              ) : null}
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <Field label={locale === "fr" ? "Prix promotionnel (€)" : "Promotional price (€)"}><Input type="number" inputMode="decimal" min="0.01" max={salePrice || undefined} step="0.01" value={draft.promoPrice} onChange={(event) => update("promoPrice", event.target.value)} /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Doit rester inférieur au prix client." : "Must remain below the customer price."}</p></Field>
-                <Field label={locale === "fr" ? "Stock" : "Stock"}><Input type="number" min="0" value={draft.stockQty} onChange={(event) => update("stockQty", event.target.value)} /></Field>
-                <Field label={locale === "fr" ? "Poids (g)" : "Weight (g)"}><Input type="number" min="0" value={draft.netWeightGrams} onChange={(event) => update("netWeightGrams", event.target.value)} /></Field>
-              </div>
+              {activeStep === "pricing" ? (
+                <section id="product-panel-pricing" role="tabpanel" aria-labelledby="product-step-pricing" className="space-y-5">
+                  <StudioPanelHeading icon={Calculator} eyebrow={locale === "fr" ? "02 · Rentabilité" : "02 · Profitability"} title={locale === "fr" ? "Prix, marge et marché de gros" : "Pricing, margin and wholesale"} description={locale === "fr" ? "Le coût et la marge restent internes. Le client voit uniquement le prix calculé." : "Cost and margin remain internal. Customers only see the calculated price."} />
+                  <section className="overflow-hidden rounded-lg border border-terre/20 bg-terre/[0.035]">
+                    <div className="grid gap-4 p-4 sm:grid-cols-[1fr_1fr_1.05fr]">
+                      <Field label={locale === "fr" ? "Coût brut d'achat (€)" : "Gross purchase cost (€)"} required><Input type="number" inputMode="decimal" min="0.01" max="10000" step="0.01" value={draft.costPrice} onChange={(event) => update("costPrice", event.target.value)} placeholder={locale === "fr" ? "1,80" : "1.80"} /></Field>
+                      <Field label={locale === "fr" ? "Marge bénéficiaire (€)" : "Profit margin (€)"} required><Input type="number" inputMode="decimal" min="0" max="10000" step="0.01" value={draft.profitMargin} onChange={(event) => update("profitMargin", event.target.value)} placeholder={locale === "fr" ? "1,20" : "1.20"} /></Field>
+                      <div className="rounded-md border border-gold/55 bg-[#FFF7DF] px-4 py-3" aria-live="polite"><p className="text-[10px] font-bold uppercase text-burgundy">{locale === "fr" ? "Prix affiché au client" : "Customer price"}</p><p className="mt-1 text-2xl font-black text-terre-dark">{salePrice.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p><p className="mt-1 text-[10px] text-charcoal">{locale === "fr" ? "Coût + marge" : "Cost + margin"} · {marginRate.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { maximumFractionDigits: 1 })}% {locale === "fr" ? "de marge" : "margin"}</p></div>
+                    </div>
+                  </section>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={locale === "fr" ? "Chaîne thermique" : "Thermal class"}>
-                  <select aria-label={locale === "fr" ? "Chaîne thermique" : "Thermal class"} value={draft.thermalClass} onChange={(event) => update("thermalClass", event.target.value as ProductDraft["thermalClass"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
-                    <option value="AMBIANT">{locale === "fr" ? "Ambiant" : "Ambient"}</option><option value="REFRIGERATED">{locale === "fr" ? "Réfrigéré" : "Refrigerated"}</option><option value="FROZEN">{locale === "fr" ? "Surgelé" : "Frozen"}</option>
-                  </select>
-                </Field>
-                <Field label={locale === "fr" ? "Conservation" : "Storage"}>
-                  <select aria-label={locale === "fr" ? "Conservation" : "Storage"} value={draft.storageType} onChange={(event) => update("storageType", event.target.value as ProductDraft["storageType"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
-                    <option value="SEC">{locale === "fr" ? "Sec" : "Dry"}</option><option value="FRAIS">{locale === "fr" ? "Frais" : "Fresh"}</option><option value="REFRIGERE">{locale === "fr" ? "Réfrigéré" : "Refrigerated"}</option><option value="SURGELE">{locale === "fr" ? "Surgelé" : "Frozen"}</option><option value="FUME">{locale === "fr" ? "Fumé" : "Smoked"}</option><option value="SECHE">{locale === "fr" ? "Séché" : "Dried"}</option><option value="CONSERVE">{locale === "fr" ? "Conserve" : "Preserved"}</option>
-                  </select>
-                </Field>
-              </div>
-              <Field label={locale === "fr" ? "État de publication" : "Publishing status"}>
-                <select value={draft.status} onChange={(event) => update("status", event.target.value as ProductDraft["status"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
-                  <option value="published">{locale === "fr" ? "Publié dans la boutique" : "Published in store"}</option><option value="draft">{locale === "fr" ? "Brouillon interne" : "Internal draft"}</option><option value="archived">{locale === "fr" ? "Désactivé" : "Disabled"}</option>
-                </select>
-              </Field>
-              <Field label={locale === "fr" ? "Alias de recherche" : "Search aliases"}><Input value={draft.aliases} onChange={(event) => update("aliases", event.target.value)} placeholder={locale === "fr" ? "atchéké, couscous de manioc" : "attieke, cassava couscous"} /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Séparez les variantes par une virgule." : "Separate variants with commas."}</p></Field>
+                  <section className="overflow-hidden rounded-lg border border-burgundy/20 bg-burgundy/[0.035]">
+                    <div className="flex items-center gap-3 border-b border-burgundy/15 px-4 py-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white"><Boxes className="h-4 w-4" /></span><div className="min-w-0 flex-1"><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Marché de gros" : "Wholesale market"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Publiez un conditionnement professionnel et des prix dégressifs protégés." : "Publish professional packaging and protected tiered pricing."}</p></div><Switch checked={draft.isWholesale} onCheckedChange={(checked) => setDraft((current) => ({ ...current, isWholesale: checked, wholesalePrice: checked && !current.wholesalePrice ? String(Math.round(salePrice * Number(current.wholesaleUnitsPerPack || 6) * 0.9 * 100) / 100) : current.wholesalePrice }))} aria-label={locale === "fr" ? "Activer la vente en gros" : "Enable wholesale sales"} /></div>
+                    {draft.isWholesale ? <div className="space-y-4 p-4"><div className="grid gap-4 sm:grid-cols-3"><Field label={locale === "fr" ? "Conditionnement de gros" : "Wholesale packaging"} required><Input value={draft.wholesalePackLabel} onChange={(event) => update("wholesalePackLabel", event.target.value)} placeholder={locale === "fr" ? "Carton de 6 sachets" : "Case of 6 packs"} /></Field><Field label={locale === "fr" ? "Unités par colis" : "Units per case"} required><Input type="number" min="1" max="10000" value={draft.wholesaleUnitsPerPack} onChange={(event) => update("wholesaleUnitsPerPack", event.target.value)} /></Field><Field label={locale === "fr" ? "Minimum de colis" : "Minimum cases"} required><Input type="number" min="1" max="99" value={draft.wholesaleMinPacks} onChange={(event) => update("wholesaleMinPacks", event.target.value)} /></Field></div><div className="grid gap-4 sm:grid-cols-[1fr_1fr_1.05fr]"><Field label={locale === "fr" ? "Prix par colis (€)" : "Price per case (€)"} required><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesalePrice} onChange={(event) => update("wholesalePrice", event.target.value)} /></Field><div className="grid grid-cols-2 gap-2"><Field label={locale === "fr" ? "Palier 2" : "Tier 2"}><Input type="number" min="2" placeholder={locale === "fr" ? "Colis" : "Cases"} value={draft.wholesaleTier2MinPacks} onChange={(event) => update("wholesaleTier2MinPacks", event.target.value)} /></Field><Field label={locale === "fr" ? "Prix (€)" : "Price (€)"}><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesaleTier2Price} onChange={(event) => update("wholesaleTier2Price", event.target.value)} /></Field></div><div className="rounded-md border border-burgundy/20 bg-white px-4 py-3" aria-live="polite"><p className="text-[10px] font-bold uppercase text-burgundy">{locale === "fr" ? "Marge par colis" : "Margin per case"}</p><p className={`mt-1 text-xl font-black ${wholesaleMargin >= 0 ? "text-terre-dark" : "text-destructive"}`}>{wholesaleMargin.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Coût brut du colis" : "Gross case cost"} · {wholesalePackCost.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR" })}</p></div></div><div className="grid grid-cols-2 gap-2 sm:max-w-md"><Field label={locale === "fr" ? "Palier 3 (colis)" : "Tier 3 (cases)"}><Input type="number" min="3" value={draft.wholesaleTier3MinPacks} onChange={(event) => update("wholesaleTier3MinPacks", event.target.value)} /></Field><Field label={locale === "fr" ? "Prix palier 3 (€)" : "Tier 3 price (€)"}><Input type="number" inputMode="decimal" min={wholesalePackCost || 0.01} step="0.01" value={draft.wholesaleTier3Price} onChange={(event) => update("wholesaleTier3Price", event.target.value)} /></Field></div>{!wholesaleValid ? <p role="alert" className="text-[11px] font-semibold leading-5 text-destructive">{locale === "fr" ? "Le prix doit couvrir le coût brut, rester inférieur au détail équivalent et diminuer à chaque palier complet." : "Prices must cover gross cost, stay below equivalent retail and decrease at every complete tier."}</p> : null}</div> : null}
+                  </section>
+                  <div className="max-w-sm"><Field label={locale === "fr" ? "Prix promotionnel (€)" : "Promotional price (€)"}><Input type="number" inputMode="decimal" min="0.01" max={salePrice || undefined} step="0.01" value={draft.promoPrice} onChange={(event) => update("promoPrice", event.target.value)} /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Doit rester inférieur au prix client." : "Must remain below the customer price."}</p></Field></div>
+                </section>
+              ) : null}
+
+              {activeStep === "logistics" ? (
+                <section id="product-panel-logistics" role="tabpanel" aria-labelledby="product-step-logistics" className="space-y-5">
+                  <StudioPanelHeading icon={Boxes} eyebrow={locale === "fr" ? "03 · Exécution" : "03 · Fulfilment"} title={locale === "fr" ? "Stock, poids et conservation" : "Stock, weight and storage"} description={locale === "fr" ? "Définissez les données utilisées pour la disponibilité et l'orchestration de la livraison." : "Set the data used for availability and delivery orchestration."} />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label={locale === "fr" ? "Stock disponible" : "Available stock"}><Input type="number" min="0" value={draft.stockQty} onChange={(event) => update("stockQty", event.target.value)} /></Field>
+                    <Field label={locale === "fr" ? "Poids net (g)" : "Net weight (g)"} required><Input type="number" min="1" value={draft.netWeightGrams} onChange={(event) => update("netWeightGrams", event.target.value)} /></Field>
+                    <Field label={locale === "fr" ? "Chaîne thermique" : "Thermal class"}><select aria-label={locale === "fr" ? "Chaîne thermique" : "Thermal class"} value={draft.thermalClass} onChange={(event) => update("thermalClass", event.target.value as ProductDraft["thermalClass"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"><option value="AMBIANT">{locale === "fr" ? "Ambiant" : "Ambient"}</option><option value="REFRIGERATED">{locale === "fr" ? "Réfrigéré" : "Refrigerated"}</option><option value="FROZEN">{locale === "fr" ? "Surgelé" : "Frozen"}</option></select></Field>
+                    <Field label={locale === "fr" ? "Conservation" : "Storage"}><select aria-label={locale === "fr" ? "Conservation" : "Storage"} value={draft.storageType} onChange={(event) => update("storageType", event.target.value as ProductDraft["storageType"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"><option value="SEC">{locale === "fr" ? "Sec" : "Dry"}</option><option value="FRAIS">{locale === "fr" ? "Frais" : "Fresh"}</option><option value="REFRIGERE">{locale === "fr" ? "Réfrigéré" : "Refrigerated"}</option><option value="SURGELE">{locale === "fr" ? "Surgelé" : "Frozen"}</option><option value="FUME">{locale === "fr" ? "Fumé" : "Smoked"}</option><option value="SECHE">{locale === "fr" ? "Séché" : "Dried"}</option><option value="CONSERVE">{locale === "fr" ? "Conserve" : "Preserved"}</option></select></Field>
+                  </div>
+                  <Field label={locale === "fr" ? "Alias de recherche" : "Search aliases"}><Input value={draft.aliases} onChange={(event) => update("aliases", event.target.value)} placeholder={locale === "fr" ? "atchéké, couscous de manioc" : "attieke, cassava couscous"} /><p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Séparez les variantes par une virgule." : "Separate variants with commas."}</p></Field>
+                  <div className="grid grid-cols-3 divide-x divide-burgundy/10 rounded-lg border border-burgundy/12 bg-[#FFF9F6] py-4"><StudioFact label={locale === "fr" ? "Unités" : "Units"} value={draft.stockQty || "0"} /><StudioFact label={locale === "fr" ? "Poids" : "Weight"} value={`${draft.netWeightGrams || "0"} g`} /><StudioFact label={locale === "fr" ? "Température" : "Temperature"} value={draft.thermalClass === "AMBIANT" ? (locale === "fr" ? "Ambiant" : "Ambient") : draft.thermalClass === "REFRIGERATED" ? (locale === "fr" ? "Réfrigéré" : "Chilled") : (locale === "fr" ? "Surgelé" : "Frozen")} /></div>
+                </section>
+              ) : null}
+
+              {activeStep === "publishing" ? (
+                <section id="product-panel-publishing" role="tabpanel" aria-labelledby="product-step-publishing" className="space-y-5">
+                  <StudioPanelHeading icon={ImageIcon} eyebrow={locale === "fr" ? "04 · Mise en vente" : "04 · Go live"} title={locale === "fr" ? "Image, visibilité et associations" : "Media, visibility and pairings"} description={locale === "fr" ? "Contrôlez exactement ce que le client verra et les recettes dans lesquelles le produit sera proposé." : "Control exactly what customers see and the recipes where this product will be suggested."} />
+                  <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+                    <section className="border-y border-terre/20 bg-white px-1 py-4 sm:px-4"><MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="product" locale={locale} label={locale === "fr" ? "Photo principale du produit" : "Main product photo"} required /><div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-3"><EditorialFlag checked={draft.isNew} onChange={(isNew) => update("isNew", isNew)} label={locale === "fr" ? "Nouveauté" : "New"} /><EditorialFlag checked={draft.isRecommended} onChange={(isRecommended) => update("isRecommended", isRecommended)} label={locale === "fr" ? "Recommandé" : "Recommended"} /><EditorialFlag checked={draft.isBestseller} onChange={(isBestseller) => update("isBestseller", isBestseller)} label={locale === "fr" ? "Populaire" : "Popular"} /></div><div className="mt-4 border-t border-border pt-4"><Field label={locale === "fr" ? "État de publication" : "Publishing status"}><select aria-label={locale === "fr" ? "État de publication" : "Publishing status"} value={draft.status} onChange={(event) => update("status", event.target.value as ProductDraft["status"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"><option value="published">{locale === "fr" ? "Publié dans la boutique" : "Published in store"}</option><option value="draft">{locale === "fr" ? "Brouillon interne" : "Internal draft"}</option><option value="archived">{locale === "fr" ? "Désactivé" : "Disabled"}</option></select></Field></div></section>
+                    <section className="rounded-lg border border-burgundy/20 bg-burgundy/[0.04] p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white"><Sparkles className="h-4 w-4" /></span><div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Plats proposés" : "Suggested dishes"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les correspondances évoluent selon le nom, l'origine et la description." : "Matches update from the name, origin and description."}</p></div></div><div className="mt-4 space-y-2">{recommendationsLoading ? <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> {locale === "fr" ? "Analyse culinaire..." : "Analysing..."}</div> : null}{!recommendationsLoading && recommendations.length === 0 ? <div className="rounded-lg border border-dashed border-border bg-white/70 p-5 text-center"><ChefHat className="mx-auto h-7 w-7 text-muted-foreground" /><p className="mt-2 text-xs text-muted-foreground">{locale === "fr" ? "Complétez l'identité pour obtenir des associations." : "Complete the identity to get matches."}</p></div> : null}{recommendations.map((dish: any) => <div key={dish.slug} className="rounded-md border border-border bg-white p-3"><div className="flex items-start gap-2"><BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{dish.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{dish.country} · {dish.categoryLabel} · {dish.timeMinutes} min</p></div>{dish.recommendationScore > 8 ? <Badge className="border-0 bg-burgundy/10 text-[9px] text-burgundy">{locale === "fr" ? "Fort" : "Strong"}</Badge> : null}</div></div>)}</div></section>
+                  </div>
+                </section>
+              ) : null}
             </div>
 
-            <aside className="h-fit space-y-5 lg:sticky lg:top-4">
-              <section className="border-y border-terre/20 bg-white px-4 py-4">
-                <MediaUploadField value={draft.imageUrl} onChange={(imageUrl) => update("imageUrl", imageUrl)} kind="product" locale={locale} label={locale === "fr" ? "Photo principale du produit" : "Main product photo"} required />
-                <div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                  <EditorialFlag checked={draft.isNew} onChange={(isNew) => update("isNew", isNew)} label={locale === "fr" ? "Nouveauté" : "New"} />
-                  <EditorialFlag checked={draft.isRecommended} onChange={(isRecommended) => update("isRecommended", isRecommended)} label={locale === "fr" ? "Recommandé" : "Recommended"} />
-                  <EditorialFlag checked={draft.isBestseller} onChange={(isBestseller) => update("isBestseller", isBestseller)} label={locale === "fr" ? "Populaire" : "Popular"} />
-                </div>
-              </section>
-              <section className="rounded-lg border border-burgundy/20 bg-burgundy/[0.04] p-4">
-              <div className="flex items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-burgundy text-white"><Sparkles className="h-4 w-4" /></span>
-                <div><h3 className="text-sm font-extrabold text-charcoal">{locale === "fr" ? "Plats proposés" : "Suggested dishes"}</h3><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les correspondances évoluent à mesure que la fiche est renseignée." : "Matches update as the product record is completed."}</p></div>
-              </div>
+            <DialogFooter className="shrink-0 flex-row items-center border-t border-border bg-white px-3 py-3 sm:px-7">
+              <div className="mr-auto min-w-0"><p className="text-[9px] font-black uppercase text-burgundy">{locale === "fr" ? `Étape ${activeStepIndex + 1} sur 4` : `Step ${activeStepIndex + 1} of 4`}</p><p className="hidden text-[10px] text-muted-foreground sm:block">{locale === "fr" ? `${completedSteps} section(s) prête(s)` : `${completedSteps} section(s) ready`}</p>{submitError ? <p role="alert" className="mt-1 max-w-sm truncate text-[10px] text-destructive">{submitError}</p> : null}</div>
+              <Button type="button" variant="ghost" onClick={() => handleOpen(false)} className="hidden sm:inline-flex">{locale === "fr" ? "Annuler" : "Cancel"}</Button>
+              {activeStepIndex > 0 ? <Button type="button" variant="outline" size="icon" onClick={() => setActiveStep(studioSteps[activeStepIndex - 1].id)} aria-label={locale === "fr" ? "Étape précédente" : "Previous step"}><ArrowLeft className="h-4 w-4" /></Button> : null}
+              {activeStepIndex < studioSteps.length - 1 ? <Button type="button" onClick={() => setActiveStep(studioSteps[activeStepIndex + 1].id)} className="bg-terre text-white hover:bg-terre-dark">{locale === "fr" ? "Suivant" : "Next"}<ArrowRight className="ml-1.5 h-4 w-4" /></Button> : <Button type="submit" disabled={!hasRequiredFields || submitting} className="bg-terre text-white hover:bg-terre-dark">{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : editing ? <PencilLine className="mr-2 h-4 w-4" /> : <PackagePlus className="mr-2 h-4 w-4" />}{submitting ? (locale === "fr" ? "Enregistrement..." : "Saving...") : editing ? (locale === "fr" ? "Enregistrer" : "Save changes") : draft.status === "published" ? (locale === "fr" ? "Publier" : "Publish") : (locale === "fr" ? "Enregistrer" : "Save")}</Button>}
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-              <div className="mt-4 space-y-2">
-                {recommendationsLoading ? <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> {locale === "fr" ? "Analyse culinaire..." : "Analysing..."}</div> : null}
-                {!recommendationsLoading && recommendations.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border bg-white/70 p-5 text-center"><ChefHat className="mx-auto h-7 w-7 text-muted-foreground" /><p className="mt-2 text-xs text-muted-foreground">{locale === "fr" ? "Saisissez le nom et la description pour obtenir des associations." : "Enter a name and description to get matches."}</p></div>
-                ) : null}
-                {recommendations.map((dish: any) => (
-                  <div key={dish.slug} className="rounded-lg border border-border bg-white p-3">
-                    <div className="flex items-start gap-2"><BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{dish.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{dish.country} · {dish.categoryLabel} · {dish.timeMinutes} min</p></div>{dish.recommendationScore > 8 ? <Badge className="border-0 bg-burgundy/10 text-[9px] text-burgundy">{locale === "fr" ? "Fort" : "Strong"}</Badge> : null}</div>
-                  </div>
-                ))}
-              </div>
-              </section>
-            </aside>
-          </div>
-
-          <DialogFooter className="border-t border-border px-5 py-4 sm:px-7">
-            {submitError ? <p role="alert" className="mr-auto self-center text-xs text-destructive">{submitError}</p> : null}
-            <Button type="button" variant="outline" onClick={() => handleOpen(false)}>{locale === "fr" ? "Annuler" : "Cancel"}</Button>
-            <Button type="submit" disabled={!hasRequiredFields || submitting} className="bg-terre text-white hover:bg-terre-dark">{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : editing ? <PencilLine className="mr-2 h-4 w-4" /> : <PackagePlus className="mr-2 h-4 w-4" />}{submitting ? (locale === "fr" ? "Enregistrement..." : "Saving...") : editing ? (locale === "fr" ? "Enregistrer les modifications" : "Save changes") : draft.status === "published" ? (locale === "fr" ? "Publier le produit" : "Publish product") : (locale === "fr" ? "Enregistrer le produit" : "Save product")}</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><Trash2 className="h-5 w-5" /></span><AlertDialogTitle>{locale === "fr" ? "Abandonner les modifications ?" : "Discard changes?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? "Les informations saisies dans cette fiche produit seront perdues. Le produit existant ne sera pas modifié." : "Information entered in this product record will be lost. The existing product will not be changed."}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{locale === "fr" ? "Continuer la fiche" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardChanges} className="bg-destructive text-white hover:bg-destructive/90">{locale === "fr" ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
+}
+
+function StudioPanelHeading({ icon: Icon, eyebrow, title, description }: { icon: typeof PackagePlus; eyebrow: string; title: string; description: string }) {
+  return <header className="flex items-start gap-3 border-b border-border pb-4"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-terre/10 text-terre"><Icon className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[9px] font-black uppercase text-terre">{eyebrow}</p><h2 className="mt-0.5 text-base font-black text-charcoal">{title}</h2><p className="mt-1 max-w-2xl text-[11px] leading-5 text-muted-foreground">{description}</p></div></header>;
+}
+
+function StudioFact({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0 px-3 text-center"><p className="text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className="mt-1 truncate text-xs font-black text-charcoal">{value}</p></div>;
 }
 
 function Field({ label, required = false, children }: { label: string; required?: boolean; children: ReactNode }) {

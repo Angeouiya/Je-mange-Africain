@@ -927,8 +927,13 @@ test("the product workspace edits bilingual content and calculates the customer 
 
   const dialog = page.getByRole("dialog", { name: "Modifier la fiche produit" });
   await expect(dialog).toBeVisible();
+  const studioSteps = dialog.getByRole("tablist", { name: "Étapes de la fiche produit" });
+  await expect(studioSteps.getByRole("tab")).toHaveCount(4);
+  await expect(studioSteps.getByRole("tab", { name: /Identité/ })).toHaveAttribute("aria-selected", "true");
   await expect(dialog.getByLabel("Nom commercial français")).toHaveValue("Attiéké frais");
   await expect(dialog.getByLabel("Nom commercial anglais")).toHaveValue("Fresh attieke");
+  await studioSteps.getByRole("tab", { name: /Prix/ }).click();
+  await expect(studioSteps.getByRole("tab", { name: /Prix/ })).toHaveAttribute("aria-selected", "true");
   await dialog.getByLabel("Coût brut d'achat (€)").fill("3.20");
   await dialog.getByLabel("Marge bénéficiaire (€)").fill("1.80");
   await expect(dialog.getByText("5,00 €", { exact: true })).toBeVisible();
@@ -948,11 +953,80 @@ test("the product workspace edits bilingual content and calculates the customer 
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
+    await dialog.getByTestId("product-studio-panel").evaluate((element) => { element.scrollTop = 0; });
     await page.screenshot({ path: join(directory, `product-edit-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }
   const results = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   const blocking = results.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+  await dialog.getByRole("button", { name: "Fermer" }).click();
+  const discard = page.getByRole("alertdialog", { name: "Abandonner les modifications ?" });
+  await expect(discard).toContainText("seront perdues");
+  await discard.getByRole("button", { name: "Continuer la fiche" }).click();
+  await expect(dialog).toBeVisible();
+});
+
+test("the guided product studio publishes a complete image-backed record", async ({ page }) => {
+  let createdProduct: Record<string, unknown> | null = null;
+  await mockAdminApi(page);
+  await page.route("**/api/admin/products", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    createdProduct = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ product: { id: "product-new" } }) });
+  });
+  await page.route("**/api/admin/media", (route) => route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ asset: { publicUrl: "/products/attieke.webp", objectPath: "products/attieke.webp" } }) }));
+
+  await page.goto("/admin#catalog", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Nouveau produit" }).click();
+  const dialog = page.getByRole("dialog", { name: "Enregistrer un produit" });
+  const steps = dialog.getByRole("tablist", { name: "Étapes de la fiche produit" });
+
+  await dialog.getByLabel("Nom commercial français").fill("Farine de manioc premium");
+  await dialog.getByLabel("Nom commercial anglais").fill("Premium cassava flour");
+  await dialog.getByLabel("Nom traditionnel").fill("Gari");
+  await dialog.getByLabel("SKU").fill("JMA-GAR-500");
+  await dialog.getByLabel("Catégorie").selectOption("cat-1");
+  await dialog.getByLabel("Conditionnement").fill("Sachet 500 g");
+  await dialog.getByLabel("Description française").fill("Farine de manioc fine, sèche et prête à cuisiner.");
+  await dialog.getByLabel("Description anglaise").fill("Fine dry cassava flour, ready for everyday cooking.");
+  await expect(steps.getByRole("tab", { name: /Identité/ })).toHaveAttribute("aria-selected", "true");
+  await dialog.getByRole("button", { name: "Suivant" }).click();
+
+  await dialog.getByLabel("Coût brut d'achat (€)").fill("2.40");
+  await dialog.getByLabel("Marge bénéficiaire (€)").fill("1.60");
+  await expect(dialog.getByText("4,00 €", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Suivant" }).click();
+
+  await dialog.getByLabel("Stock disponible").fill("48");
+  await dialog.getByLabel("Poids net (g)").fill("500");
+  await dialog.getByLabel("Chaîne thermique").selectOption("AMBIANT");
+  await dialog.getByRole("button", { name: "Suivant" }).click();
+
+  await expect(steps.getByRole("tab", { name: /Publication/ })).toHaveAttribute("aria-selected", "true");
+  await dialog.getByLabel("Choisir un fichier pour Photo principale du produit").setInputFiles({ name: "gari.webp", mimeType: "image/webp", buffer: Buffer.from([82, 73, 70, 70]) });
+  await expect(dialog.getByRole("img", { name: "Photo principale du produit" })).toBeVisible();
+  const publish = dialog.getByRole("button", { name: "Publier", exact: true });
+  await expect(publish).toBeEnabled();
+  await expectBrandSafeUiColors(page);
+  expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await dialog.getByTestId("product-studio-panel").evaluate((element) => { element.scrollTop = 0; });
+    await page.screenshot({ path: join(directory, `product-studio-ready-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await publish.click();
+  await expect(dialog).toBeHidden();
+  expect(createdProduct).toMatchObject({
+    nameFr: "Farine de manioc premium",
+    nameEn: "Premium cassava flour",
+    sku: "JMA-GAR-500",
+    costPrice: "2.40",
+    profitMargin: "1.60",
+    stockQty: "48",
+    imageUrl: "/products/attieke.webp",
+    status: "published",
+  });
 });
 
 test("the recipe register stays compact and exposes operational readiness", async ({ page }) => {
@@ -1043,10 +1117,15 @@ test("professional creation studios remain fully English and use brand-safe reci
   await expect(page.getByRole("heading", { name: "What is actually sold" })).toBeVisible();
   await page.getByRole("button", { name: "New product" }).click();
   const productDialog = page.getByRole("dialog", { name: "Register a product" });
+  const productSteps = productDialog.getByRole("tablist", { name: "Product record steps" });
+  await expect(productSteps.getByRole("tab")).toHaveCount(4);
   await expect(productDialog.getByLabel("French product name")).toBeVisible();
   await expect(productDialog.getByLabel("French description")).toBeVisible();
+  await productSteps.getByRole("tab", { name: /Logistics/ }).click();
   await expect(productDialog.getByLabel("Thermal class").locator("option")).toHaveText(["Ambient", "Refrigerated", "Frozen"]);
   await expect(productDialog.getByLabel("Storage").locator("option")).toHaveText(["Dry", "Fresh", "Refrigerated", "Frozen", "Smoked", "Dried", "Preserved"]);
+  await productSteps.getByRole("tab", { name: /Publishing/ }).click();
+  await expect(productDialog.getByText("Main product photo")).toBeVisible();
   expect(await productDialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
   if (process.env.ADMIN_SCREENSHOTS) await page.screenshot({ path: join(screenshotDirectory, `product-studio-en-${mobile ? "mobile" : "desktop"}.png`) });
   await page.keyboard.press("Escape");
