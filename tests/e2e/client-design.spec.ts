@@ -649,27 +649,38 @@ test("password recovery remains bilingual, branded and independently visible", a
 
   await page.goto("/auth/reset#access_token=reset-token", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { level: 1, name: "Nouveau mot de passe" })).toBeVisible();
+  await expect(page.getByTestId("reset-auth-workspace")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/console professionnelle|professional console|administration/i);
   const isMobile = (page.viewportSize()?.width || 0) < 768;
-  if (!isMobile) {
+  if (isMobile) {
+    const mobileBrand = page.getByTestId("reset-auth-mobile-brand");
+    await expect(mobileBrand).toBeVisible();
+    await expect.poll(() => mobileBrand.locator("img").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  } else {
     const authVisual = page.getByTestId("customer-auth-visual");
     await expect(authVisual).toBeVisible();
     await expect.poll(() => authVisual.locator("img").first().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+    await expect(page.getByTestId("customer-auth-overlay")).toHaveClass(/bg-burgundy\/45/);
+    await expect(authVisual.getByText("Commandes suivies")).toBeVisible();
+    await expect(authVisual.getByText("Recettes synchronisées")).toBeVisible();
   }
+  const resetJourney = page.getByTestId("reset-journey");
+  await expect(resetJourney.getByRole("listitem").nth(1)).toHaveAttribute("aria-current", "step");
 
   await page.getByRole("button", { name: /passer la plateforme en anglais/i }).click();
   await expect(page.getByRole("heading", { level: 1, name: "New password" })).toBeVisible();
   await expect(page).toHaveTitle("New password | Je mange Africain");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator(".jma-skip-link")).toHaveText("Skip to main content");
-  const password = page.getByLabel("New password");
-  const confirmation = page.getByLabel("Confirm password");
-  const updateButton = page.getByRole("button", { name: "Update password" });
+  const resetForm = page.getByRole("form", { name: "New password form" });
+  const password = resetForm.getByLabel("New password");
+  const confirmation = resetForm.getByLabel("Confirm password");
+  const updateButton = resetForm.getByRole("button", { name: "Update password" });
   await expect(password).toHaveAttribute("type", "password");
   await expect(confirmation).toHaveAttribute("type", "password");
   await expect(updateButton).toBeDisabled();
 
-  const visibilityControls = page.getByRole("button", { name: "Show password" });
+  const visibilityControls = resetForm.getByRole("button", { name: "Show password" });
   await expect(visibilityControls).toHaveCount(2);
   await visibilityControls.first().click();
   await expect(password).toHaveAttribute("type", "text");
@@ -680,10 +691,18 @@ test("password recovery remains bilingual, branded and independently visible", a
   await expect(updateButton).toBeDisabled();
   await confirmation.fill("secure-password");
   await expect(page.getByText("Passwords match.")).toBeVisible();
+  await expect(page.getByText("Strong", { exact: true })).toBeVisible();
   await expect(updateButton).toBeEnabled();
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.getByTestId("reset-auth-form-scroll").evaluate((element) => element.scrollTo({ top: 0, behavior: "instant" }));
+    await page.screenshot({ path: `output/playwright/audit/auth-reset-form-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
   await updateButton.click();
 
   await expect(page.getByText("Your password has been updated. Your account is ready.")).toBeVisible();
+  await expect(resetJourney.getByRole("listitem").nth(2)).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("list", { name: "Security confirmation" })).toContainText("New password saved");
+  await expect(page.getByRole("list", { name: "Security confirmation" })).toContainText("Customer account ready");
   await expect(page.getByRole("link", { name: "Sign in", exact: true })).toHaveAttribute("href", "/?view=account");
   expect(resetPayload).toEqual({ accessToken: "reset-token", password: "secure-password" });
   await expectNoHorizontalOverflow(page);
@@ -691,6 +710,16 @@ test("password recovery remains bilingual, branded and independently visible", a
   await expectNoSeriousA11yViolations(page);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/auth-reset-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+
+  await page.goto("/auth/reset", { waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { level: 2, name: "This link can no longer be used" })).toBeVisible();
+  await expect(page.getByTestId("reset-journey").getByRole("listitem").first()).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("link", { name: "Request a new link" })).toHaveAttribute("href", "/?view=account");
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/auth-reset-invalid-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
 });
 
