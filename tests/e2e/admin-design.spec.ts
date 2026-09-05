@@ -112,6 +112,69 @@ const order = {
   refunds: [] as Array<{ id: string; amount: number; status: string; reason?: string; createdAt: string }>,
 };
 
+type PaymentLedgerOrder = Pick<typeof order, "id" | "number" | "status" | "deliveryName" | "deliveryCountry" | "payments" | "refunds">;
+
+function paymentLedgerPayload(currentOrder: PaymentLedgerOrder, url: URL) {
+  const filter = url.searchParams.get("filter") || "all";
+  const query = (url.searchParams.get("query") || "").toLowerCase();
+  const page = Number(url.searchParams.get("page") || 1);
+  const pageSize = Number(url.searchParams.get("pageSize") || 24);
+  const refundPaymentId = currentOrder.payments.find((payment) => ["captured", "refunded"].includes(payment.status))?.id;
+  const allRows = currentOrder.payments.map((payment) => ({
+    ...payment,
+    orderId: currentOrder.id,
+    orderNumber: currentOrder.number,
+    orderStatus: currentOrder.status,
+    date: payment.createdAt,
+    customer: currentOrder.deliveryName,
+    country: currentOrder.deliveryCountry,
+    currency: "EUR",
+    refunds: payment.id === refundPaymentId ? currentOrder.refunds : [],
+  }));
+  const matchesFilter = (payment: (typeof allRows)[number]) => filter === "all"
+    || (filter === "captured" && ["captured", "refunded"].includes(payment.status))
+    || (filter === "pending" && ["pending", "authorized"].includes(payment.status))
+    || (filter === "refunds" && payment.refunds.length > 0)
+    || (filter === "exceptions" && payment.status === "failed");
+  const searchedRows = allRows.filter((payment) => matchesFilter(payment) && `${payment.reference} ${payment.orderNumber} ${payment.customer} ${payment.method} ${payment.country}`.toLowerCase().includes(query));
+  const first = (page - 1) * pageSize;
+  const captured = allRows.filter((payment) => ["captured", "refunded"].includes(payment.status));
+  const pending = allRows.filter((payment) => ["pending", "authorized"].includes(payment.status));
+  const exceptions = allRows.filter((payment) => payment.status === "failed");
+  const completedRefunds = currentOrder.refunds.filter((refund) => refund.status === "completed");
+  const pendingRefunds = currentOrder.refunds.filter((refund) => refund.status === "pending");
+  const refundedAmount = completedRefunds.reduce((sum, refund) => sum + refund.amount, 0);
+  const methods = allRows.map((payment) => ({
+    method: payment.method,
+    family: payment.method === "card" ? "card" : "wallet",
+    count: 1,
+    amount: payment.amount,
+    share: (payment.amount / allRows.reduce((sum, row) => sum + row.amount, 0)) * 100,
+  }));
+  const pageCount = Math.max(1, Math.ceil(searchedRows.length / pageSize));
+  return {
+    rows: searchedRows.slice(first, first + pageSize),
+    summary: {
+      netCapturedAmount: Math.max(0, captured.reduce((sum, payment) => sum + payment.amount, 0) - refundedAmount),
+      grossCapturedAmount: captured.reduce((sum, payment) => sum + payment.amount, 0),
+      capturedCount: captured.length,
+      pendingAmount: pending.reduce((sum, payment) => sum + payment.amount, 0),
+      pendingCount: pending.length,
+      refundedAmount,
+      refundCount: currentOrder.refunds.length,
+      pendingRefundAmount: pendingRefunds.reduce((sum, refund) => sum + refund.amount, 0),
+      exceptionAmount: exceptions.reduce((sum, payment) => sum + payment.amount, 0),
+      exceptionCount: exceptions.length,
+      reconciliationRate: allRows.length ? (captured.length / allRows.length) * 100 : 0,
+    },
+    counts: { all: allRows.length, captured: captured.length, pending: pending.length, refunds: currentOrder.refunds.length ? 1 : 0, exceptions: exceptions.length },
+    methods,
+    coverage: { countries: [currentOrder.deliveryCountry], currencies: ["EUR"], familyCount: 2 },
+    pagination: { page, pageSize, pageCount, totalRows: searchedRows.length, hasPrevious: page > 1, hasNext: page < pageCount },
+    period: url.searchParams.get("period") || "30d",
+  };
+}
+
 const customerRecords = [
   { id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador" },
   { id: "customer-2", email: "idrissa@example.be", name: "Idrissa Traoré", phone: "+32 470 00 00 00", city: "Bruxelles", country: "Belgique", orders: 9, loyalty: 920, walletCredit: 0, preferredLang: "fr", lifetimeValue: 612, averageBasket: 68, lastOrderAt: "2026-05-01T10:00:00.000Z", joinedAt: "2024-10-08T10:00:00.000Z", addresses: 1, favorites: 1, savedRecipes: 0, openTickets: 0, segment: "at_risk" },
@@ -473,6 +536,7 @@ async function mockAdminApi(page: Page) {
       ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"], note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, reservedQty: 9, availableQty: 75, imageUrl: "/products/attieke.webp" } }],
     };
     else if (path === "/api/dishes") payload = dishTemplatePayload;
+    else if (path === "/api/admin/payments") payload = paymentLedgerPayload(operationalOrder, new URL(request.url()));
     else if (path === "/api/orders") payload = { orders: [operationalOrder] };
     else if (path === "/api/admin/stock" && request.method() === "POST") payload = { batch: { id: "batch-2", lotNumber: "ATT-2609-FR" } };
     else if (path === "/api/admin/stock/batch-1" && request.method() === "PATCH") {
@@ -1198,7 +1262,7 @@ test("the team cockpit grants least-privilege access and documents sensitive dec
 test("admin searches report, filter and clear results consistently", async ({ page }) => {
   await mockAdminApi(page);
   const cases = [
-    { hash: "catalog", heading: "Ce qui est réellement vendu", label: "Rechercher un produit", visible: "Attiéké frais", total: 1 },
+    { hash: "catalog", heading: "Ce qui est réellement vendu", label: "Rechercher un produit", visible: "Attiéké frais", total: 2 },
     { hash: "recipes", heading: "Construire des recettes achetables", label: "Rechercher une recette", visible: "Attiéké poisson braisé", total: 1 },
     { hash: "orders", heading: "Du paiement jusqu'à la porte", label: "Rechercher une commande", visible: "JMA-260902-0142", total: 1 },
     { hash: "inventory", heading: "Inventaire piloté par les lots", label: "Rechercher un lot", visible: "ATT-2608-FR", total: 1 },
@@ -1284,6 +1348,8 @@ test("the finance cockpit explains margin, exports records and leads to action",
 
   await page.goto("/admin#finance", { waitUntil: "domcontentloaded" });
   await page.getByRole("tab", { name: "Encaissements" }).click();
+  await expect(page.getByTestId("payment-ledger-period")).toContainText("Paiements initiés sur la période");
+  await expect(page.getByRole("tab", { name: "30 jours" }).filter({ visible: true }).last()).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("Taux rapproché")).toBeVisible();
   await expect(page.getByText("33,3 %", { exact: true })).toBeVisible();
   await expect(page.getByText("Carte bancaire", { exact: true }).filter({ visible: true }).first()).toBeVisible();
@@ -1293,10 +1359,13 @@ test("the finance cockpit explains margin, exports records and leads to action",
   await expect(paymentMix).toContainText("Comment les clients choisissent de payer");
   await expect(paymentMix).toContainText("3 méthodes");
   await expect(paymentMix).toContainText("PayPal");
+  await expect(page.getByTestId("payment-market-coverage")).toContainText("France");
+  await expect(page.getByTestId("payment-market-coverage")).toContainText("EUR");
+  await expect(page.getByTestId("payment-pagination")).toContainText("1-3 sur 3");
   await page.getByRole("tab", { name: /Exceptions/ }).click();
   await expect(page.getByText("pi_jma_failed", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   const paymentsDownload = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Exporter la vue" }).click();
+  await page.getByRole("button", { name: "Exporter la page" }).click();
   expect((await paymentsDownload).suggestedFilename()).toBe("je-mange-africain-encaissements.csv");
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

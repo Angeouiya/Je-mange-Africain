@@ -633,6 +633,10 @@ model Payment {
   reference      String // idempotency / processor reference
   idempotencyKey String   @unique
   createdAt      DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([status, createdAt])
+  @@index([method, createdAt])
 }
 
 model Refund {
@@ -643,6 +647,9 @@ model Refund {
   reason    String
   status    String   @default("pending") // pending | completed | rejected
   createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([status, createdAt])
 }
 
 model Shipment {
