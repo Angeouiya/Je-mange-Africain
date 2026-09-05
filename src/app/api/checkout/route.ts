@@ -9,6 +9,7 @@ import { enforceRateLimit } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 import { deliveryContactFingerprint } from "@/lib/checkout-security";
 import { paymentMethodUsed } from "@/lib/stripe-payment-method";
+import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -51,33 +52,37 @@ export async function POST(request: NextRequest) {
   const body = parsed.data;
   if (!stripe) return NextResponse.json({ error: stripeConfigurationError(body.locale) }, { status: 503 });
 
+  let paidIntent: Stripe.PaymentIntent | null = null;
   try {
-    const pricing = await priceCheckout({ items: body.items, country: body.address.country, postalCode: body.address.postalCode, deliveryService: body.deliverySlot, coupon: body.coupon, locale: body.locale });
     const intent = await stripe.paymentIntents.retrieve(body.paymentIntentId, { expand: ["payment_method", "latest_charge"] });
-    const expectedAmount = Math.round(pricing.total * 100);
-    const addressFingerprint = deliveryContactFingerprint(body.address);
-
     if (intent.status !== "succeeded") {
       return NextResponse.json({ error: body.locale === "fr" ? "Le paiement n'est pas encore confirmé." : "Payment has not been confirmed yet." }, { status: 409 });
     }
-    if (
-      intent.amount_received !== expectedAmount
-      || intent.currency.toLowerCase() !== "eur"
-      || intent.metadata.customer_auth_id !== session.id
-      || intent.metadata.cart_fingerprint !== pricing.fingerprint
-      || intent.metadata.delivery_service !== pricing.shippingQuote.service
-      || intent.metadata.address_fingerprint !== addressFingerprint
-    ) {
-      return NextResponse.json({ error: body.locale === "fr" ? "Le paiement ne correspond plus au panier actuel." : "The payment no longer matches the current basket." }, { status: 409 });
+    if (intent.metadata.customer_auth_id !== session.id) {
+      return NextResponse.json({ error: body.locale === "fr" ? "Ce paiement n'appartient pas à cette session client." : "This payment does not belong to this customer session." }, { status: 403 });
     }
 
+    paidIntent = intent;
     const idempotencyKey = `stripe:${intent.id}`;
     const existingPayment = await db.payment.findUnique({ where: { idempotencyKey }, include: { order: true } });
     if (existingPayment) return orderResponse(existingPayment.order);
 
+    const pricing = await priceCheckout({ items: body.items, country: body.address.country, postalCode: body.address.postalCode, deliveryService: body.deliverySlot, coupon: body.coupon, locale: body.locale });
+    const expectedAmount = Math.round(pricing.total * 100);
+    const addressFingerprint = deliveryContactFingerprint(body.address);
+    if (
+      intent.amount_received !== expectedAmount
+      || intent.currency.toLowerCase() !== "eur"
+      || intent.metadata.cart_fingerprint !== pricing.fingerprint
+      || intent.metadata.delivery_service !== pricing.shippingQuote.service
+      || intent.metadata.address_fingerprint !== addressFingerprint
+    ) {
+      throw new CheckoutPricingError(body.locale === "fr" ? "Le paiement ne correspond plus au panier actuel." : "The payment no longer matches the current basket.", 409);
+    }
+
     const user = await db.user.findUnique({ where: { email: session.email.toLowerCase() } });
     if (!user || user.role !== "customer" || !user.isActive) {
-      return NextResponse.json({ error: "Compte client introuvable ou inactif." }, { status: 403 });
+      throw new CheckoutPricingError(body.locale === "fr" ? "Le compte client est introuvable ou inactif." : "The customer account is missing or inactive.", 403);
     }
     let customer = await db.customer.findUnique({ where: { userId: user.id } });
     if (!customer) customer = await db.customer.create({ data: { userId: user.id, preferredLang: body.locale } });
@@ -92,9 +97,9 @@ export async function POST(request: NextRequest) {
     const retailPackages = new Set(pricing.validatedItems.filter((item) => item.salesChannel === "retail").map((item) => item.thermalClass)).size;
     const packageCount = Math.max(1, wholesalePackages + retailPackages);
 
-    const order = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx) => {
       const duplicate = await tx.payment.findUnique({ where: { idempotencyKey }, include: { order: true } });
-      if (duplicate) return duplicate.order;
+      if (duplicate) return { order: duplicate.order, created: false };
 
       const reservationTotals = new Map<string, number>();
       for (const item of pricing.validatedItems) reservationTotals.set(item.productId, (reservationTotals.get(item.productId) || 0) + item.qty * item.unitsPerPack);
@@ -215,24 +220,59 @@ export async function POST(request: NextRequest) {
           reason: `Nouvelle commande ${number}`,
         },
       });
-      return order;
+      return { order, created: true };
     }, { isolationLevel: "Serializable", maxWait: 5_000, timeout: 15_000 });
+    paidIntent = null;
 
-    if (body.pushSubscriptionId) {
+    if (body.pushSubscriptionId && result.created) {
       await sendPushToSubscriptionId(body.pushSubscriptionId, {
         title: body.locale === "en" ? "Order confirmed" : "Commande confirmée",
-        body: body.locale === "en" ? `${number} is being prepared. We will keep you updated.` : `${number} est en préparation. Nous vous tiendrons informé ici.`,
+        body: body.locale === "en" ? `${result.order.number} is being prepared. We will keep you updated.` : `${result.order.number} est en préparation. Nous vous tiendrons informé ici.`,
         url: "/?view=orders",
         type: "order",
-        tag: `order-${order.id}`,
-      });
+        tag: `order-${result.order.id}`,
+      }).catch(() => undefined);
     }
 
-    return orderResponse(order);
+    return orderResponse(result.order);
   } catch (error) {
+    if (paidIntent && error instanceof CheckoutPricingError) {
+      let duplicate;
+      try {
+        duplicate = await db.payment.findUnique({ where: { idempotencyKey: `stripe:${paidIntent.id}` }, include: { order: true } });
+      } catch {
+        return finalizationPendingResponse(body.locale, paidIntent.id);
+      }
+      if (duplicate) return orderResponse(duplicate.order);
+      try {
+        const refund = await stripe.refunds.create({
+          payment_intent: paidIntent.id,
+          metadata: { source: "checkout_recovery", cause: "order_not_created" },
+        }, { idempotencyKey: `jma:checkout-recovery:${paidIntent.id}` });
+        if (["failed", "canceled"].includes(refund.status || "")) return finalizationPendingResponse(body.locale, paidIntent.id);
+        return NextResponse.json({
+          error: body.locale === "fr"
+            ? "La commande n'a pas pu être créée. Le remboursement du paiement a été lancé automatiquement."
+            : "The order could not be created. The payment refund was started automatically.",
+          paymentRecovery: { status: "refund_submitted", reference: refund.id, refundStatus: refund.status },
+        }, { status: error.status });
+      } catch {
+        return finalizationPendingResponse(body.locale, paidIntent.id);
+      }
+    }
+    if (paidIntent) return finalizationPendingResponse(body.locale, paidIntent.id);
     if (error instanceof CheckoutPricingError) return NextResponse.json({ error: error.message }, { status: error.status });
-    return NextResponse.json({ error: body.locale === "fr" ? "La commande n'a pas pu être finalisée. Aucun nouveau débit n'a été effectué." : "The order could not be completed. No new charge was made." }, { status: 503 });
+    return NextResponse.json({ error: body.locale === "fr" ? "Le paiement ne peut pas être vérifié pour le moment. Réessayez la finalisation sans recommencer le paiement." : "The payment cannot be verified right now. Retry finalisation without starting another payment." }, { status: 503 });
   }
+}
+
+function finalizationPendingResponse(locale: "fr" | "en", reference: string) {
+  return NextResponse.json({
+    error: locale === "fr"
+      ? "Le paiement est confirmé, mais la commande est encore en cours de finalisation. Ne payez pas une seconde fois."
+      : "Payment is confirmed, but the order is still being finalised. Do not pay a second time.",
+    paymentRecovery: { status: "finalization_pending", reference },
+  }, { status: 503 });
 }
 
 function orderResponse(order: { id: string; number: string; total: unknown; status: string }) {

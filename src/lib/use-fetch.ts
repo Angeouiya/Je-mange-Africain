@@ -8,6 +8,13 @@ interface FetchState<T> {
   refetch: () => void;
 }
 
+export class ApiError<T = Record<string, unknown>> extends Error {
+  constructor(message: string, public readonly status: number, public readonly payload: T) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 /** Simple GET fetcher with locale-aware query + abort. */
 export function useFetch<T = any>(
   url: string | null,
@@ -62,6 +69,6 @@ export async function postJSON<T = any>(url: string, body: any): Promise<T> {
     body: JSON.stringify(body),
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  if (!r.ok) throw new ApiError(j.error || `HTTP ${r.status}`, r.status, j);
   return j;
 }

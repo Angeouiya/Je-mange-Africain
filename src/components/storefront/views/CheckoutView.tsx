@@ -13,15 +13,17 @@ import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
+import { PaymentRecoveryNotice } from "@/components/storefront/PaymentRecoveryNotice";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { formatEstimatedArrival } from "@/lib/delivery-experience";
 import { formatPrice, formatWeight, thermalLabel } from "@/lib/format";
 import { dict } from "@/lib/i18n";
 import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStore } from "@/lib/store";
-import { postJSON } from "@/lib/use-fetch";
+import { ApiError, postJSON } from "@/lib/use-fetch";
 import { clearPendingCheckout, readPendingCheckout, rememberPendingCheckout, type PendingCheckoutPayload } from "@/lib/checkout-return";
 import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
 import { paymentMethodFamily, paymentMethodHint, paymentMethodLabel, uniquePaymentMethods } from "@/lib/payment-methods";
+import { clearPaymentRecovery, readPaymentRecovery, rememberPaymentRecovery, type PaymentRecovery } from "@/lib/payment-recovery-storage";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -65,6 +67,7 @@ export function CheckoutView() {
   const [processing, setProcessing] = useState(false);
   const [preparingPayment, setPreparingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [paymentRecovery, setPaymentRecovery] = useState<PaymentRecovery | null>(null);
   const [intent, setIntent] = useState<IntentResponse | null>(null);
   const address = addresses.find((item) => item.isDefault) || addresses[0];
   const [selectedAddressId, setSelectedAddressId] = useState(address?.id || "custom");
@@ -84,6 +87,11 @@ export function CheckoutView() {
   const [promotion, setPromotion] = useState<{ discount: number; freeShipping?: boolean } | null>(null);
   const [promotionLoading, setPromotionLoading] = useState(false);
   const paymentReturnHandled = useRef(false);
+
+  useEffect(() => {
+    const recovery = readPaymentRecovery();
+    if (recovery) setPaymentRecovery(recovery);
+  }, []);
 
   const updateForm = (field: keyof typeof form, value: string) => {
     setSelectedAddressId("custom");
@@ -221,6 +229,8 @@ export function CheckoutView() {
         checkoutAttemptId: window.crypto.randomUUID(),
       });
       if (!response.clientSecret) throw new Error(locale === "fr" ? "Le paiement sécurisé n'a pas pu démarrer." : "Secure checkout could not start.");
+      clearPaymentRecovery();
+      setPaymentRecovery(null);
       setIntent(response);
       setStep(1);
     } catch (error) {
@@ -240,13 +250,40 @@ export function CheckoutView() {
         pushSubscriptionId: localStorage.getItem("jma-push-subscription-v1") || undefined,
       });
       clearPendingCheckout();
+      clearPaymentRecovery();
       clearCart();
       navigate("order-confirmation", { orderId: response.order.id });
     } catch (error) {
+      if (error instanceof ApiError) {
+        const recovery = (error.payload as { paymentRecovery?: PaymentRecovery }).paymentRecovery;
+        if (recovery) {
+          rememberPaymentRecovery(recovery);
+          setPaymentRecovery(recovery);
+          setPaymentError("");
+          if (recovery.status === "refund_submitted") {
+            clearPendingCheckout();
+            setIntent(null);
+            setStep(0);
+          }
+          return;
+        }
+      }
       setPaymentError(error instanceof Error ? error.message : (locale === "fr" ? "La commande n'a pas pu être finalisée." : "The order could not be completed."));
     } finally {
       setProcessing(false);
     }
+  };
+
+  const resumePaymentFinalization = () => {
+    if (!paymentRecovery || paymentRecovery.status !== "finalization_pending") return;
+    const pendingPayload = readPendingCheckout(paymentRecovery.reference);
+    if (!pendingPayload) {
+      setPaymentError(locale === "fr"
+        ? "Les données sécurisées de cette tentative ont expiré. Contactez le support avec la référence affichée sans effectuer un nouveau paiement."
+        : "The secured data for this attempt has expired. Contact support with the displayed reference without making another payment.");
+      return;
+    }
+    void finalizeOrder(paymentRecovery.reference, pendingPayload);
   };
 
   useEffect(() => {
@@ -421,6 +458,7 @@ export function CheckoutView() {
               </RadioGroup>
               {selectedShipping?.available ? <DeliveryPromise quote={selectedShipping} locale={locale} thermal={thermal} /> : null}
             </section>
+            {paymentRecovery ? <PaymentRecoveryNotice recovery={paymentRecovery} locale={locale} onRetry={paymentRecovery.status === "finalization_pending" ? resumePaymentFinalization : undefined} retrying={processing} /> : null}
             {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
             <Button onClick={preparePayment} disabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise} aria-describedby={!stripePromise ? "checkout-payment-unavailable" : undefined} className="hidden w-full bg-terre text-cream hover:bg-terre-dark lg:flex">
               {preparingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.loading}</> : !stripePromise ? (locale === "fr" ? "Paiement indisponible" : "Payment unavailable") : t.next}
@@ -435,6 +473,7 @@ export function CheckoutView() {
                   clientSecret={intent.clientSecret}
                   processing={processing}
                   paymentError={paymentError}
+                  paymentRecovery={paymentRecovery}
                   setPaymentError={setPaymentError}
                   amount={displayTotal}
                   locale={locale}
@@ -520,12 +559,13 @@ function CheckoutBasketPreview({
   );
 }
 
-function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentError, setPaymentError, amount, locale, paymentMethodTypes, review, onBeforeConfirm, onConfirm }: {
+function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentError, paymentRecovery, setPaymentError, amount, locale, paymentMethodTypes, review, onBeforeConfirm, onConfirm }: {
   step: number;
   setStep: (step: number) => void;
   clientSecret: string;
   processing: boolean;
   paymentError: string;
+  paymentRecovery: PaymentRecovery | null;
   setPaymentError: (message: string) => void;
   amount: number;
   locale: "fr" | "en";
@@ -601,6 +641,7 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
         <p className="flex items-start gap-1.5 text-[11px] leading-5 text-muted-foreground"><Lock className="mt-0.5 h-3 w-3 shrink-0" />{locale === "fr" ? "Les données bancaires sont chiffrées et traitées directement par Stripe." : "Bank details are encrypted and processed directly by Stripe."}</p>
       </div>
       {step === 2 ? review : null}
+      {paymentRecovery ? <PaymentRecoveryNotice recovery={paymentRecovery} locale={locale} /> : null}
       {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
       <div className="hidden gap-2 lg:flex">
         <Button variant="outline" onClick={() => setStep(step === 1 ? 0 : 1)} disabled={processing} className="flex-1">{t.previous}</Button>

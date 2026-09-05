@@ -1286,6 +1286,57 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expectNoSeriousA11yViolations(page);
 });
 
+test("checkout keeps an automatic refund visible after a refresh", async ({ page }) => {
+  const customer = { id: "customer-recovery", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: {
+        locale: "fr",
+        cart: [{ id: "line-recovery", productId: "product-attieke", variantId: "variant-attieke-800", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", unitPrice: 9.4, unitLabel: "Pot 800 g", packWeightGrams: 800, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp", qty: 1, maxStock: 20 }],
+        customer: persistedCustomer,
+        addresses: [{ id: "address-recovery", label: "Domicile", firstName: "Awa", lastName: "Traoré", street: "12 rue des Cultures", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678", isDefault: true }],
+        favorites: [], savedRecipes: [], recentlyViewed: [], country: "France", postalCode: "75011", coupon: null,
+      },
+      version: 0,
+    }));
+    sessionStorage.setItem("jma-payment-recovery-v1", JSON.stringify({
+      version: 1,
+      createdAt: Date.now(),
+      recovery: { status: "refund_submitted", reference: "re_checkout_recovery", refundStatus: "pending" },
+    }));
+  }, { persistedCustomer: customer });
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer }) }));
+  await page.route("**/api/advertisements?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ advertisements: [] }) }));
+  await page.route("**/api/shipping/quote", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      service: "standard", fee: 8.5, carrier: "Chrono Frais", packages: 1, minDelayHours: 24, maxDelayHours: 48, available: true, unavailableReason: null,
+      options: [
+        { service: "standard", fee: 8.5, carrier: "Chrono Frais", packages: 1, minDelayHours: 24, maxDelayHours: 48, available: true, unavailableReason: null },
+        { service: "express", fee: 12.9, carrier: "JMA Express", packages: 1, minDelayHours: 12, maxDelayHours: 24, available: true, unavailableReason: null },
+        { service: "relay", fee: 0, carrier: "Point Relais Europe", packages: 1, minDelayHours: 48, maxDelayHours: 72, available: false, unavailableReason: "cold_chain" },
+      ],
+    }),
+  }));
+
+  await page.goto("/?view=checkout", { waitUntil: "domcontentloaded" });
+
+  const recovery = page.getByTestId("payment-recovery");
+  await expect(recovery).toBeVisible();
+  await expect(recovery).toContainText("Remboursement automatique lancé");
+  await expect(recovery).toContainText("re_checkout_recovery");
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("payment-recovery")).toContainText("re_checkout_recovery");
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.getByTestId("payment-recovery").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `output/playwright/audit/checkout-refund-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+});
+
 test("the confirmation receipt survives a direct link and leads into delivery tracking", async ({ page }) => {
   const customer = { id: "customer-confirmed", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
   const confirmedOrder = {
