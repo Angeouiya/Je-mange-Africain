@@ -599,6 +599,20 @@ model AdminMembership {
   @@index([role, status])
 }
 
+model PlatformConfiguration {
+  id                   String   @id @default("primary")
+  supportEmail         String   @default("bonjour@je-mange-africain.com")
+  supportPhone         String   @default("")
+  supportHoursFr       String   @default("Du lundi au vendredi, de 9 h à 18 h")
+  supportHoursEn       String   @default("Monday to Friday, 9am to 6pm")
+  supportResponseHours Int      @default(48)
+  businessCity         String   @default("Paris")
+  businessCountry      String   @default("France")
+  updatedBy            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
 model OrderEvent {
   id      String   @id @default(cuid())
   orderId String

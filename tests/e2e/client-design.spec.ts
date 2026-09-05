@@ -1052,6 +1052,14 @@ test("account settings synchronize language and protect session actions", async 
 
 test("the help center leads to a contextual and usable contact request", async ({ page }) => {
   const captured: { contactRequest: Record<string, string> | null } = { contactRequest: null };
+  await page.route("**/api/platform", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ configuration: {
+      support: { email: "service-client@je-mange-africain.com", phone: "+33 1 84 80 20 26", hours: { fr: "Lundi au samedi, de 9 h à 19 h", en: "Monday to Saturday, 9am to 7pm" }, responseHours: 24 },
+      location: { city: "Paris", country: "France" },
+    } }),
+  }));
   await page.route("**/api/contact", async (route) => {
     captured.contactRequest = route.request().postDataJSON();
     await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ reference: "JMA-CONTACT-260903" }) });
@@ -1095,6 +1103,9 @@ test("the help center leads to a contextual and usable contact request", async (
   await page.getByRole("button", { name: /ouvrir le formulaire|open the form/i }).click();
   await expect(page).toHaveURL(/view=info&infoPage=contact&contactReason=delivery/);
   await expect(page.getByRole("heading", { name: /parlez-nous de votre demande|tell us what you need/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: "service-client@je-mange-africain.com" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "+33 1 84 80 20 26" })).toBeVisible();
+  await expect(page.getByText("Lundi au samedi, de 9 h à 19 h", { exact: true })).toBeVisible();
   const contactReasonSelector = page.getByTestId("contact-reason-selector");
   await expect(contactReasonSelector.getByRole("button", { name: /livraison|delivery/i })).toHaveAttribute("aria-pressed", "true");
   await page.waitForTimeout(300); // Let the 200 ms workspace transition finish before simulating typing.
@@ -1122,6 +1133,7 @@ test("the help center leads to a contextual and usable contact request", async (
 
   const successMessage = page.getByText(/JMA-CONTACT-260903/);
   await expect(successMessage).toBeVisible();
+  await expect(successMessage).toContainText("24 h");
   await expect(page.getByRole("progressbar", { name: /préparation de la demande|request readiness/i })).toHaveAttribute("aria-valuenow", "100");
   await expect(page.getByRole("button", { name: /nouvelle demande|new request/i })).toBeVisible();
   expect(captured.contactRequest).not.toBeNull();

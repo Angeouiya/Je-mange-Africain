@@ -39,6 +39,7 @@ import { useStore, type ContactReason } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { LegalDocument } from "@/components/storefront/LegalDocument";
 import { PageBackButton } from "@/components/shared/PageBackButton";
+import { useFetch } from "@/lib/use-fetch";
 
 interface ContactFormState {
   name: string;
@@ -48,6 +49,11 @@ interface ContactFormState {
   subject: string;
   message: string;
 }
+
+type PublicPlatformConfiguration = {
+  support: { email: string; phone: string; hours: { fr: string; en: string }; responseHours: number };
+  location: { city: string; country: string };
+};
 
 type SupportTopic = "all" | Exclude<ContactReason, "other">;
 
@@ -179,6 +185,8 @@ export function InfoView() {
   const t = dict[locale];
   const page = params.infoPage || "about";
   const isLegalPage = ["cgv", "privacy", "cookies", "delivery"].includes(page);
+  const { data: platformData } = useFetch<{ configuration: PublicPlatformConfiguration }>("/api/platform", []);
+  const responseHours = platformData?.configuration.support.responseHours || 48;
 
   const legalContent = {
     cgv: <LegalDocument kind="terms" locale={locale} />,
@@ -243,12 +251,12 @@ export function InfoView() {
           <span className="mt-0.5 grid h-12 w-12 shrink-0 place-items-center rounded-md border border-terre/10 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre"><PageIcon className="h-5 w-5" /></span>
           <div className="min-w-0"><p className="jma-eyebrow">{definition.eyebrow}</p><h1 className="mt-1 font-display text-[clamp(1.65rem,4vw,2.45rem)] font-semibold leading-[1.06] text-charcoal">{definition.title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{definition.description}</p></div>
         </div>
-        <div className="hidden items-center gap-3 md:flex"><span className="grid h-9 w-9 place-items-center rounded-md bg-gold/15 text-burgundy"><Clock3 className="h-4 w-4" /></span><span><span className="block text-[9px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Délai indicatif" : "Typical response"}</span><span className="mt-0.5 block text-xs font-black text-charcoal">{locale === "fr" ? "Réponse sous 48 h" : "Reply within 48 hrs"}</span></span></div>
+        <div className="hidden items-center gap-3 md:flex"><span className="grid h-9 w-9 place-items-center rounded-md bg-gold/15 text-burgundy"><Clock3 className="h-4 w-4" /></span><span><span className="block text-[9px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Délai indicatif" : "Typical response"}</span><span className="mt-0.5 block text-xs font-black text-charcoal">{locale === "fr" ? `Réponse sous ${responseHours} h` : `Reply within ${responseHours} hrs`}</span></span></div>
       </header>
 
       {page === "about" ? <AboutStory locale={locale} promise={t.promise} onCatalog={() => navigate("catalog")} onRecipes={() => navigate("recipes")} /> : null}
       {page === "help" ? <HelpCenter locale={locale} isAuthenticated={Boolean(customer)} onTrackOrders={() => navigate(customer ? "orders" : "account", customer ? undefined : { returnView: "orders" })} onContact={(contactReason) => navigate("info", { infoPage: "contact", contactReason })} /> : null}
-      {page === "contact" ? <ContactForm locale={locale} initialReason={params.contactReason} /> : null}
+      {page === "contact" ? <ContactForm locale={locale} initialReason={params.contactReason} configuration={platformData?.configuration} /> : null}
     </div>
   );
 }
@@ -319,7 +327,7 @@ function HelpCenter({ locale, isAuthenticated, onTrackOrders, onContact }: { loc
   );
 }
 
-function ContactForm({ locale, initialReason }: { locale: "fr" | "en"; initialReason?: ContactReason }) {
+function ContactForm({ locale, initialReason, configuration }: { locale: "fr" | "en"; initialReason?: ContactReason; configuration?: PublicPlatformConfiguration }) {
   const isFr = locale === "fr";
   const customer = useStore((state) => state.customer);
   const defaultReason = initialReason ?? "order";
@@ -329,7 +337,11 @@ function ContactForm({ locale, initialReason }: { locale: "fr" | "en"; initialRe
   const [status, setStatus] = useState<"idle" | "busy" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [reference, setReference] = useState("");
-  const companyPhone = process.env.NEXT_PUBLIC_COMPANY_PHONE;
+  const companyPhone = configuration?.support.phone || process.env.NEXT_PUBLIC_COMPANY_PHONE || "";
+  const supportEmail = configuration?.support.email || process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com";
+  const supportHours = configuration?.support.hours[locale] || (isFr ? "Du lundi au vendredi, de 9 h à 18 h" : "Monday to Friday, 9am to 6pm");
+  const supportResponseHours = configuration?.support.responseHours || 48;
+  const businessLocation = configuration ? `${configuration.location.city}, ${configuration.location.country}` : "Paris, France";
   const orderRelevant = ["order", "delivery", "product"].includes(form.reason);
   const readyChecks = [form.name.trim().length >= 2, /^\S+@\S+\.\S+$/.test(form.email), form.subject.trim().length >= 3, form.message.trim().length >= 10];
   const readyCount = readyChecks.filter(Boolean).length;
@@ -405,7 +417,7 @@ function ContactForm({ locale, initialReason }: { locale: "fr" | "en"; initialRe
   };
 
   const statusMessage = status === "success"
-    ? (isFr ? `Demande ${reference} enregistrée. Une confirmation a été préparée et notre équipe vous répondra sous 48 h.` : `Request ${reference} recorded. A confirmation has been prepared and our team will reply within 48 hours.`)
+    ? (isFr ? `Demande ${reference} enregistrée. Une confirmation a été préparée et notre équipe vous répondra sous ${supportResponseHours} h.` : `Request ${reference} recorded. A confirmation has been prepared and our team will reply within ${supportResponseHours} hours.`)
     : message;
 
   return (
@@ -454,14 +466,15 @@ function ContactForm({ locale, initialReason }: { locale: "fr" | "en"; initialRe
             {[
               [isFr ? "Référence immédiate" : "Instant reference", isFr ? "Après l'envoi" : "After submission"],
               [isFr ? "Lecture par le bon service" : "Right-team review", isFr ? "Selon le motif" : "Based on reason"],
-              [isFr ? "Réponse par e-mail" : "Reply by email", isFr ? "Sous 48 h" : "Within 48 hrs"],
+              [isFr ? "Réponse par e-mail" : "Reply by email", isFr ? `Sous ${supportResponseHours} h` : `Within ${supportResponseHours} hrs`],
             ].map(([title, detail], index) => <div key={title} className="flex gap-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-gold/18 text-[10px] font-black text-burgundy">{index + 1}</span><span><span className="block text-[11px] font-black text-charcoal">{title}</span><span className="mt-0.5 block text-[9px] text-muted-foreground">{detail}</span></span></div>)}
           </div>
         </div>
         <div className="mt-4 space-y-2 text-[11px] text-muted-foreground">
           {companyPhone ? <a href={`tel:${companyPhone.replace(/\s/g, "")}`} className="flex min-h-10 items-center gap-2 rounded-md px-1 hover:text-terre"><Phone className="h-4 w-4 shrink-0 text-terre" />{companyPhone}</a> : null}
-          <a href="mailto:bonjour@je-mange-africain.com" className="flex min-h-10 min-w-0 items-center gap-2 rounded-md px-1 hover:text-terre"><Mail className="h-4 w-4 shrink-0 text-terre" /><span className="min-w-0 break-all">bonjour@je-mange-africain.com</span></a>
-          <div className="flex min-h-10 items-center gap-2 px-1"><MapPin className="h-4 w-4 shrink-0 text-terre" />Paris, France</div>
+          <a href={`mailto:${supportEmail}`} className="flex min-h-10 min-w-0 items-center gap-2 rounded-md px-1 hover:text-terre"><Mail className="h-4 w-4 shrink-0 text-terre" /><span className="min-w-0 break-all">{supportEmail}</span></a>
+          <div className="flex min-h-10 items-start gap-2 px-1 py-2"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><span>{supportHours}</span></div>
+          <div className="flex min-h-10 items-center gap-2 px-1"><MapPin className="h-4 w-4 shrink-0 text-terre" />{businessLocation}</div>
         </div>
       </aside>
     </div>

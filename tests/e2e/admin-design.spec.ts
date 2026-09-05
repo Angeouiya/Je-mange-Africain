@@ -271,7 +271,7 @@ const auditPayload = {
 };
 
 const teamRoleCatalog = [
-  { id: "super_admin", assignable: false, permissions: { dashboard: ["read", "create", "update", "delete"], catalog: ["read", "create", "update", "delete"], recipes: ["read", "create", "update", "delete"], orders: ["read", "create", "update", "delete"], stock: ["read", "create", "update", "delete"], customers: ["read", "create", "update", "delete"], marketing: ["read", "create", "update", "delete"], finance: ["read", "create", "update", "delete"], audit: ["read", "create", "update", "delete"], team: ["read", "create", "update", "delete"] } },
+  { id: "super_admin", assignable: false, permissions: { dashboard: ["read", "create", "update", "delete"], catalog: ["read", "create", "update", "delete"], recipes: ["read", "create", "update", "delete"], orders: ["read", "create", "update", "delete"], stock: ["read", "create", "update", "delete"], customers: ["read", "create", "update", "delete"], marketing: ["read", "create", "update", "delete"], finance: ["read", "create", "update", "delete"], audit: ["read", "create", "update", "delete"], team: ["read", "create", "update", "delete"], settings: ["read", "create", "update", "delete"] } },
   { id: "marketing", assignable: true, permissions: { dashboard: ["read"], catalog: ["read"], recipes: ["read"], customers: ["read"], marketing: ["read", "create", "update", "delete"] } },
   { id: "logistics", assignable: true, permissions: { dashboard: ["read"], orders: ["read", "update"], customers: ["read"] } },
   { id: "accounting", assignable: true, permissions: { dashboard: ["read"], orders: ["read"], stock: ["read"], finance: ["read", "update"], audit: ["read"] } },
@@ -282,9 +282,9 @@ const teamRoleCatalog = [
 const teamPayload = {
   roles: teamRoleCatalog.filter((role) => role.assignable),
   roleCatalog: teamRoleCatalog,
-  modules: ["dashboard", "catalog", "recipes", "orders", "stock", "customers", "marketing", "finance", "audit", "team"],
+  modules: ["dashboard", "catalog", "recipes", "orders", "stock", "customers", "marketing", "finance", "audit", "team", "settings"],
   actions: ["read", "create", "update", "delete"],
-  summary: { total: 5, active: 3, invited: 1, suspended: 1, protected: 1, delegatedRoles: 2, coveredModules: 6, totalModules: 10, recentlyActive: 2, dormant: 0 },
+  summary: { total: 5, active: 3, invited: 1, suspended: 1, protected: 1, delegatedRoles: 2, coveredModules: 6, totalModules: 11, recentlyActive: 2, dormant: 0 },
   members: [
     { id: "super-1", email: "direction@je-mange-africain.com", firstName: "Ange", lastName: "OUIYA", role: "super_admin", status: "active", lastSignInAt: now, createdAt: "2025-08-12T09:00:00.000Z", invitedBy: null, permissions: teamRoleCatalog[0].permissions, current: true, protected: true },
     { id: "member-1", email: "marketing@je-mange-africain.com", firstName: "Mariam", lastName: "Diallo", role: "marketing", status: "active", lastSignInAt: now, createdAt: "2026-03-14T09:00:00.000Z", invitedBy: "direction@je-mange-africain.com", permissions: teamRoleCatalog[1].permissions },
@@ -325,6 +325,15 @@ async function expectBrandSafeUiColors(page: Page) {
 }
 
 async function mockAdminApi(page: Page) {
+  let settingsConfiguration = {
+    supportEmail: "bonjour@je-mange-africain.com",
+    supportPhone: "+33 1 84 80 20 26",
+    supportHoursFr: "Du lundi au vendredi, de 9 h à 18 h",
+    supportHoursEn: "Monday to Friday, 9am to 6pm",
+    supportResponseHours: 48,
+    businessCity: "Paris",
+    businessCountry: "France",
+  };
   let operationalOrder = {
     ...structuredClone(order),
     notes: null as string | null,
@@ -440,6 +449,21 @@ async function mockAdminApi(page: Page) {
     else if (path === "/api/admin/advertisements") payload = { advertisements: [{ id: "ad-1", placement: "home", titleFr: "Saveurs de Côte d'Ivoire", titleEn: "Flavours of Côte d'Ivoire", bodyFr: "Une sélection prête à cuisiner.", bodyEn: "A selection ready to cook.", imageUrl: "/hero-feast-v2.webp", imageAltFr: "Table de plats ivoiriens", imageAltEn: "Table of Ivorian dishes", linkUrl: "/?view=catalog", status: "published", priority: 1, startsAt: now, endsAt: "2026-09-30T23:59:59.000Z" }] };
     else if (path === "/api/admin/profitability") payload = profitabilityPayload;
     else if (path === "/api/admin/audit") payload = auditPayload;
+    else if (path === "/api/admin/settings" && request.method() === "PATCH") {
+      settingsConfiguration = request.postDataJSON();
+      payload = { configuration: settingsConfiguration, metadata: { persisted: true, updatedBy: "direction@je-mange-africain.com", updatedAt: now }, integrations: [] };
+    }
+    else if (path === "/api/admin/settings") payload = {
+      configuration: settingsConfiguration,
+      metadata: { persisted: true, updatedBy: "direction@je-mange-africain.com", updatedAt: now },
+      integrations: [
+        { id: "database", state: "ready", provider: "PostgreSQL", capabilities: { connection: true } },
+        { id: "payments", state: "partial", provider: "Stripe", capabilities: { connection: true, webhook: false } },
+        { id: "identity", state: "ready", provider: "Supabase", capabilities: { connection: true, serverAccess: true } },
+        { id: "cache", state: "attention", provider: "Upstash Redis", capabilities: { connection: false } },
+        { id: "push", state: "ready", provider: "Web Push", capabilities: { connection: true } },
+      ],
+    };
     else if (path === "/api/categories") payload = { categories: [{ id: "cat-1", name: "Féculents et farines" }, { id: "cat-2", name: "Épices" }] };
     else if (path === "/api/brands") payload = { brands: [{ id: "brand-1", name: "Je mange Africain" }] };
     else if (path.startsWith("/api/admin/team/") && request.method() === "PATCH") payload = { member: { id: path.split("/").at(-1), ...request.postDataJSON() } };
@@ -464,6 +488,7 @@ const sections = [
   { id: "finance", nav: "Mesurer la rentabilité", title: "Rentabilité et encaissements" },
   { id: "governance", nav: "Auditer l'exploitation", title: "Gouverner sans ambiguïté" },
   { id: "team", nav: "Administrer les habilitations", title: "Équipe professionnelle" },
+  { id: "settings", nav: "Configurer la plateforme", title: "Configuration de la plateforme" },
 ] as const;
 
 test("the professional sign-in owns its bilingual identity and persists the selected language", async ({ page }) => {
@@ -639,6 +664,30 @@ test("the adaptive professional navigation distinguishes quick and secondary wor
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
   await expectBrandSafeUiColors(page);
+});
+
+test("platform settings publish durable customer-facing contact details", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#settings", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Configuration de la plateforme" })).toBeVisible();
+  const form = page.getByRole("form", { name: "Coordonnées publiques de service" });
+  await form.getByLabel("E-mail d'assistance").fill("service-client@je-mange-africain.com");
+  await form.getByLabel("Délai indicatif (heures)").fill("24");
+  await form.getByRole("button", { name: "Publier les coordonnées" }).click();
+
+  await expect(form.getByRole("status")).toContainText("Configuration enregistrée");
+  await expect(page.getByText("service-client@je-mange-africain.com", { exact: true })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Ce que la boutique affiche" })).toContainText("Réponse sous 24 h");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("E-mail d'assistance")).toHaveValue("service-client@je-mange-africain.com");
+  await expect(page.getByLabel("Délai indicatif (heures)")).toHaveValue("24");
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
 });
 
 test("the operations home turns live signals into clear decisions", async ({ page }) => {

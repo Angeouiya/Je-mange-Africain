@@ -25,6 +25,7 @@ const MODULE_COPY: Record<AdminModule, [string, string]> = {
   finance: ["Finance", "Finance"],
   audit: ["Audit", "Audit"],
   team: ["Équipe", "Team"],
+  settings: ["Paramètres", "Settings"],
 };
 
 const ACTION_COPY: Record<AdminAction, [string, string]> = {

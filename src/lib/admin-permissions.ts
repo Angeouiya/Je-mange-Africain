@@ -9,6 +9,7 @@ export const ADMIN_MODULES = [
   "finance",
   "audit",
   "team",
+  "settings",
 ] as const;
 
 export const ADMIN_ACTIONS = ["read", "create", "update", "delete"] as const;

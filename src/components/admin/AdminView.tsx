@@ -17,6 +17,7 @@ import {
   Megaphone,
   PackageSearch,
   ShieldCheck,
+  Settings2,
   Store,
   UserRoundCog,
   UsersRound,
@@ -53,6 +54,7 @@ const AdvertisingSection = dynamic(() => import("@/components/admin/sections/Adv
 const FinanceSection = dynamic(() => import("@/components/admin/sections/FinanceSection"), { loading: () => <AdminSectionLoading /> });
 const GovernanceSection = dynamic(() => import("@/components/admin/sections/GovernanceSection"), { loading: () => <AdminSectionLoading /> });
 const TeamSection = dynamic(() => import("@/components/admin/sections/TeamSection"), { loading: () => <AdminSectionLoading /> });
+const SettingsSection = dynamic(() => import("@/components/admin/sections/SettingsSection"), { loading: () => <AdminSectionLoading /> });
 
 type NavItem = {
   id: AdminSectionId;
@@ -118,6 +120,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
       { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "09", accent: BRAND_COLORS.burgundy, labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
       { id: "governance", module: "audit", icon: Fingerprint, marker: "10", accent: BRAND_COLORS.deepEarth, labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
       { id: "team", module: "team", icon: UserRoundCog, marker: "11", accent: BRAND_COLORS.chilli, labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
+      { id: "settings", module: "settings", icon: Settings2, marker: "12", accent: BRAND_COLORS.gold, labelFr: "Configurer la plateforme", labelEn: "Configure platform", mobileFr: "Paramètres", mobileEn: "Settings", purposeFr: "Coordonnées publiques et état des services", purposeEn: "Public details and service readiness" },
     ],
   },
 ];
@@ -154,7 +157,7 @@ export function AdminView({
   const availableGroups = useMemo(() => NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => hasAdminPermission(adminRole, item.module, "read")) })).filter((group) => group.items.length), [adminRole]);
   const availableItems = useMemo(() => availableGroups.flatMap((group) => group.items), [availableGroups]);
   const quickItems = useMemo(() => {
-    const priority: AdminSectionId[] = ["overview", "orders", "inventory", "customers", "catalog", "recipes", "campaigns", "advertising", "finance", "governance", "team"];
+    const priority: AdminSectionId[] = ["overview", "orders", "inventory", "customers", "catalog", "recipes", "campaigns", "advertising", "finance", "governance", "team", "settings"];
     return priority.map((id) => availableItems.find((item) => item.id === id)).filter((item): item is NavItem => Boolean(item)).slice(0, 4);
   }, [availableItems]);
 
@@ -332,6 +335,7 @@ export function AdminView({
               {section === "finance" ? <FinanceSection locale={locale} onNavigate={selectSection} /> : null}
               {section === "governance" ? <GovernanceSection locale={locale} adminEmail={adminEmail} adminRole={adminRole} /> : null}
               {section === "team" ? <TeamSection locale={locale} /> : null}
+              {section === "settings" ? <SettingsSection locale={locale} canUpdate={hasAdminPermission(adminRole, "settings", "update")} /> : null}
             </motion.div>
           </AnimatePresence>
         </main>

@@ -9,7 +9,8 @@ export type AdminSectionId =
   | "advertising"
   | "finance"
   | "governance"
-  | "team";
+  | "team"
+  | "settings";
 
 export type DashboardPayload = {
   generatedAt: string;
