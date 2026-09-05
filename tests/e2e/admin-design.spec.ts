@@ -1392,6 +1392,19 @@ test("the recipe studio imports a documented dish and exposes every unresolved s
   expect(overflow).toBeLessThanOrEqual(1);
   const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
   expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await page.keyboard.press("Escape");
+  const discard = page.getByRole("alertdialog", { name: "Abandonner la recette en cours ?" });
+  await expect(discard).toContainText("les étapes de préparation, les liaisons d'ingrédients");
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    await page.screenshot({ path: join(directory, `recipe-discard-confirmation-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await discard.getByRole("button", { name: "Continuer la recette" }).click();
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Annuler" }).click();
+  await expect(discard).toBeVisible();
+  await discard.getByRole("button", { name: "Oui, abandonner" }).click();
+  await expect(dialog).toBeHidden();
 });
 
 test("the order workspace saves logistics and confirms each sensitive advancement", async ({ page }) => {

@@ -239,6 +239,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
   const [pendingTemplate, setPendingTemplate] = useState<DishTemplate | null>(null);
   const [importSummary, setImportSummary] = useState<{ name: string; matched: number; total: number } | null>(null);
   const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const { data: productData, loading: productsLoading } = useFetch<{ products: ProductOption[] }>(open ? `/api/admin/products?locale=${locale}` : null, [open, locale]);
   const { data: templateData, loading: templatesLoading, error: templatesError, refetch: refetchTemplates } = useFetch<DishTemplateResponse>(open && templateOpen && !editing ? "/api/dishes?bilingual=1&limit=100" : null, [open, templateOpen, editing]);
   const editRequest = useFetch<RecipeEditPayload>(open && recipe ? `/api/admin/recipes/${recipe.id}?locale=${locale}` : null, [open, recipe?.id, locale]);
@@ -281,6 +282,8 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
 
   const completeSteps = draft.stepsFr.every((step) => step.trim().length >= 5) && draft.stepsEn.every((step) => step.trim().length >= 5);
   const completeIngredients = draft.ingredients.length > 0 && draft.ingredients.every((ingredient) => ingredient.productId && Number(ingredient.quantityPerBase) > 0);
+  const pristineDraft = editing && editRequest.data ? draftFromRecipe(editRequest.data) : initialDraft();
+  const dirty = JSON.stringify(draft) !== JSON.stringify(pristineDraft);
   const isValid = Boolean(
     draft.titleFr.trim().length >= 2
     && draft.titleEn.trim().length >= 2
@@ -346,19 +349,36 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     else applyTemplate(template);
   };
 
+  const resetEditor = () => {
+    setDraft(initialDraft());
+    setSubmitError("");
+    setTemplateOpen(false);
+    setTemplateQuery("");
+    setTemplateCountry("");
+    setPendingTemplate(null);
+    setImportSummary(null);
+  };
+
   const handleOpen = (nextOpen: boolean) => {
     if (submitting) return;
-    setOpen(nextOpen);
-    if (nextOpen) setPreviewLocale(locale);
-    if (!nextOpen || !editing) {
-      setDraft(initialDraft());
-      setSubmitError("");
-      setTemplateOpen(false);
-      setTemplateQuery("");
-      setTemplateCountry("");
-      setPendingTemplate(null);
-      setImportSummary(null);
+    if (nextOpen) {
+      if (!editing) resetEditor();
+      setPreviewLocale(locale);
+      setOpen(true);
+      return;
     }
+    if (dirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    resetEditor();
+    setOpen(false);
+  };
+
+  const discardChanges = () => {
+    resetEditor();
+    setDiscardOpen(false);
+    setOpen(false);
   };
 
   const submit = async (event: FormEvent) => {
@@ -374,7 +394,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || (isFr ? "Enregistrement impossible." : "Unable to save recipe."));
-      setDraft(initialDraft());
+      resetEditor();
       setOpen(false);
       onCreated();
     } catch (cause) {
@@ -478,6 +498,16 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
         </form>
       </DialogContent>
     </Dialog>
+    <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><Trash2 className="h-5 w-5" /></span>
+          <AlertDialogTitle>{isFr ? "Abandonner la recette en cours ?" : "Discard this recipe?"}</AlertDialogTitle>
+          <AlertDialogDescription>{isFr ? "Les titres, les étapes de préparation, les liaisons d'ingrédients et les réglages non enregistrés seront perdus. Aucune recette publiée ne sera modifiée." : "Unsaved titles, preparation steps, ingredient links and settings will be lost. No published recipe will be changed."}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel>{isFr ? "Continuer la recette" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardChanges} className="bg-destructive text-white hover:bg-destructive/90">{isFr ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <AlertDialog open={Boolean(pendingTemplate)} onOpenChange={(next) => { if (!next) setPendingTemplate(null); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
