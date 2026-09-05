@@ -19,7 +19,7 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminRefreshNotice, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,10 +83,10 @@ export function ProfitabilityPanel({ locale, onNavigate }: { locale: "fr" | "en"
   const request = useFetch<ProfitabilityData>(`/api/admin/profitability?locale=${locale}&period=${period}`, [locale, period]);
 
   if (request.loading && !request.data) return <AdminSectionLoading label={isFr ? "Calcul de la rentabilité réelle" : "Calculating actual profitability"} />;
-  if (request.error && !request.data) return <AdminErrorState message={request.error} onRetry={request.refetch} />;
+  if (request.error && !request.data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
   if (!request.data) return null;
   if (!request.data.general || !Array.isArray(request.data.categories) || !Array.isArray(request.data.lots) || !Array.isArray(request.data.topProducts)) {
-    return <AdminErrorState message={isFr ? "Les données de rentabilité reçues sont incomplètes." : "The profitability data received is incomplete."} onRetry={request.refetch} />;
+    return <AdminErrorState locale={locale} message={isFr ? "Les données de rentabilité reçues sont incomplètes." : "The profitability data received is incomplete."} onRetry={request.refetch} />;
   }
 
   const data = request.data;
@@ -99,6 +99,7 @@ export function ProfitabilityPanel({ locale, onNavigate }: { locale: "fr" | "en"
 
   return (
     <div className="space-y-5">
+      {request.error && request.data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}
       <div className="flex flex-col gap-3 border-b border-charcoal/8 pb-4 2xl:flex-row 2xl:items-end 2xl:justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-extrabold uppercase text-terre">{isFr ? "Lecture économique consolidée" : "Consolidated financial view"}</p>

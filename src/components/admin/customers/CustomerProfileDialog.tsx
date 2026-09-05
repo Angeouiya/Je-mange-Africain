@@ -18,7 +18,7 @@ import {
   UtensilsCrossed,
   WalletCards,
 } from "lucide-react";
-import { AdminErrorState, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminErrorState, AdminRefreshNotice, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import type { AdminCustomer, AdminCustomerDetail } from "@/components/admin/admin-types";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { Badge } from "@/components/ui/badge";
@@ -132,8 +132,9 @@ function CustomerProfileContent({ summary, locale, canUpdate, onNotesDirtyChange
       </DialogHeader>
 
       <div className="min-h-0 overflow-y-auto bg-white">
-        {loading ? <AdminSectionLoading label={isFr ? "Construction de la vue client" : "Building customer view"} /> : null}
-        {error ? <div className="p-5"><AdminErrorState message={error} onRetry={refetch} /></div> : null}
+        {loading && !data ? <AdminSectionLoading label={isFr ? "Construction de la vue client" : "Building customer view"} /> : null}
+        {error && !data ? <div className="p-5"><AdminErrorState compact locale={locale} message={error} onRetry={refetch} /></div> : null}
+        {error && data ? <div className="p-4 sm:p-5"><AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /></div> : null}
         {data ? (
           <div>
             <dl className="grid grid-cols-2 divide-x divide-y divide-charcoal/8 border-b border-charcoal/8 lg:grid-cols-4 lg:divide-y-0">

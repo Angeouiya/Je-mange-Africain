@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { BellRing, Check, CheckCircle2, CircleDashed, Globe2, History, Languages, LoaderCircle, Send, Smartphone, Target, TrendingUp, UsersRound } from "lucide-react";
-import { AdminPageHeader } from "@/components/admin/AdminPrimitives";
+import { AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,7 +65,7 @@ const initialCampaign: CampaignDraft = {
 };
 
 export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
-  const { data, loading, refetch } = useFetch<PushDashboard>("/api/admin/push");
+  const { data, loading, error, refetch } = useFetch<PushDashboard>("/api/admin/push");
   const [campaign, setCampaign] = useState(initialCampaign);
   const [editorLocale, setEditorLocale] = useState<"fr" | "en">(locale);
   const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
@@ -125,6 +125,9 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
   const readiness = pushCampaignReadiness(campaign, audienceCount, data?.configured === true);
   const recentPerformance = aggregatePushDelivery(data?.recent || []);
 
+  if (loading && !data) return <AdminSectionLoading label={locale === "fr" ? "Ouverture du centre de diffusion" : "Opening delivery centre"} />;
+  if (error && !data) return <AdminErrorState locale={locale} message={error} onRetry={refetch} />;
+
   return (
     <div className="space-y-6">
       <AdminPageHeader
@@ -136,6 +139,8 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
         description={locale === "fr" ? "Préparez un message bilingue, contrôlez son rendu mobile et confirmez explicitement la diffusion vers les appareils abonnés." : "Prepare a bilingual message, review its mobile rendering and explicitly confirm delivery to subscribed devices."}
         action={<Badge variant="outline" className="h-9 border-burgundy/30 bg-burgundy/5 px-3 text-burgundy"><Smartphone className="mr-1.5 h-3.5 w-3.5" /> {loading ? "…" : data?.activeSubscriptions || 0} {locale === "fr" ? "appareils joignables" : "reachable devices"}</Badge>}
       />
+
+      {error && data ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
       <CampaignReadiness readiness={readiness} locale={locale} />
 

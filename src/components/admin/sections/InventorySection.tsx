@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, Boxes, CalendarClock, CircleDollarSign, History, PackageCheck, Snowflake, Warehouse } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import { BatchControlDialog, BatchReceiptDialog, BatchStatusBadge } from "@/components/admin/InventoryBatchDialogs";
 import type { InventoryBatch, InventoryMovement, InventoryPayload, InventoryProductOption, InventoryWarehouseOption } from "@/components/admin/admin-types";
 import { ProductImage } from "@/components/shared/ProductImage";
@@ -62,7 +62,7 @@ export default function InventorySection({ locale, canCreate = false, canUpdate 
   }), [batches, filter, priorityIds, query]);
 
   if (request.loading && !request.data) return <AdminSectionLoading label={isFr ? "Contrôle des lots" : "Checking batches"} />;
-  if (request.error && !request.data) return <AdminErrorState message={request.error} onRetry={request.refetch} />;
+  if (request.error && !request.data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
 
   return (
     <div className="space-y-6">
@@ -75,6 +75,8 @@ export default function InventorySection({ locale, canCreate = false, canUpdate 
         description={isFr ? "Réceptionnez, valorisez et arbitrez chaque lot selon sa disponibilité réelle, sa chaîne thermique et son échéance FEFO." : "Receive, value and manage every batch using live availability, thermal class and FEFO expiry."}
         action={canCreate ? <BatchReceiptDialog locale={locale} products={products} warehouses={warehouses} disabled={request.loading} onCreated={request.refetch} /> : undefined}
       />
+
+      {request.error && request.data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}
 
       <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white xl:grid-cols-4" aria-label={isFr ? "Santé et valeur de l'inventaire" : "Inventory health and value"}>
         <InventoryMetric position={0} icon={PackageCheck} label={isFr ? "Disponible à la vente" : "Available for sale"} value={String(availableUnits)} detail={isFr ? "unités nettes des réservations" : "units net of reservations"} tone="earth" />

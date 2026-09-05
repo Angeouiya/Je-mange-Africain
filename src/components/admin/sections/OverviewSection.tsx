@@ -25,7 +25,7 @@ import {
   Truck,
   UsersRound,
 } from "lucide-react";
-import { AdminErrorState, AdminPageHeader, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
+import { AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import type { AdminSectionId, DashboardPayload } from "@/components/admin/admin-types";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { Badge } from "@/components/ui/badge";
@@ -236,8 +236,9 @@ function TopProducts({ products, locale, onNavigate }: { products: DashboardPayl
 export default function OverviewSection({ locale, onNavigate }: { locale: Locale; onNavigate: (section: AdminSectionId) => void }) {
   const { data, loading, error, refetch } = useFetch<DashboardPayload>(`/api/admin/dashboard?locale=${locale}`, [locale]);
   const isFr = locale === "fr";
-  if (loading) return <AdminSectionLoading label={isFr ? "Lecture de l'activité" : "Reading business activity"} />;
-  if (error || !data) return <AdminErrorState message={error} onRetry={refetch} />;
+  if (loading && !data) return <AdminSectionLoading label={isFr ? "Lecture de l'activité" : "Reading business activity"} />;
+  if (error && !data) return <AdminErrorState locale={locale} message={error} onRetry={refetch} />;
+  if (!data) return null;
 
   return (
     <div className="space-y-6">
@@ -250,6 +251,8 @@ export default function OverviewSection({ locale, onNavigate }: { locale: Locale
         description={isFr ? "Commencez par les signaux prioritaires, puis suivez le commerce, les commandes et le stock depuis une seule vue de décision." : "Start with priority signals, then follow commerce, orders and stock from one decision view."}
         action={<div className="inline-flex h-9 items-center gap-2 rounded-md border border-charcoal/10 bg-white px-3 text-[9px] font-bold text-muted-foreground"><Activity className="h-3.5 w-3.5 text-terre" /><span><span className="block text-charcoal">{isFr ? "Données synchronisées" : "Data synchronised"}</span>{formatDateTime(data.generatedAt, locale)}</span></div>}
       />
+
+      {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
       <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white xl:grid-cols-4" aria-label={isFr ? "Indicateurs de décision" : "Decision metrics"}>
         <MetricCell position={0} locale={locale} icon={CircleDollarSign} label={isFr ? "Encaissé aujourd'hui" : "Collected today"} value={formatPrice(data.kpis.revenueToday, locale)} detail={isFr ? "paiements nets reconnus" : "recognised net payments"} tone="terre" />

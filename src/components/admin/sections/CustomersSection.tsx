@@ -5,7 +5,7 @@ import { Download, UserRound, UsersRound } from "lucide-react";
 import { CustomerPortfolioOverview } from "@/components/admin/customers/CustomerPortfolioOverview";
 import { CustomerProfileDialog } from "@/components/admin/customers/CustomerProfileDialog";
 import { CustomerRegister } from "@/components/admin/customers/CustomerRegister";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import type { AdminCustomer, AdminCustomerPortfolioPayload } from "@/components/admin/admin-types";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,8 +38,9 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
       return right.lifetimeValue - left.lifetimeValue;
     }), [actionScoreByCustomer, customers, query, segment, sort]);
 
-  if (loading) return <AdminSectionLoading label={isFr ? "Analyse du portefeuille client" : "Analysing customer portfolio"} />;
-  if (error || !data) return <AdminErrorState message={error} onRetry={refetch} />;
+  if (loading && !data) return <AdminSectionLoading label={isFr ? "Analyse du portefeuille client" : "Analysing customer portfolio"} />;
+  if (error && !data) return <AdminErrorState locale={locale} message={error} onRetry={refetch} />;
+  if (!data) return null;
 
   return (
     <div className="space-y-6">
@@ -51,6 +52,8 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
         title={isFr ? "Piloter chaque relation" : "Steer every relationship"}
         description={isFr ? "Mesurez la fidélité, traitez les demandes et ouvrez chaque dossier avec une prochaine action explicite." : "Measure loyalty, resolve requests and open every profile with an explicit next action."}
       />
+
+      {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
       <CustomerPortfolioOverview summary={data.summary} locale={locale} />
 

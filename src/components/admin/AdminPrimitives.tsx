@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, type KeyboardEvent, type ReactNode } from "react";
-import { AlertCircle, LoaderCircle, Search, X, type LucideIcon } from "lucide-react";
+import { AlertCircle, CloudOff, LoaderCircle, RefreshCw, Search, X, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
@@ -90,18 +90,43 @@ export function AdminSectionLoading({ label = "Chargement de l'espace" }: { labe
   );
 }
 
-export function AdminErrorState({ message, onRetry }: { message?: string | null; onRetry?: () => void }) {
+function readableAdminError(message: string | null | undefined, locale: "fr" | "en") {
+  const technicalMessage = !message || /^(HTTP\s+\d{3}|Failed to fetch|Load failed|NetworkError.*)$/i.test(message.trim());
+  if (technicalMessage) {
+    return locale === "fr"
+      ? "Le service métier n'a pas répondu. Aucune donnée ni action n'a été modifiée."
+      : "The business service did not respond. No data or action has been changed.";
+  }
+  return message;
+}
+
+export function AdminErrorState({ message, onRetry, locale = "fr", title, compact = false }: { message?: string | null; onRetry?: () => void; locale?: "fr" | "en"; title?: string; compact?: boolean }) {
+  const isFr = locale === "fr";
   return (
-    <div className="mx-auto grid min-h-[45vh] max-w-md place-items-center text-center" role="alert">
-      <div>
-        <span className="mx-auto grid h-11 w-11 place-items-center rounded-lg bg-destructive/10 text-destructive">
+    <section data-testid="admin-data-unavailable" className={`mx-auto grid max-w-xl place-items-center px-4 text-center ${compact ? "min-h-56" : "min-h-[45vh]"}`} role="alert">
+      <div className={`w-full border-y border-burgundy/15 bg-[#FFFCFA] px-5 sm:px-8 ${compact ? "py-6" : "py-9"}`}>
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-lg border border-destructive/15 bg-destructive/[0.06] text-destructive">
           <AlertCircle className="h-5 w-5" />
         </span>
-        <h3 className="mt-4 text-base font-extrabold text-charcoal">Données indisponibles</h3>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{message || "La console n'a pas pu charger ces informations."}</p>
-        {onRetry ? <Button variant="outline" size="sm" onClick={onRetry} className="mt-4">Réessayer</Button> : null}
+        <p className="mt-4 text-[9px] font-black uppercase text-terre">{isFr ? "Synchronisation professionnelle interrompue" : "Professional synchronisation interrupted"}</p>
+        <h3 className="mt-1 font-display text-xl font-semibold text-charcoal">{title || (isFr ? "Cet espace ne peut pas être actualisé" : "This workspace cannot be refreshed")}</h3>
+        <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-muted-foreground sm:text-sm sm:leading-6">{readableAdminError(message, locale)}</p>
+        {onRetry ? <Button type="button" variant="outline" size="sm" onClick={onRetry} className="mt-5 border-terre/25 bg-white text-terre hover:bg-terre/[0.05] hover:text-terre"><RefreshCw className="mr-2 h-4 w-4" />{isFr ? "Relancer la synchronisation" : "Retry synchronisation"}</Button> : null}
       </div>
-    </div>
+    </section>
+  );
+}
+
+export function AdminRefreshNotice({ message, onRetry, locale }: { message?: string | null; onRetry: () => void; locale: "fr" | "en" }) {
+  const isFr = locale === "fr";
+  return (
+    <section data-testid="admin-refresh-notice" role="alert" className="flex flex-col gap-3 border-y border-gold/35 bg-gold/[0.065] px-4 py-3 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-terre"><CloudOff className="h-4 w-4" /></span>
+        <div className="min-w-0"><p className="text-xs font-black text-charcoal">{isFr ? "Dernière vue fiable conservée" : "Last reliable view preserved"}</p><p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">{readableAdminError(message, locale)} {isFr ? "Les filtres et données affichés restent en place pendant la reprise." : "Displayed filters and data remain in place while you retry."}</p></div>
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={onRetry} className="h-9 shrink-0 border-terre/25 bg-white text-terre hover:bg-terre/[0.05] hover:text-terre"><RefreshCw className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Actualiser" : "Refresh"}</Button>
+    </section>
   );
 }
 

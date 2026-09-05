@@ -23,7 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,7 +109,8 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
   };
 
   if (loading && !data) return <AdminSectionLoading label={isFr ? "Chargement de la logistique" : "Loading logistics"} />;
-  if (error || !data) return <AdminErrorState message={isFr ? "Le référentiel de livraison est indisponible." : "The delivery reference data is unavailable."} onRetry={refetch} />;
+  if (error && !data) return <AdminErrorState locale={locale} message={isFr ? "Le référentiel de livraison est indisponible." : "The delivery reference data is unavailable."} onRetry={refetch} />;
+  if (!data) return null;
 
   const tabs: Array<{ id: LogisticsTab; icon: LucideIcon; fr: string; en: string; detailFr: string; detailEn: string }> = [
     { id: "routes", icon: Route, fr: "Zones tarifaires", en: "Rate zones", detailFr: "Pays, prix et délais", detailEn: "Countries, prices and timing" },
@@ -127,6 +128,8 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
         variant="flow"
         accent={BRAND_COLORS.earth}
       />
+
+      {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
       <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-burgundy/10 bg-burgundy/10 lg:grid-cols-4" aria-label={isFr ? "Indicateurs logistiques" : "Logistics indicators"}>
         <Metric icon={Truck} label={isFr ? "Transporteurs" : "Carriers"} value={data.summary.carriers} accent={BRAND_COLORS.burgundy} />

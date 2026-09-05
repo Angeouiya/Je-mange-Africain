@@ -19,7 +19,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { AdminErrorState, AdminPageHeader, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
+import { AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,7 +109,7 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
   };
 
   if (loading && !draft) return <AdminSectionLoading label={isFr ? "Chargement de la configuration" : "Loading configuration"} />;
-  if (error && !draft) return <AdminErrorState message={isFr ? "La configuration de la plateforme est indisponible." : "Platform configuration is unavailable."} onRetry={refetch} />;
+  if (error && !draft) return <AdminErrorState locale={locale} message={isFr ? "La configuration de la plateforme est indisponible." : "Platform configuration is unavailable."} onRetry={refetch} />;
   if (!draft) return null;
 
   return (
@@ -122,6 +122,8 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
         variant="control"
         accent={BRAND_COLORS.burgundy}
       />
+
+      {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
       <ProductionReadiness readiness={readiness} locale={locale} />
 

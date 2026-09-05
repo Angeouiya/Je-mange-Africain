@@ -782,6 +782,83 @@ test("every professional workspace has a clear purpose and stays inside the view
   }
 });
 
+test("professional workspaces recover without presenting outages as business data", async ({ page }) => {
+  await mockAdminApi(page);
+  let pushAvailable = false;
+  let teamAvailable = true;
+
+  await page.route("**/api/admin/push", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    if (!pushAvailable) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporarily_unavailable" }) });
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        activeSubscriptions: 1284,
+        configured: true,
+        audiences: { all: 1284, signed_in: 932, guests: 352, ambassador: 184, active: 516, at_risk: 126, new: 106 },
+        recent: [],
+      }),
+    });
+  });
+  await page.route("**/api/admin/team", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    if (!teamAvailable) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporarily_unavailable" }) });
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(teamPayload) });
+  });
+
+  await page.goto("/admin#campaigns", { waitUntil: "domcontentloaded" });
+  const unavailable = page.getByTestId("admin-data-unavailable");
+  await expect(unavailable).toBeVisible();
+  await expect(unavailable).toContainText("Cet espace ne peut pas être actualisé");
+  await expect(unavailable).not.toContainText("HTTP 503");
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `admin-unavailable-${mobile ? "mobile" : "desktop"}.png`), scale: "css" });
+  }
+
+  pushAvailable = true;
+  await unavailable.getByRole("button", { name: "Relancer la synchronisation" }).click();
+  await expect(page.getByRole("heading", { name: "Composer, vérifier, diffuser" })).toBeVisible();
+  await expect(unavailable).toBeHidden();
+
+  await page.goto("/admin#team", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("marketing@je-mange-africain.com")).toBeVisible();
+  teamAvailable = false;
+  if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
+  const sidebar = page.getByTestId("admin-sidebar");
+  await sidebar.locator('[aria-label="Langue"]').getByRole("button", { name: "en", exact: true }).click();
+  if (mobile) await sidebar.getByRole("button", { name: "Close navigation" }).click();
+
+  const refreshNotice = page.getByTestId("admin-refresh-notice");
+  await expect(refreshNotice).toBeVisible();
+  await expect(refreshNotice).toContainText("Last reliable view preserved");
+  await expect(refreshNotice).not.toContainText("HTTP 503");
+  await expect(page.getByText("marketing@je-mange-africain.com")).toBeVisible();
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `admin-refresh-notice-${mobile ? "mobile" : "desktop"}.png`), scale: "css" });
+  }
+
+  teamAvailable = true;
+  await refreshNotice.getByRole("button", { name: "Refresh" }).click();
+  await expect(refreshNotice).toBeHidden();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `admin-recovery-${mobile ? "mobile" : "desktop"}.png`), scale: "css" });
+  }
+});
+
 test("the adaptive professional navigation distinguishes quick and secondary workspaces", async ({ page }) => {
   await mockAdminApi(page);
   await page.goto("/admin#overview", { waitUntil: "domcontentloaded" });

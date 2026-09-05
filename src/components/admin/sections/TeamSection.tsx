@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, KeyRound, MailCheck, ShieldCheck, UserCheck, UserRoundCog, UsersRound } from "lucide-react";
-import { AdminPageHeader, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AlertTriangle, MailCheck, ShieldCheck, UserCheck, UserRoundCog, UsersRound } from "lucide-react";
+import { AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import { InviteMemberDialog } from "@/components/admin/TeamDialogs";
 import { TeamMemberWorkspace } from "@/components/admin/TeamMemberWorkspace";
 import { TeamRoleWorkspace } from "@/components/admin/TeamRoleWorkspace";
@@ -20,11 +20,12 @@ export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
   const summary = data ? data.summary || fallbackSummary(data) : null;
 
   if (request.loading && !data) return <AdminSectionLoading label={isFr ? "Qualification des identités et des autorisations" : "Qualifying identities and permissions"} />;
+  if (request.error && !data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
 
   return <div className="space-y-6">
     <AdminPageHeader variant="control" accent="#C92A3E" icon={<UserRoundCog className="h-5 w-5" />} eyebrow={isFr ? "Identités et autorisations" : "Identity and authorisation"} title={isFr ? "Équipe professionnelle" : "Professional team"} description={isFr ? "Mesurez la couverture opérationnelle, attribuez le rôle strictement nécessaire et documentez chaque changement d'accès." : "Measure operational coverage, grant only the required role and document every access change."} action={data ? <InviteMemberDialog locale={locale} roles={data.roles} onInvited={request.refetch} /> : undefined} />
 
-    {request.error && !data ? <section className="border-y border-gold/45 bg-gold/[0.09] px-4 py-4" role="alert"><div className="flex items-start gap-3"><KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-terre" /><div><h3 className="text-sm font-black text-charcoal">{isFr ? "Service d'équipe à raccorder" : "Team service needs configuration"}</h3><p className="mt-1 text-xs leading-5 text-charcoal">{request.error}</p><p className="mt-2 text-[10px] leading-5 text-muted-foreground">{isFr ? "La clé serveur reste exclusivement dans l'environnement sécurisé et n'est jamais transmise au navigateur." : "The server key remains exclusively in the secured environment and is never sent to the browser."}</p></div></div></section> : null}
+    {request.error && data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}
 
     {data && summary ? <>
       <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white xl:grid-cols-4" aria-label={isFr ? "Santé des habilitations" : "Access health"}>

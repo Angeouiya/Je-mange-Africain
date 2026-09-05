@@ -19,7 +19,7 @@ import {
   UserRoundCog,
   UsersRound,
 } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminRefreshNotice, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import type { AuditEntry, AuditPayload } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,11 +54,12 @@ export function AuditControlCenter({ locale }: { locale: "fr" | "en" }) {
   const filtersActive = risk !== "all" || domain !== "all" || Boolean(query);
 
   if (request.loading && !request.data) return <AdminSectionLoading label={isFr ? "Qualification des preuves d'activité" : "Qualifying activity evidence"} />;
-  if (request.error && !request.data) return <AdminErrorState message={request.error} onRetry={request.refetch} />;
+  if (request.error && !request.data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
   if (!request.data || !summary) return null;
 
   return (
     <div className="space-y-5">
+      {request.error && request.data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}
       <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white xl:grid-cols-4" aria-label={isFr ? "Santé du journal d'audit" : "Audit log health"}>
         <AuditMetric position={0} icon={ScrollText} label={isFr ? "Événements sur la période" : "Events in period"} value={String(summary.total)} detail={request.data.hasMore ? `${summary.loaded} ${isFr ? "derniers détaillés" : "latest detailed"}` : (isFr ? "périmètre complet" : "complete scope")} tone="earth" />
         <AuditMetric position={1} icon={AlertTriangle} label={isFr ? "Actions sensibles" : "Sensitive actions"} value={String(summary.risk.critical)} detail={isFr ? "suppression, rappel ou suspension" : "deletion, recall or suspension"} tone={summary.risk.critical ? "alert" : "gold"} />

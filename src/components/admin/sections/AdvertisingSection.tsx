@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import Image from "next/image";
 import { CalendarClock, CalendarRange, FilePenLine, ImagePlus, LayoutTemplate, LoaderCircle, Megaphone, MonitorSmartphone, MousePointerClick, Pencil, Radio, Save, Trash2 } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,10 +59,12 @@ export default function AdvertisingSection({ locale }: { locale: "fr" | "en" }) 
   }), [advertisements, lifecycleFilter, lifecycles, placementFilter]);
 
   if (request.loading && !request.data) return <AdminSectionLoading label={isFr ? "Ouverture de la régie" : "Opening advertising desk"} />;
-  if (request.error && !request.data) return <AdminErrorState message={request.error} onRetry={request.refetch} />;
+  if (request.error && !request.data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
 
   return <div className="space-y-6">
     <AdminPageHeader variant="workspace" accent="#D65A32" icon={<Megaphone className="h-5 w-5" />} eyebrow={isFr ? "Visibilité commerciale" : "Commercial visibility"} title={isFr ? "Régie publicitaire" : "Advertising desk"} description={isFr ? "Créez des affiches bilingues, choisissez leur emplacement et leur calendrier, puis contrôlez exactement ce qui est visible dans l'application client." : "Create bilingual artwork, choose its placement and schedule, then control exactly what appears in the customer app."} action={<AdvertisementEditor locale={locale} onSaved={request.refetch} />} />
+
+    {request.error && request.data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}
 
     <div data-testid="advertising-metrics" className="grid grid-cols-4 divide-x divide-charcoal/8 border-y border-charcoal/8 bg-white py-3 sm:py-4"><Metric icon={Radio} value={metrics.active} label={isFr ? "en cours" : "live now"} tone="terre" /><Metric icon={CalendarRange} value={metrics.scheduled} label={isFr ? "planifiées" : "scheduled"} tone="gold" /><Metric icon={FilePenLine} value={metrics.draft} label={isFr ? "brouillons" : "drafts"} tone="burgundy" /><Metric icon={LayoutTemplate} value={metrics.placements} label={isFr ? "emplacements" : "placements"} tone="soft" /></div>
 

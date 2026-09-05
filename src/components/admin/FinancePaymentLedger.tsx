@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useState } from "react";
 import { AlertCircle, ArrowRight, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, CreditCard, Download, Globe2, Landmark, LoaderCircle, ReceiptText, RotateCcw, ShieldCheck, Smartphone, WalletCards } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminRefreshNotice, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import { PaymentRefundDialog } from "@/components/admin/PaymentRefundDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,10 +81,11 @@ export function FinancePaymentLedger({ locale, canUpdate, onNavigate }: { locale
   const changeQuery = (value: string) => { setQuery(value); setPage(1); };
 
   if (request.loading && !request.data) return <AdminSectionLoading label={isFr ? "Rapprochement des encaissements" : "Reconciling payments"} />;
-  if (request.error && !request.data) return <AdminErrorState message={request.error} onRetry={request.refetch} />;
+  if (request.error && !request.data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
 
   return (
     <div className="space-y-5">
+      {request.error && request.data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}
       <section className="flex flex-col gap-3 border-y border-charcoal/8 bg-[#F8F7F4] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4" aria-label={isFr ? "Période du registre financier" : "Financial ledger period"} data-testid="payment-ledger-period">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy/[0.08] text-burgundy"><CalendarClock className="h-4 w-4" /></span>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
 import { BadgePercent, CalendarClock, CheckCircle2, Clock3, Gauge, LoaderCircle, PauseCircle, Pencil, PlayCircle, Save, ShieldCheck, Target, TicketPercent, Trash2, Truck } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ export default function PromotionsSection({ locale, canCreate, canUpdate, canDel
   const promotions = request.data?.promotions || [];
   const products = productRequest.data?.products || [];
   const categories = categoryRequest.data?.categories || [];
+  const referenceError = productRequest.error || categoryRequest.error;
   const lifecycles = useMemo(() => new Map(promotions.map((promotion) => [promotion.id, promotionLifecycle(promotion)])), [promotions]);
   const metrics = useMemo(() => ({
     active: promotions.filter((promotion) => lifecycles.get(promotion.id) === "active").length,
@@ -60,7 +61,7 @@ export default function PromotionsSection({ locale, canCreate, canUpdate, canDel
   }), [categories, filter, lifecycles, locale, products, promotions, query]);
 
   if (request.loading && !request.data) return <AdminSectionLoading label={isFr ? "Ouverture des promotions" : "Opening promotions"} />;
-  if (request.error && !request.data) return <AdminErrorState message={request.error} onRetry={request.refetch} />;
+  if (request.error && !request.data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
 
   return (
     <div className="space-y-5">
@@ -73,6 +74,8 @@ export default function PromotionsSection({ locale, canCreate, canUpdate, canDel
         description={isFr ? "Planifiez les codes, protégez les marges par des seuils et vérifiez leur consommation dans l'application client." : "Schedule codes, protect margin with thresholds and monitor redemption in the customer app."}
         action={canCreate ? <PromotionEditor locale={locale} products={products} categories={categories} onSaved={request.refetch} /> : null}
       />
+
+      {(request.error && request.data) || referenceError ? <AdminRefreshNotice locale={locale} message={request.error || referenceError} onRetry={() => { request.refetch(); productRequest.refetch(); categoryRequest.refetch(); }} /> : null}
 
       <section className="grid grid-cols-4 divide-x divide-charcoal/8 border-y border-charcoal/8 bg-white py-3 sm:py-4" aria-label={isFr ? "Santé des promotions" : "Promotion health"} data-testid="promotion-metrics">
         <PromotionMetric icon={CheckCircle2} value={metrics.active} label={isFr ? "actives" : "active"} tone="terre" />

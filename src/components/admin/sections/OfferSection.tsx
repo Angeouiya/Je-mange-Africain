@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { BookOpen, BookOpenCheck, ChefHat, ChevronRight, Clock3, Package, Sparkles, UsersRound } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { ProductCreateDialog } from "@/components/admin/ProductCreateDialog";
 import { RecipeCreateDialog } from "@/components/admin/RecipeCreateDialog";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +47,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
 
   const activeRequest = workspace === "products" ? productsRequest : recipesRequest;
   if (activeRequest.loading && !activeRequest.data) return <AdminSectionLoading label={isFr ? "Ouverture de l'offre" : "Opening offer workspace"} />;
-  if (activeRequest.error && !activeRequest.data) return <AdminErrorState message={activeRequest.error} onRetry={activeRequest.refetch} />;
+  if (activeRequest.error && !activeRequest.data) return <AdminErrorState locale={locale} message={activeRequest.error} onRetry={activeRequest.refetch} />;
 
   return (
     <div className="space-y-6">
@@ -60,6 +60,8 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         description={workspace === "products" ? (isFr ? "Gérez chaque produit publié, son prix calculé, sa marge interne et sa disponibilité sans mélanger la logique éditoriale des recettes." : "Manage every published product, calculated price, internal margin and availability without mixing in recipe editorial work.") : (isFr ? "Ordonnez la préparation, reliez chaque ingrédient à un produit disponible et définissez précisément les portions proposées au client." : "Sequence preparation, link every ingredient to available stock and define the exact servings offered to customers.")}
         action={workspace === "products" ? <ProductCreateDialog locale={locale} onCreated={productsRequest.refetch} /> : <RecipeCreateDialog locale={locale} onCreated={recipesRequest.refetch} />}
       />
+
+      {activeRequest.error && activeRequest.data ? <AdminRefreshNotice locale={locale} message={activeRequest.error} onRetry={activeRequest.refetch} /> : null}
 
       <div className="flex flex-col gap-3 border-y border-charcoal/8 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
         {workspace === "products" ? <div><p className="text-[10px] font-extrabold uppercase text-muted-foreground">{isFr ? "Catalogue actif" : "Active catalogue"}</p><p className="mt-0.5 text-lg font-black tabular-nums text-charcoal">{products.length}</p></div> : <div className="grid grid-cols-3 divide-x divide-charcoal/8"><RecipeRegisterMetric label={isFr ? "Publiées" : "Published"} value={recipeStats.published} /><RecipeRegisterMetric label={isFr ? "Prêtes" : "Ready"} value={recipeStats.ready} /><RecipeRegisterMetric label={isFr ? "À vérifier" : "Review"} value={recipeStats.attention} attention={recipeStats.attention > 0} /></div>}
@@ -123,12 +125,15 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
             <DialogTitle className="pr-8 text-xl font-black text-charcoal">{selectedRecipe?.title}</DialogTitle>
             <DialogDescription>{selectedRecipe?.description}</DialogDescription>
           </DialogHeader>
-          {recipeDetailsRequest.loading ? <AdminSectionLoading label={isFr ? "Lecture de la recette" : "Reading recipe"} /> : recipeDetailsRequest.data ? (
-            <div className="grid gap-6 px-5 py-6 md:grid-cols-[0.82fr_1.18fr] sm:px-6">
+          {recipeDetailsRequest.loading && !recipeDetailsRequest.data ? <AdminSectionLoading label={isFr ? "Lecture de la recette" : "Reading recipe"} /> : recipeDetailsRequest.data ? (
+            <>
+              {recipeDetailsRequest.error ? <div className="px-5 pt-5 sm:px-6"><AdminRefreshNotice locale={locale} message={recipeDetailsRequest.error} onRetry={recipeDetailsRequest.refetch} /></div> : null}
+              <div className="grid gap-6 px-5 py-6 md:grid-cols-[0.82fr_1.18fr] sm:px-6">
               <section><h4 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Ingrédients liés" : "Linked ingredients"}</h4><div className="mt-3 divide-y divide-border border-y border-border">{recipeDetailsRequest.data.ingredients.map((ingredient) => { const available = ingredient.product.availableQty ?? ingredient.product.stockQty; return <div key={ingredient.recipeIngredientId} className="flex items-center gap-3 py-3"><ProductImage src={ingredient.product.imageUrl} alt={isFr ? ingredient.product.nameFr : ingredient.product.nameEn} emoji={ingredient.product.emoji} color={ingredient.product.color} size="sm" className="h-9 w-9 shrink-0" rounded="rounded-md" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{isFr ? ingredient.product.nameFr : ingredient.product.nameEn}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{ingredient.quantityPerBase} {ingredient.unit}{ingredient.optional ? ` · ${isFr ? "optionnel" : "optional"}` : ""}</p></div><span className={`text-[10px] font-bold ${available > 0 ? "text-burgundy" : "text-destructive"}`}>{available} {isFr ? "dispo." : "avail."}</span></div>; })}</div></section>
               <section><h4 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Préparation publiée" : "Published preparation"}</h4><ol className="mt-3 space-y-3">{recipeDetailsRequest.data.steps.map((step, index) => <li key={`${index}-${step}`} className="flex gap-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-terre text-[10px] font-black text-white">{index + 1}</span><p className="pt-1 text-xs leading-5 text-charcoal">{step}</p></li>)}</ol></section>
-            </div>
-          ) : <AdminErrorState message={recipeDetailsRequest.error} onRetry={recipeDetailsRequest.refetch} />}
+              </div>
+            </>
+          ) : <AdminErrorState compact locale={locale} message={recipeDetailsRequest.error} onRetry={recipeDetailsRequest.refetch} />}
         </DialogContent>
       </Dialog>
     </div>

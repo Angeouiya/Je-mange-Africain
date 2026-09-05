@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowRight, Box, Boxes, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardList, Clock3, CreditCard, Landmark, MapPin, PackageCheck, Smartphone, Snowflake, Truck, WalletCards } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import type { AdminOrder } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -60,8 +60,8 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
     return matchesFlow && matchesQuery;
   }), [orders, flow, query]);
 
-  if (loading) return <AdminSectionLoading label={isFr ? "Synchronisation des commandes" : "Synchronising orders"} />;
-  if (error) return <AdminErrorState message={error} onRetry={refetch} />;
+  if (loading && !data) return <AdminSectionLoading label={isFr ? "Synchronisation des commandes" : "Synchronising orders"} />;
+  if (error && !data) return <AdminErrorState locale={locale} message={error} onRetry={refetch} />;
 
   const activeFlowLabel: Record<FlowId, string> = {
     all: isFr ? "Toutes les commandes" : "All orders",
@@ -89,6 +89,8 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
         title={isFr ? "Du paiement jusqu'à la porte" : "From payment to the doorstep"}
         description={isFr ? "Chaque commande avance dans un flux explicite. Ouvrez une fiche pour contrôler ses articles, son paiement, ses colis et sa chronologie." : "Every order moves through an explicit workflow. Open a record to inspect items, payment, parcels and timeline."}
       />
+
+      {error && data ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
       <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white sm:grid-cols-4" aria-label={isFr ? "Filtrer par étape opérationnelle" : "Filter by operational stage"}>
         {([
