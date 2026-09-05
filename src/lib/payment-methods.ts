@@ -1,5 +1,15 @@
 export type PaymentMethodFamily = "card" | "wallet" | "bank" | "deferred" | "credit" | "other";
 
+export type ExpressPaymentAvailability = Partial<Record<"amazonPay" | "applePay" | "googlePay" | "link" | "paypal" | "klarna", boolean>>;
+
+export type PaymentMethodSummary = {
+  method: string;
+  family: PaymentMethodFamily;
+  count: number;
+  amount: number;
+  share: number;
+};
+
 type PaymentMethodDefinition = {
   label: [string, string];
   family: PaymentMethodFamily;
@@ -65,6 +75,38 @@ export function paymentMethodFamilyLabel(value: unknown, locale: "fr" | "en") {
 
 export function uniquePaymentMethods(values: readonly string[]) {
   return [...new Set(values.map(paymentMethodKey))];
+}
+
+export function availableExpressPaymentMethods(availability: ExpressPaymentAvailability | null | undefined) {
+  if (!availability) return [];
+  const aliases: Record<keyof ExpressPaymentAvailability, string> = {
+    amazonPay: "amazon_pay",
+    applePay: "apple_pay",
+    googlePay: "google_pay",
+    link: "link",
+    paypal: "paypal",
+    klarna: "klarna",
+  };
+  return (Object.keys(aliases) as Array<keyof ExpressPaymentAvailability>)
+    .filter((method) => availability[method])
+    .map((method) => aliases[method]);
+}
+
+export function summarizePaymentMethods(rows: ReadonlyArray<{ method: string; amount: number }>) {
+  const total = rows.reduce((sum, row) => sum + Math.max(0, Number(row.amount) || 0), 0);
+  const methods = new Map<string, Omit<PaymentMethodSummary, "share">>();
+
+  for (const row of rows) {
+    const method = paymentMethodKey(row.method);
+    const current = methods.get(method) || { method, family: paymentMethodFamily(method), count: 0, amount: 0 };
+    current.count += 1;
+    current.amount += Math.max(0, Number(row.amount) || 0);
+    methods.set(method, current);
+  }
+
+  return [...methods.values()]
+    .map((method) => ({ ...method, share: total > 0 ? (method.amount / total) * 100 : 0 }))
+    .sort((left, right) => right.amount - left.amount || right.count - left.count || left.method.localeCompare(right.method));
 }
 
 export function paymentStatusLabel(value: unknown, locale: "fr" | "en") {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodHint, paymentMethodKey, paymentMethodLabel, paymentStatusLabel, uniquePaymentMethods } from "./payment-methods";
+import { availableExpressPaymentMethods, paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodHint, paymentMethodKey, paymentMethodLabel, paymentStatusLabel, summarizePaymentMethods, uniquePaymentMethods } from "./payment-methods";
 
 describe("payment method presentation", () => {
   it("keeps European payment methods readable in both languages", () => {
@@ -24,5 +24,25 @@ describe("payment method presentation", () => {
     expect(paymentStatusLabel("requires_action", "fr")).toBe("Action requise");
     expect(paymentStatusLabel("authorized", "en")).toBe("Authorised");
     expect(paymentStatusLabel("refunded", "fr")).toBe("Remboursé");
+  });
+
+  it("exposes only express methods that are available on the current device", () => {
+    expect(availableExpressPaymentMethods({ paypal: true, applePay: false, googlePay: true, link: true })).toEqual(["google_pay", "link", "paypal"]);
+    expect(availableExpressPaymentMethods(undefined)).toEqual([]);
+  });
+
+  it("summarizes collected revenue by normalized payment method", () => {
+    const summary = summarizePaymentMethods([
+      { method: "PayPal", amount: 65 },
+      { method: "paypal", amount: 35 },
+      { method: "card", amount: 50 },
+    ]);
+
+    expect(summary).toMatchObject([
+      { method: "paypal", family: "wallet", count: 2, amount: 100 },
+      { method: "card", family: "card", count: 1, amount: 50 },
+    ]);
+    expect(summary[0].share).toBeCloseTo(66.67, 2);
+    expect(summary[1].share).toBeCloseTo(33.33, 2);
   });
 });

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDateTime, formatPrice, normalize } from "@/lib/format";
-import { paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodLabel, paymentStatusLabel } from "@/lib/payment-methods";
+import { paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodLabel, paymentStatusLabel, summarizePaymentMethods, type PaymentMethodSummary } from "@/lib/payment-methods";
 import { useFetch } from "@/lib/use-fetch";
 
 type PaymentFilter = "all" | "captured" | "pending" | "exceptions";
@@ -37,6 +37,7 @@ export function FinancePaymentLedger({ locale, onNavigate }: { locale: "fr" | "e
   const pendingAmount = pending.reduce((sum, payment) => sum + payment.amount, 0);
   const exceptionAmount = exceptions.reduce((sum, payment) => sum + payment.amount, 0);
   const reconciliationRate = payments.length ? (captured.length / payments.length) * 100 : 0;
+  const paymentMix = useMemo(() => summarizePaymentMethods(payments), [payments]);
   const filteredPayments = useMemo(() => payments.filter((payment) => {
     const matchesFilter = filter === "all" || (filter === "captured" && payment.status === "captured") || (filter === "pending" && ["pending", "authorized"].includes(payment.status)) || (filter === "exceptions" && ["failed", "refunded"].includes(payment.status));
     const matchesQuery = normalize(`${payment.orderNumber} ${payment.reference || ""} ${payment.method} ${paymentMethodLabel(payment.method, locale)} ${paymentMethodFamilyLabel(payment.method, locale)} ${payment.customer}`).includes(normalize(query));
@@ -54,6 +55,8 @@ export function FinancePaymentLedger({ locale, onNavigate }: { locale: "fr" | "e
         <PaymentMetric position={2} icon={AlertCircle} label={isFr ? "Exceptions" : "Exceptions"} value={formatPrice(exceptionAmount, locale)} detail={`${exceptions.length} ${isFr ? "à examiner" : "to review"}`} tone={exceptions.length ? "alert" : "burgundy"} />
         <PaymentMetric position={3} icon={ShieldCheck} label={isFr ? "Taux rapproché" : "Reconciled rate"} value={`${formatNumber(reconciliationRate, locale)} %`} detail={isFr ? "sur le registre chargé" : "of loaded ledger"} tone="burgundy" />
       </section>
+
+      <PaymentMethodMix methods={paymentMix} locale={locale} />
 
       <div className="flex items-start gap-3 border-y border-burgundy/15 bg-burgundy/[0.045] px-4 py-3 text-xs leading-5 text-burgundy"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p><strong>{isFr ? "Registre contrôlé" : "Controlled ledger"}</strong> · {isFr ? "Chaque ligne conserve la référence du prestataire, la commande, le client et son horodatage réel." : "Every line retains its provider reference, order, customer and actual timestamp."}</p></div>
 
@@ -75,6 +78,33 @@ export function FinancePaymentLedger({ locale, onNavigate }: { locale: "fr" | "e
         <div className="divide-y divide-border md:hidden">{filteredPayments.map((payment) => <article key={payment.id} className="p-4"><div className="flex items-start gap-3"><PaymentMethodIcon method={payment.method} className="h-10 w-10" /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-black text-charcoal">{payment.reference || payment.orderNumber}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{payment.orderNumber} · {payment.customer}</p></div><PaymentStatusBadge status={payment.status} locale={locale} /></div></div></div><div className="mt-3 grid grid-cols-3 border-y border-charcoal/8 py-3 text-[9px]"><div><span className="text-muted-foreground">{isFr ? "Montant" : "Amount"}</span><strong className="mt-1 block text-xs tabular-nums">{formatPrice(payment.amount, locale)}</strong></div><div className="min-w-0"><span className="text-muted-foreground">{isFr ? "Méthode" : "Method"}</span><strong className="mt-1 block truncate text-xs">{paymentMethodLabel(payment.method, locale)}</strong><span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{paymentMethodFamilyLabel(payment.method, locale)}</span></div><div className="text-right"><span className="text-muted-foreground">{isFr ? "Reçu" : "Received"}</span><strong className="mt-1 block text-[10px]">{formatDateTime(payment.date, locale)}</strong></div></div>{onNavigate ? <Button type="button" variant="ghost" size="sm" onClick={() => onNavigate("orders")} className="mt-2 h-8 w-full justify-between px-1 text-[10px] font-black text-terre hover:bg-transparent hover:text-terre-dark">{isFr ? "Examiner la commande" : "Review order"}<ArrowRight className="h-3.5 w-3.5" /></Button> : null}</article>)}</div>
       </section> : <AdminEmptyState icon={<ReceiptText className="h-5 w-5" />} title={isFr ? "Aucun mouvement financier" : "No financial movements"} description={isFr ? "Aucun paiement ne correspond aux filtres sélectionnés." : "No payment matches the selected filters."} />}
     </div>
+  );
+}
+
+function PaymentMethodMix({ methods, locale }: { methods: PaymentMethodSummary[]; locale: "fr" | "en" }) {
+  const isFr = locale === "fr";
+  if (!methods.length) return null;
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-charcoal/8 bg-white" aria-labelledby="payment-method-mix-title" data-testid="payment-method-mix">
+      <div className="flex items-start justify-between gap-4 border-b border-charcoal/8 px-4 py-3.5 sm:px-5">
+        <div><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Adoption des moyens" : "Method adoption"}</p><h2 id="payment-method-mix-title" className="mt-1 text-sm font-black text-charcoal">{isFr ? "Comment les clients choisissent de payer" : "How customers choose to pay"}</h2></div>
+        <span className="rounded bg-gold/15 px-2 py-1 text-[9px] font-black text-charcoal">{methods.length} {isFr ? "méthodes" : "methods"}</span>
+      </div>
+      <div className="grid divide-y divide-charcoal/8 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-3">
+        {methods.slice(0, 6).map((method, index) => (
+          <div key={method.method} className={`min-w-0 px-4 py-3.5 sm:px-5 ${index >= 2 ? "sm:border-t sm:border-charcoal/8 xl:border-t-0" : ""}`}>
+            <div className="flex items-center gap-3">
+              <PaymentMethodIcon method={method.method} className="h-9 w-9" />
+              <div className="min-w-0 flex-1"><strong className="block truncate text-xs text-charcoal">{paymentMethodLabel(method.method, locale)}</strong><span className="mt-0.5 block text-[9px] text-muted-foreground">{method.count} {isFr ? (method.count === 1 ? "passage" : "passages") : (method.count === 1 ? "attempt" : "attempts")}</span></div>
+              <span className="text-right"><strong className="block text-xs tabular-nums text-charcoal">{formatPrice(method.amount, locale)}</strong><span className="mt-0.5 block text-[9px] font-black text-terre">{formatNumber(method.share, locale)} %</span></span>
+            </div>
+            <span className="mt-3 block h-1.5 overflow-hidden rounded-sm bg-terre/[0.07]" aria-hidden="true"><span className="block h-full bg-terre" style={{ width: `${Math.max(4, method.share)}%` }} /></span>
+          </div>
+        ))}
+      </div>
+      <p className="border-t border-charcoal/8 px-4 py-2.5 text-[9px] leading-4 text-muted-foreground sm:px-5">{isFr ? "Lecture fondée sur les tentatives enregistrées, quel que soit leur statut final. Le registre ci-dessous reste la source de rapprochement." : "Based on recorded attempts, regardless of final status. The ledger below remains the reconciliation source."}</p>
+    </section>
   );
 }
 

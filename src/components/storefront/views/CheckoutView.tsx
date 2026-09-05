@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { Elements, ExpressCheckoutElement, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import type { StripeExpressCheckoutElementConfirmEvent, StripeExpressCheckoutElementReadyEvent } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
 import { ArrowLeft, CalendarRange, ChevronDown, ChevronRight, ContactRound, CreditCard, Landmark, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Smartphone, Snowflake, Truck, WalletCards, Zap, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStor
 import { ApiError, postJSON } from "@/lib/use-fetch";
 import { clearPendingCheckout, readPendingCheckout, rememberPendingCheckout, type PendingCheckoutPayload } from "@/lib/checkout-return";
 import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
-import { paymentMethodFamily, paymentMethodHint, paymentMethodLabel, uniquePaymentMethods } from "@/lib/payment-methods";
+import { availableExpressPaymentMethods, paymentMethodFamily, paymentMethodHint, paymentMethodLabel, uniquePaymentMethods } from "@/lib/payment-methods";
 import { clearPaymentRecovery, readPaymentRecovery, rememberPaymentRecovery, type PaymentRecovery } from "@/lib/payment-recovery-storage";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -578,6 +579,9 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   const elements = useElements();
   const t = dict[locale];
   const [confirming, setConfirming] = useState(false);
+  const [expressConfirming, setExpressConfirming] = useState(false);
+  const [expressReady, setExpressReady] = useState(false);
+  const [expressMethods, setExpressMethods] = useState<string[]>([]);
   const [confirmedPaymentIntentId, setConfirmedPaymentIntentId] = useState<string | null>(null);
 
   const reviewPayment = async () => {
@@ -627,10 +631,87 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
     }
   };
 
+  const confirmExpress = async (event: StripeExpressCheckoutElementConfirmEvent) => {
+    if (!stripe || !elements || expressConfirming) {
+      event.paymentFailed({ reason: "fail" });
+      return;
+    }
+    setPaymentError("");
+    setExpressConfirming(true);
+    setStep(2);
+    try {
+      if (!onBeforeConfirm()) {
+        const message = locale === "fr"
+          ? "Votre navigateur ne permet pas de sécuriser le retour du paiement. Autorisez le stockage de session puis réessayez."
+          : "Your browser cannot secure the payment return. Allow session storage and try again.";
+        setPaymentError(message);
+        event.paymentFailed({ reason: "invalid_payment_data", message });
+        setStep(1);
+        return;
+      }
+      const result = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        redirect: "if_required",
+        confirmParams: { return_url: `${window.location.origin}/?view=checkout&paymentReturn=1` },
+      });
+      if (result.error) {
+        const message = result.error.message || (locale === "fr" ? "Le paiement express a été refusé." : "Express payment was declined.");
+        setPaymentError(message);
+        event.paymentFailed({ reason: "fail", message });
+        setStep(1);
+        return;
+      }
+      if (!result.paymentIntent || result.paymentIntent.status !== "succeeded") {
+        const message = locale === "fr" ? "Le paiement express demande une validation supplémentaire." : "Express payment requires additional validation.";
+        setPaymentError(message);
+        event.paymentFailed({ reason: "fail", message });
+        setStep(1);
+        return;
+      }
+      setConfirmedPaymentIntentId(result.paymentIntent.id);
+      await onConfirm(result.paymentIntent.id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : (locale === "fr" ? "Le paiement express n'a pas pu aboutir." : "Express payment could not be completed.");
+      setPaymentError(message);
+      event.paymentFailed({ reason: "fail", message });
+      setStep(1);
+    } finally {
+      setExpressConfirming(false);
+    }
+  };
+
+  const revealExpressMethods = (event: StripeExpressCheckoutElementReadyEvent) => {
+    setExpressMethods(availableExpressPaymentMethods(event.availablePaymentMethods));
+    setExpressReady(true);
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
       <div className={step === 1 ? "space-y-4" : "hidden"} aria-hidden={step !== 1}>
         <PaymentCapabilityPanel locale={locale} methodTypes={paymentMethodTypes} />
+        {!expressReady || expressMethods.length ? <section className={expressMethods.length ? "border-y border-burgundy/12 py-4" : "invisible h-0 overflow-hidden"} aria-hidden={!expressMethods.length} aria-labelledby="express-payment-title" data-testid="express-payment">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[9px] font-black uppercase text-terre">{locale === "fr" ? "Paiement express" : "Express checkout"}</p>
+              <h3 id="express-payment-title" className="mt-1 text-xs font-black text-charcoal">{locale === "fr" ? "Payer en un geste" : "Pay in one step"}</h3>
+            </div>
+            <span className="rounded bg-gold/15 px-2 py-1 text-[9px] font-black text-charcoal">{expressMethods.length} {locale === "fr" ? "disponible(s)" : "available"}</span>
+          </div>
+          <ExpressCheckoutElement
+            options={{
+              buttonHeight: 48,
+              buttonTheme: { applePay: "white-outline", googlePay: "white", paypal: "gold" },
+              buttonType: { applePay: "check-out", googlePay: "checkout", paypal: "checkout" },
+              layout: { maxColumns: 2, maxRows: 2, overflow: "auto" },
+              paymentMethodOrder: ["paypal", "apple_pay", "google_pay", "link", "amazon_pay", "klarna"],
+            }}
+            onReady={revealExpressMethods}
+            onConfirm={confirmExpress}
+          />
+          <p className="mt-2 text-[9px] leading-4 text-muted-foreground">{expressMethods.map((method) => paymentMethodLabel(method, locale)).join(" · ")}</p>
+          <div className="mt-4 flex items-center gap-3 text-[9px] font-bold uppercase text-muted-foreground before:h-px before:flex-1 before:bg-charcoal/10 after:h-px after:flex-1 after:bg-charcoal/10"><span>{locale === "fr" ? "ou renseigner un moyen" : "or enter a method"}</span></div>
+        </section> : null}
         <div className="border-t border-charcoal/8 pt-4">
           <p className="mb-3 text-xs font-extrabold text-charcoal">{t.checkout.paymentMethod}</p>
           <PaymentElement options={{
@@ -655,16 +736,16 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
       </div>
       <CheckoutMobileDock
         stepLabel={step === 1 ? (locale === "fr" ? "Paiement · 2/3" : "Payment · 2/3") : (locale === "fr" ? "Vérification · 3/3" : "Review · 3/3")}
-        statusLabel={step === 1 ? (locale === "fr" ? "Sécurisé par Stripe" : "Secured by Stripe") : (locale === "fr" ? "Prêt à confirmer" : "Ready to confirm")}
+        statusLabel={step === 1 ? (expressConfirming ? (locale === "fr" ? "Validation express" : "Express confirmation") : (locale === "fr" ? "Sécurisé par Stripe" : "Secured by Stripe")) : (locale === "fr" ? "Prêt à confirmer" : "Ready to confirm")}
         amount={amount}
         locale={locale}
         onBack={() => setStep(step === 1 ? 0 : 1)}
-        backDisabled={processing || confirming}
+        backDisabled={processing || confirming || expressConfirming}
         primaryLabel={step === 1 ? t.next : t.checkout.placeOrder.replace("{amount}", amount.toFixed(2))}
-        primaryIcon={step === 1 ? ChevronRight : processing || confirming ? Loader2 : CreditCard}
-        primaryIconSpins={step !== 1 && (processing || confirming)}
+        primaryIcon={step === 1 ? expressConfirming ? Loader2 : ChevronRight : processing || confirming ? Loader2 : CreditCard}
+        primaryIconSpins={step === 1 ? expressConfirming : processing || confirming}
         onPrimary={step === 1 ? reviewPayment : confirm}
-        primaryDisabled={step === 1 ? !stripe || !elements : processing || confirming || !stripe || !elements}
+        primaryDisabled={step === 1 ? !stripe || !elements || expressConfirming : processing || confirming || expressConfirming || !stripe || !elements}
       />
     </motion.div>
   );

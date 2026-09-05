@@ -1000,6 +1000,10 @@ test("the finance cockpit explains margin, exports records and leads to action",
   await expect(page.getByText("Carte bancaire", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText("Apple Pay", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText("PayPal", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  const paymentMix = page.getByTestId("payment-method-mix");
+  await expect(paymentMix).toContainText("Comment les clients choisissent de payer");
+  await expect(paymentMix).toContainText("3 méthodes");
+  await expect(paymentMix).toContainText("PayPal");
   await page.getByRole("tab", { name: /Exceptions/ }).click();
   await expect(page.getByText("pi_jma_failed", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   const paymentsDownload = page.waitForEvent("download");
