@@ -22,7 +22,12 @@ const normalize = (value: string) => value
   .replace(/[\u0300-\u036f]/g, "")
   .toLowerCase();
 
-const includesAny = (value: string, signals: string[]) => signals.some((signal) => value.includes(signal));
+function includesSignal(value: string, signal: string) {
+  if (signal === "rest") return /(^|[^a-z])rest(?:s|ed|ing)?([^a-z]|$)/.test(value);
+  return value.includes(signal);
+}
+
+const includesAny = (value: string, signals: string[]) => signals.some((signal) => includesSignal(value, signal));
 
 function durationFromText(raw: string, locale: Locale) {
   const value = normalize(raw);
@@ -112,9 +117,22 @@ function actionTitle(raw: string, index: number, locale: Locale) {
   return action[locale === "fr" ? 0 : 1];
 }
 
+function explicitResultCue(raw: string, locale: Locale) {
+  const marker = locale === "fr"
+    ? raw.match(/jusqu(?:'|’)à\s+(.+?)(?:[.;]|$)/i)
+    : raw.match(/\buntil\s+(.+?)(?:[.;]|$)/i);
+  if (!marker?.[1]) return null;
+  return locale === "fr"
+    ? `Repère donné par la recette : ${marker[1].trim()}.`
+    : `Recipe cue: ${marker[1].trim()}.`;
+}
+
 function expectedCue(raw: string, locale: Locale) {
   const value = normalize(raw);
+  const explicitCue = explicitResultCue(raw, locale);
+  if (explicitCue) return explicitCue;
   const cue = (() => {
+    if (includesAny(value, ["feuilles de manioc", "cassava leaves"])) return ["Les feuilles ont bouilli pendant toute la durée indiquée ; elles sont très tendres, foncées et ne dégagent plus d'odeur végétale crue.", "The leaves have boiled for the full stated time; they are very tender, dark and no longer have a raw vegetal smell."];
     if (includesAny(value, ["mariner", "marinate", "reposer", "rest"])) return ["La marinade enrobe uniformément l’aliment et le temps de repos indiqué est entièrement respecté.", "The marinade coats the food evenly and the full stated resting time has elapsed."];
     if (includesAny(value, ["emincer", "couper", "trancher", "inciser", "slice", "cut", "chop", "score"])) return ["Les morceaux et les entailles sont réguliers afin que l’assaisonnement et la cuisson progressent au même rythme.", "The pieces and cuts are even so seasoning and cooking progress at the same rate."];
     if (includesAny(value, ["assaisonner", "melanger", "season", "mix"]) && !includesAny(value, ["cuire", "cook", "frire", "fry", "grill", "mijoter", "simmer"])) return ["Chaque morceau est uniformément enrobé et aucun amas d’épices ne reste visible.", "Every piece is evenly coated, with no visible clumps of seasoning."];

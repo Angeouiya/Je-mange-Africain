@@ -181,7 +181,8 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.getByRole("tab", { name: /atlas des plats|dish atlas/i })).toBeVisible();
   await expect(page.getByText(/personnaliser puis créer le panier|customise then build the basket/i)).toBeVisible();
   await expect(page.getByText(/explorer les cuisines par origine|explore cuisines by origin/i)).toBeVisible();
-  await expect(page.getByLabel(/rechercher une recette ou un plat|search for a recipe or dish/i)).toBeVisible();
+  const recipeSearch = page.getByLabel(/rechercher une recette ou un plat|search for a recipe or dish/i);
+  await expect(recipeSearch).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
   const recipeHeroBox = await page.getByTestId("recipes-hero").boundingBox();
   if (isMobile) expect(recipeHeroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(250);
@@ -227,6 +228,23 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expectNoHorizontalOverflow(page, dishDialog);
   await expectBrandSafeUiColors(page);
   if (process.env.CLIENT_SCREENSHOTS) await page.screenshot({ path: `output/playwright/audit/dish-details-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  await page.keyboard.press("Escape");
+  await expect(dishDialog).toBeHidden();
+
+  await recipeSearch.fill("moambe");
+  const moambeRecord = dishGrid.getByRole("button", { name: /poulet moambe|moambe chicken/i });
+  await expect(moambeRecord).toBeVisible();
+  await moambeRecord.click();
+  const moambeSteps = dishDialog.getByTestId("dish-detailed-steps");
+  await expect(moambeSteps).toContainText(/45 minutes/);
+  await expect(moambeSteps).toContainText(/ne jamais les goûter crues|never taste the leaves raw/i);
+  await expect(moambeSteps.getByText("Maîtriser la cuisson", { exact: true })).toHaveCount(3);
+  await expectNoHorizontalOverflow(page, dishDialog);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await moambeSteps.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `output/playwright/audit/dish-detailed-preparation-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
   await page.keyboard.press("Escape");
   await expect(dishDialog).toBeHidden();
 

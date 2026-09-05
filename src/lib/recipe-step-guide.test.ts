@@ -14,7 +14,7 @@ describe("recipe preparation guide", () => {
       title: "Saisir et colorer",
       detailScore: 4,
     });
-    expect(guide.cue).toContain("chair");
+    expect(guide.cue).toContain("peau dorée");
   });
 
   it("adds useful guidance to a legacy short instruction", () => {
@@ -54,5 +54,26 @@ describe("recipe preparation guide", () => {
     expect(buildRecipeStepGuides(["Cut the onion.", "Simmer for 20 minutes until glossy."], "en")).toHaveLength(2);
     expect(recipeStepDetailScore("Cut onion.")).toBeLessThan(2);
     expect(recipeStepDetailScore("Cook over low heat for 20 minutes until the sauce is glossy.")).toBe(4);
+  });
+
+  it("does not confuse French remaining ingredients with an English rest instruction", () => {
+    const guide = buildRecipeStepGuide("Ajouter les oignons restants et mijoter 20 minutes à feu doux jusqu'à tendreté.", 4, "fr");
+
+    expect(guide.title).toBe("Maîtriser la cuisson");
+    expect(guide.cue).not.toContain("marinade");
+  });
+
+  it("provides a specific doneness cue for cassava leaves", () => {
+    const guide = buildRecipeStepGuide("Faire bouillir les feuilles de manioc à découvert pendant 45 minutes.", 3, "fr");
+
+    expect(guide.cue).toContain("toute la durée indiquée");
+    expect(guide.cue).toContain("très tendres");
+  });
+
+  it("prefers the recipe's explicit result over an ingredient heuristic", () => {
+    const guide = buildRecipeStepGuide("Ajouter le poisson fumé et mijoter 20 minutes jusqu'à des feuilles très tendres et sans eau libre.", 4, "fr");
+
+    expect(guide.cue).toContain("feuilles très tendres");
+    expect(guide.cue).not.toContain("chair est opaque");
   });
 });
