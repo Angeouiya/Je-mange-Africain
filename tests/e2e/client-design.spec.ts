@@ -1298,7 +1298,7 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
     promoDiscount: 2,
     total: 42.3,
     currency: "EUR",
-    weightGrams: 1900,
+    weightGrams: 2600,
     packageCount: 2,
     createdAt: "2026-09-04T10:12:00.000Z",
     deliveryName: "Awa Traoré",
@@ -1309,7 +1309,7 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
     deliverySlot: "standard",
     paymentMethod: "card",
     items: [
-      { id: "confirmed-line-1", productId: "product-attieke", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 4.9, qty: 2, lineTotal: 9.8, thermalClass: "REFRIGERATED", recipeId: null, recipeName: null, packWeightGrams: 500, unitLabel: "500 g", imageUrl: "/products/attieke.webp" },
+      { id: "confirmed-line-1", productId: "product-attieke", variantId: "variant-attieke-800", variantLabel: "Pot 800 g", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 9.4, qty: 2, lineTotal: 18.8, thermalClass: "REFRIGERATED", recipeId: null, recipeName: null, packWeightGrams: 800, unitLabel: "Pot 800 g", imageUrl: "/products/attieke.webp" },
       { id: "confirmed-line-2", productId: "product-gombo", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", sku: "JMA-GOM-500", unitPrice: 8.5, qty: 2, lineTotal: 17, thermalClass: "FROZEN", recipeId: null, recipeName: null, packWeightGrams: 500, unitLabel: "500 g", imageUrl: "/products/gombo.webp" },
     ],
     shipments: [{ id: "confirmed-shipment", carrierId: null, carrier: "Chrono Frais", carrierName: "Chrono Frais", trackingNumber: null, thermalClass: "FROZEN", status: "preparing", confirmCode: null, estimatedDelivery: "2026-09-06T14:00:00.000Z", actualDelivery: null }],
@@ -1347,6 +1347,7 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
   await expect(confirmationProgress.getByRole("list", { name: /prochaines étapes de la commande|next order steps/i })).toContainText(/paiement validé|payment validated/i);
   await expect(confirmationProgress.locator('[aria-current="step"]')).toContainText(/préparation|preparation/i);
   await expect(page.getByRole("heading", { name: /articles confirmés|confirmed items/i })).toBeVisible();
+  await expect(page.getByText(/2 × 9,40 € · Pot 800 g/)).toBeVisible();
   await expectLoadedProductImages(page.getByRole("main").getByRole("img"), 2);
   await expect(page.getByRole("heading", { name: /6 sept\. 2026|6 september 2026/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /paiement validé|payment validated/i })).toBeVisible();

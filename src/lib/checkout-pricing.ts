@@ -2,9 +2,11 @@ import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { calculateShippingQuote, type DeliveryService } from "@/lib/shipping";
 import { wholesaleAvailablePacks, wholesalePriceForQuantity, wholesaleTiers } from "@/lib/wholesale";
+import { resolveProductPricing } from "@/lib/product-pricing";
 
 export interface CheckoutPricingItem {
   productId: string;
+  variantId?: string;
   qty: number;
   recipeId?: string;
   recipeNameFr?: string;
@@ -14,6 +16,8 @@ export interface CheckoutPricingItem {
 
 export interface PricedCheckoutItem {
   productId: string;
+  variantId: string | null;
+  variantLabel: string | null;
   nameFr: string;
   nameEn: string;
   sku: string;
@@ -57,7 +61,7 @@ export async function priceCheckout(input: {
   const productIds = [...new Set(input.items.map((item) => item.productId))];
   const products = await db.product.findMany({
     where: { id: { in: productIds }, status: "published" },
-    include: { translations: true },
+    include: { translations: true, variants: true },
   });
   if (products.length !== productIds.length) throw new CheckoutPricingError(isFr ? "Un produit du panier n'est plus disponible." : "A product in the basket is no longer available.", 409);
 
@@ -102,6 +106,12 @@ export async function priceCheckout(input: {
     const product = productsById.get(requested.productId)!;
     const qty = requested.qty;
     const salesChannel = requested.salesChannel === "wholesale" ? "wholesale" : "retail";
+    const variant = salesChannel === "retail" && requested.variantId
+      ? product.variants.find((item) => item.id === requested.variantId)
+      : null;
+    if (salesChannel === "retail" && requested.variantId && !variant) {
+      throw new CheckoutPricingError(isFr ? `Le format choisi pour ${product.traditionalName} n'est plus disponible.` : `The selected format for ${product.traditionalName} is no longer available.`, 409);
+    }
     const unitsPerPack = salesChannel === "wholesale" ? Math.max(1, product.wholesaleUnitsPerPack) : 1;
     const tiers = salesChannel === "wholesale" ? wholesaleTiers({
       wholesaleMinPacks: product.wholesaleMinPacks,
@@ -111,17 +121,22 @@ export async function priceCheckout(input: {
       wholesaleTier3MinPacks: product.wholesaleTier3MinPacks,
       wholesaleTier3Price: product.wholesaleTier3Price === null ? null : Number(product.wholesaleTier3Price),
     }) : [];
-    const price = salesChannel === "wholesale" ? wholesalePriceForQuantity(tiers, qty) : Number(product.promoPrice ?? product.price);
+    const price = salesChannel === "wholesale"
+      ? wholesalePriceForQuantity(tiers, qty)
+      : resolveProductPricing({ price: Number(product.price), promoPrice: product.promoPrice === null ? null : Number(product.promoPrice) }, variant ? Number(variant.price) : undefined).price;
     const lineTotal = roundMoney(price * qty);
     const nameFr = product.translations.find((translation) => translation.locale === "fr")?.name || product.traditionalName;
     const nameEn = product.translations.find((translation) => translation.locale === "en")?.name || nameFr;
-    const packWeightGrams = Math.max(0, product.netWeightGrams * unitsPerPack);
+    const retailWeightGrams = variant && variant.weightGrams > 0 ? variant.weightGrams : product.netWeightGrams;
+    const packWeightGrams = Math.max(0, retailWeightGrams * unitsPerPack);
 
     subtotal += lineTotal;
     weightGrams += packWeightGrams * qty;
     thermalSet.add(product.thermalClass);
     validatedItems.push({
       productId: product.id,
+      variantId: variant?.id || null,
+      variantLabel: salesChannel === "wholesale" ? product.wholesalePackLabel || null : variant?.label || product.packaging || null,
       nameFr,
       nameEn,
       sku: product.sku,
@@ -168,7 +183,7 @@ export async function priceCheckout(input: {
   const vat = roundMoney((taxable / 1.2) * 0.2);
   const total = roundMoney(taxable + shipping);
   const fingerprint = createHash("sha256")
-    .update(JSON.stringify({ items: validatedItems.map(({ productId, qty, unitPrice, salesChannel, unitsPerPack }) => ({ productId, qty, unitPrice, salesChannel, unitsPerPack })), deliveryService: shippingQuote.service, carrier: shippingQuote.carrier, promoDiscount, shipping, total }))
+    .update(JSON.stringify({ items: validatedItems.map(({ productId, variantId, qty, unitPrice, salesChannel, unitsPerPack }) => ({ productId, variantId, qty, unitPrice, salesChannel, unitsPerPack })), deliveryService: shippingQuote.service, carrier: shippingQuote.carrier, promoDiscount, shipping, total }))
     .digest("hex");
 
   return { validatedItems, subtotal, promoDiscount, shipping, vat, total, weightGrams, thermalClasses, shippingQuote, fingerprint, promotionId };

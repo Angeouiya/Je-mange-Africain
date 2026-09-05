@@ -4,6 +4,7 @@ export const PENDING_CHECKOUT_MAX_AGE_MS = 2 * 60 * 60 * 1_000;
 export type PendingCheckoutPayload = {
   items: Array<{
     productId: string;
+    variantId?: string;
     qty: number;
     recipeId?: string;
     recipeNameFr?: string;
@@ -92,6 +93,12 @@ function isPendingCheckoutPayload(value: unknown): value is PendingCheckoutPaylo
   if (!(["standard", "express", "relay"] as const).includes(payload.deliverySlot as PendingCheckoutPayload["deliverySlot"])) return false;
   if (!(["fr", "en"] as const).includes(payload.locale as PendingCheckoutPayload["locale"])) return false;
   const address = payload.address as Partial<PendingCheckoutPayload["address"]>;
-  return payload.items.every((item) => Boolean(item && typeof item.productId === "string" && Number.isInteger(item.qty) && item.qty > 0))
+  return payload.items.every((item) => Boolean(
+    item
+    && typeof item.productId === "string"
+    && (item.variantId === undefined || typeof item.variantId === "string")
+    && Number.isInteger(item.qty)
+    && item.qty > 0
+  ))
     && [address.firstName, address.lastName, address.email, address.street, address.postalCode, address.city, address.country, address.phone].every((field) => typeof field === "string" && field.length > 0);
 }

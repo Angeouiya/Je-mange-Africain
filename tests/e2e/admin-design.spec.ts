@@ -94,7 +94,7 @@ const order = {
   deliveryCountry: "France",
   deliverySlot: "standard",
   paymentMethod: "card",
-  items: [{ id: "line-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 4.9, qty: 2, lineTotal: 9.8, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp" }],
+  items: [{ id: "line-1", variantId: "variant-attieke-500", variantLabel: "Sachet 500 g", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 4.9, qty: 2, lineTotal: 9.8, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp" }],
   shipments: [{ id: "shipment-1", trackingNumber: "JMAFR260902", thermalClass: "REFRIGERATED", status: "preparing", estimatedDelivery: "2026-09-04T14:00:00.000Z", carrier: "Chronofresh" }],
   timeline: [{ status: "paymentConfirmed", label: "Paiement confirmé", at: now, actor: "Système" }, { status: "preparing", label: "Préparation lancée", at: "2026-09-02T10:00:00.000Z", actor: "Entrepôt Paris" }],
   payments: [
@@ -1605,6 +1605,7 @@ test("the order workspace saves logistics and confirms each sensitive advancemen
   await expect(dialog.getByRole("heading", { name: "Préparer, tracer et remettre" })).toBeVisible();
   await expect(dialog.getByText("aminata@example.fr")).toBeVisible();
   await expect(dialog.getByText("Livraison standard")).toBeVisible();
+  await expect(dialog.getByText("Sachet 500 g", { exact: true })).toBeVisible();
   const orderProgress = dialog.getByTestId("admin-order-progress");
   await expect(orderProgress.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
   await expect(orderProgress.locator('[aria-current="step"]')).toContainText("Préparation");

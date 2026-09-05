@@ -89,6 +89,8 @@ export type AdminOrder = {
   notes?: string | null;
   items: Array<{
     id: string;
+    variantId?: string | null;
+    variantLabel?: string | null;
     nameFr: string;
     nameEn: string;
     sku: string;

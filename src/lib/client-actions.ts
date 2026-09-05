@@ -132,7 +132,7 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
     const imageUrl = absoluteAssetUrl(item.imageUrl, options.baseUrl);
     const channel = item.salesChannel === "wholesale" ? (isFr ? "Marché de gros" : "Wholesale market") : "";
     const recipeName = (isFr ? item.recipeNameFr : item.recipeNameEn) || item.recipeName || "";
-    const detail = [channel, item.unitLabel, item.sku ? `SKU ${item.sku}` : "", recipeName].filter(Boolean).join(" · ");
+    const detail = [channel, item.variantLabel || item.unitLabel, item.sku ? `SKU ${item.sku}` : "", recipeName].filter(Boolean).join(" · ");
     return `<tr><td class="product-cell"><div class="item">${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="">` : ""}<div><strong>${escapeHtml(name)}</strong>${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</div></div></td><td class="number" data-label="${escapeHtml(isFr ? "Quantité" : "Quantity")}">${escapeHtml(quantity)}</td><td class="number" data-label="${escapeHtml(isFr ? "Prix unit. HT" : "Unit ex. tax")}">${escapeHtml(formatMoney(unitPriceExTax))}</td><td class="number" data-label="${escapeHtml(isFr ? "TVA" : "VAT")}">${escapeHtml(`${vatRate.toLocaleString(language)} %`)}</td><td class="number line-total" data-label="${escapeHtml(isFr ? "Montant HT" : "Ex. tax total")}"><strong>${escapeHtml(formatMoney(lineTotalExTax))}</strong></td></tr>`;
   }).join("");
   const payment = Array.isArray(order.payments) ? order.payments[0] : null;

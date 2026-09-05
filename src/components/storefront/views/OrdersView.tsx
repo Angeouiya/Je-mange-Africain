@@ -94,7 +94,7 @@ export function OrdersView() {
       if (!qty) return [];
       return [{
         productId: item.productId,
-        variantId: item.salesChannel === "wholesale" ? "wholesale" : undefined,
+        variantId: item.salesChannel === "wholesale" ? "wholesale" : item.variantId || undefined,
         name: locale === "en" ? item.nameEn : item.nameFr,
         nameFr: item.nameFr,
         nameEn: item.nameEn,

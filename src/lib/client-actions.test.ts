@@ -21,6 +21,8 @@ const order = {
     nameFr: "Attiéké frais",
     nameEn: "Fresh attieke",
     sku: "JMA-ATT-500",
+    variantId: "variant-attieke-800",
+    variantLabel: "Pot 800 g",
     qty: 2,
     unitPrice: 9,
     lineTotal: 18,
@@ -69,6 +71,7 @@ describe("customer invoice document", () => {
     expect(html).toContain("Livraison de biens");
     expect(html).toContain("Chrono Frais");
     expect(html).toContain("JMA-FR-0042");
+    expect(html).toContain("Pot 800 g");
     expect(html).toContain("Réfrigéré");
     expect(html).toContain("04 septembre 2026");
     expect(html).toContain("1,5 kg");

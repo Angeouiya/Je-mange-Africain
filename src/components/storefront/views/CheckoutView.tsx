@@ -139,6 +139,7 @@ export function CheckoutView() {
   const displayTotal = intent?.amount ?? Math.max(0, subtotal - promoDiscount) + shipFee;
   const checkoutItems: PendingCheckoutPayload["items"] = cart.map((item) => ({
     productId: item.productId,
+    variantId: item.variantId,
     qty: item.qty,
     recipeId: item.recipeId,
     recipeNameFr: item.recipeName,

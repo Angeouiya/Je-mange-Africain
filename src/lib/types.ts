@@ -153,6 +153,8 @@ export interface Brand {
 export interface OrderLine {
   id: string;
   productId: string;
+  variantId?: string | null;
+  variantLabel?: string | null;
   name: string;
   nameFr: string;
   nameEn: string;

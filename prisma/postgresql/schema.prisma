@@ -512,6 +512,8 @@ model OrderItem {
   orderId         String
   order           Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId       String
+  variantId       String?
+  variantLabel    String?
   nameFr          String
   nameEn          String
   sku             String

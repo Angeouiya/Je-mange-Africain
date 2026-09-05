@@ -9,7 +9,7 @@ import {
 } from "./checkout-return";
 
 const payload: PendingCheckoutPayload = {
-  items: [{ productId: "product-1", qty: 2, salesChannel: "retail" }],
+  items: [{ productId: "product-1", variantId: "variant-800", qty: 2, salesChannel: "retail" }],
   address: {
     firstName: "Awa",
     lastName: "Traoré",

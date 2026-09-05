@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 const CheckoutRequest = z.object({
   items: z.array(z.object({
     productId: z.string().min(1),
+    variantId: z.string().trim().min(1).max(100).optional(),
     qty: z.number().int().min(1).max(99),
     recipeId: z.string().optional(),
     recipeNameFr: z.string().max(160).optional(),
