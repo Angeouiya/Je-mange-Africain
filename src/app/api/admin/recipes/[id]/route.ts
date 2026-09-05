@@ -6,6 +6,7 @@ import { getBrandAccentColor, getProductPhoto, getRecipePhoto } from "@/lib/mark
 import { recipeAdminInput, recipeImageReference, recipeStepDetailsForLocale, type RecipeAdminInput } from "@/lib/admin-recipe-schema";
 import { parseRecipeSteps, serializeRecipeSteps } from "@/lib/recipe-step-storage";
 import { retailAvailableUnits } from "@/lib/inventory";
+import { parseRecipeAlternativeIds, serializeRecipeAlternativeIds } from "@/lib/recipe-alternatives";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       unit: ingredient.unit,
       role: ingredient.role,
       optional: ingredient.optional,
+      alternativeProductIds: parseRecipeAlternativeIds(ingredient.alternatives),
       note: ingredient.note,
       product: {
         id: ingredient.product.id,
@@ -141,13 +143,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 async function updateFullRecipe(id: string, input: RecipeAdminInput, adminEmail: string) {
-  const productIds = Array.from(new Set(input.ingredients.map((ingredient) => ingredient.productId)));
+  const productIds = Array.from(new Set(input.ingredients.flatMap((ingredient) => [ingredient.productId, ...ingredient.alternativeProductIds])));
   const [before, products] = await Promise.all([
     db.recipe.findUnique({ where: { id }, include: { translations: true, ingredients: true } }),
     db.product.findMany({ where: { id: { in: productIds } }, include: { variants: true } }),
   ]);
   if (!before) return NextResponse.json({ error: "Recette introuvable." }, { status: 404 });
-  if (products.length !== productIds.length) return NextResponse.json({ error: "Un ou plusieurs ingrédients ne correspondent plus au catalogue." }, { status: 400 });
+  if (products.length !== productIds.length) return NextResponse.json({ error: "Un ou plusieurs ingrédients ou alternatives ne correspondent plus au catalogue." }, { status: 400 });
 
   const productsById = new Map(products.map((product) => [product.id, product]));
   const invalidVariant = input.ingredients.some((ingredient) => ingredient.variantId && !productsById.get(ingredient.productId)?.variants.some((variant) => variant.id === ingredient.variantId));
@@ -192,6 +194,7 @@ async function updateFullRecipe(id: string, input: RecipeAdminInput, adminEmail:
         unit: ingredient.unit,
         role: ingredient.role,
         optional: ingredient.optional,
+        alternatives: serializeRecipeAlternativeIds(ingredient.alternativeProductIds),
         note: ingredient.note || null,
       })),
     });
@@ -201,7 +204,7 @@ async function updateFullRecipe(id: string, input: RecipeAdminInput, adminEmail:
         entityType: "Recipe",
         entityId: id,
         before: JSON.stringify({ country: before.country, category: before.category, status: before.status, baseServings: before.baseServings, translations: before.translations, ingredientCount: before.ingredients.length }),
-        after: JSON.stringify({ titleFr: input.titleFr, titleEn: input.titleEn, country: input.country, category: input.category, status: input.status, baseServings: input.baseServings, ingredientCount: input.ingredients.length, stepCount: input.stepsFr.length }),
+        after: JSON.stringify({ titleFr: input.titleFr, titleEn: input.titleEn, country: input.country, category: input.category, status: input.status, baseServings: input.baseServings, ingredientCount: input.ingredients.length, alternativeCount: input.ingredients.reduce((count, ingredient) => count + ingredient.alternativeProductIds.length, 0), stepCount: input.stepsFr.length }),
         reason: `Modification complète par ${adminEmail}`,
       },
     });

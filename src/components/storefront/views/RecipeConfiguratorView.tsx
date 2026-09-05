@@ -782,6 +782,7 @@ function CounterField({ label, value, onChange, max, locale }: { label: string; 
 
 function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePantry, onReplace }: { ing: any; locale: string; onPackDelta: (delta: number) => void; onToggleExcluded: () => void; onTogglePantry: () => void; onReplace: (productId: string) => void }) {
   const t = dict[locale as "fr" | "en"];
+  const [replacementOpen, setReplacementOpen] = useState(false);
   const roleColor: Record<string, string> = {
     protein: "bg-destructive/10 text-destructive", base: "bg-gold/15 text-charcoal", aromatic: "bg-terre/10 text-terre",
     spice: "bg-terre/10 text-terre", fat: "bg-gold/15 text-charcoal", side: "bg-burgundy/10 text-burgundy", optional: "bg-muted text-muted-foreground",
@@ -795,6 +796,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
   const deliberatelyRemoved = ing.removalReason === "excluded";
   const proteinRemoved = ing.removalReason === "protein-none";
   const replacementOptions = ing.replacementOptions || [];
+  const hasCuratedAlternatives = replacementOptions.some((option: any) => option.recommended);
   const currentMissingFromOptions = ing.isReplacement && !replacementOptions.some((option: any) => option.productId === ing.productId);
   const pantryActionLabel = locale === "fr"
     ? (pantryRemoved ? `Retirer ${localizedName} de mes ingrédients disponibles` : `J'ai déjà ${localizedName} à la maison`)
@@ -804,7 +806,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
     : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe");
 
   return (
-    <div className={`space-y-3 p-4 transition ${ing.removed ? "bg-muted/20" : ""}`}>
+    <div className={`space-y-3 p-4 transition ${ing.removed ? "bg-muted/20" : ""}`} data-testid="recipe-ingredient-row">
       <div className="flex items-start gap-3">
         <ProductImage src={ing.imageUrl} alt={localizedName} emoji={ing.emoji} color={ing.color} size="sm" className="h-11 w-11 shrink-0" rounded="rounded-lg" />
         <div className="min-w-0 flex-1">
@@ -863,16 +865,27 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
         </div>
       </div>
 
-      <details className="group rounded-md border border-border bg-muted/15">
+      <details className="group rounded-md border border-border bg-muted/15" onToggle={(event) => setReplacementOpen(event.currentTarget.open)}>
         <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 px-3 text-[11px] font-bold text-charcoal marker:hidden [&::-webkit-details-marker]:hidden">
           <RefreshCw className="h-3.5 w-3.5 text-terre" />
           <span className="min-w-0 flex-1">
             <span className="block truncate">{locale === "fr" ? "Changer cet ingrédient" : "Change this ingredient"}</span>
-            <span className="mt-0.5 block truncate text-[9px] font-medium text-muted-foreground">{ing.isReplacement ? (locale === "fr" ? `${originalName} remplacé par ${localizedName}` : `${originalName} replaced by ${localizedName}`) : (locale === "fr" ? `${replacementOptions.length} alternative(s) compatible(s)` : `${replacementOptions.length} compatible alternative(s)`)}</span>
+            <span className="mt-0.5 block truncate text-[9px] font-medium text-muted-foreground">{ing.isReplacement ? (locale === "fr" ? `${originalName} remplacé par ${localizedName}` : `${originalName} replaced by ${localizedName}`) : hasCuratedAlternatives ? (locale === "fr" ? `${replacementOptions.length} choix validé(s) par la cuisine` : `${replacementOptions.length} kitchen-approved choice(s)`) : (locale === "fr" ? `${replacementOptions.length} alternative(s) compatible(s)` : `${replacementOptions.length} compatible alternative(s)`)}</span>
           </span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition group-open:rotate-180" />
         </summary>
-        <div className="grid gap-2 border-t border-border p-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+        {replacementOpen ? <div className="grid gap-2 border-t border-border p-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+          {replacementOptions.length ? <div className="grid grid-cols-2 gap-2 sm:col-span-2" data-testid={`replacement-choices-${ing.recipeIngredientId}`}>
+            {replacementOptions.map((option: any) => {
+              const name = locale === "fr" ? option.nameFr : option.nameEn;
+              const active = ing.productId === option.productId;
+              return <button key={option.productId} type="button" onClick={() => onReplace(option.productId)} disabled={option.availableStock <= 0} aria-pressed={active} aria-label={locale === "fr" ? `Choisir ${name} pour remplacer ${originalName}` : `Choose ${name} to replace ${originalName}`} className={`grid min-h-16 min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_1rem] items-center gap-2 rounded-md border p-1.5 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${active ? "border-burgundy/40 bg-burgundy/[0.055]" : "border-charcoal/10 bg-white hover:border-terre/35"}`}>
+                <ProductImage src={option.imageUrl} alt="" emoji={option.emoji} color="#D65A32" size="sm" className="h-11 w-11 shrink-0" rounded="rounded-md" />
+                <span className="min-w-0"><span className="block truncate text-[10px] font-black text-charcoal">{name}</span>{option.recommended ? <span className="mt-0.5 block truncate text-[8px] font-black uppercase text-terre">{locale === "fr" ? "Sélection cuisine" : "Kitchen selection"}</span> : null}<span className="mt-0.5 block truncate text-[8px] text-muted-foreground">{option.availableStock > 0 ? `${option.availableStock} ${locale === "fr" ? "en stock" : "in stock"}` : t.config.unavailable} · {formatPrice(option.unitPrice, locale as any)}</span></span>
+                <Check className={`h-4 w-4 ${active ? "text-burgundy" : "text-charcoal/15"}`} />
+              </button>;
+            })}
+          </div> : null}
           <label className="min-w-0 text-[10px] font-semibold text-muted-foreground">
             <span className="mb-1 flex items-center gap-1">{locale === "fr" ? "Ingrédient de remplacement" : "Replacement ingredient"}</span>
             <select aria-label={locale === "fr" ? `Remplacer ${localizedName}` : `Replace ${localizedName}`} value={ing.productId} onChange={(event) => onReplace(event.target.value)} className="h-10 w-full rounded-md border border-border bg-background px-2 text-xs font-medium text-charcoal outline-none transition focus:border-terre focus:ring-2 focus:ring-terre/15">
@@ -880,7 +893,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
               {currentMissingFromOptions ? <option value={ing.productId}>{locale === "fr" ? `Sélection : ${ing.nameFr}` : `Selected: ${ing.nameEn}`}</option> : null}
               {replacementOptions.map((option: any) => (
                 <option key={option.productId} value={option.productId} disabled={option.availableStock <= 0}>
-                  {option.emoji} {locale === "fr" ? option.nameFr : option.nameEn} · {option.availableStock > 0 ? `${option.availableStock} ${locale === "fr" ? "en stock" : "in stock"}` : t.config.unavailable} · {formatPrice(option.unitPrice, locale as any)}
+                  {option.recommended ? (locale === "fr" ? "Choix cuisine · " : "Kitchen choice · ") : ""}{option.emoji} {locale === "fr" ? option.nameFr : option.nameEn} · {option.availableStock > 0 ? `${option.availableStock} ${locale === "fr" ? "en stock" : "in stock"}` : t.config.unavailable} · {formatPrice(option.unitPrice, locale as any)}
                 </option>
               ))}
             </select>
@@ -894,7 +907,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
               <Badge variant="outline" className="h-10 w-full justify-center border-destructive/40 bg-destructive/[0.06] text-destructive">{t.config.unavailable}</Badge>
             )}
           </div> : <div className="flex h-10 items-center text-[10px] text-muted-foreground">{locale === "fr" ? "Aucun achat pour cette ligne" : "No purchase for this line"}</div>}
-        </div>
+        </div> : null}
       </details>
 
       {!ing.removed && ing.leftover > 0 ? <p className="text-[10px] text-burgundy">{t.config.leftover} : {formatQty(ing.leftover, ing.leftoverUnit || (ing.neededUnit === "L" ? "ml" : "g"), locale as any)} · {ing.packLabel}</p> : null}

@@ -1528,9 +1528,15 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(page.getByText(/retiré de cette recette|removed from this recipe/i)).toHaveCount(0);
 
   await page.locator("#recipe-ingredients details summary").first().click();
-  const replacement = page.getByLabel(/remplacer |replace /i).first();
+  const replacementChoices = page.locator('[data-testid^="replacement-choices-"]').first();
+  await expect(replacementChoices).toBeVisible();
+  expect(await replacementChoices.getByRole("button").count()).toBeGreaterThan(0);
+  const replacementImage = replacementChoices.locator("img").first();
+  await expect(replacementImage).toBeVisible();
+  await expect.poll(() => replacementImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  const replacement = page.locator('#recipe-ingredients select[aria-label^="Remplacer"], #recipe-ingredients select[aria-label^="Replace"]').first();
   expect(await replacement.locator("option").count()).toBeGreaterThan(1);
-  await replacement.selectOption({ index: 1 });
+  await replacementChoices.getByRole("button").first().click();
   await expect(page.getByText(/remplace |replaces /i).first()).toBeVisible();
   if (isMobile) {
     await page.getByTestId("recipe-live-summary").getByRole("button", { name: /préparation|preparation/i }).click();
@@ -1580,7 +1586,7 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
 
-  const configuredIngredientCount = await page.locator("#recipe-ingredients img").count();
+  const configuredIngredientCount = await page.getByTestId("recipe-ingredient-row").count();
   const addConfiguredBasket = isMobile
     ? page.getByTestId("recipe-live-summary").getByRole("button", { name: /ajouter tout au panier|add all to cart/i })
     : page.getByRole("button", { name: /ajouter tout au panier|add all to cart/i }).first();

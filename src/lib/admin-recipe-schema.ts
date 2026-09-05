@@ -14,7 +14,15 @@ export const recipeIngredientAdminInput = z.object({
   unit: z.enum(["g", "kg", "ml", "L", "piece", "tbsp", "tsp"]),
   role: z.enum(["protein", "base", "aromatic", "spice", "fat", "side", "optional"]),
   optional: z.boolean().default(false),
+  alternativeProductIds: z.array(z.string().trim().min(1)).max(8).default([]),
   note: z.string().trim().max(240).nullable().optional(),
+}).superRefine((ingredient, context) => {
+  if (new Set(ingredient.alternativeProductIds).size !== ingredient.alternativeProductIds.length) {
+    context.addIssue({ code: "custom", path: ["alternativeProductIds"], message: "Une alternative ne peut apparaître qu'une fois." });
+  }
+  if (ingredient.alternativeProductIds.includes(ingredient.productId)) {
+    context.addIssue({ code: "custom", path: ["alternativeProductIds"], message: "Le produit principal ne peut pas être sa propre alternative." });
+  }
 });
 
 const optionalInteger = (minimum: number, maximum: number) => z.preprocess(

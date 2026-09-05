@@ -5,6 +5,7 @@ import { getBrandAccentColor, getRecipePhoto } from "@/lib/market-media";
 import { recipeStepCount, recipeStockReadiness } from "@/lib/recipe-operations";
 import { recipeAdminInput, recipeSlug, recipeStepDetailsForLocale } from "@/lib/admin-recipe-schema";
 import { serializeRecipeSteps } from "@/lib/recipe-step-storage";
+import { serializeRecipeAlternativeIds } from "@/lib/recipe-alternatives";
 
 export const dynamic = "force-dynamic";
 
@@ -62,13 +63,13 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data;
-  const productIds = Array.from(new Set(input.ingredients.map((ingredient) => ingredient.productId)));
+  const productIds = Array.from(new Set(input.ingredients.flatMap((ingredient) => [ingredient.productId, ...ingredient.alternativeProductIds])));
   const products = await db.product.findMany({
     where: { id: { in: productIds } },
     include: { variants: true },
   });
   if (products.length !== productIds.length) {
-    return NextResponse.json({ error: "Un ou plusieurs ingrédients ne correspondent plus au catalogue." }, { status: 400 });
+    return NextResponse.json({ error: "Un ou plusieurs ingrédients ou alternatives ne correspondent plus au catalogue." }, { status: 400 });
   }
 
   const productsById = new Map(products.map((product) => [product.id, product]));
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
             unit: ingredient.unit,
             role: ingredient.role,
             optional: ingredient.optional,
+            alternatives: serializeRecipeAlternativeIds(ingredient.alternativeProductIds),
             note: ingredient.note || null,
           })),
         },
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
         action: "recipe_create",
         entityType: "Recipe",
         entityId: created.id,
-        after: JSON.stringify({ slug, titleFr: input.titleFr, status: input.status, imageUrl: input.imageUrl, isNew: input.isNew, isRecommended: input.isRecommended, isPopular: input.isPopular, ingredientCount: input.ingredients.length, stepCount: input.stepsFr.length }),
+        after: JSON.stringify({ slug, titleFr: input.titleFr, status: input.status, imageUrl: input.imageUrl, isNew: input.isNew, isRecommended: input.isRecommended, isPopular: input.isPopular, ingredientCount: input.ingredients.length, alternativeCount: input.ingredients.reduce((count, ingredient) => count + ingredient.alternativeProductIds.length, 0), stepCount: input.stepsFr.length }),
         reason: `Création depuis le studio recettes par ${authorization.user.email}`,
       },
     });

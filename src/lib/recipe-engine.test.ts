@@ -34,6 +34,21 @@ const egusi = {
   variants: [{ id: "egusi-300", label: "300 g", weightGrams: 300, volumeMl: 0, price: 6.2, isDefault: true }],
 };
 
+const plantain = {
+  id: "plantain",
+  traditionalName: "Banane plantain",
+  imageEmoji: "",
+  imageUrl: "/products/banane-plantain.webp",
+  imageColor: "",
+  thermalClass: "AMBIANT",
+  stockQty: 9,
+  reservedQty: 1,
+  categoryId: "fruit",
+  categorySlug: "fruits-legumes",
+  translations: [{ locale: "fr", name: "Banane plantain" }, { locale: "en", name: "Plantain" }],
+  variants: [{ id: "plantain-1kg", label: "1 kg", weightGrams: 1000, volumeMl: 0, price: 5.4, isDefault: true }],
+};
+
 const context = {
   recipeId: "riz-sauce",
   baseServings: 4,
@@ -95,6 +110,28 @@ describe("computeRecipe", () => {
     expect(result.steps.fr).toEqual(["Rincer l’égousi.", "Cuire l’égousi."]);
     expect(result.steps.en).toEqual(["Rinse the egusi seeds.", "Cook the egusi seeds."]);
     expect(result.stepSourceIndexes).toEqual({ fr: [0, 1], en: [0, 1] });
+  });
+
+  it("uses curated admin alternatives as the customer source of truth", () => {
+    const curatedContext = {
+      ...context,
+      rawIngredients: [{ ...ingredient, ri: { ...ingredient.ri, alternatives: '["plantain"]' } }],
+      allProductsForSubstitute: [{ ...ingredient.product, variants: ingredient.variants }, egusi, plantain],
+    };
+    const result = computeRecipe({
+      servings: 4,
+      adults: 4,
+      children: 0,
+      portion: "normal",
+      kplo: false,
+      spiceLevel: "medium",
+      formula: "standard",
+      haveAtHome: [],
+      replacements: { "rice-line": "plantain" },
+    }, curatedContext);
+
+    expect(result.ingredients[0]).toMatchObject({ productId: "plantain", isReplacement: true });
+    expect(result.ingredients[0].replacementOptions).toEqual([expect.objectContaining({ productId: "plantain", recommended: true })]);
   });
 });
 

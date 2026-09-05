@@ -454,7 +454,7 @@ async function main() {
         "Lightly moisten the attieke, then steam over medium heat for 5 to 7 minutes. Fluff with a fork until the grains are supple and separated.",
         "Plate the hot attieke, add the fish and place the raw garnish beside it. Serve immediately with chili separately so everyone can adjust the heat.",
       ],
-      [["attieke", 600, "g", "base"], ["tilapia", 1, "piece", "protein"], ["piment-frais", 15, "g", "spice", true], ["concentre-tomate", 60, "g", "aromatic"], ["huile-palme", 2, "tbsp", "fat"]]],
+      [["attieke", 600, "g", "base"], ["tilapia", 1, "piece", "protein", false, ["maquereau-fume", "morue-salee"]], ["piment-frais", 15, "g", "spice", true], ["concentre-tomate", 60, "g", "aromatic"], ["huile-palme", 2, "tbsp", "fat"]]],
     ["placali-sauce-graine", "Côte d'Ivoire", "mains", "medium", 90, 8, "#D65A32", "🍲", true,
       "Placali sauce graine", "Le grand classique familial : pâte de manioc fermentée et sauce graine généreuse pour 8 personnes.", [
         "Délayer la pâte de placali avec de l'eau froide en fouettant progressivement, jusqu'à obtenir un liquide parfaitement lisse et sans grumeaux.",

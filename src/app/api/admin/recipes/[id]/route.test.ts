@@ -56,7 +56,7 @@ const validRecipe = {
   status: "published",
   stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
   stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
-  ingredients: [{ productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false }],
+  ingredients: [{ productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"] }],
 };
 
 function request(body: Record<string, unknown>) {
@@ -68,7 +68,7 @@ describe("PATCH /api/admin/recipes/:id", () => {
     vi.clearAllMocks();
     mocks.authorize.mockResolvedValue({ ok: true, user: { id: "admin-1", email: "direction@je-mange-africain.com", role: "super_admin" } });
     mocks.recipeFindUnique.mockResolvedValue({ id: "recipe-1", country: "Côte d'Ivoire", category: "mains", status: "draft", baseServings: 4, translations: [], ingredients: [{ id: "old-ingredient" }] });
-    mocks.productFindMany.mockResolvedValue([{ id: "product-1", variants: [] }]);
+    mocks.productFindMany.mockResolvedValue([{ id: "product-1", variants: [] }, { id: "product-2", variants: [] }]);
     mocks.recipeUpdate.mockResolvedValue({ id: "recipe-1", slug: "attieke-poisson-braise", status: "published" });
     mocks.translationUpsert.mockResolvedValue({});
     mocks.ingredientDeleteMany.mockResolvedValue({ count: 1 });
@@ -84,7 +84,7 @@ describe("PATCH /api/admin/recipes/:id", () => {
     const frenchUpdate = mocks.translationUpsert.mock.calls.find(([call]) => call.where.recipeId_locale.locale === "fr")?.[0];
     expect(parseRecipeSteps(frenchUpdate.update.steps, "fr").map((step) => step.instruction)).toEqual(validRecipe.stepsFr);
     expect(mocks.ingredientDeleteMany).toHaveBeenCalledWith({ where: { recipeId: "recipe-1" } });
-    expect(mocks.ingredientCreateMany).toHaveBeenCalledWith({ data: [expect.objectContaining({ recipeId: "recipe-1", productId: "product-1", quantityPerBase: 500 })] });
+    expect(mocks.ingredientCreateMany).toHaveBeenCalledWith({ data: [expect.objectContaining({ recipeId: "recipe-1", productId: "product-1", quantityPerBase: 500, alternatives: '["product-2"]' })] });
     expect(mocks.auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ action: "recipe_update", entityId: "recipe-1" }) });
   });
 
@@ -94,5 +94,13 @@ describe("PATCH /api/admin/recipes/:id", () => {
     expect(response.status).toBe(400);
     expect(mocks.recipeUpdate).not.toHaveBeenCalled();
     expect(mocks.ingredientDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses an alternative that no longer belongs to the catalogue", async () => {
+    mocks.productFindMany.mockResolvedValue([{ id: "product-1", variants: [] }]);
+    const response = await PATCH(request(validRecipe), { params: Promise.resolve({ id: "recipe-1" }) });
+
+    expect(response.status).toBe(400);
+    expect(mocks.recipeUpdate).not.toHaveBeenCalled();
   });
 });

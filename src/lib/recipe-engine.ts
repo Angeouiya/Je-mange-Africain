@@ -3,6 +3,7 @@
 // for a recipe scaled to the requested number of people.
 
 import type { Locale } from "./i18n";
+import { parseRecipeAlternativeIds } from "./recipe-alternatives";
 
 export type ThermalClass = "AMBIANT" | "REFRIGERATED" | "FROZEN";
 
@@ -31,6 +32,7 @@ export interface IngredientReplacementOption {
   availableStock: number;
   packLabel: string;
   unitPrice: number;
+  recommended: boolean;
 }
 
 export interface EngineIngredient {
@@ -341,20 +343,20 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
     const originalVariants = w.variants;
     const originalNames = productNames(originalProduct);
 
-    let alternativeIds: string[] = [];
-    try { alternativeIds = ri.alternatives ? JSON.parse(ri.alternatives) : []; } catch {}
-
-    const replacementCandidates = [
-      ...alternativeIds.map((id) => allProductsForSubstitute.find((product) => product.id === id)),
-      ...allProductsForSubstitute.filter((product) => isCompatibleReplacement(ri.role, originalProduct, product)),
-    ].filter((product): product is SubstituteProduct => Boolean(product && product.id !== originalProduct.id && isCompatibleReplacement(ri.role, originalProduct, product)));
-    const uniqueCandidates = Array.from(new Map(replacementCandidates.map((product) => [product.id, product])).values())
-      .sort((a, b) => availableStock(b) - availableStock(a))
-      .slice(0, 8);
+    const alternativeIds = parseRecipeAlternativeIds(ri.alternatives);
+    const curatedCandidates = alternativeIds
+      .map((id) => allProductsForSubstitute.find((product) => product.id === id))
+      .filter((product): product is SubstituteProduct => Boolean(product && product.id !== originalProduct.id));
+    const automaticCandidates = allProductsForSubstitute
+      .filter((product) => product.id !== originalProduct.id && isCompatibleReplacement(ri.role, originalProduct, product))
+      .sort((a, b) => availableStock(b) - availableStock(a));
+    const replacementCandidates = alternativeIds.length ? curatedCandidates : automaticCandidates;
+    const uniqueCandidates = Array.from(new Map(replacementCandidates.map((product) => [product.id, product])).values()).slice(0, 8);
+    const curatedIds = new Set(alternativeIds);
 
     const hasExplicitReplacement = Object.prototype.hasOwnProperty.call(input.replacements || {}, ri.id);
     let selectedCandidate = hasExplicitReplacement
-      ? allProductsForSubstitute.find((product) => product.id === input.replacements?.[ri.id])
+      ? uniqueCandidates.find((product) => product.id === input.replacements?.[ri.id])
       : undefined;
 
     if (!hasExplicitReplacement && ri.role === "protein" && input.protein && input.protein !== "recipe" && input.protein !== "none" && proteinKind(originalProduct) !== input.protein) {
@@ -420,6 +422,7 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
         availableStock: availableStock(candidate),
         packLabel: candidateVariant?.label || "",
         unitPrice: candidateVariant?.price || 0,
+        recommended: curatedIds.has(candidate.id),
       };
     });
 

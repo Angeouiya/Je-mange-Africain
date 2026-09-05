@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, CookingPot, Eye, Flame, Hourglass, Lightbulb, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, Search, ShieldAlert, Thermometer, Timer, Trash2, UsersRound, WandSparkles } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, CookingPot, Eye, Flame, Hourglass, Lightbulb, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, RefreshCw, Search, ShieldAlert, Thermometer, Timer, Trash2, UsersRound, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -53,6 +53,7 @@ type IngredientDraft = {
   unit: "g" | "kg" | "ml" | "L" | "piece" | "tbsp" | "tsp";
   role: "protein" | "base" | "aromatic" | "spice" | "fat" | "side" | "optional";
   optional: boolean;
+  alternativeProductIds: string[];
   note?: string | null;
 };
 
@@ -151,7 +152,7 @@ type RecipeEditPayload = {
   ingredients: Array<Omit<IngredientDraft, "quantityPerBase"> & { quantityPerBase: number }>;
 };
 
-const emptyIngredient = (): IngredientDraft => ({ productId: "", quantityPerBase: "", unit: "g", role: "base", optional: false, note: null });
+const emptyIngredient = (): IngredientDraft => ({ productId: "", quantityPerBase: "", unit: "g", role: "base", optional: false, alternativeProductIds: [], note: null });
 const emptyStepDetail = (): StepDetailDraft => ({
   durationMinutes: "",
   restMinutes: "0",
@@ -247,7 +248,7 @@ const draftFromRecipe = (recipe: RecipeEditPayload): RecipeDraft => ({
         };
       })
     : [emptyStepDetail(), emptyStepDetail()],
-  ingredients: recipe.ingredients.length ? recipe.ingredients.map((ingredient) => ({ ...ingredient, quantityPerBase: String(ingredient.quantityPerBase) })) : [emptyIngredient()],
+  ingredients: recipe.ingredients.length ? recipe.ingredients.map((ingredient) => ({ ...ingredient, alternativeProductIds: ingredient.alternativeProductIds || [], quantityPerBase: String(ingredient.quantityPerBase) })) : [emptyIngredient()],
 });
 
 const normalizeSignal = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -286,6 +287,7 @@ function ingredientFromTemplate(ingredient: DishTemplateIngredient, products: Pr
     ...templateQuantity(ingredient.quantity, ingredient.role),
     role,
     optional: ingredient.optional,
+    alternativeProductIds: [],
     note: `${locale === "fr" ? "Bibliothèque" : "Library"}: ${ingredient.nameFr} / ${ingredient.nameEn} (${ingredient.quantity})`,
   };
 }
@@ -394,6 +396,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     setDraft((current) => ({ ...current, stepsFr: current.stepsFr.filter((_, stepIndex) => stepIndex !== index), stepsEn: current.stepsEn.filter((_, stepIndex) => stepIndex !== index), stepDetails: current.stepDetails.filter((_, stepIndex) => stepIndex !== index) }));
   };
   const updateIngredient = <K extends keyof IngredientDraft>(index: number, key: K, value: IngredientDraft[K]) => update("ingredients", draft.ingredients.map((ingredient, ingredientIndex) => ingredientIndex === index ? { ...ingredient, [key]: value } : ingredient));
+  const updateIngredientProduct = (index: number, productId: string) => update("ingredients", draft.ingredients.map((ingredient, ingredientIndex) => ingredientIndex === index ? { ...ingredient, productId, alternativeProductIds: ingredient.alternativeProductIds.filter((id) => id !== productId) } : ingredient));
 
   const applyTemplate = (template: DishTemplate) => {
     const ingredients = template.ingredients.map((ingredient) => ingredientFromTemplate(ingredient, products, locale));
@@ -560,12 +563,15 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
                 {productsLoading ? <div className="flex items-center gap-2 py-8 text-xs text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> {isFr ? "Lecture du catalogue..." : "Loading catalogue..."}</div> : null}
                 {draft.ingredients.map((ingredient, index) => {
                   const product = productsById.get(ingredient.productId);
-                  return <div key={index} className="grid gap-3 border-y border-border bg-white px-3 py-3 lg:grid-cols-[minmax(12rem,1.5fr)_7rem_7rem_8rem_auto] lg:items-end">
-                    <Field label={`${isFr ? "Produit" : "Product"} ${index + 1}`} required><div className="relative"><PackageSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select aria-label={`${isFr ? "Produit" : "Product"} ${index + 1}`} value={ingredient.productId} onChange={(event) => updateIngredient(index, "productId", event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 text-sm"><option value="">{isFr ? "Sélectionner dans le catalogue" : "Select from catalogue"}</option>{products.map((option) => <option key={option.id} value={option.id}>{option.name} · {availableProductQty(option)} {isFr ? "dispo." : "available"}</option>)}</select></div>{product ? <div className="mt-2 flex items-center gap-2"><ProductImage src={product.imageUrl} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-8 w-8 shrink-0" rounded="rounded-md" /><p className={`min-w-0 truncate text-[10px] font-semibold ${availableProductQty(product) > 0 ? "text-burgundy" : "text-destructive"}`}>{product.traditionalName} · {product.sku} · {availableProductQty(product) > 0 ? `${availableProductQty(product)} ${isFr ? "disponibles" : "available"}${product.reservedQty ? ` · ${product.reservedQty} ${isFr ? "réservés" : "reserved"}` : ""}` : (isFr ? "rupture" : "out of stock")}</p></div> : null}{ingredient.note ? <p className={`mt-1.5 line-clamp-2 text-[9px] leading-4 ${product ? "text-muted-foreground" : "font-bold text-terre"}`}><BookOpenCheck className="mr-1 inline h-3 w-3" />{ingredient.note}{product ? "" : (isFr ? " · à relier" : " · link required")}</p> : null}</Field>
-                    <Field label={isFr ? "Quantité" : "Quantity"} required><Input aria-label={`${isFr ? "Quantité" : "Quantity"} ${index + 1}`} type="number" inputMode="decimal" min="0.01" step="0.01" value={ingredient.quantityPerBase} onChange={(event) => updateIngredient(index, "quantityPerBase", event.target.value)} /></Field>
-                    <Field label={isFr ? "Unité" : "Unit"}><select aria-label={`${isFr ? "Unité" : "Unit"} ${index + 1}`} value={ingredient.unit} onChange={(event) => updateIngredient(index, "unit", event.target.value as IngredientDraft["unit"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option><option value="piece">{isFr ? "pièce" : "piece"}</option><option value="tbsp">{isFr ? "c. à soupe" : "tbsp"}</option><option value="tsp">{isFr ? "c. à café" : "tsp"}</option></select></Field>
-                    <Field label={isFr ? "Rôle" : "Role"}><select aria-label={`${isFr ? "Rôle" : "Role"} ${index + 1}`} value={ingredient.role} onChange={(event) => updateIngredient(index, "role", event.target.value as IngredientDraft["role"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="base">Base</option><option value="protein">{isFr ? "Protéine" : "Protein"}</option><option value="aromatic">{isFr ? "Aromate" : "Aromatic"}</option><option value="spice">{isFr ? "Épice" : "Spice"}</option><option value="fat">{isFr ? "Matière grasse" : "Fat"}</option><option value="side">{isFr ? "Accompagnement" : "Side"}</option><option value="optional">Option</option></select></Field>
-                    <div className="flex items-center justify-between gap-2 sm:pb-0.5"><label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><input type="checkbox" checked={ingredient.optional} onChange={(event) => updateIngredient(index, "optional", event.target.checked)} className="h-4 w-4 accent-terre" /> {isFr ? "Optionnel" : "Optional"}</label><Button type="button" variant="ghost" size="icon" disabled={draft.ingredients.length === 1} onClick={() => update("ingredients", draft.ingredients.filter((_, ingredientIndex) => ingredientIndex !== index))} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'ingrédient ${index + 1}` : `Remove ingredient ${index + 1}`}><Trash2 className="h-4 w-4" /></Button></div>
+                  return <div key={index} className="border-y border-border bg-white px-3 py-3">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1.5fr)_7rem_7rem_8rem_auto] lg:items-end">
+                      <Field label={`${isFr ? "Produit" : "Product"} ${index + 1}`} required><div className="relative"><PackageSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select aria-label={`${isFr ? "Produit" : "Product"} ${index + 1}`} value={ingredient.productId} onChange={(event) => updateIngredientProduct(index, event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 text-sm"><option value="">{isFr ? "Sélectionner dans le catalogue" : "Select from catalogue"}</option>{products.map((option) => <option key={option.id} value={option.id}>{option.name} · {availableProductQty(option)} {isFr ? "dispo." : "available"}</option>)}</select></div>{product ? <div className="mt-2 flex items-center gap-2"><ProductImage src={product.imageUrl} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-8 w-8 shrink-0" rounded="rounded-md" /><p className={`min-w-0 truncate text-[10px] font-semibold ${availableProductQty(product) > 0 ? "text-burgundy" : "text-destructive"}`}>{product.traditionalName} · {product.sku} · {availableProductQty(product) > 0 ? `${availableProductQty(product)} ${isFr ? "disponibles" : "available"}${product.reservedQty ? ` · ${product.reservedQty} ${isFr ? "réservés" : "reserved"}` : ""}` : (isFr ? "rupture" : "out of stock")}</p></div> : null}{ingredient.note ? <p className={`mt-1.5 line-clamp-2 text-[9px] leading-4 ${product ? "text-muted-foreground" : "font-bold text-terre"}`}><BookOpenCheck className="mr-1 inline h-3 w-3" />{ingredient.note}{product ? "" : (isFr ? " · à relier" : " · link required")}</p> : null}</Field>
+                      <Field label={isFr ? "Quantité" : "Quantity"} required><Input aria-label={`${isFr ? "Quantité" : "Quantity"} ${index + 1}`} type="number" inputMode="decimal" min="0.01" step="0.01" value={ingredient.quantityPerBase} onChange={(event) => updateIngredient(index, "quantityPerBase", event.target.value)} /></Field>
+                      <Field label={isFr ? "Unité" : "Unit"}><select aria-label={`${isFr ? "Unité" : "Unit"} ${index + 1}`} value={ingredient.unit} onChange={(event) => updateIngredient(index, "unit", event.target.value as IngredientDraft["unit"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option><option value="piece">{isFr ? "pièce" : "piece"}</option><option value="tbsp">{isFr ? "c. à soupe" : "tbsp"}</option><option value="tsp">{isFr ? "c. à café" : "tsp"}</option></select></Field>
+                      <Field label={isFr ? "Rôle" : "Role"}><select aria-label={`${isFr ? "Rôle" : "Role"} ${index + 1}`} value={ingredient.role} onChange={(event) => updateIngredient(index, "role", event.target.value as IngredientDraft["role"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="base">Base</option><option value="protein">{isFr ? "Protéine" : "Protein"}</option><option value="aromatic">{isFr ? "Aromate" : "Aromatic"}</option><option value="spice">{isFr ? "Épice" : "Spice"}</option><option value="fat">{isFr ? "Matière grasse" : "Fat"}</option><option value="side">{isFr ? "Accompagnement" : "Side"}</option><option value="optional">Option</option></select></Field>
+                      <div className="flex items-center justify-between gap-2 sm:pb-0.5"><label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><input type="checkbox" checked={ingredient.optional} onChange={(event) => updateIngredient(index, "optional", event.target.checked)} className="h-4 w-4 accent-terre" /> {isFr ? "Optionnel" : "Optional"}</label><Button type="button" variant="ghost" size="icon" disabled={draft.ingredients.length === 1} onClick={() => update("ingredients", draft.ingredients.filter((_, ingredientIndex) => ingredientIndex !== index))} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'ingrédient ${index + 1}` : `Remove ingredient ${index + 1}`}><Trash2 className="h-4 w-4" /></Button></div>
+                    </div>
+                    <IngredientAlternativesPicker index={index} ingredient={ingredient} products={products} locale={locale} onChange={(alternativeProductIds) => updateIngredient(index, "alternativeProductIds", alternativeProductIds)} />
                   </div>;
                 })}
               </div>
@@ -627,6 +633,56 @@ function RecipeTemplateImporter({ locale, expanded, onExpandedChange, summary, q
 
 function SectionTitle({ id, number, title, description }: { id?: string; number: string; title: string; description?: string }) {
   return <div><div className="flex items-center gap-2"><span className="text-[10px] font-black text-terre">{number}</span><h3 id={id} className="text-sm font-black text-charcoal">{title}</h3></div>{description ? <p className="mt-1 max-w-2xl text-[11px] leading-5 text-muted-foreground">{description}</p> : null}</div>;
+}
+
+function IngredientAlternativesPicker({ index, ingredient, products, locale, onChange }: { index: number; ingredient: IngredientDraft; products: ProductOption[]; locale: "fr" | "en"; onChange: (productIds: string[]) => void }) {
+  const isFr = locale === "fr";
+  const [query, setQuery] = useState("");
+  const selected = useMemo(() => new Set(ingredient.alternativeProductIds), [ingredient.alternativeProductIds]);
+  const orderedProducts = useMemo(() => {
+    const normalizedQuery = normalizeSignal(query);
+    return products
+      .filter((product) => product.id !== ingredient.productId && (!normalizedQuery || normalizeSignal(`${product.name} ${product.traditionalName} ${product.sku}`).includes(normalizedQuery)))
+      .sort((left, right) => Number(selected.has(right.id)) - Number(selected.has(left.id)) || left.name.localeCompare(right.name, locale));
+  }, [ingredient.productId, locale, products, query, selected]);
+  const toggle = (productId: string) => {
+    if (selected.has(productId)) onChange(ingredient.alternativeProductIds.filter((id) => id !== productId));
+    else if (ingredient.alternativeProductIds.length < 8) onChange([...ingredient.alternativeProductIds, productId]);
+  };
+
+  return (
+    <details className="group mt-3 border-t border-burgundy/10 pt-2" data-testid={`recipe-alternatives-${index + 1}`}>
+      <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 text-left marker:hidden [&::-webkit-details-marker]:hidden">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-terre/[0.08] text-terre"><RefreshCw className="h-3.5 w-3.5" /></span>
+        <span className="min-w-0 flex-1"><span className="block text-[10px] font-black text-charcoal">{isFr ? "Alternatives proposées au client" : "Customer replacement choices"}</span><span className="block truncate text-[9px] text-muted-foreground">{ingredient.alternativeProductIds.length ? (isFr ? `${ingredient.alternativeProductIds.length}/8 choix pilotés par la cuisine` : `${ingredient.alternativeProductIds.length}/8 kitchen-curated choices`) : (isFr ? "Suggestions automatiques tant qu'aucun choix n'est défini" : "Automatic suggestions until choices are curated")}</span></span>
+        <span className="rounded bg-burgundy/[0.07] px-2 py-1 text-[9px] font-black tabular-nums text-burgundy">{ingredient.alternativeProductIds.length}/8</span>
+      </summary>
+      <div className="pb-1 pt-3">
+        {!ingredient.productId ? <p className="border-l-2 border-gold px-3 py-2 text-[10px] leading-4 text-muted-foreground">{isFr ? "Sélectionnez d'abord le produit principal pour configurer ses alternatives." : "Select the primary product before curating its alternatives."}</p> : (
+          <>
+            <label className="relative block max-w-md">
+              <span className="sr-only">{isFr ? `Rechercher une alternative pour l'ingrédient ${index + 1}` : `Search an alternative for ingredient ${index + 1}`}</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={isFr ? `Rechercher une alternative pour l'ingrédient ${index + 1}` : `Search an alternative for ingredient ${index + 1}`} placeholder={isFr ? "Nom, appellation ou référence" : "Name, traditional name or SKU"} className="h-9 bg-[#FFFCFA] pl-9 text-xs" />
+            </label>
+            <div className="mt-3 grid max-h-56 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4" role="group" aria-label={isFr ? `Alternatives de l'ingrédient ${index + 1}` : `Ingredient ${index + 1} alternatives`}>
+              {orderedProducts.map((product) => {
+                const active = selected.has(product.id);
+                const disabled = !active && ingredient.alternativeProductIds.length >= 8;
+                return <button key={product.id} type="button" aria-pressed={active} disabled={disabled} onClick={() => toggle(product.id)} aria-label={isFr ? `${active ? "Retirer" : "Ajouter"} ${product.name} ${active ? "des" : "aux"} alternatives` : `${active ? "Remove" : "Add"} ${product.name} ${active ? "from" : "to"} alternatives`} className={`grid min-h-14 min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_1rem] items-center gap-2 rounded-md border p-1.5 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${active ? "border-burgundy/35 bg-burgundy/[0.055]" : "border-charcoal/10 bg-white hover:border-terre/35"}`}>
+                  <ProductImage src={product.imageUrl} alt="" emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" />
+                  <span className="min-w-0"><span className="block truncate text-[10px] font-black text-charcoal">{product.name}</span><span className={`mt-0.5 block truncate text-[8px] font-bold ${availableProductQty(product) > 0 ? "text-muted-foreground" : "text-destructive"}`}>{availableProductQty(product) > 0 ? `${availableProductQty(product)} ${isFr ? "en stock" : "in stock"}` : (isFr ? "Rupture" : "Out of stock")}</span></span>
+                  <CheckCircle2 className={`h-4 w-4 ${active ? "text-burgundy" : "text-charcoal/15"}`} />
+                </button>;
+              })}
+            </div>
+            {!orderedProducts.length ? <p className="py-5 text-center text-[10px] text-muted-foreground">{isFr ? "Aucun produit ne correspond à cette recherche." : "No product matches this search."}</p> : null}
+            <p className="mt-2 text-[9px] leading-4 text-muted-foreground">{isFr ? "Ces choix apparaissent en priorité dans le configurateur. Sans sélection, le moteur conserve ses suggestions compatibles." : "These choices take priority in the configurator. Without a selection, the engine keeps its compatible suggestions."}</p>
+          </>
+        )}
+      </div>
+    </details>
+  );
 }
 
 function Field({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {

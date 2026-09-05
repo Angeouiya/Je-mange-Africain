@@ -437,8 +437,11 @@ async function mockAdminApi(page: Page) {
     }
     else if (path === "/api/admin/promotions") payload = { promotions };
     else if (path === "/api/admin/products") payload = {
-      products: [{ id: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", descriptionFr: "Semoule de manioc fermentée, fraîche et légère.", descriptionEn: "Light, fresh fermented cassava couscous.", traditionalName: "Attiéké", sku: "JMA-ATT-500", categoryId: "cat-1", packaging: "Sachet 500 g", costPrice: 2.8, profitMargin: 2.1, costSource: "recorded", price: 4.9, promoPrice: null, stockQty: 84, reservedQty: 9, availableQty: 75, alertThreshold: 12, netWeightGrams: 500, imageColor: "#E9B949", imageEmoji: "", imageUrl: "/products/attieke.webp", aliases: ["atchéké", "couscous de manioc"], isNew: false, isRecommended: true, isBestseller: true, status: "published", thermalClass: "REFRIGERATED", storageType: "REFRIGERE", country: "Côte d'Ivoire" }],
-      total: 1,
+      products: [
+        { id: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", descriptionFr: "Semoule de manioc fermentée, fraîche et légère.", descriptionEn: "Light, fresh fermented cassava couscous.", traditionalName: "Attiéké", sku: "JMA-ATT-500", categoryId: "cat-1", packaging: "Sachet 500 g", costPrice: 2.8, profitMargin: 2.1, costSource: "recorded", price: 4.9, promoPrice: null, stockQty: 84, reservedQty: 9, availableQty: 75, alertThreshold: 12, netWeightGrams: 500, imageColor: "#E9B949", imageEmoji: "", imageUrl: "/products/attieke.webp", aliases: ["atchéké", "couscous de manioc"], isNew: false, isRecommended: true, isBestseller: true, status: "published", thermalClass: "REFRIGERATED", storageType: "REFRIGERE", country: "Côte d'Ivoire" },
+        { id: "product-2", name: "Fonio précuit", nameFr: "Fonio précuit", nameEn: "Pre-cooked fonio", descriptionFr: "Céréale fine et légère prête à cuisiner.", descriptionEn: "A light, fine grain ready to cook.", traditionalName: "Fonio", sku: "JMA-FON-500", categoryId: "cat-2", packaging: "Sachet 500 g", costPrice: 3.1, profitMargin: 1.8, costSource: "recorded", price: 4.9, promoPrice: null, stockQty: 31, reservedQty: 3, availableQty: 28, alertThreshold: 8, netWeightGrams: 500, imageColor: "#D65A32", imageEmoji: "", imageUrl: "/products/fonio.webp", aliases: ["acha"], isNew: true, isRecommended: false, isBestseller: false, status: "published", thermalClass: "AMBIANT", storageType: "SEC", country: "Guinée" },
+      ],
+      total: 2,
     };
     else if (path === "/api/admin/recipes") payload = {
       recipes: [{ id: "recipe-1", title: "Attiéké poisson braisé", description: "Le grand classique ivoirien, composé avec des produits disponibles.", country: "Côte d'Ivoire", category: "Plats", difficulty: "intermediate", timeMinutes: 55, baseServings: 4, imageColor: "#D65A32", imageEmoji: "", imageUrl: "/recipes/attieke-poisson.webp", isPopular: true, isNew: false, isRecommended: true, status: "published", ingredientCount: 8, requiredIngredientCount: 8, availableIngredientCount: 7, stockCoverageRate: 88, needsAttention: true, stepCount: 5, updatedAt: now }],
@@ -467,7 +470,7 @@ async function mockAdminApi(page: Page) {
       steps: ["Assaisonner le poisson.", "Braiser et servir avec l'attiéké."],
       stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
       stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
-      ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, reservedQty: 9, availableQty: 75, imageUrl: "/products/attieke.webp" } }],
+      ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"], note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, reservedQty: 9, availableQty: 75, imageUrl: "/products/attieke.webp" } }],
     };
     else if (path === "/api/dishes") payload = dishTemplatePayload;
     else if (path === "/api/orders") payload = { orders: [operationalOrder] };
@@ -2160,6 +2163,18 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   await expect(dialog.getByLabel("Produit 1")).toHaveValue("product-1");
   await expect(dialog.getByText(/75 disponibles/)).toBeVisible();
   await expect(dialog.getByText(/9 réservés/)).toBeVisible();
+  const alternatives = dialog.getByTestId("recipe-alternatives-1");
+  await alternatives.locator("summary").click();
+  const selectedAlternative = alternatives.getByRole("button", { name: /retirer fonio précuit des alternatives/i });
+  await expect(selectedAlternative).toHaveAttribute("aria-pressed", "true");
+  const alternativeImage = selectedAlternative.locator("img");
+  await expect(alternativeImage).toBeVisible();
+  await expect.poll(() => alternativeImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  await selectedAlternative.click();
+  const availableAlternative = alternatives.getByRole("button", { name: /ajouter fonio précuit aux alternatives/i });
+  await expect(availableAlternative).toHaveAttribute("aria-pressed", "false");
+  await availableAlternative.click();
+  await expect(selectedAlternative).toHaveAttribute("aria-pressed", "true");
   const dialogOverflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(dialogOverflow).toBeLessThanOrEqual(1);
   const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
@@ -2183,11 +2198,11 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/admin/recipes/recipe-1" && request.method() === "PATCH");
   await dialog.getByRole("button", { name: "Enregistrer les modifications" }).click();
   const updateRequest = await requestPromise;
-  const update = updateRequest.postDataJSON() as { stepsFr: string[]; stepsEn: string[]; stepDetails: Array<{ durationMinutes: string; restMinutes: string; temperatureC: string; equipmentFr: string; equipmentEn: string }>; ingredients: Array<{ productId: string; quantityPerBase: string }> };
+  const update = updateRequest.postDataJSON() as { stepsFr: string[]; stepsEn: string[]; stepDetails: Array<{ durationMinutes: string; restMinutes: string; temperatureC: string; equipmentFr: string; equipmentEn: string }>; ingredients: Array<{ productId: string; quantityPerBase: string; alternativeProductIds: string[] }> };
   expect(update.stepsFr[0]).toBe("Braiser puis servir avec l'attiéké.");
   expect(update.stepsEn[0]).toBe("Grill and serve with the attieke.");
   expect(update.stepDetails[0]).toMatchObject({ durationMinutes: "10", restMinutes: "7", temperatureC: "180", equipmentFr: "Gril, pince longue et thermomètre", equipmentEn: "Grill, long tongs and thermometer" });
-  expect(update.ingredients[0]).toMatchObject({ productId: "product-1", quantityPerBase: "500" });
+  expect(update.ingredients[0]).toMatchObject({ productId: "product-1", quantityPerBase: "500", alternativeProductIds: ["product-2"] });
   await expect(dialog).toBeHidden();
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
