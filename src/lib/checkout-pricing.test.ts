@@ -21,6 +21,7 @@ import { CheckoutPricingError, priceCheckout } from "./checkout-pricing";
 
 const product = {
   id: "product-attieke",
+  categoryId: "category-staples",
   traditionalName: "Attiéké",
   sku: "JMA-ATT-500",
   price: 6,
@@ -94,5 +95,56 @@ describe("checkout variant pricing", () => {
       country: "France",
       locale: "en",
     })).rejects.toMatchObject({ status: 409 } satisfies Partial<CheckoutPricingError>);
+  });
+
+  it("applies a product promotion only to the eligible lines", async () => {
+    mocks.promotionFindUnique.mockResolvedValue({
+      id: "promotion-attieke",
+      type: "percent",
+      value: 20,
+      minOrder: 0,
+      appliesTo: "product",
+      targetId: product.id,
+      startsAt: null,
+      endsAt: null,
+      usageLimit: 100,
+      usedCount: 12,
+      active: true,
+    });
+
+    const priced = await priceCheckout({
+      items: [{ productId: product.id, qty: 2 }],
+      country: "France",
+      coupon: " attieke20 ",
+      locale: "fr",
+    });
+
+    expect(priced).toMatchObject({ subtotal: 9.6, promoDiscount: 1.92, shipping: 4, total: 11.68, promotionId: "promotion-attieke" });
+    expect(mocks.promotionFindUnique).toHaveBeenCalledWith({ where: { code: "ATTIEKE20" } });
+  });
+
+  it("refuses an exhausted category promotion without changing the order total", async () => {
+    mocks.promotionFindUnique.mockResolvedValue({
+      id: "promotion-category",
+      type: "fixed",
+      value: 4,
+      minOrder: 0,
+      appliesTo: "category",
+      targetId: product.categoryId,
+      startsAt: null,
+      endsAt: null,
+      usageLimit: 25,
+      usedCount: 25,
+      active: true,
+    });
+
+    const priced = await priceCheckout({
+      items: [{ productId: product.id, qty: 2 }],
+      country: "France",
+      coupon: "FAMILLE4",
+      locale: "fr",
+    });
+
+    expect(priced).toMatchObject({ subtotal: 9.6, promoDiscount: 0, shipping: 4, total: 13.6, promotionId: null });
   });
 });

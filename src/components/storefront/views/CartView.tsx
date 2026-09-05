@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X, ChefHat, Plus, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ export function CartView() {
   const weight = cartWeightGrams(cart);
   const thermal = cartThermalSplit(cart);
   const thermalKey = thermal.join("|");
+  const promotionItems = useMemo(() => cart.map((item) => ({ productId: item.productId, lineTotal: item.unitPrice * item.qty })), [cart]);
 
   const [shipQuote, setShipQuote] = useState<{ fee: number; carrier: string; minDelayHours?: number; maxDelayHours?: number } | null>(null);
   const [shipLoading, setShipLoading] = useState(false);
@@ -75,7 +76,7 @@ export function CartView() {
       return;
     }
     setCouponInput(coupon);
-    postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean; code?: string; error?: string }>("/api/promotions/validate", { code: coupon, subtotal })
+    postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean; code?: string; error?: string }>("/api/promotions/validate", { code: coupon, subtotal, country, locale, items: promotionItems })
       .then((result) => {
         if (cancelled) return;
         if (result.valid) {
@@ -91,7 +92,7 @@ export function CartView() {
         if (!cancelled) setCouponError(locale === "fr" ? "Vérification momentanément indisponible." : "Verification is temporarily unavailable.");
       });
     return () => { cancelled = true; };
-  }, [coupon, locale, setCoupon, subtotal]);
+  }, [coupon, country, locale, promotionItems, setCoupon, subtotal]);
 
   const promoDiscount = couponApplied?.discount || 0;
   const freeShip = couponApplied?.freeShipping;
@@ -115,7 +116,7 @@ export function CartView() {
     if (!couponInput.trim()) return;
     setCouponError("");
     try {
-      const res = await postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean; code?: string; error?: string }>("/api/promotions/validate", { code: couponInput, subtotal });
+      const res = await postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean; code?: string; error?: string }>("/api/promotions/validate", { code: couponInput, subtotal, country, locale, items: promotionItems });
       if (res.valid) {
         setCouponApplied({ code: res.code!, discount: res.discount!, freeShipping: res.freeShipping });
         setCoupon(res.code || null);

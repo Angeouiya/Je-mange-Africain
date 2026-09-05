@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Elements, ExpressCheckoutElement, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import type { StripeExpressCheckoutElementConfirmEvent, StripeExpressCheckoutElementReadyEvent } from "@stripe/stripe-js";
@@ -134,6 +134,7 @@ export function CheckoutView() {
   const weight = cartWeightGrams(cart);
   const thermal = cartThermalSplit(cart);
   const thermalKey = thermal.join("|");
+  const promotionItems = useMemo(() => cart.map((item) => ({ productId: item.productId, lineTotal: item.unitPrice * item.qty })), [cart]);
   const promoDiscount = promotion?.discount || 0;
   const selectedShipping = shipQuote?.options.find((option) => option.service === slot) || null;
   const baseEstimate = 4.9 + 0.6 * (weight / 1000) + (thermal.includes("FROZEN") ? 2.5 : 0);
@@ -201,7 +202,7 @@ export function CheckoutView() {
       return;
     }
     setPromotionLoading(true);
-    postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean }>("/api/promotions/validate", { code: coupon, subtotal })
+    postJSON<{ valid: boolean; discount?: number; freeShipping?: boolean }>("/api/promotions/validate", { code: coupon, subtotal, country: form.country, locale, items: promotionItems })
       .then((result) => {
         if (!cancelled) setPromotion(result.valid ? { discount: result.discount || 0, freeShipping: result.freeShipping } : null);
       })
@@ -212,7 +213,7 @@ export function CheckoutView() {
         if (!cancelled) setPromotionLoading(false);
       });
     return () => { cancelled = true; };
-  }, [coupon, subtotal]);
+  }, [coupon, form.country, locale, promotionItems, subtotal]);
 
   const canContinue = Boolean(
     form.firstName.trim()

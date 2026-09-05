@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { calculateShippingQuote, type DeliveryService } from "@/lib/shipping";
 import { wholesaleAvailablePacks, wholesalePriceForQuantity, wholesaleTiers } from "@/lib/wholesale";
 import { resolveProductPricing } from "@/lib/product-pricing";
+import { evaluatePromotion } from "@/lib/promotion-policy";
 
 export interface CheckoutPricingItem {
   productId: string;
@@ -163,17 +164,21 @@ export async function priceCheckout(input: {
   let promotionId: string | null = null;
 
   if (input.coupon) {
-    const now = new Date();
     const promotion = await db.promotion.findUnique({ where: { code: input.coupon.trim().toUpperCase() } });
-    const validWindow = promotion
-      && (!promotion.startsAt || promotion.startsAt <= now)
-      && (!promotion.endsAt || promotion.endsAt >= now)
-      && (!promotion.usageLimit || promotion.usedCount < promotion.usageLimit);
-    if (promotion?.active && validWindow && subtotal >= Number(promotion.minOrder)) {
+    const evaluation = promotion ? evaluatePromotion(promotion, {
+      subtotal,
+      country: input.country,
+      locale: input.locale,
+      lines: validatedItems.map((item) => ({
+        productId: item.productId,
+        categoryId: productsById.get(item.productId)?.categoryId || null,
+        lineTotal: item.lineTotal,
+      })),
+    }) : null;
+    if (promotion && evaluation?.valid) {
       promotionId = promotion.id;
-      if (promotion.type === "percent") promoDiscount = Math.min(subtotal, subtotal * Number(promotion.value) / 100);
-      if (promotion.type === "fixed") promoDiscount = Math.min(subtotal, Number(promotion.value));
-      if (promotion.type === "free_shipping") shipping = 0;
+      promoDiscount = evaluation.discount;
+      if (evaluation.freeShipping) shipping = 0;
     }
   }
 

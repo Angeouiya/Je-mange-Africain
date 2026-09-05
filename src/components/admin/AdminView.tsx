@@ -16,6 +16,7 @@ import {
   Menu,
   Megaphone,
   PackageSearch,
+  TicketPercent,
   Route,
   ShieldCheck,
   Settings2,
@@ -51,6 +52,7 @@ const OrdersSection = dynamic(() => import("@/components/admin/sections/OrdersSe
 const InventorySection = dynamic(() => import("@/components/admin/sections/InventorySection"), { loading: () => <AdminSectionLoading /> });
 const LogisticsSection = dynamic(() => import("@/components/admin/sections/LogisticsSection"), { loading: () => <AdminSectionLoading /> });
 const CustomersSection = dynamic(() => import("@/components/admin/sections/CustomersSection"), { loading: () => <AdminSectionLoading /> });
+const PromotionsSection = dynamic(() => import("@/components/admin/sections/PromotionsSection"), { loading: () => <AdminSectionLoading /> });
 const PushCampaignAdmin = dynamic(() => import("@/components/admin/PushCampaignAdmin").then((module) => module.PushCampaignAdmin), { loading: () => <AdminSectionLoading /> });
 const AdvertisingSection = dynamic(() => import("@/components/admin/sections/AdvertisingSection"), { loading: () => <AdminSectionLoading /> });
 const FinanceSection = dynamic(() => import("@/components/admin/sections/FinanceSection"), { loading: () => <AdminSectionLoading /> });
@@ -110,8 +112,9 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbEn: "Engage",
     items: [
       { id: "customers", module: "customers", icon: UsersRound, marker: "07", accent: BRAND_COLORS.warmCoral, labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
-      { id: "campaigns", module: "marketing", icon: BellRing, marker: "08", accent: BRAND_COLORS.gold, labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
-      { id: "advertising", module: "marketing", icon: Megaphone, marker: "09", accent: BRAND_COLORS.terracotta, labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
+      { id: "promotions", module: "marketing", icon: TicketPercent, marker: "08", accent: BRAND_COLORS.burgundy, labelFr: "Piloter les promotions", labelEn: "Control promotions", mobileFr: "Promos", mobileEn: "Promos", purposeFr: "Codes, ciblages, quotas et calendrier", purposeEn: "Codes, targeting, limits and schedule" },
+      { id: "campaigns", module: "marketing", icon: BellRing, marker: "09", accent: BRAND_COLORS.gold, labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
+      { id: "advertising", module: "marketing", icon: Megaphone, marker: "10", accent: BRAND_COLORS.terracotta, labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
     ],
   },
   {
@@ -120,10 +123,10 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Contrôler",
     verbEn: "Control",
     items: [
-      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "10", accent: BRAND_COLORS.burgundy, labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
-      { id: "governance", module: "audit", icon: Fingerprint, marker: "11", accent: BRAND_COLORS.deepEarth, labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
-      { id: "team", module: "team", icon: UserRoundCog, marker: "12", accent: BRAND_COLORS.chilli, labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
-      { id: "settings", module: "settings", icon: Settings2, marker: "13", accent: BRAND_COLORS.gold, labelFr: "Configurer la plateforme", labelEn: "Configure platform", mobileFr: "Paramètres", mobileEn: "Settings", purposeFr: "Coordonnées publiques et état des services", purposeEn: "Public details and service readiness" },
+      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "11", accent: BRAND_COLORS.burgundy, labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
+      { id: "governance", module: "audit", icon: Fingerprint, marker: "12", accent: BRAND_COLORS.deepEarth, labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
+      { id: "team", module: "team", icon: UserRoundCog, marker: "13", accent: BRAND_COLORS.chilli, labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
+      { id: "settings", module: "settings", icon: Settings2, marker: "14", accent: BRAND_COLORS.gold, labelFr: "Configurer la plateforme", labelEn: "Configure platform", mobileFr: "Paramètres", mobileEn: "Settings", purposeFr: "Coordonnées publiques et état des services", purposeEn: "Public details and service readiness" },
     ],
   },
 ];
@@ -160,7 +163,7 @@ export function AdminView({
   const availableGroups = useMemo(() => NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => hasAdminPermission(adminRole, item.module, "read")) })).filter((group) => group.items.length), [adminRole]);
   const availableItems = useMemo(() => availableGroups.flatMap((group) => group.items), [availableGroups]);
   const quickItems = useMemo(() => {
-    const priority: AdminSectionId[] = ["overview", "orders", "inventory", "logistics", "customers", "catalog", "recipes", "campaigns", "advertising", "finance", "governance", "team", "settings"];
+    const priority: AdminSectionId[] = ["overview", "orders", "inventory", "logistics", "customers", "catalog", "recipes", "promotions", "campaigns", "advertising", "finance", "governance", "team", "settings"];
     return priority.map((id) => availableItems.find((item) => item.id === id)).filter((item): item is NavItem => Boolean(item)).slice(0, 4);
   }, [availableItems]);
 
@@ -334,6 +337,7 @@ export function AdminView({
               {section === "inventory" ? <InventorySection locale={locale} canCreate={hasAdminPermission(adminRole, "stock", "create")} canUpdate={hasAdminPermission(adminRole, "stock", "update")} /> : null}
               {section === "logistics" ? <LogisticsSection locale={locale} canCreate={hasAdminPermission(adminRole, "logistics", "create")} canUpdate={hasAdminPermission(adminRole, "logistics", "update")} canDelete={hasAdminPermission(adminRole, "logistics", "delete")} /> : null}
               {section === "customers" ? <CustomersSection locale={locale} canUpdate={hasAdminPermission(adminRole, "customers", "update")} /> : null}
+              {section === "promotions" ? <PromotionsSection locale={locale} canCreate={hasAdminPermission(adminRole, "marketing", "create")} canUpdate={hasAdminPermission(adminRole, "marketing", "update")} canDelete={hasAdminPermission(adminRole, "marketing", "delete")} /> : null}
               {section === "campaigns" ? <PushCampaignAdmin locale={locale} /> : null}
               {section === "advertising" ? <AdvertisingSection locale={locale} /> : null}
               {section === "finance" ? <FinanceSection locale={locale} canUpdate={hasAdminPermission(adminRole, "finance", "update")} onNavigate={selectSection} /> : null}

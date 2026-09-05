@@ -48,6 +48,13 @@ const dashboard = {
   ],
 };
 
+const promotionsPayload = {
+  promotions: [
+    { id: "promotion-1", code: "BIENVENUE10", type: "percent", value: 10, minOrder: 30, appliesTo: "all", targetId: null, startsAt: "2020-09-01T08:00:00.000Z", endsAt: "2090-09-30T22:00:00.000Z", usageLimit: 100, usedCount: 12, active: true, createdAt: now },
+    { id: "promotion-2", code: "FR-LIVRAISON", type: "free_shipping", value: 0, minOrder: 50, appliesTo: "country", targetId: "France", startsAt: "2090-09-20T08:00:00.000Z", endsAt: null, usageLimit: 50, usedCount: 0, active: true, createdAt: now },
+  ],
+};
+
 const dishTemplatePayload = {
   countries: ["Côte d'Ivoire", "Sénégal", "Cameroun"],
   dishes: [{
@@ -341,6 +348,7 @@ async function expectBrandSafeUiColors(page: Page) {
 
 async function mockAdminApi(page: Page) {
   let logistics = structuredClone(logisticsPayload);
+  let promotions = structuredClone(promotionsPayload.promotions);
   let settingsConfiguration = {
     supportEmail: "bonjour@je-mange-africain.com",
     supportPhone: "+33 1 84 80 20 26",
@@ -410,6 +418,24 @@ async function mockAdminApi(page: Page) {
         },
       };
     }
+    else if (path === "/api/admin/promotions" && request.method() === "POST") {
+      const body = request.postDataJSON();
+      const promotion = { id: `promotion-${promotions.length + 1}`, usedCount: 0, createdAt: now, ...body };
+      promotions.push(promotion);
+      payload = { promotion };
+    }
+    else if (path.startsWith("/api/admin/promotions/") && request.method() === "PATCH") {
+      const id = path.split("/").at(-1);
+      const body = request.postDataJSON();
+      promotions = promotions.map((promotion) => promotion.id === id ? { ...promotion, ...body } : promotion);
+      payload = { promotion: promotions.find((promotion) => promotion.id === id) };
+    }
+    else if (path.startsWith("/api/admin/promotions/") && request.method() === "DELETE") {
+      const id = path.split("/").at(-1);
+      promotions = promotions.filter((promotion) => promotion.id !== id);
+      payload = { ok: true };
+    }
+    else if (path === "/api/admin/promotions") payload = { promotions };
     else if (path === "/api/admin/products") payload = {
       products: [{ id: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", descriptionFr: "Semoule de manioc fermentée, fraîche et légère.", descriptionEn: "Light, fresh fermented cassava couscous.", traditionalName: "Attiéké", sku: "JMA-ATT-500", categoryId: "cat-1", packaging: "Sachet 500 g", costPrice: 2.8, profitMargin: 2.1, costSource: "recorded", price: 4.9, promoPrice: null, stockQty: 84, reservedQty: 9, availableQty: 75, alertThreshold: 12, netWeightGrams: 500, imageColor: "#E9B949", imageEmoji: "", imageUrl: "/products/attieke.webp", aliases: ["atchéké", "couscous de manioc"], isNew: false, isRecommended: true, isBestseller: true, status: "published", thermalClass: "REFRIGERATED", storageType: "REFRIGERE", country: "Côte d'Ivoire" }],
       total: 1,
@@ -556,6 +582,7 @@ const sections = [
   { id: "inventory", nav: "Tracer les lots", title: "Inventaire piloté par les lots" },
   { id: "logistics", nav: "Piloter la livraison", title: "Promesse de livraison" },
   { id: "customers", nav: "Développer la relation", title: "Piloter chaque relation" },
+  { id: "promotions", nav: "Piloter les promotions", title: "Piloter les promotions" },
   { id: "campaigns", nav: "Diffuser sur mobile", title: "Composer, vérifier, diffuser" },
   { id: "advertising", nav: "Piloter les emplacements", title: "Régie publicitaire" },
   { id: "finance", nav: "Mesurer la rentabilité", title: "Rentabilité et encaissements" },
@@ -737,6 +764,65 @@ test("the adaptive professional navigation distinguishes quick and secondary wor
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
   await expectBrandSafeUiColors(page);
+});
+
+test("the promotion desk schedules a targeted benefit and confirms immediate suspension", async ({ page }) => {
+  const mutations: Array<{ method: string; path: string; body: Record<string, unknown> }> = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/api/admin/promotions") && request.method() !== "GET") {
+      mutations.push({ method: request.method(), path, body: request.postDataJSON() || {} });
+    }
+  });
+  await mockAdminApi(page);
+  await page.goto("/admin#promotions", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Piloter les promotions" })).toBeVisible();
+  await expect(page.getByTestId("promotion-metrics")).toContainText("actives");
+  await expect(page.getByTestId("promotion-register")).toContainText("BIENVENUE10");
+  await expect(page.getByTestId("promotion-register")).toContainText("FR-LIVRAISON");
+  await expect(page.getByText("Planifiée", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Nouvelle promotion" }).click();
+  const editor = page.getByRole("dialog", { name: "Composer une promotion" });
+  await editor.getByRole("textbox", { name: "Code promotionnel" }).fill("EPICES15");
+  await editor.getByRole("button", { name: "Pourcentage" }).click();
+  await editor.getByLabel("Pourcentage (%)").fill("15");
+  await editor.getByLabel("Panier minimum (€)").fill("40");
+  await editor.getByLabel("Périmètre").selectOption("category");
+  await editor.getByLabel("Famille ciblée").selectOption("cat-2");
+  await editor.getByLabel("Quota d'utilisations").fill("250");
+  await expect(editor).toContainText("Reflet du panier client");
+  await expect(editor).toContainText("EPICES15");
+  await expect(editor).toContainText("9,00 € de remise");
+  const dialogOverflow = await editor.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(dialogOverflow).toBeLessThanOrEqual(1);
+  const editorAccessibility = await new AxeBuilder({ page }).include('[data-testid="promotion-editor"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(editorAccessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await editor.getByRole("button", { name: "Enregistrer" }).click();
+
+  await expect(editor).toBeHidden();
+  await expect.poll(() => mutations.filter((item) => item.method === "POST").length).toBe(1);
+  expect(mutations.find((item) => item.method === "POST")?.body).toMatchObject({ code: "EPICES15", type: "percent", value: 15, minOrder: 40, appliesTo: "category", targetId: "cat-2", usageLimit: 250, active: true });
+  await expect(page.getByTestId("promotion-register")).toContainText("EPICES15");
+
+  await page.getByRole("button", { name: "Suspendre BIENVENUE10" }).click();
+  const suspension = page.getByRole("alertdialog", { name: "Suspendre immédiatement cette promotion ?" });
+  await expect(suspension).toContainText("refusé dans le panier et au paiement");
+  await expect.poll(() => mutations.filter((item) => item.method === "PATCH").length).toBe(0);
+  await suspension.getByRole("button", { name: "Oui, suspendre" }).click();
+  await expect(suspension).toBeHidden();
+  await expect.poll(() => mutations.filter((item) => item.method === "PATCH").length).toBe(1);
+  expect(mutations.find((item) => item.method === "PATCH")?.body).toMatchObject({ code: "BIENVENUE10", active: false });
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  await expectBrandSafeUiColors(page);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `promotions-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: true });
+  }
 });
 
 test("the logistics cockpit publishes a route and mirrors the customer delivery promise", async ({ page }) => {
