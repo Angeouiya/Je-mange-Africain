@@ -1248,7 +1248,13 @@ test("the guided product studio publishes a complete image-backed record", async
 });
 
 test("the recipe register stays compact and exposes operational readiness", async ({ page }) => {
+  let editorialPayload: Record<string, unknown> | null = null;
   await mockAdminApi(page);
+  await page.route("**/api/admin/recipes/recipe-1", async (route) => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    editorialPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ recipe: { id: "recipe-1", status: editorialPayload?.status } }) });
+  });
   await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("heading", { name: "Construire des recettes achetables" })).toBeVisible();
@@ -1271,6 +1277,33 @@ test("the recipe register stays compact and exposes operational readiness", asyn
   await expect(page.getByText("Aucune recette trouvée")).toBeVisible();
   await filters.getByRole("button", { name: /toutes/i }).click();
   await expect(row).toBeVisible();
+
+  await row.getByRole("button", { name: "Gérer Attiéké poisson braisé" }).click();
+  const editorialDialog = page.getByRole("dialog", { name: "Piloter la publication" });
+  await editorialDialog.getByLabel("Visibilité").selectOption("archived");
+  await editorialDialog.getByLabel("Marquer comme nouveauté").check();
+  await editorialDialog.getByRole("button", { name: "Annuler" }).click();
+  const discard = page.getByRole("alertdialog", { name: "Abandonner les changements éditoriaux ?" });
+  await expect(discard).toContainText("Aucun changement ne sera visible dans la boutique client");
+  expect(editorialPayload).toBeNull();
+  await discard.getByRole("button", { name: "Continuer l'édition" }).click();
+  await expect(editorialDialog.getByLabel("Visibilité")).toHaveValue("archived");
+  await expect(editorialDialog.getByLabel("Marquer comme nouveauté")).toBeChecked();
+  await editorialDialog.getByRole("button", { name: "Enregistrer" }).click();
+  const archiveConfirmation = page.getByRole("alertdialog", { name: "Désactiver ce contenu ?" });
+  await expect(archiveConfirmation).toContainText("disparaîtra immédiatement de la boutique client");
+  await expect(archiveConfirmation).toContainText("pourront être republiés");
+  expect(editorialPayload).toBeNull();
+  const archiveAccessibility = await new AxeBuilder({ page }).include('[role="alertdialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(archiveAccessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `recipe-archive-confirmation-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await archiveConfirmation.getByRole("button", { name: "Confirmer la désactivation" }).click();
+  await expect(editorialDialog).toBeHidden();
+  expect(editorialPayload).toMatchObject({ status: "archived", isNew: true, isRecommended: true, isPopular: true });
 
   await expectBrandSafeUiColors(page);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

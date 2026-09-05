@@ -24,10 +24,12 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
   const isFr = locale === "fr";
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
-  const [draft, setDraft] = useState(() => ({
+  const draftFor = () => ({
     imageUrl: entity.imageUrl || "",
     galleryUrls: entity.galleryUrls || [],
     status: entity.status || "published",
@@ -35,10 +37,45 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
     isRecommended: Boolean(entity.isRecommended),
     isPopular: Boolean(entity.isPopular),
     isBestseller: Boolean(entity.isBestseller),
-  }));
+  });
+  const [draft, setDraft] = useState(draftFor);
 
-  const reset = () => setDraft({ imageUrl: entity.imageUrl || "", galleryUrls: entity.galleryUrls || [], status: entity.status || "published", isNew: Boolean(entity.isNew), isRecommended: Boolean(entity.isRecommended), isPopular: Boolean(entity.isPopular), isBestseller: Boolean(entity.isBestseller) });
+  const initialDraft = draftFor();
+  const draftDirty = draft.imageUrl !== initialDraft.imageUrl
+    || draft.status !== initialDraft.status
+    || draft.isNew !== initialDraft.isNew
+    || draft.isRecommended !== initialDraft.isRecommended
+    || draft.isPopular !== initialDraft.isPopular
+    || draft.isBestseller !== initialDraft.isBestseller
+    || draft.galleryUrls.length !== initialDraft.galleryUrls.length
+    || draft.galleryUrls.some((url, index) => url !== initialDraft.galleryUrls[index]);
+  const reset = () => setDraft(initialDraft);
   const endpoint = `/api/admin/${kind === "product" ? "products" : "recipes"}/${entity.id}`;
+
+  const handleOpen = (nextOpen: boolean) => {
+    if (saving || deleting) return;
+    if (nextOpen) {
+      reset();
+      setError("");
+      setConfirmArchive(false);
+      setDiscardOpen(false);
+      setOpen(true);
+      return;
+    }
+    if (draftDirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    setOpen(false);
+  };
+
+  const discardDraft = () => {
+    reset();
+    setError("");
+    setConfirmArchive(false);
+    setDiscardOpen(false);
+    setOpen(false);
+  };
 
   const save = async () => {
     if (!draft.imageUrl) return setError(isFr ? "Une photo principale est obligatoire." : "A main photo is required.");
@@ -78,9 +115,17 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
     }
   };
 
+  const requestSave = () => {
+    if (draft.status === "archived" && initialDraft.status !== "archived") {
+      setConfirmArchive(true);
+      return;
+    }
+    void save();
+  };
+
   return (
     <>
-      <Dialog open={open} onOpenChange={(nextOpen) => { if (saving || deleting) return; setOpen(nextOpen); if (nextOpen) { reset(); setError(""); } }}>
+      <Dialog open={open} onOpenChange={handleOpen}>
         <DialogTrigger asChild><Button type="button" variant="outline" size="icon" className="h-8 w-8 bg-white/95" aria-label={isFr ? `Gérer ${entity.title}` : `Manage ${entity.title}`} title={isFr ? "Gérer le contenu" : "Manage content"}><MoreHorizontal className="h-4 w-4" /></Button></DialogTrigger>
         <DialogContent className="max-h-[92dvh] overflow-y-auto p-0 sm:max-w-2xl">
           <DialogHeader className="border-b border-border px-5 py-5 sm:px-6"><DialogTitle>{isFr ? "Piloter la publication" : "Manage publishing"}</DialogTitle><DialogDescription>{entity.title}</DialogDescription></DialogHeader>
@@ -98,9 +143,17 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
             </div>
           </div>
           {error ? <p role="alert" className="mx-5 border-y border-destructive/25 bg-destructive/[0.06] px-3 py-2 text-xs leading-5 text-destructive sm:mx-6">{error}</p> : null}
-          <DialogFooter className="border-t border-border px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="button" onClick={() => void save()} disabled={saving || !draft.imageUrl} className="bg-burgundy text-white hover:bg-burgundy-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer" : "Save"}</Button></DialogFooter>
+          <DialogFooter className="border-t border-border px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => handleOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="button" onClick={requestSave} disabled={saving || !draft.imageUrl} className="bg-burgundy text-white hover:bg-burgundy-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer" : "Save"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmArchive} onOpenChange={(next) => { if (!saving) setConfirmArchive(next); }}>
+        <AlertDialogContent><AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-gold/15 text-terre"><Archive className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Désactiver ce contenu ?" : "Disable this content?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? `${entity.title} disparaîtra immédiatement de la boutique client, de la recherche et des recommandations. La fiche et son historique seront conservés dans l'administration et pourront être republiés.` : `${entity.title} will immediately disappear from the customer store, search and recommendations. The record and its history will remain available in administration and can be republished.`}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={saving}>{isFr ? "Vérifier la publication" : "Review publishing"}</AlertDialogCancel><AlertDialogAction disabled={saving} onClick={() => { setConfirmArchive(false); void save(); }} className="bg-terre text-white hover:bg-terre-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}{isFr ? "Confirmer la désactivation" : "Confirm disabling"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+        <AlertDialogContent><AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><Trash2 className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Abandonner les changements éditoriaux ?" : "Discard editorial changes?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? "La photo, la visibilité et les badges modifiés retrouveront leurs valeurs enregistrées. Aucun changement ne sera visible dans la boutique client." : "The edited photo, visibility and badges will return to their saved values. No change will appear in the customer store."}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{isFr ? "Continuer l'édition" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardDraft} className="bg-destructive text-white hover:bg-destructive/90"><Trash2 className="mr-2 h-4 w-4" />{isFr ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{isFr ? "Supprimer ce contenu définitivement ?" : "Delete this content permanently?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? "Cette action retire la fiche et ses données éditoriales. Elle sera refusée si le contenu est nécessaire à la traçabilité d'une recette, d'un lot ou d'une commande." : "This removes the record and its editorial data. It will be refused when the content is required for recipe, batch or order traceability."}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{isFr ? "Conserver" : "Keep"}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void remove(); }} disabled={deleting} className="bg-destructive text-white hover:bg-destructive/90">{deleting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}{isFr ? "Supprimer" : "Delete"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
