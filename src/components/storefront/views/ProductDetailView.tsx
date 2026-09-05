@@ -12,6 +12,7 @@ import { RecipeCard } from "@/components/shared/RecipeCard";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
+import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 import { useStore } from "@/lib/store";
 import { dict, type Locale } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
@@ -30,7 +31,7 @@ export function ProductDetailView() {
   const t = dict[locale];
 
   const productId = params.productId;
-  const { data: product, loading } = useFetch(productId ? `/api/products/${productId}?locale=${locale}` : null, [productId, locale]);
+  const { data: product, loading, error, refetch } = useFetch(productId ? `/api/products/${productId}?locale=${locale}` : null, [productId, locale]);
 
   const [variantId, setVariantId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
@@ -45,8 +46,21 @@ export function ProductDetailView() {
     }
   }, [product?.id, pushRecentlyViewed]);
 
-  if (loading) return <div className="mx-auto max-w-7xl px-4 py-10"><Skeleton className="h-96 rounded-lg" /></div>;
-  if (!product) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Produit introuvable.</div>;
+  if (loading) return (
+    <div className="mx-auto w-full max-w-7xl px-4 pb-28 pt-4 md:px-7 md:py-10 lg:px-8" aria-busy="true" aria-label={locale === "fr" ? "Chargement de la fiche produit" : "Loading product details"}>
+      <PageBackButton fallbackView="catalog" className="mb-3 md:mb-4" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Skeleton className="aspect-square w-full rounded-lg" />
+        <div className="space-y-4 pt-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-10 w-4/5" /><Skeleton className="h-5 w-full" /><Skeleton className="h-20 w-full" /><Skeleton className="h-12 w-full" /></div>
+      </div>
+    </div>
+  );
+  if (error || !product) return (
+    <div className="mx-auto w-full max-w-7xl px-4 pb-28 pt-4 md:px-7 md:py-10 lg:px-8">
+      <PageBackButton fallbackView="catalog" className="mb-3 md:mb-4" />
+      <StorefrontUnavailableState surface="product" locale={locale} onRetry={refetch} className="overflow-hidden rounded-lg border" />
+    </div>
+  );
 
   const variant = product.variants?.find((v: any) => v.id === variantId) || product.variants?.[0];
   const { listPrice, promotionalRate, price, discountPercent, saving } = resolveProductPricing(product, variant?.price);

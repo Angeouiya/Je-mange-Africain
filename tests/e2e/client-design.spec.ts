@@ -1688,7 +1688,68 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
   await expect(page.getByRole("heading", { name: "JMA-260904-0218" })).toBeVisible();
 });
 
+test("product and recipe details recover without duplicating navigation", async ({ page }) => {
+  let productAttempts = 0;
+  let productAvailable = false;
+  await page.route("**/api/products/*", async (route) => {
+    productAttempts += 1;
+    if (!productAvailable) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Catalog synchronisation unavailable" }) });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/?view=catalog", { waitUntil: "domcontentloaded" });
+  const firstProduct = page.locator("main h3").first();
+  const productName = (await firstProduct.textContent())?.trim() || "";
+  await page.getByRole("link", { name: `Voir ${productName}`, exact: true }).first().click();
+
+  const productFailure = page.getByTestId("storefront-product-unavailable");
+  await expect(productFailure).toBeVisible();
+  await expect(page.getByRole("button", { name: /retour|back/i })).toHaveCount(1);
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/product-unavailable-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  productAvailable = true;
+  await productFailure.getByRole("button", { name: /réessayer|try again/i }).click();
+  await expect(page.getByRole("heading", { level: 1, name: productName })).toBeVisible();
+  expect(productAttempts).toBeGreaterThanOrEqual(2);
+  await expectNoHorizontalOverflow(page);
+
+  let recipeAttempts = 0;
+  let recipeAvailable = false;
+  await page.route("**/api/recipes/*", async (route) => {
+    recipeAttempts += 1;
+    if (!recipeAvailable) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Recipe synchronisation unavailable" }) });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: /configurer cette recette|configure this recipe/i }).first().click();
+
+  const recipeFailure = page.getByTestId("storefront-recipe-unavailable");
+  await expect(recipeFailure).toBeVisible();
+  await expect(page.getByRole("button", { name: /retour|back/i })).toHaveCount(1);
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/recipe-unavailable-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  recipeAvailable = true;
+  await recipeFailure.getByRole("button", { name: /réessayer|try again/i }).click();
+  await expect(page.getByRole("heading", { name: /configurateur de recette|recipe configurator/i })).toBeVisible();
+  expect(recipeAttempts).toBeGreaterThanOrEqual(2);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("the recipe configurator recalculates, removes and restores an ingredient", async ({ page }) => {
+  let calculationAvailable = false;
   await page.route(/\/api\/recipes\/[^/?]+\?/, async (route) => {
     const response = await route.fetch();
     const payload = await response.json();
@@ -1710,6 +1771,13 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
       ingredientProductIds: index === 0 && payload.ingredients[0]?.productId ? [payload.ingredients[0].productId] : [],
     }));
     await route.fulfill({ response, json: payload });
+  });
+  await page.route(/\/api\/recipes\/[^/]+\/calculate(?:\?|$)/, async (route) => {
+    if (!calculationAvailable) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Recipe calculation unavailable" }) });
+      return;
+    }
+    await route.continue();
   });
   await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();
@@ -1738,6 +1806,16 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   const settingsStage = recipeFlow.getByRole("button", { name: /configurer|configure/i });
   const ingredientsStage = recipeFlow.getByRole("button", { name: /ingrédients|ingredients/i });
   const preparationStage = recipeFlow.getByRole("button", { name: /préparation|preparation/i });
+  await expect(settingsStage).toHaveAttribute("aria-pressed", "true");
+  await ingredientsStage.click();
+  const calculationFailure = page.locator("#recipe-ingredients").getByRole("alert");
+  await expect(calculationFailure).toContainText(/choix sont conservés|choices are preserved/i);
+  await expect(ingredientsStage).toContainText(/à recalculer|recalculate/i);
+  calculationAvailable = true;
+  await calculationFailure.getByRole("button", { name: /recalculer|recalculate/i }).click();
+  await expect(calculationFailure).toBeHidden();
+  await expect(page.getByTestId("recipe-ingredient-row").first()).toBeVisible();
+  await settingsStage.click();
   await expect(settingsStage).toHaveAttribute("aria-pressed", "true");
   if (isMobile) {
     const recipeDock = page.getByTestId("recipe-live-summary");

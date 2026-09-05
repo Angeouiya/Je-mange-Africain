@@ -3,7 +3,7 @@
 import { CloudOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type Surface = "home" | "catalog" | "recipes" | "library";
+type Surface = "home" | "catalog" | "recipes" | "library" | "product" | "recipe";
 
 const copy: Record<Surface, { title: [string, string]; description: [string, string] }> = {
   home: {
@@ -21,6 +21,14 @@ const copy: Record<Surface, { title: [string, string]; description: [string, str
   library: {
     title: ["L'atlas culinaire est momentanément indisponible", "The culinary atlas is temporarily unavailable"],
     description: ["Les fiches détaillées n'ont pas pu être chargées. Votre recherche reste en place pendant la reprise.", "Detailed records could not be loaded. Your search remains in place while you retry."],
+  },
+  product: {
+    title: ["Ce produit n'est pas accessible pour le moment", "This product is not available right now"],
+    description: ["Il a peut-être été retiré de la vente ou ses informations n'ont pas pu être actualisées. Revenez en arrière ou relancez la fiche.", "It may have been removed from sale or its details could not be refreshed. Go back or reload the product page."],
+  },
+  recipe: {
+    title: ["Cette recette n'est pas accessible pour le moment", "This recipe is not available right now"],
+    description: ["Elle a peut-être été retirée de la bibliothèque ou ses ingrédients n'ont pas pu être synchronisés. Revenez en arrière ou relancez la recette.", "It may have been removed from the library or its ingredients could not be synchronised. Go back or reload the recipe."],
   },
 };
 

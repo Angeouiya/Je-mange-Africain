@@ -26,6 +26,7 @@ import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { getPreparationProgress, togglePreparationStep } from "@/lib/recipe-preparation";
 import { buildRecipeStepGuides, type RecipeStepDetails } from "@/lib/recipe-step-guide";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
+import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 import { recipeEditorialHighlight } from "@/lib/editorial-flags";
 import { ingredientsForPreparationStep } from "@/lib/recipe-step-ingredients";
 
@@ -54,7 +55,7 @@ export function RecipeConfiguratorView() {
   const t = dict[locale];
 
   const recipeId = params.recipeId;
-  const { data: recipe, loading } = useFetch(recipeId ? `/api/recipes/${recipeId}?locale=${locale}` : null, [recipeId, locale]);
+  const { data: recipe, loading, error, refetch } = useFetch(recipeId ? `/api/recipes/${recipeId}?locale=${locale}` : null, [recipeId, locale]);
 
   // config state
   const [adults, setAdults] = useState(4);
@@ -134,7 +135,10 @@ export function RecipeConfiguratorView() {
         leftoverCount: activeIngredients.filter((ingredient: any) => ingredient.leftover > 0).length,
       });
     } catch {
-      if (requestId === calcRequestRef.current) setCalcError(locale === "fr" ? "Le calcul n'a pas abouti. Vérifiez vos choix puis réessayez." : "The calculation could not be completed. Check your choices and try again.");
+      if (requestId === calcRequestRef.current) {
+        setCalc(null);
+        setCalcError(locale === "fr" ? "Le calcul n'a pas abouti. Vos choix sont conservés : relancez-les pour obtenir des quantités et un coût exacts." : "The calculation could not be completed. Your choices are preserved: retry to get accurate quantities and cost.");
+      }
     } finally {
       if (requestId === calcRequestRef.current) setCalcLoading(false);
     }
@@ -224,8 +228,19 @@ export function RecipeConfiguratorView() {
     navigate("cart");
   };
 
-  if (loading) return <div className="mx-auto max-w-7xl px-4 py-10"><Skeleton className="h-96 rounded-lg" /></div>;
-  if (!recipe) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Recette introuvable.</div>;
+  if (loading) return (
+    <div className="mx-auto w-full max-w-7xl px-4 pb-32 pt-5 md:px-7 md:py-10 lg:px-8" aria-busy="true" aria-label={locale === "fr" ? "Chargement de la recette" : "Loading recipe"}>
+      <PageBackButton fallbackView="recipes" className="mb-3" />
+      <Skeleton className="h-44 w-full rounded-lg md:h-64" />
+      <div className="mt-5 grid gap-6 lg:grid-cols-[340px_1fr]"><Skeleton className="h-80 rounded-lg" /><Skeleton className="h-96 rounded-lg" /></div>
+    </div>
+  );
+  if (error || !recipe) return (
+    <div className="mx-auto w-full max-w-7xl px-4 pb-32 pt-5 md:px-7 md:py-10 lg:px-8">
+      <PageBackButton fallbackView="recipes" className="mb-3" />
+      <StorefrontUnavailableState surface="recipe" locale={locale} onRetry={refetch} className="overflow-hidden rounded-lg border" />
+    </div>
+  );
 
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
   const recipeGallery = getRecipeGallery(recipe);
@@ -338,7 +353,7 @@ export function RecipeConfiguratorView() {
 
       <nav aria-label={locale === "fr" ? "Parcours de la recette" : "Recipe journey"} className="sticky top-[6.35rem] z-20 -mx-1 mb-4 grid grid-cols-3 rounded-md border border-burgundy/12 bg-white/96 p-1 shadow-[0_12px_28px_-26px_rgba(90,38,50,0.8)] backdrop-blur-xl lg:static lg:mx-0 lg:shadow-none" data-testid="recipe-flow-nav">
         <RecipeFlowButton active={mobileStage === "settings"} onClick={() => openStage("settings")} icon={Sliders} number="1" label={locale === "fr" ? "Configurer" : "Configure"} detail={`${servings} ${t.config.peopleUnit}`} />
-        <RecipeFlowButton active={mobileStage === "ingredients"} onClick={() => openStage("ingredients")} icon={Package} number="2" label={locale === "fr" ? "Ingrédients" : "Ingredients"} detail={calcLoading ? (locale === "fr" ? "Actualisation…" : "Updating…") : `${purchasableCount} ${locale === "fr" ? "achats" : "items"}`} />
+        <RecipeFlowButton active={mobileStage === "ingredients"} onClick={() => openStage("ingredients")} icon={Package} number="2" label={locale === "fr" ? "Ingrédients" : "Ingredients"} detail={calcLoading ? (locale === "fr" ? "Actualisation…" : "Updating…") : calcError ? (locale === "fr" ? "À recalculer" : "Recalculate") : `${purchasableCount} ${locale === "fr" ? "achats" : "items"}`} />
         <RecipeFlowButton active={mobileStage === "preparation"} onClick={() => openStage("preparation")} icon={Sparkles} number="3" label={locale === "fr" ? "Préparation" : "Preparation"} detail={`${completedStepCount}/${preparationSteps.length} ${locale === "fr" ? "terminées" : "complete"}`} />
       </nav>
 
@@ -445,7 +460,12 @@ export function RecipeConfiguratorView() {
                 </Button>
               )}
             </div>
-            {calcError ? <div role="alert" className="border-b border-destructive/25 bg-destructive/[0.06] px-4 py-3 text-xs text-destructive">{calcError}</div> : null}
+            {calcError ? (
+              <div role="alert" className="flex items-start gap-3 border-b border-destructive/25 bg-destructive/[0.06] px-4 py-3 text-xs text-destructive">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="min-w-0 flex-1"><p className="leading-5">{calcError}</p><Button type="button" variant="outline" size="sm" onClick={() => void doCalc()} disabled={calcLoading} className="mt-2 h-8 border-destructive/25 bg-white text-destructive hover:bg-destructive/[0.05] hover:text-destructive"><RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${calcLoading ? "animate-spin" : ""}`} />{locale === "fr" ? "Recalculer" : "Recalculate"}</Button></div>
+              </div>
+            ) : null}
             <div className="divide-y divide-border">
               {calc?.ingredients.map((ing) => (
                 <IngredientRow
