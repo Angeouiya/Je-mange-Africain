@@ -271,22 +271,48 @@ export function BatchControlDialog({ batch, locale, canUpdate, onUpdated }: { ba
   const [quantity, setQuantity] = useState("");
   const [adjustmentReason, setAdjustmentReason] = useState("");
   const [statusReason, setStatusReason] = useState("");
+  const [adjustmentConfirmationOpen, setAdjustmentConfirmationOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const available = Math.max(0, batch.quantity - batch.reserved);
   const locked = batch.status === "recalled" || batch.status === "expired";
+  const adjustmentQuantity = Number(quantity) || 0;
+  const adjustmentDelta = direction === "increase" ? adjustmentQuantity : -adjustmentQuantity;
+  const nextQuantity = batch.quantity + adjustmentDelta;
+  const nextAvailable = Math.max(0, nextQuantity - batch.reserved);
+  const adjustmentReady = adjustmentQuantity >= 1 && adjustmentReason.trim().length >= 5 && nextQuantity >= batch.reserved;
+  const draftDirty = direction !== "increase" || Boolean(quantity || adjustmentReason.trim() || statusReason.trim());
 
   const handleOpen = (next: boolean) => {
     if (busy) return;
-    setOpen(next);
     if (next) {
       setError("");
       setMessage("");
+      setDirection("increase");
       setQuantity("");
       setAdjustmentReason("");
       setStatusReason("");
+      setAdjustmentConfirmationOpen(false);
+      setDiscardOpen(false);
+      setOpen(true);
+      return;
     }
+    if (draftDirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    setOpen(false);
+  };
+  const discardDraft = () => {
+    setDirection("increase");
+    setQuantity("");
+    setAdjustmentReason("");
+    setStatusReason("");
+    setAdjustmentConfirmationOpen(false);
+    setDiscardOpen(false);
+    setOpen(false);
   };
   const mutate = async (body: Record<string, unknown>, success: string) => {
     setBusy(true);
@@ -297,6 +323,7 @@ export function BatchControlDialog({ batch, locale, canUpdate, onUpdated }: { ba
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || (isFr ? "Mise à jour impossible." : "Update failed."));
       setMessage(success);
+      setDirection("increase");
       setQuantity("");
       setAdjustmentReason("");
       setStatusReason("");
@@ -309,12 +336,17 @@ export function BatchControlDialog({ batch, locale, canUpdate, onUpdated }: { ba
   };
   const adjust = (event: FormEvent) => {
     event.preventDefault();
-    if (Number(quantity) < 1 || adjustmentReason.trim().length < 5) return;
-    void mutate({ action: "adjust", direction, quantity: Number(quantity), reason: adjustmentReason }, isFr ? "Le comptage physique et le stock vendable ont été actualisés." : "Physical and sellable stock have been updated.");
+    if (!adjustmentReady) return;
+    setAdjustmentConfirmationOpen(true);
+  };
+  const confirmAdjustment = () => {
+    setAdjustmentConfirmationOpen(false);
+    void mutate({ action: "adjust", direction, quantity: adjustmentQuantity, reason: adjustmentReason }, isFr ? "Le comptage physique et le stock vendable ont été actualisés." : "Physical and sellable stock have been updated.");
   };
   const changeStatus = (status: InventoryBatch["status"]) => void mutate({ action: "status", status, reason: statusReason }, isFr ? "Le statut du lot et sa disponibilité ont été actualisés." : "Batch status and availability have been updated.");
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild><Button type="button" variant="outline" size="sm" className="h-9 border-charcoal/12 px-3 text-[10px]"><SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Gérer" : "Manage"}</Button></DialogTrigger>
       <DialogContent showCloseButton={false} className="flex max-h-[calc(100svh-1rem)] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
@@ -345,10 +377,11 @@ export function BatchControlDialog({ batch, locale, canUpdate, onUpdated }: { ba
                 <DirectionOption checked={direction === "decrease"} onClick={() => setDirection("decrease")} icon={ArrowDown} label={isFr ? "Sortie" : "Decrease"} />
               </div>
               <div className="grid gap-3 sm:grid-cols-[10rem_1fr_auto] sm:items-end">
-                <Field label={isFr ? "Unités" : "Units"} required><Input aria-label={isFr ? "Quantité d'ajustement" : "Adjustment quantity"} type="number" min="1" max="100000" value={quantity} onChange={(event) => setQuantity(event.target.value)} className="h-11" /></Field>
+                <Field label={isFr ? "Unités" : "Units"} required><Input aria-label={isFr ? "Quantité d'ajustement" : "Adjustment quantity"} type="number" min="1" max={direction === "decrease" ? available : 100000} value={quantity} onChange={(event) => setQuantity(event.target.value)} className="h-11" /></Field>
                 <Field label={isFr ? "Motif du mouvement" : "Movement reason"} required><Input value={adjustmentReason} onChange={(event) => setAdjustmentReason(event.target.value)} placeholder={isFr ? "Comptage, casse ou réception complémentaire" : "Count, damage or additional receipt"} className="h-11" /></Field>
-                <Button type="submit" disabled={busy || Number(quantity) < 1 || adjustmentReason.trim().length < 5} className="h-11 bg-terre text-white hover:bg-terre-dark">{busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-1.5 h-4 w-4" />}{isFr ? "Appliquer" : "Apply"}</Button>
+                <Button type="submit" disabled={busy || !adjustmentReady} className="h-11 bg-terre text-white hover:bg-terre-dark">{busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-1.5 h-4 w-4" />}{isFr ? "Appliquer" : "Apply"}</Button>
               </div>
+              {direction === "decrease" && adjustmentQuantity > available ? <p role="alert" className="text-xs text-destructive">{isFr ? `La sortie ne peut pas dépasser les ${available} unité(s) non réservée(s).` : `The decrease cannot exceed the ${available} unreserved unit(s).`}</p> : null}
             </form>
           ) : null}
 
@@ -371,6 +404,19 @@ export function BatchControlDialog({ batch, locale, canUpdate, onUpdated }: { ba
         </div>
       </DialogContent>
     </Dialog>
+    <AlertDialog open={adjustmentConfirmationOpen} onOpenChange={(next) => { if (!busy) setAdjustmentConfirmationOpen(next); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-terre/[0.08] text-terre"><ClipboardCheck className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Confirmer cet ajustement ?" : "Confirm this adjustment?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? `${adjustmentQuantity} unité(s) seront ${direction === "increase" ? "ajoutée(s) au" : "retirée(s) du"} lot ${batch.lotNumber}. Le stock physique passera de ${batch.quantity} à ${nextQuantity}, et la quantité non réservée de ${available} à ${nextAvailable}. ${batch.status === "active" ? "Le stock vendable du produit évoluera immédiatement." : "Le stock vendable restera inchangé tant que ce lot n'est pas actif."} Le motif sera journalisé.` : `${adjustmentQuantity} unit(s) will be ${direction === "increase" ? "added to" : "removed from"} batch ${batch.lotNumber}. Physical stock will move from ${batch.quantity} to ${nextQuantity}, and unreserved quantity from ${available} to ${nextAvailable}. ${batch.status === "active" ? "Sellable product stock will update immediately." : "Sellable stock will remain unchanged while this batch is inactive."} The reason will be logged.`}</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel disabled={busy}>{isFr ? "Vérifier le comptage" : "Review count"}</AlertDialogCancel><AlertDialogAction disabled={busy} onClick={confirmAdjustment} className="bg-terre text-white hover:bg-terre-dark"><ClipboardCheck className="mr-1.5 h-4 w-4" />{isFr ? "Confirmer l'ajustement" : "Confirm adjustment"}</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><X className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Abandonner les modifications du lot ?" : "Discard batch changes?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? "La quantité, le type de mouvement et les motifs saisis seront effacés. Le stock physique, le stock vendable et le statut du lot resteront inchangés." : "The quantity, movement type and entered reasons will be cleared. Physical stock, sellable stock and batch status will remain unchanged."}</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel>{isFr ? "Continuer la modification" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardDraft} className="bg-destructive text-white hover:bg-destructive/90"><X className="mr-1.5 h-4 w-4" />{isFr ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

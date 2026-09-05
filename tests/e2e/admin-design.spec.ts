@@ -798,6 +798,14 @@ test("the team cockpit grants least-privilege access and documents sensitive dec
   await accessDialog.getByLabel("Nouveau rôle").selectOption("support");
   await accessDialog.getByLabel("Motif obligatoire").fill("Renfort temporaire du service client");
   await expect(accessDialog.getByText("Relation client", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await accessDialog.getByRole("button", { name: "Fermer", exact: true }).last().click();
+  const accessDiscard = page.getByRole("alertdialog", { name: "Abandonner ces modifications ?" });
+  await expect(accessDiscard).toBeVisible();
+  await expect(accessDiscard).toContainText("Les autorisations, l'état et le compte");
+  await expect.poll(() => mutations.filter((item) => item.method === "PATCH").length).toBe(0);
+  await accessDiscard.getByRole("button", { name: "Continuer la modification" }).click();
+  await expect(accessDialog.getByLabel("Nouveau rôle")).toHaveValue("support");
+  await expect(accessDialog.getByLabel("Motif obligatoire")).toHaveValue("Renfort temporaire du service client");
 
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
@@ -806,6 +814,17 @@ test("the team cockpit grants least-privilege access and documents sensitive dec
   }
 
   await accessDialog.getByRole("button", { name: "Enregistrer le nouveau rôle" }).click();
+  const roleConfirmation = page.getByRole("alertdialog", { name: "Confirmer ce changement de rôle ?" });
+  await expect(roleConfirmation).toBeVisible();
+  await expect(roleConfirmation).toContainText("Logistique");
+  await expect(roleConfirmation).toContainText("Relation client");
+  await expect(roleConfirmation).toContainText("journal d'audit");
+  await expect.poll(() => mutations.filter((item) => item.method === "PATCH").length).toBe(0);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    await page.screenshot({ path: join(directory, `team-role-confirmation-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await roleConfirmation.getByRole("button", { name: "Confirmer le nouveau rôle" }).click();
   await expect(accessDialog).toBeHidden();
   await expect.poll(() => mutations.filter((item) => item.method === "PATCH").length).toBe(1);
   expect(mutations.find((item) => item.method === "PATCH")?.body).toMatchObject({ role: "support", status: "active", reason: "Renfort temporaire du service client" });
@@ -1048,7 +1067,25 @@ test("the inventory desk receives, values and secures a traceable batch", async 
   await expect(controlDialog.getByText("84", { exact: true })).toBeVisible();
   await controlDialog.getByLabel("Quantité d'ajustement").fill("6");
   await controlDialog.getByLabel("Motif du mouvement").fill("Comptage physique du matin");
+  await controlDialog.getByRole("button", { name: "Fermer" }).click();
+  const adjustmentDiscard = page.getByRole("alertdialog", { name: "Abandonner les modifications du lot ?" });
+  await expect(adjustmentDiscard).toBeVisible();
+  await expect(adjustmentDiscard).toContainText("Le stock physique, le stock vendable et le statut du lot resteront inchangés");
+  await expect.poll(() => mutationPayloads.length).toBe(0);
+  await adjustmentDiscard.getByRole("button", { name: "Continuer la modification" }).click();
+  await expect(controlDialog.getByLabel("Quantité d'ajustement")).toHaveValue("6");
+  await expect(controlDialog.getByLabel("Motif du mouvement")).toHaveValue("Comptage physique du matin");
   await controlDialog.getByRole("button", { name: "Appliquer" }).click();
+  const adjustmentConfirmation = page.getByRole("alertdialog", { name: "Confirmer cet ajustement ?" });
+  await expect(adjustmentConfirmation).toBeVisible();
+  await expect(adjustmentConfirmation).toContainText("stock physique passera de 120 à 126");
+  await expect(adjustmentConfirmation).toContainText("quantité non réservée de 84 à 90");
+  await expect.poll(() => mutationPayloads.length).toBe(0);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    await page.screenshot({ path: join(directory, `inventory-adjustment-confirmation-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await adjustmentConfirmation.getByRole("button", { name: "Confirmer l'ajustement" }).click();
   await expect(controlDialog.getByRole("status")).toContainText("stock vendable");
   await expect.poll(() => mutationPayloads.length).toBe(1);
   expect(mutationPayloads[0]).toMatchObject({ action: "adjust", direction: "increase", quantity: 6 });

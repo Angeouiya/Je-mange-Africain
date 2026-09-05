@@ -123,6 +123,8 @@ export function MemberAccessDialog({ member, roles, locale, onClose, onUpdated }
   const [changeReason, setChangeReason] = useState("");
   const [statusReason, setStatusReason] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
+  const [roleConfirmationOpen, setRoleConfirmationOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const selectedRole = roles.find((option) => option.id === role);
@@ -130,6 +132,21 @@ export function MemberAccessDialog({ member, roles, locale, onClose, onUpdated }
   const nextTotals = permissionTotals(selectedRole?.permissions || member.permissions);
   const name = `${member.firstName} ${member.lastName}`.trim() || member.email;
   const protectedAccount = member.protected || member.current || member.role === "super_admin";
+  const draftDirty = role !== member.role || Boolean(changeReason.trim() || statusReason.trim() || deleteReason.trim());
+
+  const handleOpen = (next: boolean) => {
+    if (next || busy) return;
+    if (draftDirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    onClose();
+  };
+
+  const discardDraft = () => {
+    setDiscardOpen(false);
+    onClose();
+  };
 
   const mutate = async (nextRole: string, status: TeamStatus, reason: string) => {
     setBusy(true);
@@ -163,22 +180,36 @@ export function MemberAccessDialog({ member, roles, locale, onClose, onUpdated }
     }
   };
 
-  return <Dialog open onOpenChange={(next) => { if (!next && !busy) onClose(); }}>
+  return <>
+  <Dialog open onOpenChange={handleOpen}>
     <DialogContent closeLabel={isFr ? "Fermer" : "Close"} className="flex max-h-[calc(100svh-1rem)] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
       <DialogHeader className="shrink-0 border-b border-border px-5 py-5 pr-14 text-left sm:px-6"><div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${protectedAccount ? "bg-charcoal text-white" : "bg-burgundy text-white"}`}><UserRoundCog className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Identité professionnelle" : "Professional identity"}</p><DialogTitle className="mt-1 truncate">{name}</DialogTitle><DialogDescription className="mt-1 break-all">{member.email}</DialogDescription></div></div></DialogHeader>
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
         <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 sm:grid-cols-4" aria-label={isFr ? "Synthèse de l'accès" : "Access summary"}><AccessFact label={isFr ? "État" : "Status"} value={statusLabel(member.status, locale)} /><AccessFact label={isFr ? "Rôle" : "Role"} value={roleLabel(member.role, locale)} /><AccessFact label={isFr ? "Modules" : "Modules"} value={String(currentTotals.modules)} /><AccessFact label={isFr ? "Actions" : "Actions"} value={String(currentTotals.actions)} /></section>
         <section><p className="text-[9px] font-black uppercase text-muted-foreground">{isFr ? "Traçabilité de l'identité" : "Identity traceability"}</p><div className="mt-3 grid gap-3 border-y border-border py-3 text-xs sm:grid-cols-2"><IdentityFact label={isFr ? "Dernière connexion" : "Last sign-in"} value={member.lastSignInAt ? formatDateTime(member.lastSignInAt, locale) : (isFr ? "Jamais connecté" : "Never signed in")} /><IdentityFact label={isFr ? "Accès créé" : "Access created"} value={formatDateTime(member.createdAt, locale)} /><IdentityFact label={isFr ? "Invité par" : "Invited by"} value={member.invitedBy || (isFr ? "Identité non documentée" : "Identity not recorded")} /><IdentityFact label={isFr ? "Protection" : "Protection"} value={protectedAccount ? (isFr ? "Compte non modifiable" : "Protected account") : (isFr ? "Gestion autorisée" : "Management allowed")} /></div></section>
         {protectedAccount ? <section className="border-y border-gold/40 bg-gold/[0.08] px-4 py-4"><div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-terre" /><div><h3 className="text-sm font-black text-charcoal">{isFr ? "Compte de gouvernance protégé" : "Protected governance account"}</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">{isFr ? "Ce compte conserve la continuité de direction. Son rôle, sa suspension et sa suppression sont bloqués dans cet espace." : "This account preserves governance continuity. Its role, suspension and deletion are blocked in this workspace."}</p></div></div></section> : <>
-          <section><div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase text-muted-foreground">{isFr ? "Rôle et périmètre" : "Role and scope"}</p><h3 className="mt-1 text-sm font-black text-charcoal">{isFr ? "Ajuster au strict nécessaire" : "Keep access to the minimum required"}</h3></div>{role !== member.role ? <Badge variant="outline" className="border-gold/45 bg-gold/[0.08] text-[9px] text-charcoal">{isFr ? "Changement prêt" : "Change ready"}</Badge> : null}</div><div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr]"><TeamField label={isFr ? "Nouveau rôle" : "New role"}><select value={role} onChange={(event) => setRole(event.target.value)} className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal">{roles.map((option) => <option key={option.id} value={option.id}>{roleLabel(option.id, locale)}</option>)}</select></TeamField><TeamField label={isFr ? "Motif obligatoire" : "Required reason"}><Input value={changeReason} onChange={(event) => setChangeReason(event.target.value)} placeholder={isFr ? "Mission, mobilité ou changement d'équipe" : "Assignment, move or team change"} /></TeamField></div>{role !== member.role ? <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 bg-[#F8F7F4] px-3 py-3 text-xs"><div><p className="font-black text-charcoal">{roleLabel(member.role, locale)}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{currentTotals.modules} modules · {currentTotals.actions} actions</p></div><ArrowRight className="h-4 w-4 text-terre" /><div className="text-right"><p className="font-black text-charcoal">{roleLabel(role, locale)}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{nextTotals.modules} modules · {nextTotals.actions} actions</p></div></div> : null}<Button type="button" disabled={role === member.role || changeReason.trim().length < 5 || busy} onClick={() => void mutate(role, member.status, changeReason)} className="mt-3 bg-burgundy text-white hover:bg-burgundy-dark"><ShieldCheck className="mr-1.5 h-4 w-4" />{isFr ? "Enregistrer le nouveau rôle" : "Save new role"}</Button></section>
+          <section><div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase text-muted-foreground">{isFr ? "Rôle et périmètre" : "Role and scope"}</p><h3 className="mt-1 text-sm font-black text-charcoal">{isFr ? "Ajuster au strict nécessaire" : "Keep access to the minimum required"}</h3></div>{role !== member.role ? <Badge variant="outline" className="border-gold/45 bg-gold/[0.08] text-[9px] text-charcoal">{isFr ? "Changement prêt" : "Change ready"}</Badge> : null}</div><div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr]"><TeamField label={isFr ? "Nouveau rôle" : "New role"}><select value={role} onChange={(event) => setRole(event.target.value)} className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal">{roles.map((option) => <option key={option.id} value={option.id}>{roleLabel(option.id, locale)}</option>)}</select></TeamField><TeamField label={isFr ? "Motif obligatoire" : "Required reason"}><Input value={changeReason} onChange={(event) => setChangeReason(event.target.value)} placeholder={isFr ? "Mission, mobilité ou changement d'équipe" : "Assignment, move or team change"} /></TeamField></div>{role !== member.role ? <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 bg-[#F8F7F4] px-3 py-3 text-xs"><div><p className="font-black text-charcoal">{roleLabel(member.role, locale)}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{currentTotals.modules} modules · {currentTotals.actions} actions</p></div><ArrowRight className="h-4 w-4 text-terre" /><div className="text-right"><p className="font-black text-charcoal">{roleLabel(role, locale)}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{nextTotals.modules} modules · {nextTotals.actions} actions</p></div></div> : null}<Button type="button" disabled={role === member.role || changeReason.trim().length < 5 || busy} onClick={() => setRoleConfirmationOpen(true)} className="mt-3 bg-burgundy text-white hover:bg-burgundy-dark"><ShieldCheck className="mr-1.5 h-4 w-4" />{isFr ? "Enregistrer le nouveau rôle" : "Save new role"}</Button></section>
           <section><p className="text-[9px] font-black uppercase text-muted-foreground">{isFr ? "Autorisations du rôle sélectionné" : "Selected role permissions"}</p><div className="mt-3"><TeamPermissionList permissions={selectedRole?.permissions || member.permissions} locale={locale} /></div></section>
           <section className="border-t border-destructive/15 pt-4"><p className="text-[9px] font-black uppercase text-destructive">{isFr ? "Actions sensibles" : "Sensitive actions"}</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><StatusAction member={member} locale={locale} role={member.role} reason={statusReason} onReasonChange={setStatusReason} busy={busy} onConfirm={(status) => void mutate(member.role, status, statusReason)} /><DeleteAction locale={locale} reason={deleteReason} onReasonChange={setDeleteReason} busy={busy} onConfirm={() => void remove()} /></div></section>
         </>}
         {error ? <p role="alert" className="border-l-2 border-destructive bg-destructive/[0.04] px-3 py-2 text-xs text-destructive">{error}</p> : null}
       </div>
-      <DialogFooter className="shrink-0 border-t border-border bg-white px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={onClose} disabled={busy}>{isFr ? "Fermer" : "Close"}</Button></DialogFooter>
+      <DialogFooter className="shrink-0 border-t border-border bg-white px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => handleOpen(false)} disabled={busy}>{isFr ? "Fermer" : "Close"}</Button></DialogFooter>
     </DialogContent>
-  </Dialog>;
+  </Dialog>
+  <AlertDialog open={roleConfirmationOpen} onOpenChange={(next) => { if (!busy) setRoleConfirmationOpen(next); }}>
+    <AlertDialogContent>
+      <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-burgundy/[0.08] text-burgundy"><ShieldCheck className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Confirmer ce changement de rôle ?" : "Confirm this role change?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? `${name} passera de ${roleLabel(member.role, locale)} à ${roleLabel(role, locale)}. L'accès couvrira ${nextTotals.modules} module(s) et ${nextTotals.actions} action(s). Le motif sera conservé dans le journal d'audit.` : `${name} will move from ${roleLabel(member.role, locale)} to ${roleLabel(role, locale)}. Access will cover ${nextTotals.modules} module(s) and ${nextTotals.actions} action(s). The reason will be retained in the audit log.`}</AlertDialogDescription></AlertDialogHeader>
+      <AlertDialogFooter><AlertDialogCancel disabled={busy}>{isFr ? "Vérifier les droits" : "Review permissions"}</AlertDialogCancel><AlertDialogAction disabled={busy} onClick={() => { setRoleConfirmationOpen(false); void mutate(role, member.status, changeReason); }} className="bg-burgundy text-white hover:bg-burgundy-dark"><ShieldCheck className="mr-1.5 h-4 w-4" />{isFr ? "Confirmer le nouveau rôle" : "Confirm new role"}</AlertDialogAction></AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+  <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+    <AlertDialogContent>
+      <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><Trash2 className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Abandonner ces modifications ?" : "Discard these changes?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? "Le rôle sélectionné et les motifs saisis seront effacés. Les autorisations, l'état et le compte de cette personne resteront inchangés." : "The selected role and entered reasons will be cleared. This person's permissions, status and account will remain unchanged."}</AlertDialogDescription></AlertDialogHeader>
+      <AlertDialogFooter><AlertDialogCancel>{isFr ? "Continuer la modification" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardDraft} className="bg-destructive text-white hover:bg-destructive/90"><Trash2 className="mr-1.5 h-4 w-4" />{isFr ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+  </>;
 }
 
 function StatusAction({ member, locale, role, reason, onReasonChange, busy, onConfirm }: { member: TeamMember; locale: "fr" | "en"; role: string; reason: string; onReasonChange: (value: string) => void; busy: boolean; onConfirm: (status: TeamStatus) => void }) {
