@@ -42,6 +42,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatDate, normalize, orderStatusColor, orderStatusKey } from "@/lib/format";
 import { downloadOrderInvoice } from "@/lib/client-actions";
 import { getOrderDeliveryTimestamp, getOrderProgress, getOrderStageIndex, isTerminalOrder, orderNeedsAttention, summarizeOrders } from "@/lib/order-experience";
+import { europeanCountryLabel } from "@/lib/european-countries";
 import type { Order, OrderLine } from "@/lib/types";
 
 type OrderFilter = "all" | "active" | "delivered" | "attention";
@@ -203,7 +204,7 @@ export function OrdersView() {
                     <OrderProgress order={order} locale={locale} />
 
                     <div className="grid grid-cols-2 divide-x divide-charcoal/10 border-b border-border/70 px-4 py-3">
-                      <OrderFact icon={MapPin} label={locale === "fr" ? "Destination" : "Destination"} value={[order.deliveryCity, order.deliveryCountry].filter(Boolean).join(", ") || (locale === "fr" ? "À confirmer" : "To be confirmed")} />
+                      <OrderFact icon={MapPin} label={locale === "fr" ? "Destination" : "Destination"} value={[order.deliveryCity, europeanCountryLabel(order.deliveryCountry, locale)].filter(Boolean).join(", ") || (locale === "fr" ? "À confirmer" : "To be confirmed")} />
                       <OrderFact icon={CalendarRange} label={order.status === "delivered" ? (locale === "fr" ? "Remise" : "Delivered") : (locale === "fr" ? "Arrivée" : "Arrival")} value={deliveryTimestamp ? formatDate(deliveryTimestamp, locale) : (locale === "fr" ? "À confirmer" : "To be confirmed")} />
                     </div>
 
@@ -270,7 +271,7 @@ function OrderMetric({ icon: Icon, label, value, className = "", urgent = false 
 
 function OrderFocus({ order, locale, onOpen }: { order: Order; locale: "fr" | "en"; onOpen: () => void }) {
   const attention = orderNeedsAttention(order.status);
-  return <section className="mb-5 flex items-center gap-3 border-b border-charcoal/10 bg-terre/[0.025] px-3 pb-4 pt-1" aria-labelledby="order-focus-title" data-testid="order-focus"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${attention ? "bg-gold/20 text-terre" : "bg-burgundy/10 text-burgundy"}`}>{attention ? <CircleAlert className="h-4 w-4" /> : <PackageSearch className="h-4 w-4" />}</span><div className="min-w-0 flex-1"><p className="text-[8px] font-black uppercase text-terre">{attention ? (locale === "fr" ? "Action prioritaire" : "Priority action") : (locale === "fr" ? "Prochaine livraison" : "Next delivery")}</p><h2 id="order-focus-title" className="mt-0.5 truncate text-xs font-black text-charcoal">{order.number} · {locale === "fr" ? "ouvrir le suivi" : "open tracking"}</h2><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{[order.deliveryCity, order.deliveryCountry].filter(Boolean).join(", ")}</p></div><Button type="button" size="sm" variant="ghost" onClick={onOpen} className="shrink-0 text-terre hover:bg-terre/[0.06] hover:text-terre" aria-label={locale === "fr" ? `Suivre la commande ${order.number}` : `Track order ${order.number}`}><span className="hidden sm:inline">{locale === "fr" ? "Ouvrir" : "Open"}</span><ArrowRight className="h-4 w-4" /></Button></section>;
+  return <section className="mb-5 flex items-center gap-3 border-b border-charcoal/10 bg-terre/[0.025] px-3 pb-4 pt-1" aria-labelledby="order-focus-title" data-testid="order-focus"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${attention ? "bg-gold/20 text-terre" : "bg-burgundy/10 text-burgundy"}`}>{attention ? <CircleAlert className="h-4 w-4" /> : <PackageSearch className="h-4 w-4" />}</span><div className="min-w-0 flex-1"><p className="text-[8px] font-black uppercase text-terre">{attention ? (locale === "fr" ? "Action prioritaire" : "Priority action") : (locale === "fr" ? "Prochaine livraison" : "Next delivery")}</p><h2 id="order-focus-title" className="mt-0.5 truncate text-xs font-black text-charcoal">{order.number} · {locale === "fr" ? "ouvrir le suivi" : "open tracking"}</h2><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{[order.deliveryCity, europeanCountryLabel(order.deliveryCountry, locale)].filter(Boolean).join(", ")}</p></div><Button type="button" size="sm" variant="ghost" onClick={onOpen} className="shrink-0 text-terre hover:bg-terre/[0.06] hover:text-terre" aria-label={locale === "fr" ? `Suivre la commande ${order.number}` : `Track order ${order.number}`}><span className="hidden sm:inline">{locale === "fr" ? "Ouvrir" : "Open"}</span><ArrowRight className="h-4 w-4" /></Button></section>;
 }
 
 function OrderProgress({ order, locale }: { order: Order; locale: "fr" | "en" }) {

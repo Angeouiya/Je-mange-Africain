@@ -325,6 +325,16 @@ async function expectBrandSafeUiColors(page: Page) {
 }
 
 async function mockAdminApi(page: Page) {
+  let operationalOrder = {
+    ...structuredClone(order),
+    notes: null as string | null,
+    shipments: order.shipments.map((shipment) => ({
+      ...shipment,
+      trackingNumber: shipment.trackingNumber as string | null,
+      estimatedDelivery: shipment.estimatedDelivery as string | null,
+      carrier: shipment.carrier as string | null,
+    })),
+  };
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -338,22 +348,29 @@ async function mockAdminApi(page: Page) {
         notes?: string;
         shipment?: { id?: string; carrier?: string; trackingNumber?: string; thermalClass?: string; estimatedDelivery?: string; confirmCode?: string; proofPhoto?: string; signature?: string };
       };
+      const selectedIndex = body.shipment?.id ? operationalOrder.shipments.findIndex((shipment) => shipment.id === body.shipment?.id) : -1;
+      const selectedShipment = selectedIndex >= 0 ? operationalOrder.shipments[selectedIndex] : null;
       const nextShipment = {
-        ...order.shipments[0],
-        ...body.shipment,
-        id: body.shipment?.id || order.shipments[0].id,
-        carrier: body.shipment?.carrier || order.shipments[0].carrier,
-        status: body.status === "shipped" ? "picked_up" : order.shipments[0].status,
+        id: selectedShipment?.id || "shipment-2",
+        trackingNumber: body.shipment?.trackingNumber || selectedShipment?.trackingNumber || null,
+        thermalClass: body.shipment?.thermalClass || selectedShipment?.thermalClass || "AMBIANT",
+        status: body.status === "shipped" ? "picked_up" : selectedShipment?.status || "created",
+        estimatedDelivery: body.shipment?.estimatedDelivery || selectedShipment?.estimatedDelivery || null,
+        carrier: body.shipment?.carrier || selectedShipment?.carrier || null,
       };
+      const nextShipments = selectedIndex >= 0
+        ? operationalOrder.shipments.map((shipment, index) => index === selectedIndex ? nextShipment : shipment)
+        : [...operationalOrder.shipments, nextShipment];
       const nextTimeline = body.status
-        ? [...order.timeline, { status: body.status, label: body.status === "packed" ? "Colis prêt" : body.status, at: "2026-09-02T10:30:00.000Z", actor: "direction@je-mange-africain.com" }]
-        : order.timeline;
+        ? [...operationalOrder.timeline, { status: body.status, label: body.status === "packed" ? "Colis prêt" : body.status, at: "2026-09-02T10:30:00.000Z", actor: "direction@je-mange-africain.com" }]
+        : operationalOrder.timeline;
+      operationalOrder = { ...operationalOrder, status: body.status || operationalOrder.status, notes: body.notes || null, shipments: nextShipments, timeline: nextTimeline };
       payload = {
         updatedShipmentId: nextShipment.id,
         order: {
-          status: body.status || order.status,
-          notes: body.notes || null,
-          shipments: [nextShipment],
+          status: operationalOrder.status,
+          notes: operationalOrder.notes,
+          shipments: operationalOrder.shipments,
           timeline: nextTimeline,
         },
       };
@@ -392,7 +409,7 @@ async function mockAdminApi(page: Page) {
       ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, imageUrl: "/products/attieke.webp" } }],
     };
     else if (path === "/api/dishes") payload = dishTemplatePayload;
-    else if (path === "/api/orders") payload = { orders: [order] };
+    else if (path === "/api/orders") payload = { orders: [operationalOrder] };
     else if (path === "/api/admin/stock" && request.method() === "POST") payload = { batch: { id: "batch-2", lotNumber: "ATT-2609-FR" } };
     else if (path === "/api/admin/stock/batch-1" && request.method() === "PATCH") {
       const body = request.postDataJSON() as { action: "adjust" | "status"; direction?: "increase" | "decrease"; quantity?: number; status?: string };
@@ -1598,6 +1615,18 @@ test("the order workspace saves logistics and confirms each sensitive advancemen
   await dialog.getByLabel("Notes internes d'exploitation").fill("Chaîne du froid contrôlée avant emballage.");
   await dialog.getByRole("button", { name: "Enregistrer la logistique" }).click();
   await expect(dialog.getByRole("status")).toContainText("La fiche logistique est enregistrée.");
+
+  const activeParcel = dialog.getByLabel("Colis actif");
+  await activeParcel.selectOption("new");
+  await expect(dialog.getByLabel("Transporteur")).toHaveValue("");
+  await expect(dialog.getByLabel("Numéro de suivi")).toHaveValue("");
+  await dialog.getByLabel("Conservation").selectOption("AMBIANT");
+  await dialog.getByLabel("Transporteur").fill("DPD Europe");
+  await dialog.getByLabel("Numéro de suivi").fill("JMA-AMBIENT-260902");
+  await dialog.getByRole("button", { name: "Enregistrer la logistique" }).click();
+  await expect(activeParcel).toHaveValue("shipment-2");
+  await expect(activeParcel.locator("option")).toContainText(["Colis 1 · JMA-FR-260902-ADV", "Colis 2 · JMA-AMBIENT-260902", "+ Nouveau colis"]);
+  await activeParcel.selectOption("shipment-1");
 
   await dialog.getByRole("button", { name: /Passer à Colis prêt/ }).click();
   const confirmation = page.getByRole("alertdialog", { name: "Confirmer l'avancement de la commande ?" });

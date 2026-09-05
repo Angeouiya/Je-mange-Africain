@@ -59,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const selectedShipment = input.shipment?.id
     ? order.shipments.find((shipment) => shipment.id === input.shipment?.id)
-    : order.shipments[0];
+    : undefined;
   if (input.shipment?.id && !selectedShipment) {
     return NextResponse.json({ error: input.locale === "fr" ? "Ce colis n'appartient pas à la commande." : "This parcel does not belong to the order." }, { status: 404 });
   }

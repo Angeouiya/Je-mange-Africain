@@ -17,6 +17,7 @@ import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail"
 import { getOrderDeliveryOverview, getShipmentTrackingHref } from "@/lib/order-experience";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import type { Order } from "@/lib/types";
+import { europeanCountryLabel } from "@/lib/european-countries";
 
 export function OrderTrackingView() {
   const locale = useStore((s) => s.locale);
@@ -80,7 +81,7 @@ export function OrderTrackingView() {
         activeIndex={stageIndex}
         progress={deliveryOverview.progress}
         label={locale === "fr" ? "Progression de la livraison" : "Delivery progress"}
-        progressLabel={locale === "fr" ? `Livraison terminée à ${deliveryOverview.progress} %` : `Delivery ${deliveryOverview.progress}% complete`}
+        progressLabel={locale === "fr" ? `Progression de la livraison : ${deliveryOverview.progress} %` : `Delivery progress: ${deliveryOverview.progress}%`}
         interrupted={isInterrupted}
         testId="delivery-progress"
         className="mb-4"
@@ -140,7 +141,7 @@ export function OrderTrackingView() {
           <div className={`rounded-lg border border-border bg-card p-4 md:block ${mobilePanel !== "order" ? "hidden" : ""}`}>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-charcoal"><MapPin className="h-4 w-4 text-terre" /> {t.checkout.address}</h2>
             <p className="text-sm text-charcoal">{order.deliveryName}</p>
-            <p className="text-xs text-muted-foreground">{order.deliveryAddress}, {order.deliveryPostalCode} {order.deliveryCity}, {order.deliveryCountry}</p>
+            <p className="text-xs text-muted-foreground">{order.deliveryAddress}, {order.deliveryPostalCode} {order.deliveryCity}, {europeanCountryLabel(order.deliveryCountry, locale)}</p>
             {order.deliverySlot ? <p className="mt-3 border-t border-border pt-3 text-[11px] font-bold text-burgundy">{locale === "fr" ? "Service de livraison" : "Delivery service"} : {deliveryServiceLabel(order.deliverySlot, locale)}</p> : null}
           </div>
         </div>

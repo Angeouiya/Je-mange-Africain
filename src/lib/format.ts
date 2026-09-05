@@ -106,7 +106,7 @@ export function thermalLabel(thermal: string, locale: Locale = "fr"): string {
 export function orderStatusColor(status: string): string {
   if (["delivered"].includes(status)) return "bg-burgundy/10 text-burgundy border-burgundy/25";
   if (["cancelled", "failed", "refunded"].includes(status)) return "bg-destructive/10 text-destructive border-destructive/30";
-  if (["shipped", "in_transit", "delivering", "packed", "controlDone"].includes(status))
+  if (["shipped", "picked_up", "in_transit", "out_for_delivery", "delivering", "packed", "controlDone"].includes(status))
     return "bg-terre/10 text-terre border-terre/25";
   if (["preparing", "paymentPending", "stockReserved", "fraudCheck", "awaitingClient", "replacement"].includes(status))
     return "bg-gold/15 text-charcoal border-gold/35";

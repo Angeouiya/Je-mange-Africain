@@ -1509,20 +1509,23 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     promoDiscount: 0,
     total: 45.9,
     weightGrams: 2200,
-    packageCount: 1,
+    packageCount: 2,
     createdAt: "2026-09-01T09:30:00.000Z",
     deliveryName: "Aminata Koné",
     deliveryAddress: "12 rue des Cultures",
-    deliveryCity: "Paris",
-    deliveryPostalCode: "75011",
-    deliveryCountry: "France",
+    deliveryCity: "Berlin",
+    deliveryPostalCode: "10178",
+    deliveryCountry: "Germany",
     deliverySlot: "standard",
     paymentMethod: "card",
     items: [
       { id: "line-proof", productId: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 7, currentUnitPrice: 7.5, qty: 5, lineTotal: 35, thermalClass: "REFRIGERATED", imageUrl: "/products/attieke.webp", recipeId: null, recipeName: null, unitLabel: "Sachet 500 g", packWeightGrams: 500, maxStock: 3, purchasable: true },
       { id: "line-sold-out", productId: "product-2", name: "Piment frais", nameFr: "Piment frais", nameEn: "Fresh chilli", sku: "JMA-PIM-200", unitPrice: 4, qty: 1, lineTotal: 4, thermalClass: "REFRIGERATED", imageUrl: "/products/piment-frais.webp", recipeId: null, recipeName: null, unitLabel: "Barquette 200 g", packWeightGrams: 200, maxStock: 0, purchasable: false },
     ],
-    shipments: [{ id: "shipment-proof", trackingNumber: "JMA-FR-260902-PROOF", thermalClass: "REFRIGERATED", status: "delivered", estimatedDelivery: "2026-09-02T14:00:00.000Z", actualDelivery: "2026-09-02T15:12:00.000Z", confirmCode: "4821", carrier: "Chrono Frais Europe", carrierName: "Chrono Frais Europe", trackingUrl: "https://track.example.com/{ref}", proofPhoto: "/hero-feast-v2.webp", signature: "Aminata Koné" }],
+    shipments: [
+      { id: "shipment-proof", trackingNumber: "JMA-FR-260902-PROOF", thermalClass: "REFRIGERATED", status: "delivered", estimatedDelivery: "2026-09-02T14:00:00.000Z", actualDelivery: "2026-09-02T15:12:00.000Z", confirmCode: "4821", carrier: "Chrono Frais Europe", carrierName: "Chrono Frais Europe", trackingUrl: "https://track.example.com/{ref}", proofPhoto: "/hero-feast-v2.webp", signature: "Aminata Koné" },
+      { id: "shipment-ambient", trackingNumber: "JMA-DE-260902-AMBIENT", thermalClass: "AMBIANT", status: "delivered", estimatedDelivery: "2026-09-02T16:00:00.000Z", actualDelivery: "2026-09-02T15:28:00.000Z", confirmCode: "4821", carrier: "DPD Europe", carrierName: "DPD Europe", trackingUrl: "https://track.example.com/{ref}", proofPhoto: null, signature: "Aminata Koné" },
+    ],
     timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-01T09:30:00.000Z", actor: null }, { status: "delivered", label: "Delivered", at: "2026-09-02T15:12:00.000Z", actor: null }],
     payments: [{ method: "Carte", status: "captured", amount: 45.9, reference: "pi_proof" }],
   };
@@ -1592,15 +1595,18 @@ test("delivered orders expose carrier tracking and proof without leaking interna
   const deliveryCommandCenter = page.getByTestId("delivery-command-center");
   await expect(deliveryCommandCenter).toContainText(/commande a été remise|order has been delivered/i);
   await expect(deliveryCommandCenter).toContainText(/chrono frais europe/i);
-  await expect(deliveryCommandCenter).toContainText(/colis\s*1|parcels\s*1/i);
+  await expect(deliveryCommandCenter).toContainText(/colis\s*2|parcels\s*2/i);
   const deliveryProgress = page.getByTestId("delivery-progress");
-  await expect(deliveryProgress.getByRole("progressbar", { name: /livraison terminée|delivery .*complete/i })).toHaveAttribute("aria-valuenow", "100");
+  await expect(deliveryProgress.getByRole("progressbar", { name: /progression de la livraison|delivery progress/i })).toHaveAttribute("aria-valuenow", "100");
   await expect(deliveryProgress.locator('[aria-current="step"]')).toContainText(/livrée|delivered/i);
-  await expect(page.getByRole("link", { name: /suivre chez le transporteur|track with carrier/i })).toHaveAttribute("href", "https://track.example.com/JMA-FR-260902-PROOF");
-  const deliveryProofHeading = page.getByText(/^(preuve de remise|delivery proof)$/i);
+  const carrierTrackingLinks = page.getByRole("link", { name: /suivre chez le transporteur|track with carrier/i });
+  await expect(carrierTrackingLinks).toHaveCount(2);
+  await expect(carrierTrackingLinks.first()).toHaveAttribute("href", "https://track.example.com/JMA-FR-260902-PROOF");
+  await expect(carrierTrackingLinks.nth(1)).toHaveAttribute("href", "https://track.example.com/JMA-DE-260902-AMBIENT");
+  const deliveryProofHeading = page.getByText(/^(preuve de remise|delivery proof)$/i).first();
   await expect(deliveryProofHeading).toBeVisible();
   await expect(page.getByRole("img", { name: /preuve de livraison|delivery proof/i })).toBeVisible();
-  await expect(page.getByText(/reçu par aminata koné|received by aminata koné/i)).toBeVisible();
+  await expect(page.getByText(/reçu par aminata koné|received by aminata koné/i).first()).toBeVisible();
   const trackingDock = page.getByTestId("order-tracking-action-dock");
   const trackingTabs = page.getByTestId("tracking-mobile-tabs");
   const addressHeading = page.getByRole("heading", { name: /adresse|address/i });
@@ -1620,6 +1626,7 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     await expect(trackingTabs.getByRole("button", { name: /ma commande|my order/i })).toHaveAttribute("aria-pressed", "true");
     await expect(addressHeading).toBeVisible();
     await expect(orderItemsHeading).toBeVisible();
+    await expect(page.getByText(/10178 Berlin, Allemagne/i)).toBeVisible();
     await expect(page.getByText(/livraison standard|standard delivery/i).first()).toBeVisible();
     await expect(deliveryProofHeading).toBeHidden();
     await trackingTabs.getByRole("button", { name: /livraison|delivery/i }).click();
@@ -1628,6 +1635,7 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     await expect(trackingTabs).toBeHidden();
     await expect(addressHeading).toBeVisible();
     await expect(orderItemsHeading).toBeVisible();
+    await expect(page.getByText(/10178 Berlin, Allemagne/i)).toBeVisible();
     await expect(page.getByText(/livraison standard|standard delivery/i).first()).toBeVisible();
   }
   await expect(page.locator("body")).not.toContainText(/notes internes|internal operations notes|chaîne du froid contrôlée/i);

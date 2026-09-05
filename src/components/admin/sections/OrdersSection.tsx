@@ -33,7 +33,7 @@ function statusLabel(status: string, isFr: boolean) {
   const labels: Record<string, [string, string]> = {
     cart: ["Brouillon", "Draft"], validated: ["Validée", "Validated"], paymentPending: ["Paiement attendu", "Payment pending"], paymentConfirmed: ["Paiement confirmé", "Payment confirmed"],
     stockReserved: ["Stock réservé", "Stock reserved"], preparing: ["En préparation", "Preparing"], packed: ["Colis prêt", "Packed"], controlDone: ["Contrôle terminé", "Quality checked"],
-    shipped: ["Expédiée", "Shipped"], in_transit: ["En transit", "In transit"], out_for_delivery: ["En livraison", "Out for delivery"], delivering: ["En livraison", "Delivering"],
+    created: ["Colis créé", "Parcel created"], shipped: ["Expédiée", "Shipped"], picked_up: ["Remis au transporteur", "Handed to carrier"], in_transit: ["En transit", "In transit"], out_for_delivery: ["En livraison", "Out for delivery"], delivering: ["En livraison", "Delivering"], returned: ["Retourné", "Returned"],
     delivered: ["Livrée", "Delivered"], cancelled: ["Annulée", "Cancelled"], failed: ["Échec", "Failed"], refunded: ["Remboursée", "Refunded"],
   };
   return (labels[status] || [status, status])[isFr ? 0 : 1];

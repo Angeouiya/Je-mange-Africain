@@ -28,6 +28,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { deliveryServiceLabel, formatDate, formatPrice, thermalLabel } from "@/lib/format";
 import { downloadOrderInvoice } from "@/lib/client-actions";
 import type { Order } from "@/lib/types";
+import { europeanCountryLabel } from "@/lib/european-countries";
 
 export function OrderConfirmationView() {
   const locale = useStore((state) => state.locale);
@@ -163,7 +164,7 @@ export function OrderConfirmationView() {
         <div className="space-y-4">
           <section className="rounded-lg border border-border bg-white p-4 sm:p-5" aria-labelledby="confirmed-delivery-title">
             <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-terre/10 text-terre"><Truck className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Acheminement" : "Delivery"}</p><h2 id="confirmed-delivery-title" className="mt-0.5 text-base font-black text-charcoal">{deliveryDate}</h2><p className="mt-1 text-xs text-muted-foreground">{deliveryServiceLabel(order.deliverySlot || "standard", locale)}</p></div></div>
-            <div className="mt-4 border-t border-border pt-4"><p className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground"><MapPin className="h-3.5 w-3.5 text-terre" />{isFr ? "Adresse de livraison" : "Delivery address"}</p><p className="mt-2 text-sm font-bold text-charcoal">{order.deliveryName}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{[order.deliveryAddress, `${order.deliveryPostalCode || ""} ${order.deliveryCity || ""}`.trim(), order.deliveryCountry].filter(Boolean).join(", ")}</p></div>
+            <div className="mt-4 border-t border-border pt-4"><p className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground"><MapPin className="h-3.5 w-3.5 text-terre" />{isFr ? "Adresse de livraison" : "Delivery address"}</p><p className="mt-2 text-sm font-bold text-charcoal">{order.deliveryName}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{[order.deliveryAddress, `${order.deliveryPostalCode || ""} ${order.deliveryCity || ""}`.trim(), europeanCountryLabel(order.deliveryCountry, locale)].filter(Boolean).join(", ")}</p></div>
             <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md bg-border"><ConfirmationFact icon={CalendarDays} label={isFr ? "Arrivée" : "Arrival"} value={deliveryDate} /><ConfirmationFact icon={PackageCheck} label={isFr ? "Colis" : "Parcels"} value={String(order.packageCount || order.shipments.length || 1)} /></div>
           </section>
 
