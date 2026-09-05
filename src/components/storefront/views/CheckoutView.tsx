@@ -62,6 +62,9 @@ export function CheckoutView() {
   const clearCart = useStore((state) => state.clearCart);
   const addresses = useStore((state) => state.addresses);
   const customer = useStore((state) => state.customer);
+  const deliveryCountry = useStore((state) => state.country);
+  const deliveryPostalCode = useStore((state) => state.postalCode);
+  const setDeliveryContext = useStore((state) => state.setDeliveryContext);
   const t = dict[locale];
 
   const [step, setStep] = useState(0);
@@ -78,9 +81,9 @@ export function CheckoutView() {
     email: customer?.email || "",
     phone: address?.phone || customer?.phone || "",
     street: address?.street || "",
-    postalCode: address?.postalCode || "",
+    postalCode: address?.postalCode || deliveryPostalCode || "",
     city: address?.city || "",
-    country: europeanCountryValue(address?.country) || "France",
+    country: europeanCountryValue(address?.country || deliveryCountry) || "France",
   });
   const [slot, setSlot] = useState<DeliveryService>("standard");
   const [shipQuote, setShipQuote] = useState<ShippingQuoteResponse | null>(null);
@@ -116,6 +119,7 @@ export function CheckoutView() {
     }
     const selected = addresses.find((item) => item.id === addressId);
     if (!selected) return;
+    setDeliveryContext(europeanCountryValue(selected.country) || selected.country, selected.postalCode);
     setForm((current) => ({
       ...current,
       firstName: selected.firstName,
@@ -230,6 +234,7 @@ export function CheckoutView() {
   const preparePayment = async () => {
     setPreparingPayment(true);
     setPaymentError("");
+    setDeliveryContext(europeanCountryValue(form.country) || form.country, form.postalCode.trim().toUpperCase());
     try {
       const response = await postJSON<IntentResponse>("/api/payments/intent", {
         ...checkoutPayload,

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X, ChefHat, Plus, ShieldCheck } from "lucide-react";
+import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X, ChefHat, Plus, ShieldCheck, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ import {
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
+import { DeliveryDestinationDialog } from "@/components/storefront/DeliveryDestinationDialog";
+import { europeanCountryLabel } from "@/lib/european-countries";
 
 export function CartView() {
   const locale = useStore((s) => s.locale);
@@ -228,10 +230,13 @@ export function CartView() {
               {couponError && <p className="text-xs text-destructive">{couponError}</p>}
             </div>
 
-            <div className="flex items-start gap-2 border-y border-border py-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-terre/8 text-terre"><MapPin className="h-4 w-4" /></span>
-              <div className="min-w-0"><p className="text-[10px] font-bold uppercase text-muted-foreground">{locale === "fr" ? "Estimation de livraison" : "Delivery estimate"}</p><p className="mt-0.5 truncate text-xs font-bold text-charcoal">{postalCode ? `${postalCode} · ` : ""}{country}</p>{shipQuote ? <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground"><Clock3 className="h-3 w-3" />{shipQuote.carrier}{shipQuote.minDelayHours && shipQuote.maxDelayHours ? ` · ${shipQuote.minDelayHours}–${shipQuote.maxDelayHours} h` : ""}</p> : null}</div>
-            </div>
+            <DeliveryDestinationDialog weightGrams={weight} thermalClasses={thermal}>
+              <button type="button" className="group flex w-full items-start gap-2 border-y border-border py-3 text-left transition hover:border-terre/20 hover:bg-terre/[0.025]" aria-label={locale === "fr" ? "Modifier la destination de livraison" : "Change delivery destination"}>
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-terre/8 text-terre"><MapPin className="h-4 w-4" /></span>
+                <span className="min-w-0 flex-1"><span className="block text-[10px] font-bold uppercase text-muted-foreground">{locale === "fr" ? "Estimation de livraison" : "Delivery estimate"}</span><span className="mt-0.5 block truncate text-xs font-bold text-charcoal">{postalCode ? `${postalCode} · ` : ""}{europeanCountryLabel(country, locale)}</span>{shipQuote ? <span className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground"><Clock3 className="h-3 w-3" />{shipQuote.carrier}{shipQuote.minDelayHours && shipQuote.maxDelayHours ? ` · ${shipQuote.minDelayHours}–${shipQuote.maxDelayHours} h` : ""}</span> : null}</span>
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-charcoal/8 bg-white text-muted-foreground transition group-hover:border-terre/20 group-hover:text-terre"><PencilLine className="h-3.5 w-3.5" /></span>
+              </button>
+            </DeliveryDestinationDialog>
 
             <div className="space-y-1.5 pt-3 text-sm">
               <Row label={t.cart.subtotal} value={formatPrice(subtotal, locale)} />

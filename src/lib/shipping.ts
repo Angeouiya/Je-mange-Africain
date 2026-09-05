@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { europeanCountryCode, europeanCountryLabel, europeanCountryValue } from "@/lib/european-countries";
 
 export const DELIVERY_SERVICES = ["standard", "express", "relay"] as const;
 export type DeliveryService = (typeof DELIVERY_SERVICES)[number];
@@ -43,9 +44,10 @@ export async function calculateShippingOptions({
   weightGrams = 0,
   thermalClasses = [],
 }: Omit<ShippingQuoteInput, "service">): Promise<ShippingQuote[]> {
-  const normalizedCountry = normalizeCountry(country);
+  const canonicalCountry = europeanCountryValue(country) || country.trim();
+  const normalizedCountry = normalizeCountry(canonicalCountry);
   const zones = await db.deliveryZone.findMany({
-    where: { country: { in: countryCandidates(normalizedCountry) } },
+    where: { country: { in: countryCandidates(canonicalCountry) } },
     include: { carrier: true },
   });
   const hasFrozen = thermalClasses.includes("FROZEN");
@@ -148,29 +150,19 @@ function postalCodeMatches(pattern: string | null, postalCode: string) {
 }
 
 function normalizeCountry(country: string) {
-  const normalized = country.trim().toLowerCase();
-  const aliases: Record<string, string> = {
-    fr: "france",
-    be: "belgique",
-    belgium: "belgique",
-    de: "allemagne",
-    germany: "allemagne",
-    nl: "pays-bas",
-    netherlands: "pays-bas",
-    lu: "luxembourg",
-  };
-  return aliases[normalized] || normalized;
+  return (europeanCountryValue(country) || country)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
 }
 
-function countryCandidates(normalizedCountry: string) {
-  const candidates: Record<string, string[]> = {
-    france: ["France", "FR", "france"],
-    belgique: ["Belgique", "Belgium", "BE", "belgique", "belgium"],
-    allemagne: ["Allemagne", "Germany", "DE", "allemagne", "germany"],
-    "pays-bas": ["Pays-Bas", "Netherlands", "NL", "pays-bas", "netherlands"],
-    luxembourg: ["Luxembourg", "LU", "luxembourg"],
-  };
-  return candidates[normalizedCountry] || [normalizedCountry];
+function countryCandidates(country: string) {
+  const canonical = europeanCountryValue(country);
+  const code = europeanCountryCode(country);
+  const english = canonical ? europeanCountryLabel(canonical, "en") : null;
+  const values = [country, canonical, english, code].filter((value): value is string => Boolean(value));
+  return [...new Set(values.flatMap((value) => [value, value.toLowerCase()]))];
 }
 
 function escapeRegExp(value: string) {

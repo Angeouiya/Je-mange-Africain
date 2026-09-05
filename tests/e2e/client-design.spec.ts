@@ -1158,6 +1158,77 @@ test("the help center leads to a contextual and usable contact request", async (
   await expectNoSeriousA11yViolations(page);
 });
 
+test("the basket prices a European destination and carries it into checkout", async ({ page }) => {
+  const customer = { id: "customer-europe", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
+  const quoteRequests: Array<Record<string, unknown>> = [];
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: {
+        locale: "fr",
+        cart: [{ id: "line-ambient", productId: "product-attieke", name: "Attiéké", nameFr: "Attiéké", nameEn: "Attieke", unitPrice: 4.5, unitLabel: "500 g", packWeightGrams: 500, thermalClass: "AMBIANT", imageUrl: "/products/attieke.webp", qty: 2, maxStock: 40 }],
+        customer: persistedCustomer,
+        addresses: [],
+        favorites: [], savedRecipes: [], recentlyViewed: [], country: "Belgique", postalCode: "1000", coupon: null,
+      },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [] }) }));
+  await page.route("**/api/advertisements?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ advertisements: [] }) }));
+  await page.route("**/api/shipping/quote", async (route) => {
+    const request = route.request().postDataJSON();
+    quoteRequests.push(request);
+    const isGermany = request.country === "Allemagne";
+    const options = [
+      { service: "standard", fee: isGermany ? 9.4 : 7.9, carrier: "DHL Europe", packages: 1, minDelayHours: 24, maxDelayHours: 48, available: true, unavailableReason: null },
+      { service: "express", fee: isGermany ? 14.8 : 12.9, carrier: "JMA Express Europe", packages: 1, minDelayHours: 12, maxDelayHours: 24, available: true, unavailableReason: null },
+      { service: "relay", fee: isGermany ? 5.2 : 4.6, carrier: "Mondial Relay", packages: 1, minDelayHours: 48, maxDelayHours: 72, available: true, unavailableReason: null },
+    ];
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...options[0], options }) });
+  });
+
+  await page.goto("/?view=cart", { waitUntil: "domcontentloaded" });
+  await expect.poll(() => quoteRequests[0]?.country).toBe("Belgique");
+  await expect(page.getByText("1000 · Belgique", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Modifier la destination de livraison" }).click();
+
+  const dialog = page.getByTestId("delivery-destination-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAccessibleName("Où livrer votre panier ?");
+  await expect(dialog).toContainText("32 pays");
+  await dialog.getByLabel("Pays de livraison").selectOption("Allemagne");
+  await dialog.getByLabel("Code postal").fill("10115");
+  await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Allemagne");
+  expect(quoteRequests.at(-1)?.postalCode).toBe("10115");
+  await expect(dialog.getByRole("heading", { name: "Standard" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Express" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Point relais" })).toBeVisible();
+  await expect(dialog.getByText("9,40 €", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("DHL Europe", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page, dialog);
+  await expectNoSeriousA11yViolations(page);
+  await expectBrandSafeUiColors(page);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/delivery-destination-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+
+  await dialog.getByRole("button", { name: "Utiliser cette destination" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("10115 · Allemagne", { exact: true })).toBeVisible();
+  const storedDestination = await page.evaluate(() => {
+    const stored = JSON.parse(localStorage.getItem("jma-store") || "{}");
+    return { country: stored.state?.country, postalCode: stored.state?.postalCode };
+  });
+  expect(storedDestination).toEqual({ country: "Allemagne", postalCode: "10115" });
+
+  await page.getByRole("button", { name: /passer la commande|checkout/i }).filter({ visible: true }).first().click();
+  await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
+  await expect(page.getByLabel("Pays de livraison")).toHaveValue("Allemagne");
+  await expect(page.getByLabel("Code postal")).toHaveValue("10115");
+  await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Allemagne");
+  await expectNoHorizontalOverflow(page);
+});
+
 test("checkout compares delivery services and protects the cold chain", async ({ page }) => {
   const customer = { id: "customer-checkout", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
   const quoteRequests: Array<Record<string, unknown>> = [];

@@ -45,4 +45,17 @@ describe("multi-zone shipping services", () => {
 
     expect(quote).toMatchObject({ carrier: "JMA Express", fee: 10.8, minDelayHours: 12, maxDelayHours: 24 });
   });
+
+  it("matches admin routes across Europe from French, English and country-code aliases", async () => {
+    mocks.findMany.mockResolvedValue([
+      { country: "Italy", postalPattern: "20*", baseFee: 7.2, perKgFee: 0.8, frozenSurcharge: 3, minDelayHours: 48, carrier: { name: "Milano Fresh" } },
+    ]);
+
+    const quote = await calculateShippingQuote({ country: "Italie", postalCode: "20121", weightGrams: 1_000, service: "standard" });
+
+    expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { country: { in: expect.arrayContaining(["Italie", "Italy", "IT"]) } },
+    }));
+    expect(quote).toMatchObject({ carrier: "Milano Fresh", fee: 8, minDelayHours: 24, maxDelayHours: 48 });
+  });
 });
