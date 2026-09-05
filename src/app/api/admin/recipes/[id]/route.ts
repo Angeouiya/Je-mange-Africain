@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getBrandAccentColor, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { recipeAdminInput, recipeImageReference, recipeStepDetailsForLocale, type RecipeAdminInput } from "@/lib/admin-recipe-schema";
 import { parseRecipeSteps, serializeRecipeSteps } from "@/lib/recipe-step-storage";
+import { retailAvailableUnits } from "@/lib/inventory";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         nameFr: ingredient.product.translations.find((item) => item.locale === "fr")?.name || ingredient.product.traditionalName,
         nameEn: ingredient.product.translations.find((item) => item.locale === "en")?.name || ingredient.product.traditionalName,
         stockQty: ingredient.product.stockQty,
+        reservedQty: ingredient.product.reservedQty,
+        availableQty: retailAvailableUnits(ingredient.product.stockQty, ingredient.product.reservedQty),
       },
     })),
   });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
+import { retailAvailableUnits } from "@/lib/inventory";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // Alternatives: same category different product
   const alternatives = await db.product.findMany({
     where: { categoryId: product.categoryId, status: "published", id: { not: id }, stockQty: { gt: 0 } },
-    take: 4,
+    take: 12,
     include: { translations: true, brand: true, category: true, variants: true },
   });
 
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         imageEmoji: p.imageEmoji,
         category: p.category ? { slug: p.category.slug, name: p.category.nameFr } : null,
       }),
-      stockQty: p.stockQty,
+      stockQty: retailAvailableUnits(p.stockQty, p.reservedQty),
       alertThreshold: p.alertThreshold,
       country: p.country,
       thermalClass: p.thermalClass, packaging: p.packaging,
@@ -121,8 +122,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     price: Number(product.price),
     promoPrice: product.promoPrice ? Number(product.promoPrice) : null,
     pricePerKg: product.pricePerKg ? Number(product.pricePerKg) : null,
-    stockQty: product.stockQty,
-    reservedQty: product.reservedQty,
+    stockQty: retailAvailableUnits(product.stockQty, product.reservedQty),
     alertThreshold: product.alertThreshold,
     imageColor: product.imageColor,
     imageEmoji: product.imageEmoji,
@@ -145,6 +145,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     variants: product.variants.map((v) => ({ id: v.id, label: v.label, weightGrams: v.weightGrams, volumeMl: v.volumeMl, price: Number(v.price), pricePerKg: v.pricePerKg ? Number(v.pricePerKg) : null, isDefault: v.isDefault })),
     related: related.map(proj),
     relatedRecipes,
-    alternatives: alternatives.map(proj),
+    alternatives: alternatives.map(proj).filter((item) => item.stockQty > 0).slice(0, 4),
   });
 }

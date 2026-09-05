@@ -22,6 +22,13 @@ describe("recipe operations", () => {
     });
   });
 
+  it("does not count stock already reserved by customer orders", () => {
+    expect(recipeStockReadiness([{ product: { stockQty: 6, reservedQty: 6, status: "published" } }])).toMatchObject({
+      availableIngredientCount: 0,
+      needsAttention: true,
+    });
+  });
+
   it("counts valid preparation steps defensively", () => {
     expect(recipeStepCount('["Préparer", "Cuire", ""]')).toBe(2);
     expect(recipeStepCount('[{"version":1,"instruction":"Préparer avec soin"},{"instruction":""}]')).toBe(1);

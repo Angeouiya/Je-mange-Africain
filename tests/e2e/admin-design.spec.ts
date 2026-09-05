@@ -376,7 +376,7 @@ async function mockAdminApi(page: Page) {
       };
     }
     else if (path === "/api/admin/products") payload = {
-      products: [{ id: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", descriptionFr: "Semoule de manioc fermentée, fraîche et légère.", descriptionEn: "Light, fresh fermented cassava couscous.", traditionalName: "Attiéké", sku: "JMA-ATT-500", categoryId: "cat-1", packaging: "Sachet 500 g", costPrice: 2.8, profitMargin: 2.1, costSource: "recorded", price: 4.9, promoPrice: null, stockQty: 84, alertThreshold: 12, netWeightGrams: 500, imageColor: "#E9B949", imageEmoji: "", imageUrl: "/products/attieke.webp", aliases: ["atchéké", "couscous de manioc"], isNew: false, isRecommended: true, isBestseller: true, status: "published", thermalClass: "REFRIGERATED", storageType: "REFRIGERE", country: "Côte d'Ivoire" }],
+      products: [{ id: "product-1", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", descriptionFr: "Semoule de manioc fermentée, fraîche et légère.", descriptionEn: "Light, fresh fermented cassava couscous.", traditionalName: "Attiéké", sku: "JMA-ATT-500", categoryId: "cat-1", packaging: "Sachet 500 g", costPrice: 2.8, profitMargin: 2.1, costSource: "recorded", price: 4.9, promoPrice: null, stockQty: 84, reservedQty: 9, availableQty: 75, alertThreshold: 12, netWeightGrams: 500, imageColor: "#E9B949", imageEmoji: "", imageUrl: "/products/attieke.webp", aliases: ["atchéké", "couscous de manioc"], isNew: false, isRecommended: true, isBestseller: true, status: "published", thermalClass: "REFRIGERATED", storageType: "REFRIGERE", country: "Côte d'Ivoire" }],
       total: 1,
     };
     else if (path === "/api/admin/recipes") payload = {
@@ -406,7 +406,7 @@ async function mockAdminApi(page: Page) {
       steps: ["Assaisonner le poisson.", "Braiser et servir avec l'attiéké."],
       stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
       stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
-      ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, imageUrl: "/products/attieke.webp" } }],
+      ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, reservedQty: 9, availableQty: 75, imageUrl: "/products/attieke.webp" } }],
     };
     else if (path === "/api/dishes") payload = dishTemplatePayload;
     else if (path === "/api/orders") payload = { orders: [operationalOrder] };
@@ -1156,6 +1156,9 @@ test("the product workspace edits bilingual content and calculates the customer 
   await mockAdminApi(page);
   await page.goto("/admin#catalog", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Ce qui est réellement vendu" })).toBeVisible();
+  await expect(page.getByText(/75 disponibles/).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText(/9 réservés/).filter({ visible: true }).first()).toBeVisible();
+  if ((page.viewportSize()?.width || 0) >= 768) await expect(page.getByText(/84 physiques/).filter({ visible: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Modifier la fiche Attiéké frais" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Modifier la fiche produit" });
@@ -1816,7 +1819,8 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   await expect(dialog.getByLabel("Temps actif de l'étape 1")).toHaveValue("5");
   await expect(dialog.getByLabel("Résultat attendu de l'étape 1 fr")).not.toHaveValue("");
   await expect(dialog.getByLabel("Produit 1")).toHaveValue("product-1");
-  await expect(dialog.getByText(/84 en stock/)).toBeVisible();
+  await expect(dialog.getByText(/75 disponibles/)).toBeVisible();
+  await expect(dialog.getByText(/9 réservés/)).toBeVisible();
   const dialogOverflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(dialogOverflow).toBeLessThanOrEqual(1);
   const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();

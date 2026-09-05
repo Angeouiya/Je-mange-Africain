@@ -8,8 +8,9 @@ import { ProductImage } from "./ProductImage";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
-import { getDiscountPercent, getProductCommercialLine, getProductPhoto } from "@/lib/market-media";
+import { getProductCommercialLine, getProductPhoto } from "@/lib/market-media";
 import { productEditorialHighlight } from "@/lib/editorial-flags";
+import { resolveProductPricing } from "@/lib/product-pricing";
 
 export interface ProductListItem {
   id: string;
@@ -40,7 +41,7 @@ export interface ProductListItem {
   thermalClass: string;
   packaging?: string;
   unit?: string;
-  variants?: { id: string; label: string; weightGrams: number; price: number; isDefault: boolean }[];
+  variants?: { id: string; label: string; weightGrams: number; price: number; pricePerKg?: number | null; isDefault: boolean }[];
 }
 
 type ProductCardSurfaceProps = {
@@ -63,11 +64,11 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
   const favorites = useStore((s) => s.favorites);
   const toggleFavorite = useStore((s) => s.toggleFavorite);
   const isFav = favorites.includes(product.id);
-  const price = product.promoPrice ?? product.price;
   const photoUrl = product.imageUrl || product.photoUrl || getProductPhoto(product);
   const outOfStock = product.stockQty <= 0;
 
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
+  const { price } = resolveProductPricing(product, defaultVariant?.price);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -121,9 +122,11 @@ export function ProductCardPreview({ product, locale, compact = true }: { produc
 
 function ProductCardSurface({ product, locale, compact, index = 0, isFav = false, onAdd, onFavorite }: ProductCardSurfaceProps) {
   const t = dict[locale];
-  const price = product.promoPrice ?? product.price;
-  const discountPercent = getDiscountPercent(product.price, product.promoPrice);
-  const saving = product.promoPrice ? product.price - product.promoPrice : 0;
+  const defaultVariant = product.variants?.find((variant) => variant.isDefault) || product.variants?.[0];
+  const { listPrice, price, discountPercent, saving } = resolveProductPricing(product, defaultVariant?.price);
+  const unitPricePerKg = defaultVariant?.weightGrams
+    ? price / (defaultVariant.weightGrams / 1000)
+    : defaultVariant?.pricePerKg ?? product.pricePerKg;
   const photoUrl = product.imageUrl || product.photoUrl || getProductPhoto(product);
   const fallbackPhotoUrl = getProductPhoto({ ...product, imageUrl: null, photoUrl: null });
   const commercialLine = getProductCommercialLine(product, locale);
@@ -198,9 +201,9 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
         </p>
         <div className="mt-auto flex min-w-0 items-end justify-between gap-1.5 pt-1">
           <div className="min-w-0">
-            {product.promoPrice && (
+            {discountPercent > 0 && (
               <div className="flex flex-wrap items-center gap-1">
-                <span className="text-xs text-muted-foreground line-through">{formatPrice(product.price, locale)}</span>
+                <span className="text-xs text-muted-foreground line-through">{formatPrice(listPrice, locale)}</span>
                 {saving > 0 && (
                   <span className="text-[10px] font-semibold text-burgundy">
                     {locale === "fr" ? "éco." : "save"} {formatPrice(saving, locale)}
@@ -209,7 +212,7 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
               </div>
             )}
             <span className={`${compact ? "text-[13px]" : "text-base"} block whitespace-nowrap font-black text-terre`}>{formatPrice(price, locale)}</span>
-            {product.pricePerKg && !compact && <span className="block truncate text-[10px] text-muted-foreground">{formatUnitPrice(product.pricePerKg, locale)} / kg</span>}
+            {unitPricePerKg && !compact && <span className="block truncate text-[10px] text-muted-foreground">{formatUnitPrice(unitPricePerKg, locale)} / kg</span>}
           </div>
           {interactive ? (
             <Button

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     include: {
       translations: true,
-      ingredients: { include: { product: { select: { stockQty: true, status: true } } } },
+      ingredients: { include: { product: { select: { stockQty: true, reservedQty: true, status: true } } } },
     },
   });
 

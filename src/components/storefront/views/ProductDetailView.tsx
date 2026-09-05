@@ -16,8 +16,9 @@ import { useStore } from "@/lib/store";
 import { dict, type Locale } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/format";
-import { getDiscountPercent, getProductCommercialLine, getProductGallery } from "@/lib/market-media";
+import { getProductCommercialLine, getProductGallery } from "@/lib/market-media";
 import { productEditorialHighlight } from "@/lib/editorial-flags";
+import { resolveProductPricing } from "@/lib/product-pricing";
 
 export function ProductDetailView() {
   const locale = useStore((s) => s.locale);
@@ -48,16 +49,10 @@ export function ProductDetailView() {
   if (!product) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Produit introuvable.</div>;
 
   const variant = product.variants?.find((v: any) => v.id === variantId) || product.variants?.[0];
-  const listPrice = Number(variant?.price ?? product.price);
-  const promotionalRate = product.promoPrice !== null && product.promoPrice !== undefined && Number(product.price) > 0
-    ? Number(product.promoPrice) / Number(product.price)
-    : 1;
-  const price = Math.round(listPrice * promotionalRate * 100) / 100;
+  const { listPrice, promotionalRate, price, discountPercent, saving } = resolveProductPricing(product, variant?.price);
   const isFav = favorites.includes(product.id);
   const outOfStock = product.stockQty <= 0;
   const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
-  const discountPercent = getDiscountPercent(listPrice, promotionalRate < 1 ? price : null);
-  const saving = promotionalRate < 1 ? listPrice - price : 0;
   const activePricePerKg = variant?.weightGrams ? price / (Number(variant.weightGrams) / 1000) : product.pricePerKg;
   const gallery = getProductGallery(product);
   const heroPhoto = selectedPhoto || gallery[0];

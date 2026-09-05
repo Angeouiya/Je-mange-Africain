@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { parseRecipeSteps, publicStepDetails } from "@/lib/recipe-step-storage";
+import { retailAvailableUnits } from "@/lib/inventory";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }),
         color: ri.product.imageColor,
         thermalClass: ri.product.thermalClass,
-        stockQty: ri.product.stockQty,
+        stockQty: retailAvailableUnits(ri.product.stockQty, ri.product.reservedQty),
         categoryId: ri.product.categoryId,
         nameFr: ri.product.translations.find((t) => t.locale === "fr")?.name || ri.product.traditionalName,
         nameEn: ri.product.translations.find((t) => t.locale === "en")?.name || ri.product.traditionalName,

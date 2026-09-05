@@ -4,6 +4,7 @@ import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
 import { productAdminInput, roundMoney, wholesaleProductData } from "@/lib/admin-product-schema";
 import { getProductPhoto } from "@/lib/market-media";
+import { inventoryPosition } from "@/lib/inventory";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
         ? product.batches.reduce((sum, batch) => sum + Number(batch.costPrice) * Math.max(0, batch.quantity + batch.reserved), 0) / batchWeight
         : null;
       const costPrice = product.costPrice === null ? estimatedCost : Number(product.costPrice);
+      const stock = inventoryPosition(product.stockQty, product.reservedQty);
       const french = product.translations.find((translation) => translation.locale === "fr");
       const english = product.translations.find((translation) => translation.locale === "en");
       return {
@@ -54,6 +56,8 @@ export async function GET(request: NextRequest) {
         wholesaleTier3MinPacks: product.wholesaleTier3MinPacks,
         wholesaleTier3Price: product.wholesaleTier3Price === null ? null : Number(product.wholesaleTier3Price),
         stockQty: product.stockQty,
+        reservedQty: stock.reservedQty,
+        availableQty: stock.availableQty,
         alertThreshold: product.alertThreshold,
         netWeightGrams: product.netWeightGrams,
         imageColor: product.imageColor,

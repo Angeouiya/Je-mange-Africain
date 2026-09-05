@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { wholesaleAvailablePacks, wholesaleDiscountPercent, wholesaleTiers } from "@/lib/wholesale";
+import { retailAvailableUnits } from "@/lib/inventory";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ function project(p: any, locale: string) {
   const fr = p.translations?.find((x: any) => x.locale === "fr") || p.translations?.[0];
   const en = p.translations?.find((x: any) => x.locale === "en") || fr;
   const t = locale === "en" ? en : fr;
+  const availableQty = retailAvailableUnits(p.stockQty, p.reservedQty);
   return {
     id: p.id,
     sku: p.sku,
@@ -52,7 +54,7 @@ function project(p: any, locale: string) {
     }),
     wholesaleAvailablePacks: wholesaleAvailablePacks(p.stockQty, p.reservedQty, p.wholesaleUnitsPerPack),
     wholesaleDiscountPercent: p.wholesalePrice ? wholesaleDiscountPercent(Number(p.price), p.wholesaleUnitsPerPack, Number(p.wholesalePrice)) : 0,
-    stockQty: p.stockQty,
+    stockQty: availableQty,
     alertThreshold: p.alertThreshold,
     imageColor: p.imageColor,
     imageEmoji: p.imageEmoji,

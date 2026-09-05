@@ -1,3 +1,5 @@
+import { retailAvailableUnits } from "@/lib/inventory";
+
 export type WholesaleTier = { minPacks: number; price: number };
 
 export function wholesaleTiers(product: {
@@ -24,7 +26,7 @@ export function wholesalePriceForQuantity(tiers: WholesaleTier[], quantity: numb
 }
 
 export function wholesaleAvailablePacks(stockQty: number, reservedQty: number, unitsPerPack: number) {
-  return Math.floor(Math.max(0, stockQty - reservedQty) / Math.max(1, unitsPerPack));
+  return Math.floor(retailAvailableUnits(stockQty, reservedQty) / Math.max(1, unitsPerPack));
 }
 
 export function wholesaleDiscountPercent(retailPrice: number, unitsPerPack: number, wholesalePrice: number) {
