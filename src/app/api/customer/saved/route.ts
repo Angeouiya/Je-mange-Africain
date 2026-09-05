@@ -4,6 +4,7 @@ import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { loadCustomerAccount } from "@/lib/customer-account";
 import { db } from "@/lib/db";
 import { enforceRateLimit } from "@/lib/redis";
+import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export async function PUT(request: NextRequest) {
   const requestedRecipeIds = Array.from(new Set(parsed.data.recipeIds));
   const [products, recipes] = await Promise.all([
     db.product.findMany({ where: { id: { in: requestedProductIds }, status: "published" }, select: { id: true } }),
-    db.recipe.findMany({ where: { id: { in: requestedRecipeIds }, status: "published" }, select: { id: true } }),
+    db.recipe.findMany({ where: { id: { in: requestedRecipeIds }, ...PUBLIC_RECIPE_WHERE }, select: { id: true } }),
   ]);
   const productIds = products.map((product) => product.id);
   const recipeIds = recipes.map((recipe) => recipe.id);
@@ -82,7 +83,7 @@ export async function PATCH(request: NextRequest) {
       await db.favorite.deleteMany({ where: { customerId: account.customerId, productId: parsed.data.id } });
     }
   } else {
-    const exists = await db.recipe.count({ where: { id: parsed.data.id, status: "published" } });
+    const exists = await db.recipe.count({ where: { id: parsed.data.id, ...PUBLIC_RECIPE_WHERE } });
     if (!exists) return NextResponse.json({ error: "Recette indisponible." }, { status: 404 });
     if (parsed.data.saved) {
       await db.savedRecipe.upsert({
@@ -109,7 +110,7 @@ async function authorizeSavedAccount(request: NextRequest) {
 async function savedResponse(customerId: string) {
   const [favorites, savedRecipes] = await Promise.all([
     db.favorite.findMany({ where: { customerId, product: { status: "published" } }, orderBy: { createdAt: "desc" }, select: { productId: true } }),
-    db.savedRecipe.findMany({ where: { customerId, recipe: { status: "published" } }, orderBy: { createdAt: "desc" }, select: { recipeId: true } }),
+    db.savedRecipe.findMany({ where: { customerId, recipe: PUBLIC_RECIPE_WHERE }, orderBy: { createdAt: "desc" }, select: { recipeId: true } }),
   ]);
   return NextResponse.json({
     productIds: favorites.map((favorite) => favorite.productId),

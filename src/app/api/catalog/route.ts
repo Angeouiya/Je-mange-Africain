@@ -4,6 +4,7 @@ import { normalize } from "@/lib/format";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { wholesaleAvailablePacks, wholesaleDiscountPercent, wholesaleTiers } from "@/lib/wholesale";
 import { retailAvailableUnits } from "@/lib/inventory";
+import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
       db.product.findMany({ where: { status: "published", isOnSale: true }, take: 8, include: { translations: true, brand: true, category: true, variants: true } }),
       db.category.findMany({ orderBy: { sortOrder: "asc" } }),
       db.brand.findMany(),
-      db.recipe.findMany({ where: { status: "published", isPopular: true }, take: 6, include: { translations: true } }),
+      db.recipe.findMany({ where: { ...PUBLIC_RECIPE_WHERE, isPopular: true }, take: 6, include: { translations: true } }),
     ]);
     return NextResponse.json({
       bestsellers: bestsellers.map((p) => project(p, locale)),

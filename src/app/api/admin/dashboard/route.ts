@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { buildDailyPulse, groupOrderWorkflow, rankTopProducts, summarizeRevenueWindow } from "@/lib/dashboard-insights";
 import { percentageChange, profitabilityWindow } from "@/lib/profitability";
+import { recipeStockReadiness } from "@/lib/recipe-operations";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,22 @@ export async function GET(req: NextRequest) {
   const expiryHorizon = new Date(now.getTime() + 14 * 86_400_000);
   const staleThreshold = new Date(now.getTime() - 24 * 3_600_000);
 
-  const [products, productsMissingImages, publishedRecipes, purchasableRecipes, recipesMissingImages, activePromotions, liveAdvertisements, expiringSoon, expiredActive, windowOrders, statusRows, paymentRows, customers, newCustomersMonth, delayedShipments, failedDeliveries, stalePreparation, recentOrders] = await Promise.all([
+  const [products, productsMissingImages, publishedRecipes, purchasableRecipeRows, recipesMissingImages, activePromotions, liveAdvertisements, expiringSoon, expiredActive, windowOrders, statusRows, paymentRows, customers, newCustomersMonth, delayedShipments, failedDeliveries, stalePreparation, recentOrders] = await Promise.all([
     db.product.findMany({ where: { status: "published" }, select: { id: true, stockQty: true, reservedQty: true, alertThreshold: true } }),
     db.product.count({ where: { status: "published", OR: [{ imageUrl: null }, { imageUrl: "" }] } }),
     db.recipe.count({ where: { status: "published" } }),
-    db.recipe.count({ where: { status: "published", imageUrl: { not: null }, NOT: { imageUrl: "" }, ingredients: { some: {} } } }),
+    db.recipe.findMany({
+      where: { status: "published", imageUrl: { not: null }, NOT: { imageUrl: "" }, ingredients: { some: { optional: false } } },
+      select: {
+        ingredients: {
+          select: {
+            productId: true,
+            optional: true,
+            product: { select: { id: true, stockQty: true, reservedQty: true, status: true } },
+          },
+        },
+      },
+    }),
     db.recipe.count({ where: { status: "published", OR: [{ imageUrl: null }, { imageUrl: "" }] } }),
     db.promotion.count({ where: { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] } }),
     db.advertisement.count({ where: { status: "published", AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] } }),
@@ -52,6 +64,7 @@ export async function GET(req: NextRequest) {
   const outOfStock = products.filter((product) => product.stockQty - product.reservedQty <= 0).length;
   const availableProducts = products.filter((product) => product.stockQty - product.reservedQty > 0).length;
   const stockCoverageRate = products.length ? Math.round((availableProducts / products.length) * 1_000) / 10 : 0;
+  const purchasableRecipes = purchasableRecipeRows.filter((recipe) => !recipeStockReadiness(recipe.ingredients).needsAttention).length;
   const paymentAttention = (paymentCounts.pending || 0) + (paymentCounts.failed || 0);
   const toPrepare = ["validated", "paymentConfirmed", "stockReserved"].reduce((sum, status) => sum + (statusCounts[status] || 0), 0);
   const recipesNeedingAttention = Math.max(0, publishedRecipes - purchasableRecipes);
@@ -64,7 +77,7 @@ export async function GET(req: NextRequest) {
     { id: "stockout", level: "attention" as const, count: outOfStock, title: locale === "fr" ? "Produits indisponibles" : "Unavailable products", detail: locale === "fr" ? "L'offre publiée n'est plus vendable avec le stock actuellement disponible." : "Published products are no longer sellable with current available stock.", target: "inventory" as const },
     { id: "stale-preparation", level: "attention" as const, count: stalePreparation, title: locale === "fr" ? "Préparations sans mouvement" : "Stalled fulfilment", detail: locale === "fr" ? "Ces commandes n'ont pas progressé depuis plus de 24 heures." : "These orders have not progressed for more than 24 hours.", target: "orders" as const },
     { id: "storefront-media", level: "attention" as const, count: missingStorefrontImages, title: locale === "fr" ? "Visuels publics manquants" : "Missing public images", detail: locale === "fr" ? "Ces produits ou recettes sont publiés sans image exploitable dans la boutique." : "These products or recipes are published without a usable storefront image.", target: "catalog" as const },
-    { id: "recipe-readiness", level: "monitor" as const, count: recipesNeedingAttention, title: locale === "fr" ? "Recettes à finaliser" : "Recipes to complete", detail: locale === "fr" ? "Ajoutez une image et au moins un ingrédient lié au stock avant leur mise en avant." : "Add an image and at least one stock-linked ingredient before featuring them.", target: "recipes" as const },
+    { id: "recipe-readiness", level: "monitor" as const, count: recipesNeedingAttention, title: locale === "fr" ? "Recettes à finaliser" : "Recipes to complete", detail: locale === "fr" ? "Publiez les produits liés, complétez les visuels et rétablissez le stock avant la mise en avant." : "Publish linked products, complete the visuals and restore stock before featuring these recipes.", target: "recipes" as const },
     { id: "expiry", level: "monitor" as const, count: expiringSoon, title: locale === "fr" ? "Échéances sous 14 jours" : "Expiring within 14 days", detail: locale === "fr" ? "Priorisez ces lots dans les prochaines vagues selon la règle FEFO." : "Prioritise these batches in upcoming FEFO waves.", target: "inventory" as const },
   ];
 

@@ -6,6 +6,7 @@ import { recipeStepCount, recipeStockReadiness } from "@/lib/recipe-operations";
 import { recipeAdminInput, recipeSlug, recipeStepDetailsForLocale } from "@/lib/admin-recipe-schema";
 import { serializeRecipeSteps } from "@/lib/recipe-step-storage";
 import { serializeRecipeAlternativeIds } from "@/lib/recipe-alternatives";
+import { hasRequiredRecipeIngredient, recipePublicationConflict, unpublishedRecipeProductIds } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data;
+  const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
   const productIds = Array.from(new Set(input.ingredients.flatMap((ingredient) => [ingredient.productId, ...ingredient.alternativeProductIds])));
   const products = await db.product.findMany({
     where: { id: { in: productIds } },
@@ -70,6 +72,12 @@ export async function POST(request: NextRequest) {
   });
   if (products.length !== productIds.length) {
     return NextResponse.json({ error: "Un ou plusieurs ingrédients ou alternatives ne correspondent plus au catalogue." }, { status: 400 });
+  }
+
+  const unpublishedProductIds = unpublishedRecipeProductIds(input.ingredients.map((ingredient) => ingredient.productId), products);
+  const missingRequiredIngredient = !hasRequiredRecipeIngredient(input.ingredients);
+  if (input.status === "published" && (missingRequiredIngredient || unpublishedProductIds.length > 0)) {
+    return NextResponse.json(recipePublicationConflict(unpublishedProductIds, missingRequiredIngredient, locale), { status: 409 });
   }
 
   const productsById = new Map(products.map((product) => [product.id, product]));

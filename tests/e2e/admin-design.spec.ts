@@ -543,7 +543,7 @@ async function mockAdminApi(page: Page) {
       steps: ["Assaisonner le poisson.", "Braiser et servir avec l'attiéké."],
       stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
       stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
-      ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"], note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, reservedQty: 9, availableQty: 75, imageUrl: "/products/attieke.webp" } }],
+      ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"], note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, reservedQty: 9, availableQty: 75, status: "published", imageUrl: "/products/attieke.webp" } }],
     };
     else if (path === "/api/dishes") payload = dishTemplatePayload;
     else if (path === "/api/admin/payments") payload = paymentLedgerPayload(operationalOrder, new URL(request.url()));
@@ -1797,7 +1797,7 @@ test("the guided product studio publishes a complete image-backed record", async
 test("the recipe register stays compact and exposes operational readiness", async ({ page }) => {
   let editorialPayload: Record<string, unknown> | null = null;
   await mockAdminApi(page);
-  await page.route("**/api/admin/recipes/recipe-1", async (route) => {
+  await page.route("**/api/admin/recipes/recipe-1**", async (route) => {
     if (route.request().method() !== "PATCH") return route.fallback();
     editorialPayload = route.request().postDataJSON();
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ recipe: { id: "recipe-1", status: editorialPayload?.status } }) });
@@ -1859,6 +1859,55 @@ test("the recipe register stays compact and exposes operational readiness", asyn
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
     await page.screenshot({ path: join(directory, `recipe-register-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+});
+
+test("the recipe workspace exposes linked product publication blockers before storefront", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.route("**/api/admin/recipes?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      recipes: [{ id: "recipe-blocked", title: "Placali sauce gombo", description: "Une fiche prête à être finalisée avant sa mise en vente.", country: "Côte d'Ivoire", category: "Plats", difficulty: "medium", timeMinutes: 70, baseServings: 4, imageColor: "#D65A32", imageEmoji: "", imageUrl: "/recipes/placali-sauce-gombo.webp", isPopular: false, isNew: true, isRecommended: false, status: "draft", ingredientCount: 2, requiredIngredientCount: 2, availableIngredientCount: 1, unpublishedIngredientCount: 1, stockCoverageRate: 50, needsAttention: true, stepCount: 6, updatedAt: now }],
+    }),
+  }));
+  await page.route("**/api/admin/recipes/recipe-blocked?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      id: "recipe-blocked",
+      title: "Placali sauce gombo",
+      description: "Une fiche prête à être finalisée avant sa mise en vente.",
+      country: "Côte d'Ivoire",
+      category: "mains",
+      difficulty: "medium",
+      timeMinutes: 70,
+      baseServings: 4,
+      imageColor: "#D65A32",
+      imageEmoji: "",
+      imageUrl: "/recipes/placali-sauce-gombo.webp",
+      status: "draft",
+      steps: ["Préparer le placali.", "Cuire la sauce gombo jusqu'à la texture souhaitée."],
+      ingredients: [{ recipeIngredientId: "ingredient-blocked", quantityPerBase: 500, unit: "g", optional: false, product: { id: "product-draft", traditionalName: "Placali", nameFr: "Pâte de placali", nameEn: "Placali dough", stockQty: 24, reservedQty: 0, availableQty: 24, status: "draft", imageUrl: "/products/placali.webp" } }],
+    }),
+  }));
+
+  await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
+  const row = page.getByTestId("admin-recipe-row").filter({ visible: true }).first();
+  await expect(row).toContainText("Produit à publier");
+  await row.getByRole("button", { name: "Inspecter Placali sauce gombo" }).click();
+  const details = page.getByRole("dialog", { name: "Placali sauce gombo" });
+  await expect(details).toContainText("À publier");
+  await expect(details).toContainText("Préparation enregistrée");
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `recipe-publication-blocker-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }
 });
 

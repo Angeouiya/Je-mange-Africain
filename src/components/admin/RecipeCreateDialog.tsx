@@ -43,6 +43,7 @@ type ProductOption = {
   imageEmoji: string;
   imageColor: string;
   imageUrl?: string | null;
+  status: "draft" | "published" | "archived";
 };
 
 const availableProductQty = (product: ProductOption) => product.availableQty ?? product.stockQty;
@@ -344,7 +345,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
   const [importSummary, setImportSummary] = useState<{ name: string; matched: number; total: number } | null>(null);
   const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
   const [discardOpen, setDiscardOpen] = useState(false);
-  const { data: productData, loading: productsLoading } = useFetch<{ products: ProductOption[] }>(open ? `/api/admin/products?locale=${locale}` : null, [open, locale]);
+  const { data: productData, loading: productsLoading, error: productsError } = useFetch<{ products: ProductOption[] }>(open ? `/api/admin/products?locale=${locale}` : null, [open, locale]);
   const { data: templateData, loading: templatesLoading, error: templatesError, refetch: refetchTemplates } = useFetch<DishTemplateResponse>(open && templateOpen && !editing ? "/api/dishes?bilingual=1&limit=100" : null, [open, templateOpen, editing]);
   const editRequest = useFetch<RecipeEditPayload>(open && recipe ? `/api/admin/recipes/${recipe.id}?locale=${locale}` : null, [open, recipe?.id, locale]);
   const products = productData?.products || [];
@@ -398,6 +399,12 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     && detail.recoveryEn.trim().length >= 10
   ));
   const completeIngredients = draft.ingredients.length > 0 && draft.ingredients.every((ingredient) => ingredient.productId && Number(ingredient.quantityPerBase) > 0);
+  const unpublishedPrimaryProducts = Array.from(new Map(draft.ingredients
+    .map((ingredient) => productsById.get(ingredient.productId))
+    .filter((product): product is ProductOption => Boolean(product && product.status !== "published"))
+    .map((product) => [product.id, product])).values());
+  const missingRequiredIngredient = !draft.ingredients.some((ingredient) => !ingredient.optional);
+  const publicationBlocked = draft.status === "published" && (missingRequiredIngredient || unpublishedPrimaryProducts.length > 0);
   const pristineDraft = editing && editRequest.data ? draftFromRecipe(editRequest.data) : initialDraft();
   const dirty = JSON.stringify(draft) !== JSON.stringify(pristineDraft);
   const isValid = Boolean(
@@ -411,6 +418,8 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     && completeSteps
     && completeStepDetails
     && completeIngredients
+    && !publicationBlocked
+    && Boolean(productData)
   );
 
   const update = <K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
@@ -540,7 +549,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     setSubmitting(true);
     setSubmitError("");
     try {
-      const response = await fetch(editing ? `/api/admin/recipes/${recipe!.id}` : "/api/admin/recipes", {
+      const response = await fetch(editing ? `/api/admin/recipes/${recipe!.id}?locale=${locale}` : `/api/admin/recipes?locale=${locale}`, {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draft),
@@ -633,7 +642,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
                   const product = productsById.get(ingredient.productId);
                   return <div key={index} className="border-y border-border bg-white px-3 py-3">
                     <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1.5fr)_7rem_7rem_8rem_auto] lg:items-end">
-                      <Field label={`${isFr ? "Produit" : "Product"} ${index + 1}`} required><div className="relative"><PackageSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select aria-label={`${isFr ? "Produit" : "Product"} ${index + 1}`} value={ingredient.productId} onChange={(event) => updateIngredientProduct(index, event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 text-sm"><option value="">{isFr ? "Sélectionner dans le catalogue" : "Select from catalogue"}</option>{products.map((option) => <option key={option.id} value={option.id}>{option.name} · {availableProductQty(option)} {isFr ? "dispo." : "available"}</option>)}</select></div>{product ? <div className="mt-2 flex items-center gap-2"><ProductImage src={product.imageUrl} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-8 w-8 shrink-0" rounded="rounded-md" /><p className={`min-w-0 truncate text-[10px] font-semibold ${availableProductQty(product) > 0 ? "text-burgundy" : "text-destructive"}`}>{product.traditionalName} · {product.sku} · {availableProductQty(product) > 0 ? `${availableProductQty(product)} ${isFr ? "disponibles" : "available"}${product.reservedQty ? ` · ${product.reservedQty} ${isFr ? "réservés" : "reserved"}` : ""}` : (isFr ? "rupture" : "out of stock")}</p></div> : null}{ingredient.note ? <p className={`mt-1.5 line-clamp-2 text-[9px] leading-4 ${product ? "text-muted-foreground" : "font-bold text-terre"}`}><BookOpenCheck className="mr-1 inline h-3 w-3" />{ingredient.note}{product ? "" : (isFr ? " · à relier" : " · link required")}</p> : null}</Field>
+                      <Field label={`${isFr ? "Produit" : "Product"} ${index + 1}`} required><div className="relative"><PackageSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select aria-label={`${isFr ? "Produit" : "Product"} ${index + 1}`} value={ingredient.productId} onChange={(event) => updateIngredientProduct(index, event.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 text-sm"><option value="">{isFr ? "Sélectionner dans le catalogue" : "Select from catalogue"}</option>{products.map((option) => <option key={option.id} value={option.id}>{option.name} · {option.status === "published" ? (isFr ? "publié" : "published") : option.status === "archived" ? (isFr ? "désactivé" : "disabled") : (isFr ? "brouillon" : "draft")} · {availableProductQty(option)} {isFr ? "dispo." : "available"}</option>)}</select></div>{product ? <div className="mt-2 flex items-center gap-2"><ProductImage src={product.imageUrl} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-8 w-8 shrink-0" rounded="rounded-md" /><p className={`min-w-0 truncate text-[10px] font-semibold ${product.status !== "published" || availableProductQty(product) <= 0 ? "text-destructive" : "text-burgundy"}`}>{product.traditionalName} · {product.sku} · {product.status !== "published" ? (product.status === "archived" ? (isFr ? "produit désactivé" : "disabled product") : (isFr ? "produit en brouillon" : "draft product")) : availableProductQty(product) > 0 ? `${availableProductQty(product)} ${isFr ? "disponibles" : "available"}${product.reservedQty ? ` · ${product.reservedQty} ${isFr ? "réservés" : "reserved"}` : ""}` : (isFr ? "rupture" : "out of stock")}</p></div> : null}{ingredient.note ? <p className={`mt-1.5 line-clamp-2 text-[9px] leading-4 ${product ? "text-muted-foreground" : "font-bold text-terre"}`}><BookOpenCheck className="mr-1 inline h-3 w-3" />{ingredient.note}{product ? "" : (isFr ? " · à relier" : " · link required")}</p> : null}</Field>
                       <Field label={isFr ? "Quantité" : "Quantity"} required><Input aria-label={`${isFr ? "Quantité" : "Quantity"} ${index + 1}`} type="number" inputMode="decimal" min="0.01" step="0.01" value={ingredient.quantityPerBase} onChange={(event) => updateIngredient(index, "quantityPerBase", event.target.value)} /></Field>
                       <Field label={isFr ? "Unité" : "Unit"}><select aria-label={`${isFr ? "Unité" : "Unit"} ${index + 1}`} value={ingredient.unit} onChange={(event) => updateIngredient(index, "unit", event.target.value as IngredientDraft["unit"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option><option value="piece">{isFr ? "pièce" : "piece"}</option><option value="tbsp">{isFr ? "c. à soupe" : "tbsp"}</option><option value="tsp">{isFr ? "c. à café" : "tsp"}</option></select></Field>
                       <Field label={isFr ? "Rôle" : "Role"}><select aria-label={`${isFr ? "Rôle" : "Role"} ${index + 1}`} value={ingredient.role} onChange={(event) => updateIngredient(index, "role", event.target.value as IngredientDraft["role"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="base">Base</option><option value="protein">{isFr ? "Protéine" : "Protein"}</option><option value="aromatic">{isFr ? "Aromate" : "Aromatic"}</option><option value="spice">{isFr ? "Épice" : "Spice"}</option><option value="fat">{isFr ? "Matière grasse" : "Fat"}</option><option value="side">{isFr ? "Accompagnement" : "Side"}</option><option value="optional">Option</option></select></Field>
@@ -647,7 +656,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
           </div>
 
           <DialogFooter className="shrink-0 border-t border-border bg-white px-5 py-4 sm:px-7">
-            {submitError || editRequest.error ? <p role="alert" className="mr-auto max-w-xl self-center text-xs leading-5 text-destructive">{submitError || (isFr ? "La recette n'a pas pu être chargée." : "The recipe could not be loaded.")}</p> : <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{isFr ? "Les champs marqués sont obligatoires." : "Marked fields are required."}</p>}
+            {submitError || editRequest.error || productsError ? <p role="alert" className="mr-auto max-w-xl self-center text-xs leading-5 text-destructive">{submitError || (productsError ? (isFr ? "Le catalogue produits n'a pas pu être chargé." : "The product catalogue could not be loaded.") : (isFr ? "La recette n'a pas pu être chargée." : "The recipe could not be loaded."))}</p> : publicationBlocked ? <p role="status" className="mr-auto max-w-xl self-center text-xs font-bold leading-5 text-destructive">{missingRequiredIngredient ? (isFr ? "Conservez au moins un ingrédient obligatoire avant de publier." : "Keep at least one required ingredient before publishing.") : isFr ? `Publiez d'abord ${unpublishedPrimaryProducts.length > 1 ? "les produits liés" : "le produit lié"} indiqué${unpublishedPrimaryProducts.length > 1 ? "s" : ""} en brouillon ou désactivé${unpublishedPrimaryProducts.length > 1 ? "s" : ""}.` : `Publish the ${unpublishedPrimaryProducts.length > 1 ? "linked products" : "linked product"} marked as draft or disabled first.`}</p> : <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{isFr ? "Les champs marqués sont obligatoires." : "Marked fields are required."}</p>}
             <Button type="button" variant="outline" onClick={() => handleOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>
             <Button type="submit" disabled={!isValid || submitting || (editing && !editRequest.data)} className={isValid ? "bg-burgundy text-white hover:bg-burgundy-dark" : "border border-charcoal/10 bg-[#EDE8E5] text-[#65555A]"}>{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : editing ? <PencilLine className="mr-2 h-4 w-4" /> : <ChefHat className="mr-2 h-4 w-4" />}{submitting ? (isFr ? "Enregistrement..." : "Saving...") : editing ? (isFr ? "Enregistrer les modifications" : "Save changes") : draft.status === "published" ? (isFr ? "Publier la recette" : "Publish recipe") : (isFr ? "Enregistrer le brouillon" : "Save draft")}</Button>
           </DialogFooter>

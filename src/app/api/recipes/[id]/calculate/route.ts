@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { computeRecipe, type RecipeConfigInput } from "@/lib/recipe-engine";
 import { getProductPhoto } from "@/lib/market-media";
 import { parseRecipeSteps } from "@/lib/recipe-step-storage";
+import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const locale = (url.searchParams.get("locale") as "fr" | "en") || "fr";
 
   const recipe = await db.recipe.findFirst({
-    where: { id, status: "published" },
+    where: { id, ...PUBLIC_RECIPE_WHERE },
     include: {
       translations: true,
       ingredients: {

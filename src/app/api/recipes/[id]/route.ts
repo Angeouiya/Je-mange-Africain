@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { parseRecipeSteps, publicStepDetails } from "@/lib/recipe-step-storage";
 import { retailAvailableUnits } from "@/lib/inventory";
+import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
 
   const recipe = await db.recipe.findFirst({
-    where: { id, status: "published" },
+    where: { id, ...PUBLIC_RECIPE_WHERE },
     include: {
       translations: true,
       ingredients: {

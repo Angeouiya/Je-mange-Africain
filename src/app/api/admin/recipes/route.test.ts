@@ -52,7 +52,7 @@ describe("POST /api/admin/recipes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.authorize.mockResolvedValue({ ok: true, user: { id: "admin-1", email: "direction@je-mange-africain.com", role: "super_admin" } });
-    mocks.productFindMany.mockResolvedValue([{ id: "product-1", variants: [] }, { id: "product-2", variants: [] }]);
+    mocks.productFindMany.mockResolvedValue([{ id: "product-1", status: "published", variants: [] }, { id: "product-2", status: "published", variants: [] }]);
     mocks.recipeFindMany.mockResolvedValue([]);
     mocks.recipeCreate.mockResolvedValue({ id: "recipe-1", slug: "fonio-aux-legumes-rotis", status: "draft" });
     mocks.auditCreate.mockResolvedValue({ id: "audit-1" });
@@ -71,10 +71,37 @@ describe("POST /api/admin/recipes", () => {
   });
 
   it("refuses a missing curated alternative", async () => {
-    mocks.productFindMany.mockResolvedValue([{ id: "product-1", variants: [] }]);
+    mocks.productFindMany.mockResolvedValue([{ id: "product-1", status: "published", variants: [] }]);
     const response = await POST(request(validRecipe));
 
     expect(response.status).toBe(400);
+    expect(mocks.recipeCreate).not.toHaveBeenCalled();
+  });
+
+  it("keeps a recipe out of the storefront while a primary product is not published", async () => {
+    mocks.productFindMany.mockResolvedValue([
+      { id: "product-1", status: "draft", variants: [] },
+      { id: "product-2", status: "published", variants: [] },
+    ]);
+
+    const response = await POST(request({ ...validRecipe, status: "published" }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.unpublishedProductIds).toEqual(["product-1"]);
+    expect(mocks.recipeCreate).not.toHaveBeenCalled();
+  });
+
+  it("requires at least one non-optional ingredient for a published recipe", async () => {
+    const response = await POST(request({
+      ...validRecipe,
+      status: "published",
+      ingredients: validRecipe.ingredients.map((ingredient) => ({ ...ingredient, optional: true })),
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.error).toContain("au moins un ingrédient obligatoire");
     expect(mocks.recipeCreate).not.toHaveBeenCalled();
   });
 });

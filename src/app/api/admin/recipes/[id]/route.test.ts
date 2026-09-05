@@ -27,8 +27,9 @@ vi.mock("@/lib/db", () => {
   };
   return {
     db: {
-      recipe: { findUnique: mocks.recipeFindUnique },
+      recipe: { findUnique: mocks.recipeFindUnique, update: mocks.recipeUpdate },
       product: { findMany: mocks.productFindMany },
+      auditLog: { create: mocks.auditCreate },
       $transaction: vi.fn((operation: (client: typeof transaction) => unknown) => operation(transaction)),
     },
   };
@@ -89,7 +90,7 @@ describe("PATCH /api/admin/recipes/:id", () => {
     vi.clearAllMocks();
     mocks.authorize.mockResolvedValue({ ok: true, user: { id: "admin-1", email: "direction@je-mange-africain.com", role: "super_admin" } });
     mocks.recipeFindUnique.mockResolvedValue({ id: "recipe-1", country: "Côte d'Ivoire", category: "mains", status: "draft", baseServings: 4, translations: [], ingredients: [{ id: "old-ingredient" }] });
-    mocks.productFindMany.mockResolvedValue([{ id: "product-1", variants: [] }, { id: "product-2", variants: [] }]);
+    mocks.productFindMany.mockResolvedValue([{ id: "product-1", status: "published", variants: [] }, { id: "product-2", status: "published", variants: [] }]);
     mocks.recipeUpdate.mockResolvedValue({ id: "recipe-1", slug: "attieke-poisson-braise", status: "published" });
     mocks.translationUpsert.mockResolvedValue({});
     mocks.ingredientDeleteMany.mockResolvedValue({ count: 1 });
@@ -120,10 +121,77 @@ describe("PATCH /api/admin/recipes/:id", () => {
   });
 
   it("refuses an alternative that no longer belongs to the catalogue", async () => {
-    mocks.productFindMany.mockResolvedValue([{ id: "product-1", variants: [] }]);
+    mocks.productFindMany.mockResolvedValue([{ id: "product-1", status: "published", variants: [] }]);
     const response = await PATCH(request(validRecipe), { params: Promise.resolve({ id: "recipe-1" }) });
 
     expect(response.status).toBe(400);
+    expect(mocks.recipeUpdate).not.toHaveBeenCalled();
+  });
+
+  it("refuses a full publication while a primary product is still a draft", async () => {
+    mocks.productFindMany.mockResolvedValue([
+      { id: "product-1", status: "draft", variants: [] },
+      { id: "product-2", status: "published", variants: [] },
+    ]);
+
+    const response = await PATCH(request(validRecipe), { params: Promise.resolve({ id: "recipe-1" }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.unpublishedProductIds).toEqual(["product-1"]);
+    expect(mocks.recipeUpdate).not.toHaveBeenCalled();
+    expect(mocks.ingredientDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses a quick editorial publication when a linked product is not public", async () => {
+    mocks.recipeFindUnique.mockResolvedValue({
+      imageUrl: "/recipes/attieke-poisson.webp",
+      galleryUrls: "[]",
+      status: "draft",
+      isNew: true,
+      isRecommended: true,
+      isPopular: false,
+      ingredients: [{ productId: "product-1", product: { status: "archived" } }],
+    });
+
+    const response = await PATCH(request({
+      imageUrl: "/recipes/attieke-poisson.webp",
+      galleryUrls: [],
+      status: "published",
+      isNew: true,
+      isRecommended: true,
+      isPopular: false,
+    }), { params: Promise.resolve({ id: "recipe-1" }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.unpublishedProductIds).toEqual(["product-1"]);
+    expect(mocks.recipeUpdate).not.toHaveBeenCalled();
+  });
+
+  it("refuses a quick publication for a legacy recipe without a required ingredient", async () => {
+    mocks.recipeFindUnique.mockResolvedValue({
+      imageUrl: "/recipes/attieke-poisson.webp",
+      galleryUrls: "[]",
+      status: "draft",
+      isNew: true,
+      isRecommended: true,
+      isPopular: false,
+      ingredients: [],
+    });
+
+    const response = await PATCH(request({
+      imageUrl: "/recipes/attieke-poisson.webp",
+      galleryUrls: [],
+      status: "published",
+      isNew: true,
+      isRecommended: true,
+      isPopular: false,
+    }), { params: Promise.resolve({ id: "recipe-1" }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.error).toContain("au moins un ingrédient obligatoire");
     expect(mocks.recipeUpdate).not.toHaveBeenCalled();
   });
 });

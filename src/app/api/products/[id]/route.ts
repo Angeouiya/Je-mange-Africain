@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { retailAvailableUnits } from "@/lib/inventory";
+import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // Recipes using this product
   const recipeRows = await db.recipeIngredient.findMany({
-    where: { productId: id, recipe: { status: "published" } },
+    where: { productId: id, recipe: PUBLIC_RECIPE_WHERE },
     include: { recipe: { include: { translations: true } } },
     take: 6,
     distinct: ["recipeId"],

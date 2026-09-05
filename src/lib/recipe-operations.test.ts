@@ -10,6 +10,7 @@ describe("recipe operations", () => {
     ])).toEqual({
       requiredIngredientCount: 2,
       availableIngredientCount: 1,
+      unpublishedIngredientCount: 0,
       stockCoverageRate: 50,
       needsAttention: true,
     });
@@ -18,6 +19,18 @@ describe("recipe operations", () => {
   it("does not count archived products as available", () => {
     expect(recipeStockReadiness([{ product: { stockQty: 8, status: "archived" } }])).toMatchObject({
       availableIngredientCount: 0,
+      needsAttention: true,
+    });
+  });
+
+  it("flags optional products that are not ready for storefront publication", () => {
+    expect(recipeStockReadiness([
+      { productId: "base", product: { id: "base", stockQty: 8, status: "published" } },
+      { productId: "garnish", optional: true, product: { id: "garnish", stockQty: 8, status: "draft" } },
+    ])).toMatchObject({
+      availableIngredientCount: 1,
+      unpublishedIngredientCount: 1,
+      stockCoverageRate: 100,
       needsAttention: true,
     });
   });

@@ -7,6 +7,7 @@ import { recipeAdminInput, recipeImageReference, recipeStepDetailsForLocale, typ
 import { parseRecipeSteps, serializeRecipeSteps } from "@/lib/recipe-step-storage";
 import { retailAvailableUnits } from "@/lib/inventory";
 import { parseRecipeAlternativeIds, serializeRecipeAlternativeIds } from "@/lib/recipe-alternatives";
+import { hasRequiredRecipeIngredient, recipePublicationConflict, unpublishedRecipeProductIds } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         stockQty: ingredient.product.stockQty,
         reservedQty: ingredient.product.reservedQty,
         availableQty: retailAvailableUnits(ingredient.product.stockQty, ingredient.product.reservedQty),
+        status: ingredient.product.status,
       },
     })),
   });
@@ -133,23 +135,51 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!authorization.ok) return authorization.response;
   const body = await request.json().catch(() => null);
   const { id } = await params;
+  const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
   const fullRecipe = recipeAdminInput.safeParse(body);
-  if (fullRecipe.success) return updateFullRecipe(id, fullRecipe.data, authorization.user.email);
+  if (fullRecipe.success) return updateFullRecipe(id, fullRecipe.data, authorization.user.email, locale);
 
   const parsed = RecipeEditorialInput.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Les paramètres éditoriaux de la recette sont invalides." }, { status: 400 });
-  const before = await db.recipe.findUnique({ where: { id }, select: { imageUrl: true, galleryUrls: true, status: true, isNew: true, isRecommended: true, isPopular: true } });
+  const before = await db.recipe.findUnique({
+    where: { id },
+    select: {
+      imageUrl: true,
+      galleryUrls: true,
+      status: true,
+      isNew: true,
+      isRecommended: true,
+      isPopular: true,
+      ingredients: { select: { productId: true, optional: true, product: { select: { status: true } } } },
+    },
+  });
   if (!before) return NextResponse.json({ error: "Recette introuvable." }, { status: 404 });
+  const unpublishedProductIds = unpublishedRecipeProductIds(
+    before.ingredients.map((ingredient) => ingredient.productId),
+    before.ingredients.map((ingredient) => ({ id: ingredient.productId, status: ingredient.product.status })),
+  );
+  const missingRequiredIngredient = !hasRequiredRecipeIngredient(before.ingredients);
+  if (parsed.data.status === "published" && (missingRequiredIngredient || unpublishedProductIds.length > 0)) {
+    return NextResponse.json(recipePublicationConflict(unpublishedProductIds, missingRequiredIngredient, locale), { status: 409 });
+  }
+  const editorialBefore = {
+    imageUrl: before.imageUrl,
+    galleryUrls: before.galleryUrls,
+    status: before.status,
+    isNew: before.isNew,
+    isRecommended: before.isRecommended,
+    isPopular: before.isPopular,
+  };
   const recipe = await db.recipe.update({
     where: { id },
     data: { ...parsed.data, galleryUrls: JSON.stringify(parsed.data.galleryUrls) },
     select: { id: true, imageUrl: true, status: true, isNew: true, isRecommended: true, isPopular: true },
   });
-  await db.auditLog.create({ data: { action: "recipe_editorial_update", entityType: "Recipe", entityId: id, before: JSON.stringify(before), after: JSON.stringify(parsed.data), reason: `Mise à jour par ${authorization.user.email}` } });
+  await db.auditLog.create({ data: { action: "recipe_editorial_update", entityType: "Recipe", entityId: id, before: JSON.stringify(editorialBefore), after: JSON.stringify(parsed.data), reason: `Mise à jour par ${authorization.user.email}` } });
   return NextResponse.json({ recipe });
 }
 
-async function updateFullRecipe(id: string, input: RecipeAdminInput, adminEmail: string) {
+async function updateFullRecipe(id: string, input: RecipeAdminInput, adminEmail: string, locale: "fr" | "en") {
   const productIds = Array.from(new Set(input.ingredients.flatMap((ingredient) => [ingredient.productId, ...ingredient.alternativeProductIds])));
   const [before, products] = await Promise.all([
     db.recipe.findUnique({ where: { id }, include: { translations: true, ingredients: true } }),
@@ -157,6 +187,12 @@ async function updateFullRecipe(id: string, input: RecipeAdminInput, adminEmail:
   ]);
   if (!before) return NextResponse.json({ error: "Recette introuvable." }, { status: 404 });
   if (products.length !== productIds.length) return NextResponse.json({ error: "Un ou plusieurs ingrédients ou alternatives ne correspondent plus au catalogue." }, { status: 400 });
+
+  const unpublishedProductIds = unpublishedRecipeProductIds(input.ingredients.map((ingredient) => ingredient.productId), products);
+  const missingRequiredIngredient = !hasRequiredRecipeIngredient(input.ingredients);
+  if (input.status === "published" && (missingRequiredIngredient || unpublishedProductIds.length > 0)) {
+    return NextResponse.json(recipePublicationConflict(unpublishedProductIds, missingRequiredIngredient, locale), { status: 409 });
+  }
 
   const productsById = new Map(products.map((product) => [product.id, product]));
   const invalidVariant = input.ingredients.some((ingredient) => ingredient.variantId && !productsById.get(ingredient.productId)?.variants.some((variant) => variant.id === ingredient.variantId));

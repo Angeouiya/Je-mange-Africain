@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
   productFindMany: vi.fn(),
   productCount: vi.fn(),
+  recipeFindMany: vi.fn(),
   recipeCount: vi.fn(),
   promotionCount: vi.fn(),
   advertisementCount: vi.fn(),
@@ -21,7 +22,7 @@ vi.mock("@/lib/admin-auth", () => ({ authorizeAdminRequest: mocks.authorize }));
 vi.mock("@/lib/db", () => ({
   db: {
     product: { findMany: mocks.productFindMany, count: mocks.productCount },
-    recipe: { count: mocks.recipeCount },
+    recipe: { findMany: mocks.recipeFindMany, count: mocks.recipeCount },
     promotion: { count: mocks.promotionCount },
     advertisement: { count: mocks.advertisementCount },
     inventoryBatch: { count: mocks.inventoryCount },
@@ -63,7 +64,10 @@ describe("GET /api/admin/dashboard", () => {
     mocks.authorize.mockResolvedValue({ ok: true, user: { id: "admin-1", email: "direction@example.com", role: "super_admin" } });
     mocks.productFindMany.mockResolvedValue([{ id: "available", stockQty: 10, reservedQty: 2, alertThreshold: 3 }, { id: "empty", stockQty: 2, reservedQty: 2, alertThreshold: 3 }]);
     mocks.productCount.mockResolvedValue(1);
-    mocks.recipeCount.mockResolvedValueOnce(12).mockResolvedValueOnce(10).mockResolvedValueOnce(1);
+    mocks.recipeCount.mockResolvedValueOnce(12).mockResolvedValueOnce(1);
+    mocks.recipeFindMany.mockResolvedValue(Array.from({ length: 10 }, (_, index) => ({
+      ingredients: [{ productId: `product-${index}`, optional: false, product: { id: `product-${index}`, stockQty: 5, reservedQty: 0, status: "published" } }],
+    })));
     mocks.promotionCount.mockResolvedValue(3);
     mocks.advertisementCount.mockResolvedValue(2);
     mocks.inventoryCount.mockResolvedValueOnce(2).mockResolvedValueOnce(1);

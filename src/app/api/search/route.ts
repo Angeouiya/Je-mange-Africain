@@ -4,6 +4,7 @@ import { normalize } from "@/lib/format";
 import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { enforceRateLimit } from "@/lib/redis";
+import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
     }),
     db.recipe.findMany({
       where: {
-        status: "published",
+        ...PUBLIC_RECIPE_WHERE,
         OR: [
           { country: { contains: q } },
           { category: { contains: q } },

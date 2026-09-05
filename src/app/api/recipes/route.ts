@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
 import { getRecipePhoto } from "@/lib/market-media";
+import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
   const category = searchParams.get("category");
   const q = searchParams.get("q")?.trim();
 
-  const where: any = { status: "published" };
+  const where: any = { ...PUBLIC_RECIPE_WHERE };
   if (category) where.category = category;
   if (q) {
     const norm = normalize(q);
