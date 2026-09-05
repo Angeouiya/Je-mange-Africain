@@ -7,7 +7,7 @@ import { enforceRateLimit, redis } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 import { deliveryContactFingerprint } from "@/lib/checkout-security";
 import { europeanCountryCode } from "@/lib/european-countries";
-import { CHECKOUT_DELAYED_PAYMENT_METHODS } from "@/lib/checkout-payment-policy";
+import { CHECKOUT_DELAYED_PAYMENT_METHODS, paypalPreferredLocale } from "@/lib/checkout-payment-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +79,9 @@ export async function POST(request: NextRequest) {
       currency: "eur",
       automatic_payment_methods: { enabled: true },
       excluded_payment_method_types: [...CHECKOUT_DELAYED_PAYMENT_METHODS],
+      payment_method_options: {
+        paypal: { preferred_locale: paypalPreferredLocale(parsed.data.locale, shippingCountryCode) },
+      },
       receipt_email: parsed.data.address.email,
       description: "Commande Je mange Africain",
       metadata: {

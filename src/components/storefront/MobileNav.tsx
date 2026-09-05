@@ -100,14 +100,14 @@ export function MobileNav() {
           <BrandLockup compact locale={locale} />
         </button>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           {desktopGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? "mt-3" : ""}>
             <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-burgundy">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-terre">{group.intent}</span></div>
             <div className="space-y-1">{group.items.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.id);
               return (
-                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-[3.5rem] w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
+                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-[3.25rem] w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
                   {active ? <motion.span layoutId="client-desktop-nav-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
                   {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><Icon className={`h-[1.05rem] w-[1.05rem] ${active ? "stroke-[2.4]" : "stroke-2"}`} /></span>

@@ -77,6 +77,17 @@ export function uniquePaymentMethods(values: readonly string[]) {
   return [...new Set(values.map(paymentMethodKey))];
 }
 
+export function checkoutPaymentMethodSummary(values: readonly string[] | null | undefined, locale: "fr" | "en", limit = 3) {
+  const methods = uniquePaymentMethods(values || []);
+  if (!methods.length) {
+    return locale === "fr" ? "Moyens adaptés à votre pays" : "Methods tailored to your country";
+  }
+
+  const visible = methods.slice(0, Math.max(1, limit)).map((method) => paymentMethodLabel(method, locale));
+  const remaining = methods.length - visible.length;
+  return remaining > 0 ? `${visible.join(", ")} +${remaining}` : visible.join(", ");
+}
+
 export function availableExpressPaymentMethods(availability: ExpressPaymentAvailability | null | undefined) {
   if (!availability) return [];
   const aliases: Record<keyof ExpressPaymentAvailability, string> = {

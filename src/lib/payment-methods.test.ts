@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availableExpressPaymentMethods, paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodHint, paymentMethodKey, paymentMethodLabel, paymentStatusLabel, summarizePaymentMethods, uniquePaymentMethods } from "./payment-methods";
+import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodHint, paymentMethodKey, paymentMethodLabel, paymentStatusLabel, summarizePaymentMethods, uniquePaymentMethods } from "./payment-methods";
 
 describe("payment method presentation", () => {
   it("keeps European payment methods readable in both languages", () => {
@@ -18,6 +18,12 @@ describe("payment method presentation", () => {
   it("normalizes and deduplicates provider values", () => {
     expect(paymentMethodKey("Google   Pay")).toBe("google_pay");
     expect(uniquePaymentMethods(["card", "PayPal", "paypal", "sepa-debit"])).toEqual(["card", "paypal", "sepa_debit"]);
+  });
+
+  it("describes only the methods returned for this checkout", () => {
+    expect(checkoutPaymentMethodSummary(undefined, "fr")).toBe("Moyens adaptés à votre pays");
+    expect(checkoutPaymentMethodSummary(["card", "paypal", "ideal"], "fr")).toBe("Carte bancaire, PayPal, iDEAL");
+    expect(checkoutPaymentMethodSummary(["card", "paypal", "ideal", "bancontact"], "en")).toBe("Payment card, PayPal, iDEAL +1");
   });
 
   it("translates provider statuses without leaking their technical codes", () => {

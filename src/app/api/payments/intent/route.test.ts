@@ -81,6 +81,7 @@ describe("POST /api/payments/intent European payment policy", () => {
       currency: "eur",
       automatic_payment_methods: { enabled: true },
       excluded_payment_method_types: [...CHECKOUT_DELAYED_PAYMENT_METHODS],
+      payment_method_options: { paypal: { preferred_locale: "fr-FR" } },
       receipt_email: session.email,
     }), { idempotencyKey: `jma:${session.id}:${body.checkoutAttemptId}` });
 

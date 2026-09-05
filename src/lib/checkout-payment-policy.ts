@@ -19,3 +19,12 @@ export const CHECKOUT_DELAYED_PAYMENT_METHODS = [
 export function isImmediateCheckoutMethod(method: string) {
   return !CHECKOUT_DELAYED_PAYMENT_METHODS.includes(method as (typeof CHECKOUT_DELAYED_PAYMENT_METHODS)[number]);
 }
+
+export type PaypalPreferredLocale = "en-GB" | "fr-BE" | "fr-FR" | "fr-LU";
+
+export function paypalPreferredLocale(locale: "fr" | "en", countryCode: string): PaypalPreferredLocale {
+  if (locale === "en") return "en-GB";
+  if (countryCode === "BE") return "fr-BE";
+  if (countryCode === "LU") return "fr-LU";
+  return "fr-FR";
+}

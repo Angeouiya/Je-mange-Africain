@@ -23,7 +23,7 @@ import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStor
 import { ApiError, postJSON } from "@/lib/use-fetch";
 import { clearPendingCheckout, readPendingCheckout, rememberPendingCheckout, type PendingCheckoutPayload } from "@/lib/checkout-return";
 import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
-import { availableExpressPaymentMethods, paymentMethodFamily, paymentMethodHint, paymentMethodLabel, uniquePaymentMethods } from "@/lib/payment-methods";
+import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMethodFamily, paymentMethodHint, paymentMethodLabel, uniquePaymentMethods } from "@/lib/payment-methods";
 import { clearPaymentRecovery, readPaymentRecovery, rememberPaymentRecovery, type PaymentRecovery } from "@/lib/payment-recovery-storage";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -342,7 +342,7 @@ export function CheckoutView() {
 
   const checkoutStages: JourneyStage[] = [
     { id: "delivery", label: t.checkout.delivery, detail: locale === "fr" ? "Adresse et transport" : "Address and carrier", icon: Truck },
-    { id: "payment", label: t.checkout.payment, detail: locale === "fr" ? "Carte, PayPal et wallets" : "Card, PayPal and wallets", icon: CreditCard },
+    { id: "payment", label: t.checkout.payment, detail: checkoutPaymentMethodSummary(intent?.paymentMethodTypes, locale), icon: CreditCard },
     { id: "review", label: t.checkout.review, detail: locale === "fr" ? "Contrôle final" : "Final check", icon: ShieldCheck },
   ];
   const review = (
@@ -715,7 +715,6 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
               buttonTheme: { applePay: "white-outline", googlePay: "white", paypal: "gold" },
               buttonType: { applePay: "check-out", googlePay: "checkout", paypal: "checkout" },
               layout: { maxColumns: 2, maxRows: 2, overflow: "auto" },
-              paymentMethodOrder: ["paypal", "apple_pay", "google_pay", "link", "amazon_pay", "klarna"],
             }}
             onReady={revealExpressMethods}
             onConfirm={confirmExpress}

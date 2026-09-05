@@ -1375,7 +1375,7 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expect(checkoutProgress.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "33");
   await expect(checkoutProgress.locator('[aria-current="step"]')).toContainText(/livraison|delivery/i);
   await expect(checkoutProgress).toContainText(/adresse et transport|address and carrier/i);
-  await expect(checkoutProgress).toContainText(/carte, paypal et wallets|card, paypal and wallets|carte sécurisée|secure card/i);
+  await expect(checkoutProgress).toContainText(/moyens adaptés à votre pays|methods tailored to your country|carte bancaire|payment card/i);
   await expect(checkoutProgress).toContainText(/contrôle final|final check/i);
   const checkoutDock = page.getByTestId("checkout-action-dock");
   if (isMobile) {
