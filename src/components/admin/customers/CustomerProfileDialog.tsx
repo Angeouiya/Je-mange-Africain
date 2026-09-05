@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CalendarDays,
   CircleAlert,
@@ -14,6 +14,7 @@ import {
   Phone,
   ReceiptText,
   TicketCheck,
+  Trash2,
   UtensilsCrossed,
   WalletCards,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import type { AdminCustomer, AdminCustomerDetail } from "@/components/admin/admi
 import { ProductImage } from "@/components/shared/ProductImage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, formatDateTime, formatPrice, orderStatusColor } from "@/lib/format";
@@ -76,14 +78,21 @@ function ticketLabel(value: string, isFr: boolean) {
   return labels[value]?.[isFr ? 0 : 1] || value;
 }
 
-function CustomerProfileContent({ summary, locale, canUpdate }: { summary: AdminCustomer; locale: "fr" | "en"; canUpdate: boolean }) {
+function CustomerProfileContent({ summary, locale, canUpdate, onNotesDirtyChange }: { summary: AdminCustomer; locale: "fr" | "en"; canUpdate: boolean; onNotesDirtyChange: (dirty: boolean) => void }) {
   const isFr = locale === "fr";
   const { data, loading, error, refetch } = useFetch<AdminCustomerDetail>(`/api/admin/customers/${summary.id}?locale=${locale}`, [summary.id, locale]);
   const [tab, setTab] = useState<ProfileTab>("overview");
   const [draftNotes, setDraftNotes] = useState<string | null>(null);
+  const [savedNotes, setSavedNotes] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const customer = data?.customer || summary;
-  const notes = draftNotes ?? data?.customer.notes ?? "";
+  const persistedNotes = savedNotes ?? data?.customer.notes ?? "";
+  const notes = draftNotes ?? persistedNotes;
+  const notesDirty = draftNotes !== null && draftNotes !== persistedNotes;
+
+  useEffect(() => {
+    onNotesDirtyChange(notesDirty);
+  }, [notesDirty, onNotesDirtyChange]);
 
   async function saveNotes() {
     setSaveState("saving");
@@ -95,7 +104,9 @@ function CustomerProfileContent({ summary, locale, canUpdate }: { summary: Admin
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || (isFr ? "Enregistrement impossible." : "Unable to save."));
-      setDraftNotes(payload.notes || "");
+      const nextNotes = payload.notes || "";
+      setSavedNotes(nextNotes);
+      setDraftNotes(nextNotes);
       setSaveState("saved");
     } catch {
       setSaveState("error");
@@ -177,7 +188,7 @@ function CustomerProfileContent({ summary, locale, canUpdate }: { summary: Admin
 
                 <section className="mt-6" aria-labelledby="support-title"><div className="flex items-center gap-2"><TicketCheck className="h-4 w-4 text-burgundy" /><h3 id="support-title" className="text-sm font-black text-charcoal">{isFr ? "Demandes de support" : "Support requests"}</h3><span className="text-[10px] font-bold text-muted-foreground">{data.tickets.length}</span></div>{data.tickets.length ? <div className="mt-3 divide-y divide-charcoal/8 border-y border-charcoal/8">{data.tickets.map((ticket) => <div key={ticket.id} className="flex items-start gap-3 py-3"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-xs font-black">{ticket.number}</p><Badge variant="outline" className={ticket.status === "open" ? "border-gold/40 bg-gold/[0.09] text-charcoal" : "border-border text-muted-foreground"}>{ticketLabel(ticket.status, isFr)}</Badge>{["high", "urgent"].includes(ticket.priority) ? <Badge variant="outline" className="border-destructive/25 bg-destructive/[0.06] text-destructive">{ticketLabel(ticket.priority, isFr)}</Badge> : null}</div><p className="mt-1 text-xs text-charcoal">{ticket.subject}</p><p className="mt-1 text-[10px] text-muted-foreground">{formatDateTime(ticket.updatedAt, locale)}{ticket.assignee ? ` · ${ticket.assignee}` : ""}</p></div></div>)}</div> : <p className="mt-3 border-y border-charcoal/8 py-4 text-xs text-muted-foreground">{isFr ? "Aucune demande de support." : "No support requests."}</p>}</section>
 
-                <section className="mt-6 border-t border-charcoal/8 pt-5" aria-labelledby="notes-title"><div className="flex items-center gap-2"><NotebookPen className="h-4 w-4 text-terre" /><h3 id="notes-title" className="text-sm font-black text-charcoal">{isFr ? "Notes internes" : "Internal notes"}</h3></div><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{isFr ? "Visible uniquement par l'équipe autorisée. Chaque modification est inscrite au journal d'audit." : "Visible only to authorized team members. Every change is recorded in the audit log."}</p><Textarea value={notes} onChange={(event) => { setDraftNotes(event.target.value); setSaveState("idle"); }} disabled={!canUpdate} maxLength={2000} aria-label={isFr ? "Notes internes sur le client" : "Internal customer notes"} placeholder={isFr ? "Contexte utile pour le service client…" : "Useful context for customer service…"} className="mt-3 min-h-28 resize-y bg-white" /><div className="mt-2 flex flex-wrap items-center justify-between gap-3"><span className={`text-[10px] font-bold ${saveState === "error" ? "text-destructive" : saveState === "saved" ? "text-burgundy" : "text-muted-foreground"}`} role="status">{saveState === "saving" ? (isFr ? "Enregistrement…" : "Saving…") : saveState === "saved" ? (isFr ? "Note enregistrée et auditée" : "Note saved and audited") : saveState === "error" ? (isFr ? "La note n'a pas pu être enregistrée" : "The note could not be saved") : !canUpdate ? (isFr ? "Accès en lecture seule" : "Read-only access") : `${notes.length}/2000`}</span>{canUpdate ? <Button type="button" size="sm" onClick={saveNotes} disabled={saveState === "saving" || saveState === "saved" || notes === data.customer.notes} className="bg-terre text-white hover:bg-terre-dark disabled:!bg-[#EDE8E5] disabled:!text-[#65555A]">{isFr ? "Enregistrer la note" : "Save note"}</Button> : null}</div></section>
+                <section className="mt-6 border-t border-charcoal/8 pt-5" aria-labelledby="notes-title"><div className="flex items-center gap-2"><NotebookPen className="h-4 w-4 text-terre" /><h3 id="notes-title" className="text-sm font-black text-charcoal">{isFr ? "Notes internes" : "Internal notes"}</h3></div><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{isFr ? "Visible uniquement par l'équipe autorisée. Chaque modification est inscrite au journal d'audit." : "Visible only to authorized team members. Every change is recorded in the audit log."}</p><Textarea value={notes} onChange={(event) => { setDraftNotes(event.target.value); setSaveState("idle"); }} disabled={!canUpdate} maxLength={2000} aria-label={isFr ? "Notes internes sur le client" : "Internal customer notes"} placeholder={isFr ? "Contexte utile pour le service client…" : "Useful context for customer service…"} className="mt-3 min-h-28 resize-y bg-white" /><div className="mt-2 flex flex-wrap items-center justify-between gap-3"><span className={`text-[10px] font-bold ${saveState === "error" ? "text-destructive" : saveState === "saved" ? "text-burgundy" : "text-muted-foreground"}`} role="status">{saveState === "saving" ? (isFr ? "Enregistrement…" : "Saving…") : saveState === "saved" ? (isFr ? "Note enregistrée et auditée" : "Note saved and audited") : saveState === "error" ? (isFr ? "La note n'a pas pu être enregistrée" : "The note could not be saved") : !canUpdate ? (isFr ? "Accès en lecture seule" : "Read-only access") : `${notes.length}/2000`}</span>{canUpdate ? <Button type="button" size="sm" onClick={saveNotes} disabled={saveState === "saving" || saveState === "saved" || notes === persistedNotes} className="bg-terre text-white hover:bg-terre-dark disabled:!bg-[#EDE8E5] disabled:!text-[#65555A]">{isFr ? "Enregistrer la note" : "Save note"}</Button> : null}</div></section>
               </div>
             ) : null}
           </div>
@@ -193,11 +204,46 @@ function InterestList({ items, empty }: { items: Array<{ id: string; label: stri
 }
 
 export function CustomerProfileDialog({ selectedCustomer, onClose, locale, canUpdate }: { selectedCustomer: AdminCustomer | null; onClose: () => void; locale: "fr" | "en"; canUpdate: boolean }) {
+  const isFr = locale === "fr";
+  const [notesDirty, setNotesDirty] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
+
+  useEffect(() => {
+    setNotesDirty(false);
+    setDiscardOpen(false);
+  }, [selectedCustomer?.id]);
+
+  function requestClose() {
+    if (notesDirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    onClose();
+  }
+
+  function discardNotes() {
+    setNotesDirty(false);
+    setDiscardOpen(false);
+    onClose();
+  }
+
   return (
-    <Dialog open={Boolean(selectedCustomer)} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent closeLabel={locale === "fr" ? "Fermer" : "Close"} className="h-[calc(100svh-1rem)] max-w-[calc(100%-1rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden bg-white p-0 sm:h-auto sm:max-h-[calc(100vh-3rem)] sm:max-w-4xl">
-        {selectedCustomer ? <CustomerProfileContent key={`${selectedCustomer.id}-${locale}`} summary={selectedCustomer} locale={locale} canUpdate={canUpdate} /> : null}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={Boolean(selectedCustomer)} onOpenChange={(open) => { if (!open) requestClose(); }}>
+        <DialogContent closeLabel={isFr ? "Fermer" : "Close"} className="h-[calc(100svh-1rem)] max-w-[calc(100%-1rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden bg-white p-0 sm:h-auto sm:max-h-[calc(100vh-3rem)] sm:max-w-4xl">
+          {selectedCustomer ? <CustomerProfileContent key={`${selectedCustomer.id}-${locale}`} summary={selectedCustomer} locale={locale} canUpdate={canUpdate} onNotesDirtyChange={setNotesDirty} /> : null}
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><Trash2 className="h-5 w-5" /></span>
+            <AlertDialogTitle>{isFr ? "Abandonner la note client ?" : "Discard this customer note?"}</AlertDialogTitle>
+            <AlertDialogDescription>{isFr ? "Le texte saisi dans la note interne n'a pas été enregistré et sera perdu. Le profil client et son historique ne seront pas modifiés." : "The text entered in the internal note has not been saved and will be lost. The customer profile and history will not be changed."}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{isFr ? "Continuer la note" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardNotes} className="bg-destructive text-white hover:bg-destructive/90">{isFr ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

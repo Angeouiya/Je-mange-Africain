@@ -1479,6 +1479,7 @@ test("the order workspace saves logistics and confirms each sensitive advancemen
 test("the customer workspace provides a complete and auditable relationship view", async ({ page }) => {
   await mockAdminApi(page);
   await page.goto("/admin#customers", { waitUntil: "domcontentloaded" });
+  const mobile = (page.viewportSize()?.width || 0) < 768;
   await expect(page.getByRole("heading", { name: "Piloter chaque relation" })).toBeVisible();
   await expect(page.getByText("80 %", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Composition du portefeuille" })).toBeVisible();
@@ -1521,6 +1522,21 @@ test("the customer workspace provides a complete and auditable relationship view
   await expect(dialog.getByText("Précision sur mon créneau de livraison")).toBeVisible();
   const notes = dialog.getByLabel("Notes internes sur le client");
   await notes.fill("Cliente fidèle, préfère les produits frais ivoiriens.");
+  await page.getByRole("button", { name: "Fermer" }).click();
+  const discard = page.getByRole("alertdialog", { name: "Abandonner la note client ?" });
+  await expect(discard).toBeVisible();
+  await expect(discard).toContainText("n'a pas été enregistré et sera perdu");
+  await expect(discard).toContainText("Le profil client et son historique ne seront pas modifiés");
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `customer-note-discard-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  const discardResults = await new AxeBuilder({ page }).include('[role="alertdialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(discardResults.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await discard.getByRole("button", { name: "Continuer la note" }).click();
+  await expect(dialog).toBeVisible();
+  await expect(notes).toHaveValue("Cliente fidèle, préfère les produits frais ivoiriens.");
   await dialog.getByRole("button", { name: "Enregistrer la note" }).click();
   await expect(dialog.getByRole("status")).toContainText("Note enregistrée et auditée");
 
@@ -1536,7 +1552,8 @@ test("the customer workspace provides a complete and auditable relationship view
   expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
 
   await page.getByRole("button", { name: "Fermer" }).click();
-  const mobile = (page.viewportSize()?.width || 0) < 768;
+  await expect(dialog).toBeHidden();
+  await expect(discard).toBeHidden();
   if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
   await page.getByRole("button", { name: "en", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Portfolio composition" })).toBeVisible();
