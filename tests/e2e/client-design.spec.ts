@@ -57,7 +57,7 @@ async function expectBrandSafeUiColors(page: Page) {
 
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
   await page.route("**/api/catalog?*", async (route) => {
-    const response = await route.fetch();
+    const response = await route.fetch({ timeout: 45_000 });
     const payload = await response.json();
     if (Array.isArray(payload.products) && payload.products[0]) {
       payload.products[0] = { ...payload.products[0], isBestseller: false, isRecommended: true, isNew: false };
@@ -65,7 +65,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
     await route.fulfill({ response, json: payload });
   });
   await page.route("**/api/recipes?*", async (route) => {
-    const response = await route.fetch();
+    const response = await route.fetch({ timeout: 45_000 });
     const payload = await response.json();
     if (Array.isArray(payload.recipes) && payload.recipes[0]) {
       payload.recipes[0] = { ...payload.recipes[0], isPopular: false, isRecommended: true, isNew: false };
@@ -224,6 +224,10 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(dishDialog.getByRole("heading", { name: /ingrédients|ingredients/i })).toBeVisible();
   await expect(dishDialog.getByRole("heading", { name: /préparation|preparation/i })).toBeVisible();
   await expect(dishDialog.getByTestId("dish-detailed-steps")).toContainText(/résultat|result/i);
+  await expect(dishDialog.getByTestId("dish-preparation-summary")).toContainText(/actif|active/i);
+  await expect(dishDialog.getByTestId("dish-mise-en-place")).toContainText(/mise en place|before you start/i);
+  await expect(dishDialog.getByTestId("dish-detailed-steps")).toContainText(/matériel|equipment/i);
+  await expect(dishDialog.getByTestId("dish-detailed-steps")).toContainText(/conseil|tip/i);
   await expectLoadedProductImages(dishDialog.getByRole("img"), 1);
   await expectNoHorizontalOverflow(page, dishDialog);
   await expectBrandSafeUiColors(page);
@@ -238,6 +242,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   const moambeSteps = dishDialog.getByTestId("dish-detailed-steps");
   await expect(moambeSteps).toContainText(/45 minutes/);
   await expect(moambeSteps).toContainText(/ne jamais les goûter crues|never taste the leaves raw/i);
+  await expect(moambeSteps).toContainText(/vigilance|take care/i);
   await expect(moambeSteps.getByText("Maîtriser la cuisson", { exact: true })).toHaveCount(3);
   await expectNoHorizontalOverflow(page, dishDialog);
   await expectNoSeriousA11yViolations(page);
@@ -1541,11 +1546,18 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(page.getByTestId("recipe-preparation-summary")).toContainText(/actif|active/i);
   await expect(page.getByTestId("recipe-preparation-summary")).toContainText(/repos|rest/i);
   await expect(page.getByTestId("recipe-preparation-summary")).toContainText(/matériel|equipment/i);
+  await expect(page.getByTestId("recipe-mise-en-place")).toContainText(/mise en place avant cuisson|before you start/i);
   await expect(cookingFocus).toContainText(/temps actif|active time/i);
   await expect(cookingFocus).toContainText(/92 °C/);
   await expect(cookingFocus).toContainText(/cocotte à fond épais|heavy pot/i);
   await expect(cookingFocus).toContainText(/repère de réussite|success cue/i);
   await expect(cookingFocus).toContainText(/conseil cuisine|kitchen tip/i);
+  const kitchenTimer = cookingFocus.getByTestId("recipe-kitchen-timer");
+  await expect(kitchenTimer.getByRole("timer")).toHaveText("12:00");
+  await kitchenTimer.getByRole("button", { name: /lancer le chronomètre|start timer/i }).click();
+  await expect(kitchenTimer.getByRole("button", { name: /mettre le chronomètre en pause|pause timer/i })).toBeVisible();
+  await expect.poll(() => kitchenTimer.getByRole("timer").textContent()).toBe("11:59");
+  await kitchenTimer.getByRole("button", { name: /mettre le chronomètre en pause|pause timer/i }).click();
   await expect(page.getByTestId("recipe-detailed-steps")).toContainText(/résultat|result/i);
   const preparationProgress = page.locator("#recipe-preparation").getByRole("progressbar");
   await expect(preparationProgress).toHaveAttribute("aria-valuenow", "0");

@@ -16,6 +16,7 @@ import {
   Menu,
   Megaphone,
   PackageSearch,
+  Route,
   ShieldCheck,
   Settings2,
   Store,
@@ -48,6 +49,7 @@ const OverviewSection = dynamic(() => import("@/components/admin/sections/Overvi
 const OfferSection = dynamic(() => import("@/components/admin/sections/OfferSection"), { loading: () => <AdminSectionLoading /> });
 const OrdersSection = dynamic(() => import("@/components/admin/sections/OrdersSection"), { loading: () => <AdminSectionLoading /> });
 const InventorySection = dynamic(() => import("@/components/admin/sections/InventorySection"), { loading: () => <AdminSectionLoading /> });
+const LogisticsSection = dynamic(() => import("@/components/admin/sections/LogisticsSection"), { loading: () => <AdminSectionLoading /> });
 const CustomersSection = dynamic(() => import("@/components/admin/sections/CustomersSection"), { loading: () => <AdminSectionLoading /> });
 const PushCampaignAdmin = dynamic(() => import("@/components/admin/PushCampaignAdmin").then((module) => module.PushCampaignAdmin), { loading: () => <AdminSectionLoading /> });
 const AdvertisingSection = dynamic(() => import("@/components/admin/sections/AdvertisingSection"), { loading: () => <AdminSectionLoading /> });
@@ -98,6 +100,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     items: [
       { id: "orders", module: "orders", icon: ClipboardList, marker: "04", accent: BRAND_COLORS.earth, labelFr: "Orchestrer les commandes", labelEn: "Orchestrate orders", mobileFr: "Commandes", mobileEn: "Orders", purposeFr: "Valider, préparer et remettre au transporteur", purposeEn: "Validate, pack and hand over to carrier" },
       { id: "inventory", module: "stock", icon: Boxes, marker: "05", accent: BRAND_COLORS.chilli, labelFr: "Tracer les lots", labelEn: "Trace batches", mobileFr: "Lots", mobileEn: "Batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
+      { id: "logistics", module: "logistics", icon: Route, marker: "06", accent: BRAND_COLORS.gold, labelFr: "Piloter la livraison", labelEn: "Control delivery", mobileFr: "Livraison", mobileEn: "Delivery", purposeFr: "Transporteurs, zones, prix et délais européens", purposeEn: "European carriers, zones, prices and timing" },
     ],
   },
   {
@@ -106,9 +109,9 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Engager",
     verbEn: "Engage",
     items: [
-      { id: "customers", module: "customers", icon: UsersRound, marker: "06", accent: BRAND_COLORS.warmCoral, labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
-      { id: "campaigns", module: "marketing", icon: BellRing, marker: "07", accent: BRAND_COLORS.gold, labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
-      { id: "advertising", module: "marketing", icon: Megaphone, marker: "08", accent: BRAND_COLORS.terracotta, labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
+      { id: "customers", module: "customers", icon: UsersRound, marker: "07", accent: BRAND_COLORS.warmCoral, labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
+      { id: "campaigns", module: "marketing", icon: BellRing, marker: "08", accent: BRAND_COLORS.gold, labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
+      { id: "advertising", module: "marketing", icon: Megaphone, marker: "09", accent: BRAND_COLORS.terracotta, labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
     ],
   },
   {
@@ -117,10 +120,10 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Contrôler",
     verbEn: "Control",
     items: [
-      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "09", accent: BRAND_COLORS.burgundy, labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
-      { id: "governance", module: "audit", icon: Fingerprint, marker: "10", accent: BRAND_COLORS.deepEarth, labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
-      { id: "team", module: "team", icon: UserRoundCog, marker: "11", accent: BRAND_COLORS.chilli, labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
-      { id: "settings", module: "settings", icon: Settings2, marker: "12", accent: BRAND_COLORS.gold, labelFr: "Configurer la plateforme", labelEn: "Configure platform", mobileFr: "Paramètres", mobileEn: "Settings", purposeFr: "Coordonnées publiques et état des services", purposeEn: "Public details and service readiness" },
+      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "10", accent: BRAND_COLORS.burgundy, labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
+      { id: "governance", module: "audit", icon: Fingerprint, marker: "11", accent: BRAND_COLORS.deepEarth, labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
+      { id: "team", module: "team", icon: UserRoundCog, marker: "12", accent: BRAND_COLORS.chilli, labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
+      { id: "settings", module: "settings", icon: Settings2, marker: "13", accent: BRAND_COLORS.gold, labelFr: "Configurer la plateforme", labelEn: "Configure platform", mobileFr: "Paramètres", mobileEn: "Settings", purposeFr: "Coordonnées publiques et état des services", purposeEn: "Public details and service readiness" },
     ],
   },
 ];
@@ -157,7 +160,7 @@ export function AdminView({
   const availableGroups = useMemo(() => NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => hasAdminPermission(adminRole, item.module, "read")) })).filter((group) => group.items.length), [adminRole]);
   const availableItems = useMemo(() => availableGroups.flatMap((group) => group.items), [availableGroups]);
   const quickItems = useMemo(() => {
-    const priority: AdminSectionId[] = ["overview", "orders", "inventory", "customers", "catalog", "recipes", "campaigns", "advertising", "finance", "governance", "team", "settings"];
+    const priority: AdminSectionId[] = ["overview", "orders", "inventory", "logistics", "customers", "catalog", "recipes", "campaigns", "advertising", "finance", "governance", "team", "settings"];
     return priority.map((id) => availableItems.find((item) => item.id === id)).filter((item): item is NavItem => Boolean(item)).slice(0, 4);
   }, [availableItems]);
 
@@ -329,6 +332,7 @@ export function AdminView({
               {section === "recipes" ? <OfferSection locale={locale} workspace="recipes" /> : null}
               {section === "orders" ? <OrdersSection locale={locale} canUpdate={hasAdminPermission(adminRole, "orders", "update")} /> : null}
               {section === "inventory" ? <InventorySection locale={locale} canCreate={hasAdminPermission(adminRole, "stock", "create")} canUpdate={hasAdminPermission(adminRole, "stock", "update")} /> : null}
+              {section === "logistics" ? <LogisticsSection locale={locale} canCreate={hasAdminPermission(adminRole, "logistics", "create")} canUpdate={hasAdminPermission(adminRole, "logistics", "update")} canDelete={hasAdminPermission(adminRole, "logistics", "delete")} /> : null}
               {section === "customers" ? <CustomersSection locale={locale} canUpdate={hasAdminPermission(adminRole, "customers", "update")} /> : null}
               {section === "campaigns" ? <PushCampaignAdmin locale={locale} /> : null}
               {section === "advertising" ? <AdvertisingSection locale={locale} /> : null}

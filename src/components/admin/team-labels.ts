@@ -20,6 +20,7 @@ const MODULE_COPY: Record<AdminModule, [string, string]> = {
   recipes: ["Recettes", "Recipes"],
   orders: ["Commandes", "Orders"],
   stock: ["Stocks et lots", "Stock and batches"],
+  logistics: ["Logistique", "Logistics"],
   customers: ["Relation client", "Customer relations"],
   marketing: ["Marketing", "Marketing"],
   finance: ["Finance", "Finance"],

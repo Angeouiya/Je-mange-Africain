@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
 
       for (let index = 0; index < pricing.thermalClasses.length; index += 1) {
         const thermalClass = pricing.thermalClasses[index];
-        const etaHours = body.deliverySlot === "express" ? 24 : body.deliverySlot === "relay" ? 72 : 48;
+        const etaHours = pricing.shippingQuote.maxDelayHours;
         await tx.shipment.create({
           data: {
             orderId: order.id,

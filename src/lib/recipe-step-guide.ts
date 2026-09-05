@@ -1,4 +1,5 @@
 export type RecipeStepHeat = "none" | "low" | "medium" | "high" | "oven";
+export type RecipeStepPhase = "mise-en-place" | "seasoning" | "cooking" | "resting" | "finishing";
 
 export type RecipeStepGuide = {
   raw: string;
@@ -17,6 +18,8 @@ export type RecipeStepGuide = {
   cue: string;
   tip: string;
   warning: string | null;
+  phase: RecipeStepPhase;
+  phaseLabel: string;
   detailScore: number;
 };
 
@@ -99,6 +102,20 @@ function estimatedDuration(raw: string) {
   return 5;
 }
 
+function passiveRestDuration(raw: string, explicitDuration: ReturnType<typeof durationFromText>) {
+  if (!explicitDuration) return 0;
+  const value = normalize(raw);
+  return includesAny(value, ["mariner", "laisser reposer", "laisser agir", "marinate", "leave to rest", "let rest", "rest for"])
+    ? explicitDuration.minutes
+    : 0;
+}
+
+function activeDurationBeforeRest(raw: string) {
+  const value = normalize(raw);
+  if (includesAny(value, ["masser", "enrober", "melanger", "inciser", "rub", "coat", "mix", "score"])) return 5;
+  return 2;
+}
+
 function heatFromText(raw: string): RecipeStepHeat {
   const value = normalize(raw);
   if (includesAny(value, ["four", "oven", "bake", "rotir", "roast"])) return "oven";
@@ -113,6 +130,39 @@ function heatLabel(heat: RecipeStepHeat, locale: Locale) {
     ? { none: "Hors du feu", low: "Feu doux", medium: "Feu moyen", high: "Feu vif", oven: "Four" }
     : { none: "Off heat", low: "Low heat", medium: "Medium heat", high: "High heat", oven: "Oven" };
   return labels[heat];
+}
+
+function phaseFromText(raw: string, heat: RecipeStepHeat): RecipeStepPhase {
+  const value = normalize(raw);
+  if (includesAny(value, ["servir", "dresser", "repartir", "plate", "serve", "garnir", "garnish"])) return "finishing";
+  if (includesAny(value, ["mariner", "assaisonner", "enrober", "marinate", "season", "coat"])) return "seasoning";
+  if (includesAny(value, ["reposer", "laisser refroidir", "rest", "cool"]) && heat === "none") return "resting";
+  if (heat !== "none" || includesAny(value, ["cuire", "chauffer", "frire", "mijoter", "cook", "heat", "fry", "simmer"])) return "cooking";
+  return "mise-en-place";
+}
+
+function phaseLabel(phase: RecipeStepPhase, locale: Locale) {
+  const labels = locale === "fr"
+    ? { "mise-en-place": "Mise en place", seasoning: "Assaisonnement", cooking: "Cuisson", resting: "Repos", finishing: "Finition" }
+    : { "mise-en-place": "Prep", seasoning: "Seasoning", cooking: "Cooking", resting: "Resting", finishing: "Finishing" };
+  return labels[phase];
+}
+
+function equipmentFromText(raw: string, locale: Locale) {
+  const value = normalize(raw);
+  const equipment = (() => {
+    if (includesAny(value, ["frire", "huile chaude", "fry", "hot oil"])) return ["Casserole profonde, écumoire et grille d’égouttage", "Deep pan, slotted spoon and draining rack"];
+    if (includesAny(value, ["griller", "braiser", "gril", "grill"])) return ["Gril, pince et spatule large", "Grill, tongs and wide spatula"];
+    if (includesAny(value, ["four", "oven", "rotir", "roast", "bake"])) return ["Plat adapté au four, maniques et thermomètre de cuisine", "Ovenproof dish, oven gloves and kitchen thermometer"];
+    if (includesAny(value, ["piler", "mixer", "ecraser", "tamiser", "pound", "blend", "crush", "sieve"])) return ["Mortier ou mixeur, bol et tamis fin", "Mortar or blender, bowl and fine sieve"];
+    if (includesAny(value, ["vapeur", "steam", "attieke"])) return ["Panier vapeur ou couscoussier et fourchette", "Steamer basket or couscoussier and fork"];
+    if (includesAny(value, ["mijoter", "fremir", "bouillir", "sauce", "simmer", "boil", "stew"])) return ["Cocotte à fond épais, couvercle et cuillère en bois", "Heavy pot, lid and wooden spoon"];
+    if (includesAny(value, ["emincer", "couper", "trancher", "inciser", "hacher", "slice", "cut", "chop", "score"])) return ["Planche stable et couteau bien aiguisé", "Stable board and sharp knife"];
+    if (includesAny(value, ["mariner", "assaisonner", "enrober", "marinate", "season", "coat"])) return ["Grand bol non réactif et couvercle", "Large non-reactive bowl and cover"];
+    if (includesAny(value, ["servir", "dresser", "repartir", "plate", "serve"])) return ["Plat de service, louche ou cuillère de dressage", "Serving dish, ladle or plating spoon"];
+    return ["Bol de préparation et ustensile adapté", "Preparation bowl and suitable utensil"];
+  })();
+  return equipment[locale === "fr" ? 0 : 1];
 }
 
 function positiveInteger(value: number | null | undefined) {
@@ -223,27 +273,32 @@ export function buildRecipeStepGuide(
   const instruction = raw.trim();
   const explicitDuration = durationFromText(instruction, locale);
   const storedDuration = positiveInteger(details?.durationMinutes);
-  const durationMinutes = storedDuration ?? explicitDuration?.minutes ?? estimatedDuration(instruction);
-  const restMinutes = nonNegativeInteger(details?.restMinutes) ?? 0;
+  const inferredRestMinutes = passiveRestDuration(instruction, explicitDuration);
+  const durationMinutes = storedDuration ?? (inferredRestMinutes > 0 ? activeDurationBeforeRest(instruction) : explicitDuration?.minutes) ?? estimatedDuration(instruction);
+  const storedRestMinutes = nonNegativeInteger(details?.restMinutes);
+  const restMinutes = storedRestMinutes && storedRestMinutes > 0 ? storedRestMinutes : inferredRestMinutes;
   const heat = details?.heat || heatFromText(instruction);
   const temperatureC = positiveInteger(details?.temperatureC);
+  const phase = phaseFromText(instruction, heat);
   return {
     raw,
     title: actionTitle(instruction, index, locale),
     instruction,
     durationMinutes,
-    durationLabel: storedDuration ? `${durationMinutes} min` : explicitDuration?.label ?? `≈ ${durationMinutes} min`,
-    durationEstimated: !storedDuration && !explicitDuration,
+    durationLabel: storedDuration ? `${durationMinutes} min` : inferredRestMinutes > 0 ? `≈ ${durationMinutes} min` : explicitDuration?.label ?? `≈ ${durationMinutes} min`,
+    durationEstimated: !storedDuration && (!explicitDuration || inferredRestMinutes > 0),
     restMinutes,
     restLabel: restMinutes > 0 ? `${restMinutes} min` : null,
     heat,
     heatLabel: heatLabel(heat, locale),
     temperatureC,
     temperatureLabel: temperatureC ? `${temperatureC} °C` : null,
-    equipment: cleanText(details?.equipment),
+    equipment: cleanText(details?.equipment) || equipmentFromText(instruction, locale),
     cue: cleanText(details?.cue) || expectedCue(instruction, locale),
     tip: cleanText(details?.tip) || practicalTip(instruction, locale),
     warning: details?.warning === "" ? null : cleanText(details?.warning) || safetyWarning(instruction, locale),
+    phase,
+    phaseLabel: phaseLabel(phase, locale),
     detailScore: recipeStepDetailScore(instruction),
   };
 }

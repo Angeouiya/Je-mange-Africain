@@ -205,6 +205,20 @@ const inventoryPayload = {
   movements: [{ id: "movement-1", batchId: "batch-1", lotNumber: "ATT-2608-FR", productName: "Attiéké frais", warehouse: "Paris Nord", type: "receipt", quantity: 120, reason: "Arrivage Abidjan", createdAt: now }],
 };
 
+const logisticsPayload = {
+  carriers: [
+    { id: "carrier-fresh", name: "Chrono Frais", logo: null, trackingUrl: "https://track.example.com/{ref}", rating: 5, shipmentCount: 38, zoneCount: 1 },
+    { id: "carrier-relay", name: "DPD Europe", logo: null, trackingUrl: "https://track.example.com/{ref}", rating: 4, shipmentCount: 21, zoneCount: 1 },
+    { id: "carrier-jma", name: "JMA Express", logo: null, trackingUrl: null, rating: 5, shipmentCount: 12, zoneCount: 1 },
+  ],
+  zones: [
+    { id: "zone-standard", carrierId: "carrier-fresh", carrier: "Chrono Frais", country: "France", postalPattern: null, service: "standard", baseFee: 4.9, perKgFee: 0.6, frozenSurcharge: 2.5, minDelayHours: 48 },
+    { id: "zone-express", carrierId: "carrier-jma", carrier: "JMA Express", country: "France", postalPattern: "75*", service: "express", baseFee: 6.9, perKgFee: 0.9, frozenSurcharge: 3.5, minDelayHours: 24 },
+    { id: "zone-relay", carrierId: "carrier-relay", carrier: "DPD Europe", country: "France", postalPattern: null, service: "relay", baseFee: 3.5, perKgFee: 0.45, frozenSurcharge: 0, minDelayHours: 72 },
+  ],
+  summary: { carriers: 3, routes: 3, countries: 1, coldChainRoutes: 2, serviceCounts: { standard: 1, express: 1, relay: 1 } },
+};
+
 const auditPayload = {
   period: "30d",
   generatedAt: now,
@@ -271,9 +285,9 @@ const auditPayload = {
 };
 
 const teamRoleCatalog = [
-  { id: "super_admin", assignable: false, permissions: { dashboard: ["read", "create", "update", "delete"], catalog: ["read", "create", "update", "delete"], recipes: ["read", "create", "update", "delete"], orders: ["read", "create", "update", "delete"], stock: ["read", "create", "update", "delete"], customers: ["read", "create", "update", "delete"], marketing: ["read", "create", "update", "delete"], finance: ["read", "create", "update", "delete"], audit: ["read", "create", "update", "delete"], team: ["read", "create", "update", "delete"], settings: ["read", "create", "update", "delete"] } },
+  { id: "super_admin", assignable: false, permissions: { dashboard: ["read", "create", "update", "delete"], catalog: ["read", "create", "update", "delete"], recipes: ["read", "create", "update", "delete"], orders: ["read", "create", "update", "delete"], stock: ["read", "create", "update", "delete"], logistics: ["read", "create", "update", "delete"], customers: ["read", "create", "update", "delete"], marketing: ["read", "create", "update", "delete"], finance: ["read", "create", "update", "delete"], audit: ["read", "create", "update", "delete"], team: ["read", "create", "update", "delete"], settings: ["read", "create", "update", "delete"] } },
   { id: "marketing", assignable: true, permissions: { dashboard: ["read"], catalog: ["read"], recipes: ["read"], customers: ["read"], marketing: ["read", "create", "update", "delete"] } },
-  { id: "logistics", assignable: true, permissions: { dashboard: ["read"], orders: ["read", "update"], customers: ["read"] } },
+  { id: "logistics", assignable: true, permissions: { dashboard: ["read"], orders: ["read", "update"], logistics: ["read", "create", "update", "delete"], customers: ["read"] } },
   { id: "accounting", assignable: true, permissions: { dashboard: ["read"], orders: ["read"], stock: ["read"], finance: ["read", "update"], audit: ["read"] } },
   { id: "support", assignable: true, permissions: { dashboard: ["read"], orders: ["read"], customers: ["read", "update"] } },
   { id: "catalog_manager", assignable: true, permissions: { dashboard: ["read"], catalog: ["read", "create", "update", "delete"], recipes: ["read"], stock: ["read"] } },
@@ -282,9 +296,9 @@ const teamRoleCatalog = [
 const teamPayload = {
   roles: teamRoleCatalog.filter((role) => role.assignable),
   roleCatalog: teamRoleCatalog,
-  modules: ["dashboard", "catalog", "recipes", "orders", "stock", "customers", "marketing", "finance", "audit", "team", "settings"],
+  modules: ["dashboard", "catalog", "recipes", "orders", "stock", "logistics", "customers", "marketing", "finance", "audit", "team", "settings"],
   actions: ["read", "create", "update", "delete"],
-  summary: { total: 5, active: 3, invited: 1, suspended: 1, protected: 1, delegatedRoles: 2, coveredModules: 6, totalModules: 11, recentlyActive: 2, dormant: 0 },
+  summary: { total: 5, active: 3, invited: 1, suspended: 1, protected: 1, delegatedRoles: 2, coveredModules: 6, totalModules: 12, recentlyActive: 2, dormant: 0 },
   members: [
     { id: "super-1", email: "direction@je-mange-africain.com", firstName: "Ange", lastName: "OUIYA", role: "super_admin", status: "active", lastSignInAt: now, createdAt: "2025-08-12T09:00:00.000Z", invitedBy: null, permissions: teamRoleCatalog[0].permissions, current: true, protected: true },
     { id: "member-1", email: "marketing@je-mange-africain.com", firstName: "Mariam", lastName: "Diallo", role: "marketing", status: "active", lastSignInAt: now, createdAt: "2026-03-14T09:00:00.000Z", invitedBy: "direction@je-mange-africain.com", permissions: teamRoleCatalog[1].permissions },
@@ -325,6 +339,7 @@ async function expectBrandSafeUiColors(page: Page) {
 }
 
 async function mockAdminApi(page: Page) {
+  let logistics = structuredClone(logisticsPayload);
   let settingsConfiguration = {
     supportEmail: "bonjour@je-mange-africain.com",
     supportPhone: "+33 1 84 80 20 26",
@@ -427,6 +442,52 @@ async function mockAdminApi(page: Page) {
         : { batch: { id: "batch-1", quantity: inventoryBatch.quantity, status: body.status }, movement: { quantity: -inventoryBatch.quantity } };
     }
     else if (path === "/api/admin/stock") payload = inventoryPayload;
+    else if (path === "/api/admin/logistics/zones" && request.method() === "POST") {
+      const body = request.postDataJSON();
+      const carrier = logistics.carriers.find((item) => item.id === body.carrierId);
+      const zone = { id: `zone-${logistics.zones.length + 1}`, carrier: carrier?.name || null, ...body };
+      logistics.zones.push(zone);
+      logistics.summary.routes = logistics.zones.length;
+      logistics.summary.countries = new Set(logistics.zones.map((item) => item.country)).size;
+      payload = { zone };
+    }
+    else if (path.startsWith("/api/admin/logistics/zones/") && request.method() === "PATCH") {
+      const id = path.split("/").at(-1);
+      const body = request.postDataJSON();
+      const carrier = logistics.carriers.find((item) => item.id === body.carrierId);
+      logistics.zones = logistics.zones.map((item) => item.id === id ? { ...item, ...body, carrier: carrier?.name || null } : item);
+      payload = { zone: logistics.zones.find((item) => item.id === id) };
+    }
+    else if (path.startsWith("/api/admin/logistics/zones/") && request.method() === "DELETE") {
+      const id = path.split("/").at(-1);
+      logistics.zones = logistics.zones.filter((item) => item.id !== id);
+      logistics.summary.routes = logistics.zones.length;
+      payload = { ok: true };
+    }
+    else if (path === "/api/admin/logistics/carriers" && request.method() === "POST") {
+      const body = request.postDataJSON();
+      const carrier = { id: `carrier-${logistics.carriers.length + 1}`, shipmentCount: 0, zoneCount: 0, ...body };
+      logistics.carriers.push(carrier);
+      logistics.summary.carriers = logistics.carriers.length;
+      payload = { carrier };
+    }
+    else if (path.startsWith("/api/admin/logistics/carriers/") && request.method() === "PATCH") {
+      const id = path.split("/").at(-1);
+      const body = request.postDataJSON();
+      logistics.carriers = logistics.carriers.map((item) => item.id === id ? { ...item, ...body } : item);
+      payload = { carrier: logistics.carriers.find((item) => item.id === id) };
+    }
+    else if (path.startsWith("/api/admin/logistics/carriers/") && request.method() === "DELETE") payload = { ok: true };
+    else if (path === "/api/admin/logistics") payload = logistics;
+    else if (path === "/api/shipping/quote") payload = {
+      service: "standard", fee: 8.5, carrier: "Chrono Frais", packages: 1, minDelayHours: 24, maxDelayHours: 48, available: true, unavailableReason: null,
+      breakdown: { baseFee: 4.9, weightFee: 1.2, frozenSurcharge: 2.4, serviceAdjustment: 0 },
+      options: [
+        { service: "standard", fee: 8.5, carrier: "Chrono Frais", packages: 1, minDelayHours: 24, maxDelayHours: 48, available: true, unavailableReason: null, breakdown: { baseFee: 4.9, weightFee: 1.2, frozenSurcharge: 2.4, serviceAdjustment: 0 } },
+        { service: "express", fee: 12.9, carrier: "JMA Express", packages: 1, minDelayHours: 12, maxDelayHours: 24, available: true, unavailableReason: null, breakdown: { baseFee: 6.9, weightFee: 1.8, frozenSurcharge: 4.2, serviceAdjustment: 0 } },
+        { service: "relay", fee: 0, carrier: "DPD Europe", packages: 1, minDelayHours: 48, maxDelayHours: 72, available: false, unavailableReason: "cold_chain", breakdown: { baseFee: 3.5, weightFee: 0.9, frozenSurcharge: 0, serviceAdjustment: 0 } },
+      ],
+    };
     else if (path === "/api/admin/customers/customer-1" && request.method() === "PATCH") payload = { notes: "Cliente fidèle, préfère les produits frais ivoiriens.", updatedAt: now };
     else if (path === "/api/admin/customers/customer-1") payload = {
       customer: { id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", updatedAt: now, addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador", notes: "Privilégie les créneaux de livraison du samedi." },
@@ -482,6 +543,7 @@ const sections = [
   { id: "recipes", nav: "Recettes achetables", title: "Construire des recettes achetables" },
   { id: "orders", nav: "Orchestrer les commandes", title: "Du paiement jusqu'à la porte" },
   { id: "inventory", nav: "Tracer les lots", title: "Inventaire piloté par les lots" },
+  { id: "logistics", nav: "Piloter la livraison", title: "Promesse de livraison" },
   { id: "customers", nav: "Développer la relation", title: "Piloter chaque relation" },
   { id: "campaigns", nav: "Diffuser sur mobile", title: "Composer, vérifier, diffuser" },
   { id: "advertising", nav: "Piloter les emplacements", title: "Régie publicitaire" },
@@ -666,6 +728,74 @@ test("the adaptive professional navigation distinguishes quick and secondary wor
   await expectBrandSafeUiColors(page);
 });
 
+test("the logistics cockpit publishes a route and mirrors the customer delivery promise", async ({ page }) => {
+  const logisticsMutations: Array<{ method: string; path: string; body: Record<string, unknown> }> = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/api/admin/logistics/") && request.method() !== "GET") {
+      logisticsMutations.push({ method: request.method(), path, body: request.postDataJSON() || {} });
+    }
+  });
+  await mockAdminApi(page);
+  await page.goto("/admin#logistics", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Promesse de livraison" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Routes proposées au paiement" })).toBeVisible();
+  await expect(page.getByTestId("delivery-route-list")).toContainText("Chrono Frais");
+  await expect(page.getByText("3", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Nouvelle route" }).click();
+  const routeDialog = page.getByRole("dialog", { name: "Nouvelle zone tarifaire" });
+  const routeForm = routeDialog.getByRole("form", { name: "Formulaire de zone tarifaire" });
+  await routeForm.getByLabel("Pays").selectOption("Belgique");
+  await routeForm.getByLabel("Transporteur").selectOption("carrier-jma");
+  await routeForm.getByLabel("Service client").selectOption("express");
+  await routeForm.getByLabel("Forfait de base (€)").fill("7.50");
+  await routeForm.getByLabel("Prix par kg (€)").fill("0.90");
+  await routeForm.getByLabel("Surcharge surgelée (€)").fill("3.20");
+  await routeForm.getByLabel("Délai maximal (heures)").fill("18");
+  await routeForm.getByRole("button", { name: "Enregistrer la route" }).click();
+
+  await expect(routeDialog).toBeHidden();
+  await expect(page.getByRole("status")).toContainText("prochain calcul client");
+  await expect(page.getByTestId("delivery-route-list")).toContainText("Belgique");
+  await expect.poll(() => logisticsMutations.length).toBe(1);
+  expect(logisticsMutations[0]).toMatchObject({
+    method: "POST",
+    path: "/api/admin/logistics/zones",
+    body: { country: "Belgique", carrierId: "carrier-jma", service: "express", baseFee: 7.5, minDelayHours: 18 },
+  });
+
+  await page.getByRole("button", { name: "Supprimer Belgique" }).click();
+  const deletion = page.getByRole("alertdialog", { name: "Supprimer cette route ?" });
+  await expect(deletion).toContainText("commandes existantes conserveront leur transporteur");
+  await expect.poll(() => logisticsMutations.length).toBe(1);
+  await deletion.getByRole("button", { name: "Annuler" }).click();
+
+  await page.getByRole("tab", { name: /Simulateur client/ }).click();
+  const simulator = page.getByRole("form", { name: "Simulateur de livraison" });
+  await simulator.getByLabel("Contrainte thermique").selectOption("FROZEN");
+  await simulator.getByLabel("Poids du panier (kg)").fill("4.2");
+  await simulator.getByRole("button", { name: "Calculer les 3 options" }).click();
+  const results = page.getByTestId("shipping-simulation-results");
+  await expect(results).toContainText("Chrono Frais");
+  await expect(results).toContainText("JMA Express");
+  await expect(results).toContainText("Indisponible avec cette contrainte thermique");
+  await expect(results.locator("article")).toHaveCount(3);
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  await expectBrandSafeUiColors(page);
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `logistics-simulator-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+});
+
 test("platform settings publish durable customer-facing contact details", async ({ page }) => {
   await mockAdminApi(page);
   await page.goto("/admin#settings", { waitUntil: "domcontentloaded" });
@@ -804,7 +934,7 @@ test("the team cockpit grants least-privilege access and documents sensitive dec
   await expect(page.getByText("Inviter, suspendre et suivre", { exact: true })).toBeVisible();
   await expect(page.getByText("Comparer chaque autorisation", { exact: true })).toBeVisible();
   await expect(page.getByText("Couverture déléguée", { exact: true })).toBeVisible();
-  await expect(page.getByText("6/10", { exact: true })).toBeVisible();
+  await expect(page.getByText("6/12", { exact: true })).toBeVisible();
   await expect(page.getByText(/1 invitation en attente · 1 compte suspendu/)).toBeVisible();
 
   await page.getByRole("button", { name: "Inviter un membre" }).click();
@@ -1872,6 +2002,11 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   await expect(dialog.getByTestId("recipe-step-preview-1")).toContainText(/résultat attendu|expected result/i);
   await expect(dialog.getByLabel("Temps actif de l'étape 1")).toHaveValue("5");
   await expect(dialog.getByLabel("Résultat attendu de l'étape 1 fr")).not.toHaveValue("");
+  await dialog.getByLabel("Matériel de l'étape 1 fr").fill("");
+  await dialog.getByLabel("Conseil de l'étape 1 fr").fill("");
+  await dialog.getByRole("button", { name: "Compléter les repères" }).first().click();
+  await expect(dialog.getByLabel("Matériel de l'étape 1 fr")).not.toHaveValue("");
+  await expect(dialog.getByLabel("Conseil de l'étape 1 fr")).not.toHaveValue("");
   await expect(dialog.getByLabel("Produit 1")).toHaveValue("product-1");
   await expect(dialog.getByText(/75 disponibles/)).toBeVisible();
   await expect(dialog.getByText(/9 réservés/)).toBeVisible();

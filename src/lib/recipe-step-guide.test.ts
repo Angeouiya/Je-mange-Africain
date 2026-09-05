@@ -25,6 +25,8 @@ describe("recipe preparation guide", () => {
     expect(guide.heat).toBe("none");
     expect(guide.cue).toContain("réguliers");
     expect(guide.tip.length).toBeGreaterThan(30);
+    expect(guide.equipment).toContain("couteau");
+    expect(guide.phaseLabel).toBe("Mise en place");
   });
 
   it("localises labels and emits an oil safety warning", () => {
@@ -33,6 +35,8 @@ describe("recipe preparation guide", () => {
     expect(guide.durationLabel).toBe("6 min");
     expect(guide.heatLabel).toBe("High heat");
     expect(guide.warning).toContain("water away from the oil");
+    expect(guide.equipment).toContain("slotted spoon");
+    expect(guide.phaseLabel).toBe("Cooking");
   });
 
   it("prioritises the cooking action when a short instruction also mentions serving", () => {
@@ -46,6 +50,9 @@ describe("recipe preparation guide", () => {
     const guide = buildRecipeStepGuide("Mariner le poisson 20 minutes pendant que le gril préchauffe.", 0, "fr");
 
     expect(guide.title).toBe("Laisser agir et préchauffer");
+    expect(guide.durationMinutes).toBe(2);
+    expect(guide.restMinutes).toBe(20);
+    expect(guide.restLabel).toBe("20 min");
     expect(guide.cue).toContain("temps de repos");
     expect(guide.cue).not.toContain("chair est opaque");
   });

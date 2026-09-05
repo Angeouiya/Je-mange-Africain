@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, CookingPot, Eye, Flame, Hourglass, Lightbulb, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, Search, ShieldAlert, Thermometer, Timer, Trash2, UsersRound } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, CookingPot, Eye, Flame, Hourglass, Lightbulb, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, Search, ShieldAlert, Thermometer, Timer, Trash2, UsersRound, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -176,8 +176,8 @@ const stepDetailFromInstructions = (stepFr: string, stepEn: string, index: numbe
     restMinutes: String(french.restMinutes),
     heat: french.heat,
     temperatureC: "",
-    equipmentFr: "",
-    equipmentEn: "",
+    equipmentFr: french.equipment || "",
+    equipmentEn: english.equipment || "",
     cueFr: french.cue,
     cueEn: english.cue,
     tipFr: french.tip,
@@ -373,7 +373,10 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
 
   const update = <K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const updateStep = (language: "stepsFr" | "stepsEn", index: number, value: string) => update(language, draft[language].map((step, stepIndex) => stepIndex === index ? value : step));
-  const updateStepDetail = <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => update("stepDetails", draft.stepDetails.map((detail, stepIndex) => stepIndex === index ? { ...detail, [key]: value } : detail));
+  const updateStepDetail = <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => setDraft((current) => ({
+    ...current,
+    stepDetails: current.stepDetails.map((detail, stepIndex) => stepIndex === index ? { ...detail, [key]: value } : detail),
+  }));
   const addStep = () => setDraft((current) => ({ ...current, stepsFr: [...current.stepsFr, ""], stepsEn: [...current.stepsEn, ""], stepDetails: [...current.stepDetails, emptyStepDetail()] }));
   const moveStep = (index: number, direction: -1 | 1) => setDraft((current) => {
     const target = index + direction;
@@ -672,6 +675,24 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
         : detailed
           ? { label: isFr ? "À enrichir" : "Add more detail", className: "bg-gold/15 text-charcoal" }
           : { label: isFr ? "Trop bref" : "Too brief", className: "bg-terre/[0.08] text-terre" };
+      const completeGuidance = () => {
+        const french = buildRecipeStepGuide(step, index, "fr");
+        const english = buildRecipeStepGuide(stepsEn[index] || "", index, "en");
+        const values: Array<[keyof StepDetailDraft, string]> = [
+          ["durationMinutes", detail.durationMinutes || String(french.durationMinutes)],
+          ["restMinutes", Number(detail.restMinutes) > 0 ? detail.restMinutes : String(french.restMinutes)],
+          ["heat", detail.heat === "none" ? french.heat : detail.heat],
+          ["equipmentFr", detail.equipmentFr || french.equipment || ""],
+          ["equipmentEn", detail.equipmentEn || english.equipment || ""],
+          ["cueFr", detail.cueFr || french.cue],
+          ["cueEn", detail.cueEn || english.cue],
+          ["tipFr", detail.tipFr || french.tip],
+          ["tipEn", detail.tipEn || english.tip],
+          ["warningFr", detail.warningFr || french.warning || ""],
+          ["warningEn", detail.warningEn || english.warning || ""],
+        ];
+        values.forEach(([key, value]) => onChangeDetail(index, key, value as never));
+      };
       return <li key={index} className="grid gap-3 border-y border-border bg-white px-3 py-3 lg:grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem] lg:items-start">
         <span className="grid h-8 w-8 place-items-center rounded-md bg-burgundy text-[10px] font-black text-white">{index + 1}</span>
         <div><Label className="mb-1.5 block lg:hidden">{isFr ? "Français" : "French"}</Label><Textarea aria-label={isFr ? `Étape ${index + 1} en français` : `Step ${index + 1} in French`} value={step} onChange={(event) => onChangeFr(index, event.target.value)} rows={4} maxLength={800} className="min-h-28 resize-y leading-5" placeholder="Ex. Cuire à feu doux 12 minutes en remuant toutes les 2 minutes, jusqu’à ce que la sauce soit brillante et nappe la cuillère." /></div>
@@ -683,6 +704,10 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
         </div>
         <fieldset className="min-w-0 border-t border-border pt-3 lg:col-span-3 lg:col-start-2" data-testid={`recipe-step-details-${index + 1}`}>
           <legend className="pr-2 text-[9px] font-black uppercase text-burgundy">{isFr ? "Repères professionnels" : "Professional cues"}</legend>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-[9px] leading-4 text-muted-foreground">{isFr ? "Complétez le geste, le matériel, le résultat attendu et les points de vigilance." : "Complete the action, equipment, expected result and safety cues."}</p>
+            <Button type="button" variant="outline" size="sm" onClick={completeGuidance} disabled={!step.trim() || !(stepsEn[index] || "").trim()} className="h-8 shrink-0 border-burgundy/20 bg-white px-2 text-[9px] font-bold text-burgundy hover:bg-burgundy hover:text-white"><WandSparkles className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Compléter les repères" : "Complete cues"}</Button>
+          </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Field label={isFr ? "Temps actif (min)" : "Active time (min)"} required><Input aria-label={`${isFr ? "Temps actif de l'étape" : "Step active time"} ${index + 1}`} type="number" inputMode="numeric" min="1" max="240" value={detail.durationMinutes} onChange={(event) => onChangeDetail(index, "durationMinutes", event.target.value)} /></Field>
             <Field label={isFr ? "Repos (min)" : "Rest (min)"}><Input aria-label={`${isFr ? "Temps de repos de l'étape" : "Step resting time"} ${index + 1}`} type="number" inputMode="numeric" min="0" max="720" value={detail.restMinutes} onChange={(event) => onChangeDetail(index, "restMinutes", event.target.value)} /></Field>

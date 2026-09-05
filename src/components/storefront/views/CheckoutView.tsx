@@ -175,7 +175,12 @@ export function CheckoutView() {
       }).then((quote) => {
         if (!cancelled) {
           setShipQuote(quote);
-          setSlot((current) => quote.options.some((option) => option.service === current && option.available) ? current : "standard");
+          setSlot((current) => {
+            if (quote.options.some((option) => option.service === current && option.available)) return current;
+            return quote.options.find((option) => option.service === "standard" && option.available)?.service
+              || quote.options.find((option) => option.available)?.service
+              || current;
+          });
         }
       }).catch(() => {
         if (!cancelled) setShipQuote(null);

@@ -4,6 +4,7 @@ export type AdminSectionId =
   | "recipes"
   | "orders"
   | "inventory"
+  | "logistics"
   | "customers"
   | "campaigns"
   | "advertising"

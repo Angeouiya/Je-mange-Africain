@@ -14,4 +14,12 @@ describe("platform settings permissions", () => {
     expect(hasAdminPermission("support", "settings", "read")).toBe(false);
     expect(permissionsForRole("accounting")).not.toHaveProperty("settings");
   });
+
+  it("gives logistics teams the delivery workspace without widening unrelated access", () => {
+    expect(hasAdminPermission("logistics", "logistics", "read")).toBe(true);
+    expect(hasAdminPermission("logistics", "logistics", "update")).toBe(true);
+    expect(hasAdminPermission("warehouse_manager", "logistics", "read")).toBe(true);
+    expect(hasAdminPermission("warehouse_manager", "logistics", "update")).toBe(false);
+    expect(hasAdminPermission("marketing", "logistics", "read")).toBe(false);
+  });
 });

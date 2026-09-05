@@ -6,7 +6,7 @@ import {
   Users, Clock, Flame, Minus, Plus, ShoppingCart, RotateCcw,
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
   Trash2, Undo2, RefreshCw, House, ChevronDown, ChefHat, ArrowRight,
-  Timer, Eye, Lightbulb,
+  Timer, Eye, Lightbulb, Play, Pause,
   CookingPot, Hourglass, Thermometer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { getPreparationProgress, togglePreparationStep } from "@/lib/recipe-prep
 import { buildRecipeStepGuides, type RecipeStepDetails } from "@/lib/recipe-step-guide";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { recipeEditorialHighlight } from "@/lib/editorial-flags";
+import { ingredientsForPreparationStep } from "@/lib/recipe-step-ingredients";
 
 interface CalcResult {
   ingredients: any[];
@@ -241,12 +242,14 @@ export function RecipeConfiguratorView() {
   const preparationSourceIndexes = calc?.stepSourceIndexes?.[locale as "fr" | "en"] || preparationSteps.map((_: string, index: number) => index);
   const preparationDetails = preparationSourceIndexes.map((sourceIndex: number) => recipe.stepDetails?.[sourceIndex] || {}) as RecipeStepDetails[];
   const preparationGuides = buildRecipeStepGuides(preparationSteps, locale, preparationDetails);
+  const preparationIngredientGroups = preparationSteps.map((step: string) => ingredientsForPreparationStep(step, calc?.ingredients || [], locale));
   const activePreparationMinutes = preparationGuides.reduce((total, guide) => total + guide.durationMinutes, 0);
   const restingPreparationMinutes = preparationGuides.reduce((total, guide) => total + guide.restMinutes, 0);
   const preparationEquipment = Array.from(new Set(preparationGuides.map((guide) => guide.equipment).filter(Boolean)));
   const preparationProgress = getPreparationProgress(preparationSteps.length, completedSteps);
   const completedStepCount = preparationProgress.completedCount;
   const currentPreparationGuide = preparationProgress.nextStepIndex === null ? null : preparationGuides[preparationProgress.nextStepIndex];
+  const currentPreparationIngredients = preparationProgress.nextStepIndex === null ? [] : preparationIngredientGroups[preparationProgress.nextStepIndex] || [];
   const toggleStep = (index: number) => setCompletedSteps((previous) => togglePreparationStep(preparationSteps.length, previous, index));
   const completeCurrentStep = () => {
     if (preparationProgress.nextStepIndex === null) return;
@@ -544,6 +547,18 @@ export function RecipeConfiguratorView() {
                       <PreparationSummaryMetric icon={CookingPot} label={locale === "fr" ? "Matériel" : "Equipment"} value={String(preparationEquipment.length)} />
                       <PreparationSummaryMetric icon={Clock} label={locale === "fr" ? "Total recette" : "Recipe total"} value={`${recipe.timeMinutes} min`} />
                     </div>
+                    <section className="mb-4 border-y border-burgundy/12 bg-[#FFFCFA] px-3 py-3" aria-labelledby="recipe-mise-en-place-title" data-testid="recipe-mise-en-place">
+                      <div className="flex items-start gap-3">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy/[0.07] text-burgundy"><CookingPot className="h-4 w-4" /></span>
+                        <div className="min-w-0 flex-1">
+                          <h3 id="recipe-mise-en-place-title" className="text-xs font-black text-charcoal">{locale === "fr" ? "Mise en place avant cuisson" : "Before you start"}</h3>
+                          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{locale === "fr" ? `Pesez les ${calc?.ingredients.filter((ingredient) => ingredient.removalReason !== "excluded" && ingredient.removalReason !== "protein-none").length || 0} ingrédients adaptés pour ${servings} personnes, lisez les ${preparationGuides.length} gestes et préparez le matériel avant d'allumer le feu.` : `Measure the ${calc?.ingredients.filter((ingredient) => ingredient.removalReason !== "excluded" && ingredient.removalReason !== "protein-none").length || 0} adjusted ingredients for ${servings} people, read all ${preparationGuides.length} actions and set out the equipment before applying heat.`}</p>
+                        </div>
+                      </div>
+                      <div tabIndex={0} className="mt-3 flex gap-1.5 overflow-x-auto pb-1 outline-none focus-visible:ring-2 focus-visible:ring-terre/30 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={locale === "fr" ? "Matériel à préparer" : "Equipment to prepare"}>
+                        {preparationEquipment.map((equipment) => <span key={equipment} className="shrink-0 rounded-md border border-terre/15 bg-white px-2 py-1 text-[9px] font-bold text-charcoal">{equipment}</span>)}
+                      </div>
+                    </section>
                     {preparationAdjustments.length > 0 ? (
                       <div className="mb-3 border-l-2 border-gold bg-gold/8 px-3 py-2">
                         <p className="text-xs font-bold text-charcoal">{locale === "fr" ? "Vos adaptations à appliquer pendant la préparation" : "Your preparation adjustments"}</p>
@@ -577,12 +592,14 @@ export function RecipeConfiguratorView() {
                       </div>
                       {!preparationProgress.isComplete && currentPreparationGuide ? (
                         <div className="divide-y divide-burgundy/10 bg-white/55 px-3 md:px-4">
+                          {currentPreparationIngredients.length ? <PreparationIngredients ingredients={currentPreparationIngredients} locale={locale} /> : null}
                           {currentPreparationGuide.equipment ? <PreparationInsight icon={CookingPot} label={locale === "fr" ? "Matériel" : "Equipment"} text={currentPreparationGuide.equipment} tone="equipment" /> : null}
                           <PreparationInsight icon={Eye} label={locale === "fr" ? "Repère de réussite" : "Success cue"} text={currentPreparationGuide.cue} tone="success" />
                           <PreparationInsight icon={Lightbulb} label={locale === "fr" ? "Conseil cuisine" : "Kitchen tip"} text={currentPreparationGuide.tip} tone="tip" />
                           {currentPreparationGuide.warning ? <PreparationInsight icon={AlertTriangle} label={locale === "fr" ? "Vigilance" : "Take care"} text={currentPreparationGuide.warning} tone="warning" /> : null}
                         </div>
                       ) : null}
+                      {!preparationProgress.isComplete && currentPreparationGuide ? <KitchenTimer key={`${recipe.id}-${preparationProgress.nextStepIndex}`} minutes={currentPreparationGuide.durationMinutes} locale={locale} /> : null}
                       <div className="flex flex-wrap items-center gap-2 px-3 py-3 md:px-4">
                         {!preparationProgress.isComplete ? <Button type="button" size="sm" onClick={completeCurrentStep} className="h-9 flex-1 bg-terre text-white hover:bg-terre-dark"><Check className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Terminer et continuer" : "Complete and continue"}<ArrowRight className="ml-1.5 h-4 w-4" /></Button> : <Button type="button" size="sm" onClick={() => setCompletedSteps([])} className="h-9 flex-1 bg-burgundy text-white hover:bg-burgundy-dark"><RotateCcw className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Refaire la préparation" : "Cook again"}</Button>}
                         <Button type="button" size="sm" variant="outline" onClick={undoLastStep} disabled={preparationProgress.lastCompletedStepIndex === null} className="h-9 border-burgundy/20 px-3 text-burgundy" aria-label={locale === "fr" ? "Revenir d'une étape" : "Go back one step"}><Undo2 className="mr-1.5 h-4 w-4" />{locale === "fr" ? "Revenir" : "Back"}</Button>
@@ -604,7 +621,7 @@ export function RecipeConfiguratorView() {
                             </span>
                             <span className={`min-w-0 flex-1 ${completedSteps.includes(i) ? "text-muted-foreground" : ""}`}>
                               <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                                <span className={`font-black leading-5 ${completedSteps.includes(i) ? "line-through" : "text-charcoal"}`}>{guide.title}</span>
+                                <span className={`font-black leading-5 ${completedSteps.includes(i) ? "line-through" : "text-charcoal"}`}><span className="mr-1.5 rounded bg-burgundy/[0.07] px-1.5 py-0.5 text-[8px] uppercase text-burgundy">{guide.phaseLabel}</span><span>{guide.title}</span></span>
                                 <span className="inline-flex shrink-0 items-center gap-2 text-[9px] font-bold text-muted-foreground">
                                   <span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span>
                                   {guide.restLabel ? <span className="inline-flex items-center gap-1"><Hourglass className="h-3 w-3 text-gold" />{guide.restLabel}</span> : null}
@@ -613,6 +630,7 @@ export function RecipeConfiguratorView() {
                                 </span>
                               </span>
                               <span className={`mt-1 block text-xs leading-5 ${completedSteps.includes(i) ? "line-through" : "text-charcoal/75"}`}>{guide.instruction}</span>
+                              {preparationIngredientGroups[i]?.length ? <span className="mt-2 block text-[10px] font-semibold leading-4 text-terre">{locale === "fr" ? "Pour cette étape : " : "For this step: "}{preparationIngredientGroups[i].map((ingredient: any) => `${formatQty(ingredient.neededQty, ingredient.neededUnit, locale)} ${locale === "fr" ? ingredient.nameFr : ingredient.nameEn}`).join(" · ")}</span> : null}
                               <span className="mt-2 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Eye className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Résultat :" : "Result:"}</strong> {guide.cue}</span></span>
                               {guide.equipment ? <span className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><CookingPot className="mt-0.5 h-3 w-3 shrink-0 text-terre" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Matériel :" : "Equipment:"}</strong> {guide.equipment}</span></span> : null}
                             </span>
@@ -676,6 +694,58 @@ function RecipeFlowButton({ active, onClick, icon: Icon, number, label, detail }
       <span className="min-w-0"><span className="block truncate text-[10px] font-bold md:text-xs">{label}</span><span className="block truncate text-[8px] font-semibold text-muted-foreground md:text-[9px]">{detail}</span></span>
       {active ? <span className="absolute inset-x-3 bottom-0 h-0.5 bg-terre" /> : null}
     </button>
+  );
+}
+
+function PreparationIngredients({ ingredients, locale }: { ingredients: any[]; locale: "fr" | "en" }) {
+  return (
+    <div className="py-2.5" data-testid="recipe-step-ingredients">
+      <p className="text-[9px] font-black uppercase text-charcoal/75">{locale === "fr" ? "Ingrédients de cette étape" : "Ingredients for this step"}</p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        {ingredients.map((ingredient) => {
+          const name = locale === "fr" ? ingredient.nameFr : ingredient.nameEn;
+          return <div key={ingredient.recipeIngredientId} className="flex min-w-0 items-center gap-2"><ProductImage src={ingredient.imageUrl} alt="" emoji={ingredient.emoji} color={ingredient.color} size="sm" className="h-8 w-8 shrink-0" rounded="rounded-md" /><span className="min-w-0"><span className="block truncate text-[10px] font-bold text-charcoal">{name}</span><span className="block text-[9px] font-semibold text-terre">{formatQty(ingredient.neededQty, ingredient.neededUnit, locale)}</span></span></div>;
+        })}
+      </div>
+    </div>
+  );
+}
+
+function KitchenTimer({ minutes, locale }: { minutes: number; locale: "fr" | "en" }) {
+  const totalSeconds = Math.max(60, Math.round(minutes * 60));
+  const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    if (!running || remainingSeconds === 0) return;
+    const timeout = window.setTimeout(() => {
+      setRemainingSeconds((remaining) => Math.max(0, remaining - 1));
+    }, 1000);
+    return () => window.clearTimeout(timeout);
+  }, [remainingSeconds, running]);
+
+  const reset = () => {
+    setRunning(false);
+    setRemainingSeconds(totalSeconds);
+  };
+  const displayMinutes = Math.floor(remainingSeconds / 60);
+  const displaySeconds = String(remainingSeconds % 60).padStart(2, "0");
+  const elapsedPercent = Math.min(100, ((totalSeconds - remainingSeconds) / totalSeconds) * 100);
+  const complete = remainingSeconds === 0;
+
+  return (
+    <section className="border-y border-burgundy/10 bg-[#FFFCFA] px-3 py-2.5 md:px-4" aria-label={locale === "fr" ? "Chronomètre de l'étape" : "Step timer"} data-testid="recipe-kitchen-timer">
+      <div className="flex items-center gap-3">
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${complete ? "bg-burgundy text-white" : "bg-gold/15 text-burgundy"}`}><Timer className="h-4 w-4" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[8px] font-black uppercase text-muted-foreground">{complete ? (locale === "fr" ? "Temps écoulé" : "Time elapsed") : (locale === "fr" ? "Chronomètre cuisine" : "Kitchen timer")}</p>
+          <p role="timer" aria-live="off" className="mt-0.5 font-mono text-lg font-black tabular-nums text-charcoal">{displayMinutes}:{displaySeconds}</p>
+        </div>
+        <Button type="button" size="icon" variant="outline" onClick={() => setRunning((value) => !value)} disabled={complete} className="h-10 w-10 border-terre/20 text-terre" aria-label={running && !complete ? (locale === "fr" ? "Mettre le chronomètre en pause" : "Pause timer") : (locale === "fr" ? "Lancer le chronomètre" : "Start timer")}>{running && !complete ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
+        <Button type="button" size="icon" variant="ghost" onClick={reset} disabled={remainingSeconds === totalSeconds && !running} className="h-10 w-10 text-burgundy" aria-label={locale === "fr" ? "Réinitialiser le chronomètre" : "Reset timer"}><RotateCcw className="h-4 w-4" /></Button>
+      </div>
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-burgundy/10" aria-hidden="true"><div className="h-full rounded-full bg-terre transition-[width] duration-300" style={{ width: `${elapsedPercent}%` }} /></div>
+    </section>
   );
 }
 
