@@ -7,7 +7,7 @@ import {
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
   Trash2, Undo2, RefreshCw, House, ChevronDown, ChefHat, ArrowRight,
   Timer, Eye, Lightbulb, Play, Pause,
-  CookingPot, Hourglass, Thermometer,
+  CircleHelp, CookingPot, Hourglass, LifeBuoy, Thermometer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -242,7 +242,7 @@ export function RecipeConfiguratorView() {
   const preparationSourceIndexes = calc?.stepSourceIndexes?.[locale as "fr" | "en"] || preparationSteps.map((_: string, index: number) => index);
   const preparationDetails = preparationSourceIndexes.map((sourceIndex: number) => recipe.stepDetails?.[sourceIndex] || {}) as RecipeStepDetails[];
   const preparationGuides = buildRecipeStepGuides(preparationSteps, locale, preparationDetails);
-  const preparationIngredientGroups = preparationSteps.map((step: string) => ingredientsForPreparationStep(step, calc?.ingredients || [], locale));
+  const preparationIngredientGroups = preparationSteps.map((step: string, index: number) => ingredientsForPreparationStep(step, calc?.ingredients || [], locale, preparationDetails[index]?.ingredientProductIds || []));
   const activePreparationMinutes = preparationGuides.reduce((total, guide) => total + guide.durationMinutes, 0);
   const restingPreparationMinutes = preparationGuides.reduce((total, guide) => total + guide.restMinutes, 0);
   const preparationEquipment = Array.from(new Set(preparationGuides.map((guide) => guide.equipment).filter(Boolean)));
@@ -594,9 +594,11 @@ export function RecipeConfiguratorView() {
                         <div className="divide-y divide-burgundy/10 bg-white/55 px-3 md:px-4">
                           {currentPreparationIngredients.length ? <PreparationIngredients ingredients={currentPreparationIngredients} locale={locale} /> : null}
                           {currentPreparationGuide.equipment ? <PreparationInsight icon={CookingPot} label={locale === "fr" ? "Matériel" : "Equipment"} text={currentPreparationGuide.equipment} tone="equipment" /> : null}
+                          <PreparationInsight icon={CircleHelp} label={locale === "fr" ? "Pourquoi ce geste" : "Why this matters"} text={currentPreparationGuide.why} tone="rationale" />
                           <PreparationInsight icon={Eye} label={locale === "fr" ? "Repère de réussite" : "Success cue"} text={currentPreparationGuide.cue} tone="success" />
                           <PreparationInsight icon={Lightbulb} label={locale === "fr" ? "Conseil cuisine" : "Kitchen tip"} text={currentPreparationGuide.tip} tone="tip" />
                           {currentPreparationGuide.warning ? <PreparationInsight icon={AlertTriangle} label={locale === "fr" ? "Vigilance" : "Take care"} text={currentPreparationGuide.warning} tone="warning" /> : null}
+                          <PreparationInsight icon={LifeBuoy} label={locale === "fr" ? "Si le résultat n’est pas atteint" : "If the result is not there"} text={currentPreparationGuide.recovery} tone="recovery" />
                         </div>
                       ) : null}
                       {!preparationProgress.isComplete && currentPreparationGuide ? <KitchenTimer key={`${recipe.id}-${preparationProgress.nextStepIndex}`} minutes={currentPreparationGuide.durationMinutes} locale={locale} /> : null}
@@ -633,6 +635,10 @@ export function RecipeConfiguratorView() {
                               {preparationIngredientGroups[i]?.length ? <span className="mt-2 block text-[10px] font-semibold leading-4 text-terre">{locale === "fr" ? "Pour cette étape : " : "For this step: "}{preparationIngredientGroups[i].map((ingredient: any) => `${formatQty(ingredient.neededQty, ingredient.neededUnit, locale)} ${locale === "fr" ? ingredient.nameFr : ingredient.nameEn}`).join(" · ")}</span> : null}
                               <span className="mt-2 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Eye className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Résultat :" : "Result:"}</strong> {guide.cue}</span></span>
                               {guide.equipment ? <span className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><CookingPot className="mt-0.5 h-3 w-3 shrink-0 text-terre" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Matériel :" : "Equipment:"}</strong> {guide.equipment}</span></span> : null}
+                              <span className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><CircleHelp className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Pourquoi :" : "Why:"}</strong> {guide.why}</span></span>
+                              <span className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Lightbulb className="mt-0.5 h-3 w-3 shrink-0 text-gold" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Conseil :" : "Tip:"}</strong> {guide.tip}</span></span>
+                              {guide.warning ? <span className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-terre"><AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /><span><strong>{locale === "fr" ? "Vigilance :" : "Take care:"}</strong> {guide.warning}</span></span> : null}
+                              <span className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-terre"><LifeBuoy className="mt-0.5 h-3 w-3 shrink-0" /><span><strong>{locale === "fr" ? "Rattrapage :" : "Recovery:"}</strong> {guide.recovery}</span></span>
                             </span>
                           </button>
                         </li>
@@ -757,8 +763,8 @@ function PreparationSummaryMetric({ icon: Icon, label, value }: { icon: React.Co
   return <div className="min-w-0 px-1"><Icon className="mx-auto h-3.5 w-3.5 text-terre" /><p className="mt-1 truncate text-[10px] font-black text-charcoal">{value}</p><p className="truncate text-[8px] font-semibold uppercase text-muted-foreground">{label}</p></div>;
 }
 
-function PreparationInsight({ icon: Icon, label, text, tone }: { icon: React.ComponentType<{ className?: string }>; label: string; text: string; tone: "success" | "tip" | "warning" | "equipment" }) {
-  const toneClasses = tone === "success" ? "text-burgundy" : tone === "warning" || tone === "equipment" ? "text-terre" : "text-charcoal";
+function PreparationInsight({ icon: Icon, label, text, tone }: { icon: React.ComponentType<{ className?: string }>; label: string; text: string; tone: "success" | "tip" | "warning" | "equipment" | "rationale" | "recovery" }) {
+  const toneClasses = tone === "success" || tone === "rationale" ? "text-burgundy" : tone === "warning" || tone === "equipment" || tone === "recovery" ? "text-terre" : "text-charcoal";
   return (
     <div className="flex items-start gap-2 py-2.5">
       <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${toneClasses}`} />

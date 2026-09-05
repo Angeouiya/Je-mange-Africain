@@ -56,6 +56,27 @@ const validRecipe = {
   status: "published",
   stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
   stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
+  stepDetails: [0, 1].map((index) => ({
+    titleFr: index === 0 ? "Assaisonner le poisson" : "Braiser et dresser",
+    titleEn: index === 0 ? "Season the fish" : "Grill and plate",
+    durationMinutes: index === 0 ? 8 : 14,
+    restMinutes: index === 0 ? 10 : 0,
+    heat: index === 0 ? "none" : "high",
+    temperatureC: null,
+    equipmentFr: "Grand bol et pince",
+    equipmentEn: "Large bowl and tongs",
+    cueFr: "Le poisson est uniformément enrobé et prêt pour la cuisson.",
+    cueEn: "The fish is evenly coated and ready for cooking.",
+    tipFr: "Retourner le poisson avec une spatule large.",
+    tipEn: "Turn the fish with a wide spatula.",
+    warningFr: "Nettoyer la planche après le poisson cru.",
+    warningEn: "Clean the board after handling raw fish.",
+    whyFr: "Un assaisonnement uniforme garantit une cuisson régulière.",
+    whyEn: "Even seasoning supports consistent cooking.",
+    recoveryFr: "Prolonger la cuisson deux minutes si le centre reste translucide.",
+    recoveryEn: "Cook for two more minutes if the centre remains translucent.",
+    ingredientProductIds: ["product-1"],
+  })),
   ingredients: [{ productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"] }],
 };
 
@@ -82,7 +103,9 @@ describe("PATCH /api/admin/recipes/:id", () => {
     expect(response.status).toBe(200);
     expect(mocks.translationUpsert).toHaveBeenCalledTimes(2);
     const frenchUpdate = mocks.translationUpsert.mock.calls.find(([call]) => call.where.recipeId_locale.locale === "fr")?.[0];
-    expect(parseRecipeSteps(frenchUpdate.update.steps, "fr").map((step) => step.instruction)).toEqual(validRecipe.stepsFr);
+    const storedFrenchSteps = parseRecipeSteps(frenchUpdate.update.steps, "fr");
+    expect(storedFrenchSteps.map((step) => step.instruction)).toEqual(validRecipe.stepsFr);
+    expect(storedFrenchSteps[0]).toMatchObject({ title: "Assaisonner le poisson", why: expect.stringContaining("cuisson régulière"), recovery: expect.stringContaining("deux minutes"), ingredientProductIds: ["product-1"] });
     expect(mocks.ingredientDeleteMany).toHaveBeenCalledWith({ where: { recipeId: "recipe-1" } });
     expect(mocks.ingredientCreateMany).toHaveBeenCalledWith({ data: [expect.objectContaining({ recipeId: "recipe-1", productId: "product-1", quantityPerBase: 500, alternatives: '["product-2"]' })] });
     expect(mocks.auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ action: "recipe_update", entityId: "recipe-1" }) });

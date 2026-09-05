@@ -71,11 +71,19 @@ describe("admin recipe contract", () => {
       tipEn: "Stir from the bottom.",
       warningFr: "Attention à la vapeur.",
       warningEn: "Watch out for steam.",
+      titleFr: "Lier la sauce",
+      titleEn: "Bind the sauce",
+      whyFr: "La cuisson douce concentre les aromates sans brûler la base.",
+      whyEn: "Gentle cooking concentrates the aromatics without scorching the base.",
+      recoveryFr: "Ajouter une cuillère d'eau chaude si la sauce épaissit trop.",
+      recoveryEn: "Add one spoonful of hot water if the sauce becomes too thick.",
+      ingredientProductIds: ["product-1"],
     };
     const result = recipeAdminInput.parse({ ...validRecipe, stepDetails: [detail, detail] });
 
     expect(result.stepDetails[0]).toMatchObject({ durationMinutes: 12, restMinutes: 5, temperatureC: 95 });
     expect(recipeAdminInput.safeParse({ ...validRecipe, stepDetails: [detail] }).success).toBe(false);
+    expect(recipeAdminInput.safeParse({ ...validRecipe, stepDetails: [{ ...detail, ingredientProductIds: ["unknown-product"] }, detail] }).success).toBe(false);
   });
 
   it("creates a stable URL slug from an accented French title", () => {

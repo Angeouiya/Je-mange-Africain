@@ -49,6 +49,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const englishStep = englishSteps[index];
     const timing = frenchStep || englishStep;
     return {
+      titleFr: frenchStep?.title || "",
+      titleEn: englishStep?.title || "",
       durationMinutes: timing?.durationMinutes || 5,
       restMinutes: timing?.restMinutes || 0,
       heat: timing?.heat || "none",
@@ -61,6 +63,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       tipEn: englishStep?.tip || "",
       warningFr: frenchStep?.warning || "",
       warningEn: englishStep?.warning || "",
+      whyFr: frenchStep?.why || "",
+      whyEn: englishStep?.why || "",
+      recoveryFr: frenchStep?.recovery || "",
+      recoveryEn: englishStep?.recovery || "",
+      ingredientProductIds: timing?.ingredientProductIds || [],
     };
   });
 

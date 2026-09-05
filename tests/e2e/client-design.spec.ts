@@ -1456,6 +1456,7 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
     payload.isPopular = false;
     payload.isRecommended = true;
     payload.stepDetails = payload.steps.map((_: string, index: number) => ({
+      title: index === 0 ? "Construire la base aromatique" : `Maîtriser le geste ${index + 1}`,
       durationMinutes: 12 + index,
       restMinutes: index === 0 ? 5 : 0,
       heat: index === 0 ? "low" : "medium",
@@ -1464,6 +1465,9 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
       cue: "La texture est homogène, brillante et prête pour le geste suivant.",
       tip: "Préparer les ingrédients du geste suivant avant de continuer.",
       warning: index === 0 ? "Diriger la vapeur loin du visage et des mains." : null,
+      why: "Cette action construit une texture régulière et concentre les arômes sans brusquer la cuisson.",
+      recovery: "Si le repère manque, corriger une seule variable puis contrôler de nouveau avant de poursuivre.",
+      ingredientProductIds: index === 0 && payload.ingredients[0]?.productId ? [payload.ingredients[0].productId] : [],
     }));
     await route.fulfill({ response, json: payload });
   });
@@ -1558,6 +1562,8 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(cookingFocus).toContainText(/cocotte à fond épais|heavy pot/i);
   await expect(cookingFocus).toContainText(/repère de réussite|success cue/i);
   await expect(cookingFocus).toContainText(/conseil cuisine|kitchen tip/i);
+  await expect(cookingFocus).toContainText(/pourquoi ce geste|why this matters/i);
+  await expect(cookingFocus).toContainText(/si le résultat n’est pas atteint|if the result is not there/i);
   const kitchenTimer = cookingFocus.getByTestId("recipe-kitchen-timer");
   await expect(kitchenTimer.getByRole("timer")).toHaveText("12:00");
   await kitchenTimer.getByRole("button", { name: /lancer le chronomètre|start timer/i }).click();
@@ -1565,6 +1571,7 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect.poll(() => kitchenTimer.getByRole("timer").textContent()).toBe("11:59");
   await kitchenTimer.getByRole("button", { name: /mettre le chronomètre en pause|pause timer/i }).click();
   await expect(page.getByTestId("recipe-detailed-steps")).toContainText(/résultat|result/i);
+  await expect(page.getByTestId("recipe-detailed-steps")).toContainText(/rattrapage|recovery/i);
   const preparationProgress = page.locator("#recipe-preparation").getByRole("progressbar");
   await expect(preparationProgress).toHaveAttribute("aria-valuenow", "0");
   await cookingFocus.getByRole("button", { name: /terminer et continuer|complete and continue/i }).click();

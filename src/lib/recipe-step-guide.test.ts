@@ -25,6 +25,8 @@ describe("recipe preparation guide", () => {
     expect(guide.heat).toBe("none");
     expect(guide.cue).toContain("réguliers");
     expect(guide.tip.length).toBeGreaterThan(30);
+    expect(guide.why).toContain("même rythme");
+    expect(guide.recovery).toContain("Recoupez");
     expect(guide.equipment).toContain("couteau");
     expect(guide.phaseLabel).toBe("Mise en place");
   });
@@ -105,5 +107,19 @@ describe("recipe preparation guide", () => {
       equipment: "Cocotte à fond épais et cuillère en bois",
     });
     expect(guide.cue).toContain("trace nette");
+  });
+
+  it("keeps authored titles, rationale, recovery and ingredient links", () => {
+    const guide = buildRecipeStepGuide("Mijoter la sauce.", 2, "fr", {
+      title: "Concentrer la sauce graine",
+      why: "La réduction lente concentre les aromates sans brûler la base.",
+      recovery: "Ajouter une cuillère d'eau chaude si la sauce devient trop épaisse.",
+      ingredientProductIds: ["palm-nut", "fish", "palm-nut"],
+    });
+
+    expect(guide.title).toBe("Concentrer la sauce graine");
+    expect(guide.why).toContain("réduction lente");
+    expect(guide.recovery).toContain("eau chaude");
+    expect(guide.ingredientProductIds).toEqual(["palm-nut", "fish"]);
   });
 });

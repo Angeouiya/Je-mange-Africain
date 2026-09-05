@@ -2,6 +2,8 @@ type Locale = "fr" | "en";
 
 export type StepIngredientReference = {
   recipeIngredientId?: string;
+  productId?: string;
+  originalProductId?: string;
   name?: string;
   nameFr?: string;
   nameEn?: string;
@@ -33,11 +35,15 @@ function ingredientSignals(ingredient: StepIngredientReference, locale: Locale) 
   return { names: normalizedNames, terms: Array.from(new Set(terms)) };
 }
 
-export function ingredientsForPreparationStep<T extends StepIngredientReference>(instruction: string, ingredients: T[], locale: Locale): T[] {
+export function ingredientsForPreparationStep<T extends StepIngredientReference>(instruction: string, ingredients: T[], locale: Locale, explicitProductIds: string[] = []): T[] {
   const step = normalize(instruction);
   if (!step) return [];
+  const selectedProductIds = new Set(explicitProductIds);
   return ingredients.filter((ingredient) => {
     if (ingredient.removalReason === "excluded" || ingredient.removalReason === "protein-none") return false;
+    const productId = ingredient.productId;
+    const originalProductId = ingredient.originalProductId;
+    if (selectedProductIds.size > 0) return Boolean((productId && selectedProductIds.has(productId)) || (originalProductId && selectedProductIds.has(originalProductId)));
     const signals = ingredientSignals(ingredient, locale);
     return signals.names.some((name) => name.length >= 4 && step.includes(name))
       || signals.terms.some((term) => step.split(" ").includes(term));

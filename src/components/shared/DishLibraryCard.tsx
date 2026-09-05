@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, BookOpen, ChefHat, Clock, CookingPot, Eye, Flame, Hourglass, Lightbulb, MapPin, Search, ShieldAlert, Thermometer, Timer, Users } from "lucide-react";
+import { AlertTriangle, BookOpen, ChefHat, CircleHelp, Clock, CookingPot, Eye, Flame, Hourglass, LifeBuoy, Lightbulb, MapPin, Search, ShieldAlert, Thermometer, Timer, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -150,8 +150,10 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
                         {preparationIngredientGroups[index]?.length ? <p className="mt-1.5 text-[10px] font-semibold leading-4 text-terre"><strong className="text-charcoal/75">{locale === "fr" ? "À mesurer :" : "Measure:"}</strong> {preparationIngredientGroups[index].map((ingredient) => `${ingredient.quantity} ${ingredient.name}`).join(" · ")}</p> : null}
                         <p className="mt-1.5 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Eye className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Résultat :" : "Result:"}</strong> {guide.cue}</span></p>
                         <p className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><CookingPot className="mt-0.5 h-3 w-3 shrink-0 text-terre" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Matériel :" : "Equipment:"}</strong> {guide.equipment}</span></p>
+                        <p className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><CircleHelp className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Pourquoi :" : "Why:"}</strong> {guide.why}</span></p>
                         <p className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Lightbulb className="mt-0.5 h-3 w-3 shrink-0 text-gold" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Conseil :" : "Tip:"}</strong> {guide.tip}</span></p>
                         {guide.warning ? <p className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-terre"><AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /><span><strong>{locale === "fr" ? "Vigilance :" : "Take care:"}</strong> {guide.warning}</span></p> : null}
+                        <p className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-terre"><LifeBuoy className="mt-0.5 h-3 w-3 shrink-0" /><span><strong>{locale === "fr" ? "Rattrapage :" : "Recovery:"}</strong> {guide.recovery}</span></p>
                       </div>
                     </li>
                   ))}

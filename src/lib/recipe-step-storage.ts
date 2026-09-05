@@ -3,19 +3,24 @@ import { buildRecipeStepGuide, type RecipeStepDetails, type RecipeStepHeat } fro
 type Locale = "fr" | "en";
 
 export type StoredRecipeStep = Required<Pick<RecipeStepDetails, "durationMinutes" | "restMinutes" | "heat">> & {
-  version: 1;
+  version: 2;
   instruction: string;
+  title: string;
   temperatureC: number | null;
   equipment: string | null;
   cue: string;
   tip: string;
   warning: string | null;
+  why: string;
+  recovery: string;
+  ingredientProductIds: string[];
 };
 
 const HEAT_LEVELS = new Set<RecipeStepHeat>(["none", "low", "medium", "high", "oven"]);
 
 function objectDetails(value: Record<string, unknown>): RecipeStepDetails {
   return {
+    title: typeof value.title === "string" ? value.title : null,
     durationMinutes: typeof value.durationMinutes === "number" ? value.durationMinutes : null,
     restMinutes: typeof value.restMinutes === "number" ? value.restMinutes : null,
     heat: typeof value.heat === "string" && HEAT_LEVELS.has(value.heat as RecipeStepHeat) ? value.heat as RecipeStepHeat : null,
@@ -24,14 +29,20 @@ function objectDetails(value: Record<string, unknown>): RecipeStepDetails {
     cue: typeof value.cue === "string" ? value.cue : null,
     tip: typeof value.tip === "string" ? value.tip : null,
     warning: typeof value.warning === "string" ? value.warning : null,
+    why: typeof value.why === "string" ? value.why : null,
+    recovery: typeof value.recovery === "string" ? value.recovery : null,
+    ingredientProductIds: Array.isArray(value.ingredientProductIds)
+      ? value.ingredientProductIds.filter((item): item is string => typeof item === "string")
+      : [],
   };
 }
 
 function normaliseStep(instruction: string, index: number, locale: Locale, details?: RecipeStepDetails): StoredRecipeStep {
   const guide = buildRecipeStepGuide(instruction, index, locale, details);
   return {
-    version: 1,
+    version: 2,
     instruction: guide.instruction,
+    title: guide.title,
     durationMinutes: guide.durationMinutes,
     restMinutes: guide.restMinutes,
     heat: guide.heat,
@@ -40,6 +51,9 @@ function normaliseStep(instruction: string, index: number, locale: Locale, detai
     cue: guide.cue,
     tip: guide.tip,
     warning: guide.warning,
+    why: guide.why,
+    recovery: guide.recovery,
+    ingredientProductIds: guide.ingredientProductIds,
   };
 }
 
@@ -64,7 +78,8 @@ export function serializeRecipeSteps(instructions: string[], details: RecipeStep
 }
 
 export function publicStepDetails(steps: StoredRecipeStep[]): RecipeStepDetails[] {
-  return steps.map(({ durationMinutes, restMinutes, heat, temperatureC, equipment, cue, tip, warning }) => ({
+  return steps.map(({ title, durationMinutes, restMinutes, heat, temperatureC, equipment, cue, tip, warning, why, recovery, ingredientProductIds }) => ({
+    title,
     durationMinutes,
     restMinutes,
     heat,
@@ -73,5 +88,8 @@ export function publicStepDetails(steps: StoredRecipeStep[]): RecipeStepDetails[
     cue,
     tip,
     warning,
+    why,
+    recovery,
+    ingredientProductIds,
   }));
 }

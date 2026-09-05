@@ -19,11 +19,17 @@ describe("recipe step storage", () => {
       cue: "La sauce nappe la cuillère sans couler immédiatement.",
       tip: "Remuer depuis le fond.",
       warning: "Attention à la vapeur.",
+      title: "Lier la sauce",
+      why: "La cuisson douce concentre les saveurs sans brûler le fond.",
+      recovery: "Ajouter une cuillère d'eau chaude si la sauce épaissit trop.",
+      ingredientProductIds: ["palm-nut", "fish"],
     }], "fr");
     const steps = parseRecipeSteps(serialized, "fr");
 
     expect(steps[0]).toMatchObject({ durationMinutes: 25, restMinutes: 8, temperatureC: 90, equipment: "Cocotte" });
     expect(publicStepDetails(steps)[0].cue).toContain("nappe la cuillère");
+    expect(publicStepDetails(steps)[0]).toMatchObject({ title: "Lier la sauce", ingredientProductIds: ["palm-nut", "fish"] });
+    expect(publicStepDetails(steps)[0].recovery).toContain("eau chaude");
   });
 
   it("discards malformed records without failing the whole recipe", () => {

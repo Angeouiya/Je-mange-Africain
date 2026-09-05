@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { ingredientsForPreparationStep } from "./recipe-step-ingredients";
 
 const ingredients = [
-  { recipeIngredientId: "attieke", nameFr: "Attiéké frais", nameEn: "Fresh attieke", removalReason: null },
-  { recipeIngredientId: "fish", nameFr: "Poisson capitaine", nameEn: "Captain fish", removalReason: null },
-  { recipeIngredientId: "chili", nameFr: "Piment frais", nameEn: "Fresh chili", removalReason: "excluded" },
+  { recipeIngredientId: "attieke", productId: "attieke-product", originalProductId: "attieke-product", nameFr: "Attiéké frais", nameEn: "Fresh attieke", removalReason: null },
+  { recipeIngredientId: "fish", productId: "tilapia-product", originalProductId: "captain-product", nameFr: "Tilapia", nameEn: "Tilapia", originalNameFr: "Poisson capitaine", originalNameEn: "Captain fish", removalReason: null },
+  { recipeIngredientId: "chili", productId: "chili-product", originalProductId: "chili-product", nameFr: "Piment frais", nameEn: "Fresh chili", removalReason: "excluded" },
 ];
 
 describe("recipe step ingredient references", () => {
@@ -19,5 +19,10 @@ describe("recipe step ingredient references", () => {
   it("keeps pantry ingredients because they are still required for cooking", () => {
     const pantry = [{ recipeIngredientId: "oil", nameFr: "Huile de palme", removalReason: "pantry" }];
     expect(ingredientsForPreparationStep("Chauffer l'huile de palme.", pantry, "fr")).toHaveLength(1);
+  });
+
+  it("uses explicit product links and follows a configured replacement", () => {
+    expect(ingredientsForPreparationStep("Ajouter la garniture.", ingredients, "fr", ["captain-product"]).map((item) => item.recipeIngredientId)).toEqual(["fish"]);
+    expect(ingredientsForPreparationStep("Ajouter tous les produits.", ingredients, "fr", ["chili-product"])).toEqual([]);
   });
 });

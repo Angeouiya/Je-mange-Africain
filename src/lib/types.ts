@@ -1,5 +1,7 @@
 /* Shared storefront types (front-end mirrors of API responses). */
 
+import type { RecipeStepDetails } from "./recipe-step-guide";
+
 export interface ProductVariant {
   id: string;
   label: string;
@@ -130,6 +132,7 @@ export interface RecipeDetail {
   title: string;
   description: string;
   steps: string[];
+  stepDetails?: RecipeStepDetails[];
   ingredients: RecipeIngredient[];
 }
 

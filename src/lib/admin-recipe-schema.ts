@@ -31,8 +31,11 @@ const optionalInteger = (minimum: number, maximum: number) => z.preprocess(
 );
 
 const optionalStepText = z.string().trim().max(500).nullable().optional();
+const optionalStepTitle = z.string().trim().max(100).nullable().optional();
 
 export const recipeStepDetailsAdminInput = z.object({
+  titleFr: optionalStepTitle,
+  titleEn: optionalStepTitle,
   durationMinutes: z.coerce.number().int().min(1).max(240),
   restMinutes: z.coerce.number().int().min(0).max(720).default(0),
   heat: z.enum(["none", "low", "medium", "high", "oven"]),
@@ -45,6 +48,11 @@ export const recipeStepDetailsAdminInput = z.object({
   tipEn: optionalStepText,
   warningFr: optionalStepText,
   warningEn: optionalStepText,
+  whyFr: optionalStepText,
+  whyEn: optionalStepText,
+  recoveryFr: optionalStepText,
+  recoveryEn: optionalStepText,
+  ingredientProductIds: z.array(z.string().trim().min(1)).max(60).default([]),
 });
 
 export const recipeAdminInput = z.object({
@@ -75,12 +83,22 @@ export const recipeAdminInput = z.object({
   if (input.stepDetails.length > 0 && input.stepDetails.length !== input.stepsFr.length) {
     context.addIssue({ code: "custom", path: ["stepDetails"], message: "Chaque étape doit posséder ses repères de cuisson." });
   }
+  const recipeProductIds = new Set(input.ingredients.map((ingredient) => ingredient.productId));
+  input.stepDetails.forEach((detail, index) => {
+    if (new Set(detail.ingredientProductIds).size !== detail.ingredientProductIds.length) {
+      context.addIssue({ code: "custom", path: ["stepDetails", index, "ingredientProductIds"], message: "Un ingrédient ne peut être lié qu’une fois à la même étape." });
+    }
+    if (detail.ingredientProductIds.some((productId) => !recipeProductIds.has(productId))) {
+      context.addIssue({ code: "custom", path: ["stepDetails", index, "ingredientProductIds"], message: "Chaque ingrédient d’étape doit appartenir à la recette." });
+    }
+  });
 });
 
 export type RecipeAdminInput = z.infer<typeof recipeAdminInput>;
 
 export function recipeStepDetailsForLocale(input: RecipeAdminInput, locale: "fr" | "en"): RecipeStepDetails[] {
   return input.stepDetails.map((detail) => ({
+    title: locale === "fr" ? detail.titleFr : detail.titleEn,
     durationMinutes: detail.durationMinutes,
     restMinutes: detail.restMinutes,
     heat: detail.heat,
@@ -89,6 +107,9 @@ export function recipeStepDetailsForLocale(input: RecipeAdminInput, locale: "fr"
     cue: locale === "fr" ? detail.cueFr : detail.cueEn,
     tip: locale === "fr" ? detail.tipFr : detail.tipEn,
     warning: locale === "fr" ? detail.warningFr : detail.warningEn,
+    why: locale === "fr" ? detail.whyFr : detail.whyEn,
+    recovery: locale === "fr" ? detail.recoveryFr : detail.recoveryEn,
+    ingredientProductIds: detail.ingredientProductIds,
   }));
 }
 

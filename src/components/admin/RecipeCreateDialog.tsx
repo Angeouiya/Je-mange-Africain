@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, CookingPot, Eye, Flame, Hourglass, Lightbulb, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, RefreshCw, Search, ShieldAlert, Thermometer, Timer, Trash2, UsersRound, WandSparkles } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, CircleHelp, Clock3, CookingPot, Eye, Flame, Hourglass, LifeBuoy, Lightbulb, Link2, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, RefreshCw, Search, ShieldAlert, Thermometer, Timer, Trash2, UsersRound, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -58,6 +58,8 @@ type IngredientDraft = {
 };
 
 type StepDetailDraft = {
+  titleFr: string;
+  titleEn: string;
   durationMinutes: string;
   restMinutes: string;
   heat: RecipeStepHeat;
@@ -70,6 +72,11 @@ type StepDetailDraft = {
   tipEn: string;
   warningFr: string;
   warningEn: string;
+  whyFr: string;
+  whyEn: string;
+  recoveryFr: string;
+  recoveryEn: string;
+  ingredientProductIds: string[];
 };
 
 type DishTemplateIngredient = {
@@ -154,6 +161,8 @@ type RecipeEditPayload = {
 
 const emptyIngredient = (): IngredientDraft => ({ productId: "", quantityPerBase: "", unit: "g", role: "base", optional: false, alternativeProductIds: [], note: null });
 const emptyStepDetail = (): StepDetailDraft => ({
+  titleFr: "",
+  titleEn: "",
   durationMinutes: "",
   restMinutes: "0",
   heat: "none",
@@ -166,6 +175,11 @@ const emptyStepDetail = (): StepDetailDraft => ({
   tipEn: "",
   warningFr: "",
   warningEn: "",
+  whyFr: "",
+  whyEn: "",
+  recoveryFr: "",
+  recoveryEn: "",
+  ingredientProductIds: [],
 });
 
 const stepDetailFromInstructions = (stepFr: string, stepEn: string, index: number): StepDetailDraft => {
@@ -173,6 +187,8 @@ const stepDetailFromInstructions = (stepFr: string, stepEn: string, index: numbe
   const french = buildRecipeStepGuide(stepFr, index, "fr");
   const english = buildRecipeStepGuide(stepEn, index, "en");
   return {
+    titleFr: french.title,
+    titleEn: english.title,
     durationMinutes: String(french.durationMinutes),
     restMinutes: String(french.restMinutes),
     heat: french.heat,
@@ -185,6 +201,11 @@ const stepDetailFromInstructions = (stepFr: string, stepEn: string, index: numbe
     tipEn: english.tip,
     warningFr: french.warning || "",
     warningEn: english.warning || "",
+    whyFr: french.why,
+    whyEn: english.why,
+    recoveryFr: french.recovery,
+    recoveryEn: english.recovery,
+    ingredientProductIds: [],
   };
 };
 const recipeColours = [
@@ -241,10 +262,12 @@ const draftFromRecipe = (recipe: RecipeEditPayload): RecipeDraft => ({
         const detail = recipe.stepDetails?.[index];
         if (!detail) return stepDetailFromInstructions(step, recipe.stepsEn[index] || "", index);
         return {
+          ...emptyStepDetail(),
           ...detail,
           durationMinutes: String(detail.durationMinutes),
           restMinutes: String(detail.restMinutes),
           temperatureC: detail.temperatureC ? String(detail.temperatureC) : "",
+          ingredientProductIds: detail.ingredientProductIds || [],
         };
       })
     : [emptyStepDetail(), emptyStepDetail()],
@@ -290,6 +313,17 @@ function ingredientFromTemplate(ingredient: DishTemplateIngredient, products: Pr
     alternativeProductIds: [],
     note: `${locale === "fr" ? "Bibliothèque" : "Library"}: ${ingredient.nameFr} / ${ingredient.nameEn} (${ingredient.quantity})`,
   };
+}
+
+function linkedProductsForStep(stepFr: string, stepEn: string, ingredients: IngredientDraft[], productsById: Map<string, ProductOption>) {
+  const instruction = normalizeSignal(`${stepFr} ${stepEn}`);
+  return ingredients.flatMap((ingredient) => {
+    if (!ingredient.productId) return [];
+    const product = productsById.get(ingredient.productId);
+    const signal = normalizeSignal(`${product?.name || ""} ${product?.traditionalName || ""} ${ingredient.note || ""}`);
+    const terms = signal.split(" ").filter((term) => term.length >= 4);
+    return terms.some((term) => instruction.split(" ").includes(term)) ? [ingredient.productId] : [];
+  }).filter((productId, index, ids) => ids.indexOf(productId) === index);
 }
 
 const templateCategory = (category: DishTemplate["category"]): RecipeDraft["category"] => category === "sauce" ? "sauces" : category === "grill" ? "grill" : "mains";
@@ -354,8 +388,14 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
   const completeStepDetails = draft.stepDetails.length === draft.stepsFr.length && draft.stepDetails.every((detail) => (
     Number(detail.durationMinutes) >= 1
     && Number(detail.restMinutes) >= 0
+    && detail.titleFr.trim().length >= 3
+    && detail.titleEn.trim().length >= 3
     && detail.cueFr.trim().length >= 10
     && detail.cueEn.trim().length >= 10
+    && detail.whyFr.trim().length >= 10
+    && detail.whyEn.trim().length >= 10
+    && detail.recoveryFr.trim().length >= 10
+    && detail.recoveryEn.trim().length >= 10
   ));
   const completeIngredients = draft.ingredients.length > 0 && draft.ingredients.every((ingredient) => ingredient.productId && Number(ingredient.quantityPerBase) > 0);
   const pristineDraft = editing && editRequest.data ? draftFromRecipe(editRequest.data) : initialDraft();
@@ -396,10 +436,35 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     setDraft((current) => ({ ...current, stepsFr: current.stepsFr.filter((_, stepIndex) => stepIndex !== index), stepsEn: current.stepsEn.filter((_, stepIndex) => stepIndex !== index), stepDetails: current.stepDetails.filter((_, stepIndex) => stepIndex !== index) }));
   };
   const updateIngredient = <K extends keyof IngredientDraft>(index: number, key: K, value: IngredientDraft[K]) => update("ingredients", draft.ingredients.map((ingredient, ingredientIndex) => ingredientIndex === index ? { ...ingredient, [key]: value } : ingredient));
-  const updateIngredientProduct = (index: number, productId: string) => update("ingredients", draft.ingredients.map((ingredient, ingredientIndex) => ingredientIndex === index ? { ...ingredient, productId, alternativeProductIds: ingredient.alternativeProductIds.filter((id) => id !== productId) } : ingredient));
+  const updateIngredientProduct = (index: number, productId: string) => setDraft((current) => {
+    const previousProductId = current.ingredients[index]?.productId;
+    return {
+      ...current,
+      ingredients: current.ingredients.map((ingredient, ingredientIndex) => ingredientIndex === index ? { ...ingredient, productId, alternativeProductIds: ingredient.alternativeProductIds.filter((id) => id !== productId) } : ingredient),
+      stepDetails: current.stepDetails.map((detail) => ({
+        ...detail,
+        ingredientProductIds: Array.from(new Set(detail.ingredientProductIds.map((id) => id === previousProductId ? productId : id).filter(Boolean))),
+      })),
+    };
+  });
+  const removeIngredient = (index: number) => setDraft((current) => {
+    if (current.ingredients.length <= 1) return current;
+    const removedProductId = current.ingredients[index]?.productId;
+    const ingredients = current.ingredients.filter((_, ingredientIndex) => ingredientIndex !== index);
+    const productStillUsed = ingredients.some((ingredient) => ingredient.productId === removedProductId);
+    return {
+      ...current,
+      ingredients,
+      stepDetails: current.stepDetails.map((detail) => ({
+        ...detail,
+        ingredientProductIds: productStillUsed ? detail.ingredientProductIds : detail.ingredientProductIds.filter((id) => id !== removedProductId),
+      })),
+    };
+  });
 
   const applyTemplate = (template: DishTemplate) => {
     const ingredients = template.ingredients.map((ingredient) => ingredientFromTemplate(ingredient, products, locale));
+    const templateProductsById = new Map(products.map((product) => [product.id, product]));
     const matched = ingredients.filter((ingredient) => ingredient.productId).length;
     setDraft({
       titleFr: template.nameFr,
@@ -420,7 +485,10 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
       status: "draft",
       stepsFr: template.stepsFr,
       stepsEn: template.stepsEn,
-      stepDetails: template.stepsFr.map((step, index) => stepDetailFromInstructions(step, template.stepsEn[index] || "", index)),
+      stepDetails: template.stepsFr.map((step, index) => ({
+        ...stepDetailFromInstructions(step, template.stepsEn[index] || "", index),
+        ingredientProductIds: linkedProductsForStep(step, template.stepsEn[index] || "", ingredients, templateProductsById),
+      })),
       ingredients,
     });
     setImportSummary({ name: isFr ? template.nameFr : template.nameEn, matched, total: ingredients.length });
@@ -553,8 +621,8 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
             </section>
 
             <section className="border-y border-border bg-[#F7F7F4] px-5 py-6 sm:px-7" aria-labelledby="recipe-steps-title">
-              <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation guidée professionnelle" : "Professional guided preparation"} description={isFr ? "Documentez chaque geste : temps actif et repos, chaleur, température, matériel, résultat observable, conseil et vigilance. Ces repères apparaîtront dans le mode cuisson du client." : "Document every action: active and resting time, heat, temperature, equipment, visible result, tip and safety note. These cues appear in the customer's cooking mode."} />
-              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} details={draft.stepDetails} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onChangeDetail={updateStepDetail} onAdd={addStep} onRemove={removeStep} onMove={moveStep} isFr={isFr} />
+              <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation guidée professionnelle" : "Professional guided preparation"} description={isFr ? "Documentez chaque geste : ingrédients exacts, temps, chaleur, matériel, raison culinaire, résultat observable, conseil, vigilance et rattrapage. Tout apparaît dans le mode cuisson du client." : "Document every action: exact ingredients, timing, heat, equipment, culinary rationale, visible result, tip, safety and recovery. Everything appears in the customer's cooking mode."} />
+              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} details={draft.stepDetails} ingredients={draft.ingredients} productsById={productsById} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onChangeDetail={updateStepDetail} onAdd={addStep} onRemove={removeStep} onMove={moveStep} isFr={isFr} />
             </section>
 
             <section className="px-5 py-6 sm:px-7" aria-labelledby="recipe-ingredients-title">
@@ -569,7 +637,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
                       <Field label={isFr ? "Quantité" : "Quantity"} required><Input aria-label={`${isFr ? "Quantité" : "Quantity"} ${index + 1}`} type="number" inputMode="decimal" min="0.01" step="0.01" value={ingredient.quantityPerBase} onChange={(event) => updateIngredient(index, "quantityPerBase", event.target.value)} /></Field>
                       <Field label={isFr ? "Unité" : "Unit"}><select aria-label={`${isFr ? "Unité" : "Unit"} ${index + 1}`} value={ingredient.unit} onChange={(event) => updateIngredient(index, "unit", event.target.value as IngredientDraft["unit"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option><option value="piece">{isFr ? "pièce" : "piece"}</option><option value="tbsp">{isFr ? "c. à soupe" : "tbsp"}</option><option value="tsp">{isFr ? "c. à café" : "tsp"}</option></select></Field>
                       <Field label={isFr ? "Rôle" : "Role"}><select aria-label={`${isFr ? "Rôle" : "Role"} ${index + 1}`} value={ingredient.role} onChange={(event) => updateIngredient(index, "role", event.target.value as IngredientDraft["role"])} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"><option value="base">Base</option><option value="protein">{isFr ? "Protéine" : "Protein"}</option><option value="aromatic">{isFr ? "Aromate" : "Aromatic"}</option><option value="spice">{isFr ? "Épice" : "Spice"}</option><option value="fat">{isFr ? "Matière grasse" : "Fat"}</option><option value="side">{isFr ? "Accompagnement" : "Side"}</option><option value="optional">Option</option></select></Field>
-                      <div className="flex items-center justify-between gap-2 sm:pb-0.5"><label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><input type="checkbox" checked={ingredient.optional} onChange={(event) => updateIngredient(index, "optional", event.target.checked)} className="h-4 w-4 accent-terre" /> {isFr ? "Optionnel" : "Optional"}</label><Button type="button" variant="ghost" size="icon" disabled={draft.ingredients.length === 1} onClick={() => update("ingredients", draft.ingredients.filter((_, ingredientIndex) => ingredientIndex !== index))} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'ingrédient ${index + 1}` : `Remove ingredient ${index + 1}`}><Trash2 className="h-4 w-4" /></Button></div>
+                      <div className="flex items-center justify-between gap-2 sm:pb-0.5"><label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><input type="checkbox" checked={ingredient.optional} onChange={(event) => updateIngredient(index, "optional", event.target.checked)} className="h-4 w-4 accent-terre" /> {isFr ? "Optionnel" : "Optional"}</label><Button type="button" variant="ghost" size="icon" disabled={draft.ingredients.length === 1} onClick={() => removeIngredient(index)} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'ingrédient ${index + 1}` : `Remove ingredient ${index + 1}`}><Trash2 className="h-4 w-4" /></Button></div>
                     </div>
                     <IngredientAlternativesPicker index={index} ingredient={ingredient} products={products} locale={locale} onChange={(alternativeProductIds) => updateIngredient(index, "alternativeProductIds", alternativeProductIds)} />
                   </div>;
@@ -697,16 +765,18 @@ function RecipeColourPicker({ value, onChange, locale }: { value: string; onChan
   return <div className="flex min-h-9 flex-wrap items-center gap-1" role="group" aria-label={locale === "fr" ? "Nuancier de la recette" : "Recipe colour palette"}>{recipeColours.map((colour) => <button key={colour.value} type="button" onClick={() => onChange(colour.value)} aria-label={locale === "fr" ? colour.fr : colour.en} aria-pressed={value === colour.value} title={locale === "fr" ? colour.fr : colour.en} className={`h-7 w-7 shrink-0 rounded-md border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/35 ${value === colour.value ? "border-charcoal ring-2 ring-charcoal/15" : "border-white shadow-sm hover:border-charcoal/25"}`} style={{ backgroundColor: colour.value }} />)}</div>;
 }
 
-function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, onChangeDetail, onAdd, onRemove, onMove, isFr }: { stepsFr: string[]; stepsEn: string[]; details: StepDetailDraft[]; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onChangeDetail: <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => void; onAdd: () => void; onRemove: (index: number) => void; onMove: (index: number, direction: -1 | 1) => void; isFr: boolean }) {
+function PreparationSteps({ stepsFr, stepsEn, details, ingredients, productsById, onChangeFr, onChangeEn, onChangeDetail, onAdd, onRemove, onMove, isFr }: { stepsFr: string[]; stepsEn: string[]; details: StepDetailDraft[]; ingredients: IngredientDraft[]; productsById: Map<string, ProductOption>; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onChangeDetail: <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => void; onAdd: () => void; onRemove: (index: number) => void; onMove: (index: number, direction: -1 | 1) => void; isFr: boolean }) {
   const activeMinutes = details.reduce((total, detail) => total + (Number(detail.durationMinutes) || 0), 0);
   const restMinutes = details.reduce((total, detail) => total + (Number(detail.restMinutes) || 0), 0);
   const completeCues = details.filter((detail) => detail.cueFr.trim().length >= 10 && detail.cueEn.trim().length >= 10).length;
+  const linkedSteps = details.filter((detail) => detail.ingredientProductIds.length > 0).length;
   return <div className="mt-5">
-    <div className="mb-4 grid grid-cols-4 divide-x divide-border border-y border-border bg-white py-3 text-center" aria-label={isFr ? "Couverture détaillée de la préparation" : "Detailed preparation coverage"} data-testid="recipe-step-coverage">
+    <div className="mb-4 grid grid-cols-5 divide-x divide-border border-y border-border bg-white py-3 text-center" aria-label={isFr ? "Couverture détaillée de la préparation" : "Detailed preparation coverage"} data-testid="recipe-step-coverage">
       <div className="min-w-0 px-1.5"><Timer className="mx-auto h-4 w-4 text-terre" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{activeMinutes} min</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "actives" : "active"}</p></div>
       <div className="min-w-0 px-1.5"><Hourglass className="mx-auto h-4 w-4 text-gold" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{restMinutes} min</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "repos" : "rest"}</p></div>
       <div className="min-w-0 px-1.5"><CookingPot className="mx-auto h-4 w-4 text-burgundy" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{stepsFr.length}</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "gestes" : "actions"}</p></div>
       <div className="min-w-0 px-1.5"><Eye className="mx-auto h-4 w-4 text-terre" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{completeCues}/{stepsFr.length}</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "repères" : "cues"}</p></div>
+      <div className="min-w-0 px-1.5"><Link2 className="mx-auto h-4 w-4 text-burgundy" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{linkedSteps}/{stepsFr.length}</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "reliées" : "linked"}</p></div>
     </div>
     <div className="hidden grid-cols-[2rem_1fr_1fr_7.5rem] gap-2 px-1 pb-2 text-[10px] font-black uppercase text-muted-foreground lg:grid"><span /><span>{isFr ? "Français" : "French"}</span><span>English</span><span>{isFr ? "Ordre" : "Order"}</span></div>
     <ol className="space-y-3">{stepsFr.map((step, index) => {
@@ -714,6 +784,7 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
       const previewLocale = isFr ? "fr" : "en";
       const previewText = isFr ? step : (stepsEn[index] || "");
       const previewDetails: RecipeStepDetails = {
+        title: isFr ? detail.titleFr : detail.titleEn,
         durationMinutes: Number(detail.durationMinutes) || null,
         restMinutes: Number(detail.restMinutes) || 0,
         heat: detail.heat,
@@ -722,10 +793,13 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
         cue: isFr ? detail.cueFr : detail.cueEn,
         tip: isFr ? detail.tipFr : detail.tipEn,
         warning: isFr ? detail.warningFr : detail.warningEn,
+        why: isFr ? detail.whyFr : detail.whyEn,
+        recovery: isFr ? detail.recoveryFr : detail.recoveryEn,
+        ingredientProductIds: detail.ingredientProductIds,
       };
       const guide = buildRecipeStepGuide(previewText, index, previewLocale, previewDetails);
       const detailed = Number(detail.durationMinutes) >= 1 && detail.cueFr.trim().length >= 10 && detail.cueEn.trim().length >= 10;
-      const enhanced = detailed && Boolean(detail.equipmentFr.trim() && detail.equipmentEn.trim() && detail.tipFr.trim() && detail.tipEn.trim());
+      const enhanced = detailed && Boolean(detail.titleFr.trim() && detail.titleEn.trim() && detail.equipmentFr.trim() && detail.equipmentEn.trim() && detail.tipFr.trim() && detail.tipEn.trim() && detail.whyFr.trim() && detail.whyEn.trim() && detail.recoveryFr.trim() && detail.recoveryEn.trim());
       const quality = enhanced
         ? { label: isFr ? "Guidage complet" : "Complete guidance", className: "bg-burgundy/[0.08] text-burgundy" }
         : detailed
@@ -735,6 +809,8 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
         const french = buildRecipeStepGuide(step, index, "fr");
         const english = buildRecipeStepGuide(stepsEn[index] || "", index, "en");
         const values: Array<[keyof StepDetailDraft, string]> = [
+          ["titleFr", detail.titleFr || french.title],
+          ["titleEn", detail.titleEn || english.title],
           ["durationMinutes", detail.durationMinutes || String(french.durationMinutes)],
           ["restMinutes", Number(detail.restMinutes) > 0 ? detail.restMinutes : String(french.restMinutes)],
           ["heat", detail.heat === "none" ? french.heat : detail.heat],
@@ -746,6 +822,10 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
           ["tipEn", detail.tipEn || english.tip],
           ["warningFr", detail.warningFr || french.warning || ""],
           ["warningEn", detail.warningEn || english.warning || ""],
+          ["whyFr", detail.whyFr || french.why],
+          ["whyEn", detail.whyEn || english.why],
+          ["recoveryFr", detail.recoveryFr || french.recovery],
+          ["recoveryEn", detail.recoveryEn || english.recovery],
         ];
         values.forEach(([key, value]) => onChangeDetail(index, key, value as never));
       };
@@ -774,6 +854,7 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
             <PreparationLanguageFields language="fr" index={index} detail={detail} onChange={onChangeDetail} />
             <PreparationLanguageFields language="en" index={index} detail={detail} onChange={onChangeDetail} />
           </div>
+          <StepIngredientLinks index={index} ingredientProductIds={detail.ingredientProductIds} ingredients={ingredients} productsById={productsById} onChange={(ingredientProductIds) => onChangeDetail(index, "ingredientProductIds", ingredientProductIds)} isFr={isFr} />
         </fieldset>
         {previewText.trim() ? <div className="min-w-0 border-l-2 border-terre bg-[#F7F7F4] px-3 py-2.5 lg:col-span-3 lg:col-start-2" data-testid={`recipe-step-preview-${index + 1}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -782,6 +863,8 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
           </div>
           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-bold text-muted-foreground"><span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span>{guide.restLabel ? <span className="inline-flex items-center gap-1"><Hourglass className="h-3 w-3 text-gold" />{guide.restLabel}</span> : null}<span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-gold" />{guide.heatLabel}</span>{guide.temperatureLabel ? <span className="inline-flex items-center gap-1"><Thermometer className="h-3 w-3 text-terre" />{guide.temperatureLabel}</span> : null}</div>
           <p className="mt-1.5 text-[10px] leading-4 text-muted-foreground"><strong className="text-charcoal/75">{isFr ? "Résultat attendu :" : "Expected result:"}</strong> {guide.cue}</p>
+          <p className="mt-1 text-[10px] leading-4 text-muted-foreground"><strong className="text-charcoal/75">{isFr ? "Pourquoi :" : "Why:"}</strong> {guide.why}</p>
+          <p className="mt-1 text-[10px] leading-4 text-terre"><strong>{isFr ? "Rattrapage :" : "Recovery:"}</strong> {guide.recovery}</p>
         </div> : null}
       </li>;
     })}</ol>
@@ -791,17 +874,50 @@ function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, o
 
 function PreparationLanguageFields({ language, index, detail, onChange }: { language: "fr" | "en"; index: number; detail: StepDetailDraft; onChange: <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => void }) {
   const french = language === "fr";
+  const titleKey: "titleFr" | "titleEn" = french ? "titleFr" : "titleEn";
   const equipmentKey: "equipmentFr" | "equipmentEn" = french ? "equipmentFr" : "equipmentEn";
   const cueKey: "cueFr" | "cueEn" = french ? "cueFr" : "cueEn";
   const tipKey: "tipFr" | "tipEn" = french ? "tipFr" : "tipEn";
   const warningKey: "warningFr" | "warningEn" = french ? "warningFr" : "warningEn";
+  const whyKey: "whyFr" | "whyEn" = french ? "whyFr" : "whyEn";
+  const recoveryKey: "recoveryFr" | "recoveryEn" = french ? "recoveryFr" : "recoveryEn";
   return <div className="min-w-0 border-t-2 border-burgundy/10 pt-3">
     <p className="mb-3 text-[9px] font-black uppercase text-charcoal">{french ? "Détails en français" : "Details in English"}</p>
     <div className="space-y-3">
+      <Field label={french ? "Titre clair de l’action" : "Clear action title"} required><Input aria-label={`${french ? "Titre de l'étape" : "Step title"} ${index + 1} ${language}`} value={detail[titleKey]} onChange={(event) => onChange(index, titleKey, event.target.value)} maxLength={100} placeholder={french ? "Maîtriser la cuisson de la sauce" : "Control the sauce cooking"} /></Field>
       <Field label={french ? "Matériel utile" : "Useful equipment"}><div className="relative"><CookingPot className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label={`${french ? "Matériel de l'étape" : "Step equipment"} ${index + 1} ${language}`} value={detail[equipmentKey]} onChange={(event) => onChange(index, equipmentKey, event.target.value)} maxLength={160} className="pl-9" placeholder={french ? "Cocotte, spatule large" : "Heavy pot, wide spatula"} /></div></Field>
       <Field label={french ? "Résultat observable" : "Visible result"} required><div className="relative"><Eye className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-burgundy" /><Textarea aria-label={`${french ? "Résultat attendu de l'étape" : "Step expected result"} ${index + 1} ${language}`} value={detail[cueKey]} onChange={(event) => onChange(index, cueKey, event.target.value)} rows={2} maxLength={500} className="min-h-20 resize-y pl-9 leading-5" placeholder={french ? "La sauce est brillante et nappe la cuillère." : "The sauce is glossy and coats a spoon."} /></div></Field>
       <Field label={french ? "Conseil du chef" : "Chef's tip"}><div className="relative"><Lightbulb className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-gold" /><Textarea aria-label={`${french ? "Conseil de l'étape" : "Step tip"} ${index + 1} ${language}`} value={detail[tipKey]} onChange={(event) => onChange(index, tipKey, event.target.value)} rows={2} maxLength={500} className="min-h-20 resize-y pl-9 leading-5" /></div></Field>
+      <Field label={french ? "Pourquoi ce geste compte" : "Why this action matters"} required><div className="relative"><CircleHelp className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-burgundy" /><Textarea aria-label={`${french ? "Pourquoi de l'étape" : "Step rationale"} ${index + 1} ${language}`} value={detail[whyKey]} onChange={(event) => onChange(index, whyKey, event.target.value)} rows={2} maxLength={500} className="min-h-20 resize-y pl-9 leading-5" placeholder={french ? "Expliquez l'effet sur la texture, le goût ou la cuisson." : "Explain the effect on texture, flavour or cooking."} /></div></Field>
+      <Field label={french ? "Rattrapage si le repère manque" : "Recovery if the cue is missed"} required><div className="relative"><LifeBuoy className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-terre" /><Textarea aria-label={`${french ? "Rattrapage de l'étape" : "Step recovery"} ${index + 1} ${language}`} value={detail[recoveryKey]} onChange={(event) => onChange(index, recoveryKey, event.target.value)} rows={2} maxLength={500} className="min-h-20 resize-y pl-9 leading-5" placeholder={french ? "Indiquez comment corriger une sauce trop fluide, une cuisson incomplète…" : "Explain how to correct a thin sauce, incomplete cooking…"} /></div></Field>
       <Field label={french ? "Vigilance ou allergène" : "Safety or allergen note"}><div className="relative"><ShieldAlert className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-terre" /><Textarea aria-label={`${french ? "Vigilance de l'étape" : "Step warning"} ${index + 1} ${language}`} value={detail[warningKey]} onChange={(event) => onChange(index, warningKey, event.target.value)} rows={2} maxLength={500} className="min-h-20 resize-y pl-9 leading-5" /></div></Field>
     </div>
+  </div>;
+}
+
+function StepIngredientLinks({ index, ingredientProductIds, ingredients, productsById, onChange, isFr }: { index: number; ingredientProductIds: string[]; ingredients: IngredientDraft[]; productsById: Map<string, ProductOption>; onChange: (ids: string[]) => void; isFr: boolean }) {
+  const availableIngredients = ingredients.filter((ingredient) => ingredient.productId).filter((ingredient, ingredientIndex, items) => items.findIndex((item) => item.productId === ingredient.productId) === ingredientIndex);
+  const toggle = (productId: string) => onChange(ingredientProductIds.includes(productId)
+    ? ingredientProductIds.filter((id) => id !== productId)
+    : [...ingredientProductIds, productId]);
+  return <div className="mt-4 border-t border-border pt-3">
+    <div className="flex items-start gap-2">
+      <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-burgundy" />
+      <div>
+        <p className="text-[10px] font-black text-charcoal">{isFr ? "Ingrédients utilisés exactement à cette étape" : "Ingredients used in this exact step"}</p>
+        <p className="mt-0.5 text-[9px] leading-4 text-muted-foreground">{isFr ? "Le client verra les quantités recalculées pour ses portions, y compris après un remplacement." : "The customer sees quantities recalculated for their servings, including after a substitution."}</p>
+      </div>
+    </div>
+    {availableIngredients.length ? <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={isFr ? `Ingrédients de l'étape ${index + 1}` : `Ingredients for step ${index + 1}`}>
+      {availableIngredients.map((ingredient) => {
+        const product = productsById.get(ingredient.productId);
+        const selected = ingredientProductIds.includes(ingredient.productId);
+        return <label key={ingredient.productId} className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 transition ${selected ? "border-burgundy/35 bg-burgundy/[0.055]" : "border-border bg-white hover:border-terre/30"}`}>
+          <input type="checkbox" checked={selected} onChange={() => toggle(ingredient.productId)} className="h-4 w-4 accent-terre" aria-label={isFr ? `Utiliser ${product?.name || product?.traditionalName || ingredient.productId} à l'étape ${index + 1}` : `Use ${product?.name || product?.traditionalName || ingredient.productId} in step ${index + 1}`} />
+          {product ? <ProductImage src={product.imageUrl} alt="" emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-7 w-7 shrink-0" rounded="rounded-md" /> : null}
+          <span className="max-w-36 truncate text-[10px] font-bold text-charcoal">{product?.name || product?.traditionalName || (isFr ? "Produit relié" : "Linked product")}</span>
+        </label>;
+      })}
+    </div> : <p className="mt-2 text-[9px] font-semibold text-terre">{isFr ? "Reliez d'abord les produits dans la section Ingrédients ci-dessous." : "Link products in the Ingredients section below first."}</p>}
   </div>;
 }

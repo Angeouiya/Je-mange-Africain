@@ -18,12 +18,16 @@ export type RecipeStepGuide = {
   cue: string;
   tip: string;
   warning: string | null;
+  why: string;
+  recovery: string;
+  ingredientProductIds: string[];
   phase: RecipeStepPhase;
   phaseLabel: string;
   detailScore: number;
 };
 
 export type RecipeStepDetails = {
+  title?: string | null;
   durationMinutes?: number | null;
   restMinutes?: number | null;
   heat?: RecipeStepHeat | null;
@@ -32,6 +36,9 @@ export type RecipeStepDetails = {
   cue?: string | null;
   tip?: string | null;
   warning?: string | null;
+  why?: string | null;
+  recovery?: string | null;
+  ingredientProductIds?: string[] | null;
 };
 
 type Locale = "fr" | "en";
@@ -175,6 +182,10 @@ function nonNegativeInteger(value: number | null | undefined) {
 
 const cleanText = (value: string | null | undefined) => value?.trim() || null;
 
+const cleanIds = (values: string[] | null | undefined) => Array.from(new Set(
+  (values || []).map((value) => value.trim()).filter(Boolean),
+));
+
 function actionTitle(raw: string, index: number, locale: Locale) {
   const value = normalize(raw);
   const action = (() => {
@@ -254,6 +265,41 @@ function safetyWarning(raw: string, locale: Locale) {
   return warning ? warning[locale === "fr" ? 0 : 1] : null;
 }
 
+function whyThisStep(raw: string, locale: Locale) {
+  const value = normalize(raw);
+  const explanation = (() => {
+    if (includesAny(value, ["emincer", "couper", "trancher", "inciser", "hacher", "slice", "cut", "chop", "score"])) return ["Des morceaux réguliers s’assaisonnent et cuisent au même rythme, sans zones crues ni parties desséchées.", "Even pieces season and cook at the same pace, avoiding raw centres and dried edges."];
+    if (includesAny(value, ["mariner", "assaisonner", "enrober", "marinate", "season", "coat"])) return ["Ce temps permet au sel et aux aromates de se répartir uniformément avant la cuisson.", "This gives salt and aromatics time to spread evenly before cooking."];
+    if (includesAny(value, ["frire", "huile chaude", "fry", "hot oil"])) return ["Une huile à température stable saisit rapidement la surface et limite l’absorption de matière grasse.", "Stable oil temperature seals the surface quickly and limits excess oil absorption."];
+    if (includesAny(value, ["braiser", "griller", "dorer", "grill", "brown", "sear"])) return ["La chaleur vive construit la coloration et les arômes grillés avant que l’intérieur ne perde son moelleux.", "High heat builds colour and roasted flavour before the centre loses moisture."];
+    if (includesAny(value, ["mijoter", "fremir", "reduire", "sauce", "simmer", "reduce", "stew"])) return ["Une cuisson douce concentre les saveurs et lie la sauce sans attacher ni séparer les matières grasses.", "Gentle cooking concentrates flavour and binds the sauce without scorching or splitting the fat."];
+    if (value.includes("riz") || value.includes("rice")) return ["Le repos sous couvercle termine l’hydratation par la vapeur et garde les grains entiers.", "Covered resting finishes hydration with steam and keeps the grains intact."];
+    if (includesAny(value, ["piler", "mixer", "ecraser", "tamiser", "pound", "blend", "crush", "sieve"])) return ["Une base homogène diffuse mieux les épices et donne une texture régulière au plat fini.", "An even base distributes spices more effectively and creates a consistent final texture."];
+    if (includesAny(value, ["reposer", "laisser refroidir", "rest", "cool"])) return ["Le repos stabilise la texture et laisse les arômes s’équilibrer avant l’étape suivante.", "Resting stabilises the texture and lets flavours settle before the next step."];
+    if (includesAny(value, ["servir", "dresser", "garnir", "serve", "plate", "garnish"])) return ["L’assemblage au dernier moment préserve le contraste entre éléments chauds, frais, moelleux et croustillants.", "Last-minute assembly preserves the contrast between hot, fresh, soft and crisp elements."];
+    return ["Ce contrôle prépare une texture régulière et rend l’étape suivante plus prévisible.", "This control creates an even texture and makes the next step more predictable."];
+  })();
+  return explanation[locale === "fr" ? 0 : 1];
+}
+
+function recoveryAdvice(raw: string, locale: Locale) {
+  const value = normalize(raw);
+  const recovery = (() => {
+    if (includesAny(value, ["feuilles de manioc", "cassava leaves"])) return ["Si les feuilles restent fermes ou très amères, ajoutez un peu d’eau chaude et prolongez la cuisson par tranches de 10 minutes avant de goûter de nouveau.", "If the leaves remain firm or very bitter, add a little hot water and continue cooking in 10-minute intervals before tasting again."];
+    if (includesAny(value, ["mijoter", "sauce", "reduire", "simmer", "stew", "reduce"])) return ["Trop épaisse : ajoutez une cuillerée de liquide chaud. Trop fluide : poursuivez à découvert, à feu doux, par tranches de 3 minutes.", "Too thick: add one spoonful of hot liquid. Too thin: continue uncovered over low heat in 3-minute intervals."];
+    if (value.includes("riz") || value.includes("rice")) return ["Grains encore fermes : ajoutez 1 à 2 cuillères d’eau chaude et couvrez 5 minutes. Trop humides : laissez reposer 5 minutes hors du feu, couvercle entrouvert.", "Still firm: add 1 to 2 spoonfuls of hot water and cover for 5 minutes. Too wet: rest off heat for 5 minutes with the lid ajar."];
+    if (includesAny(value, ["foutou", "placali", "pate", "dough"])) return ["Trop ferme : incorporez l’eau chaude une cuillère à la fois. Trop souple : travaillez encore à feu doux jusqu’à ce que la pâte se détache.", "Too firm: work in hot water one spoonful at a time. Too soft: keep working over low heat until the dough pulls away cleanly."];
+    if (includesAny(value, ["frire", "huile chaude", "fry", "hot oil"])) return ["Si la surface reste molle, retirez les aliments, laissez l’huile remonter en température puis terminez en petite quantité pendant 1 à 2 minutes.", "If the surface stays soft, remove the food, let the oil return to temperature, then finish in a small batch for 1 to 2 minutes."];
+    if (includesAny(value, ["poisson", "fish", "thon", "tuna"]) && includesAny(value, ["cuire", "cook", "griller", "grill", "braiser"])) return ["Si le centre reste translucide, baissez le feu, couvrez partiellement et poursuivez 2 minutes avant de vérifier à nouveau.", "If the centre remains translucent, lower the heat, cover partly and cook for 2 more minutes before checking again."];
+    if (includesAny(value, ["plantain", "alloco"])) return ["Si les morceaux colorent trop vite, baissez légèrement le feu; s’ils restent pâles, augmentez la chaleur avant la prochaine petite quantité.", "If the pieces colour too quickly, lower the heat slightly; if they stay pale, raise it before the next small batch."];
+    if (includesAny(value, ["assaisonner", "gouter", "rectifier", "season", "taste", "adjust"])) return ["Ajoutez sel, piment ou acidité par petites pincées, mélangez puis attendez 30 secondes avant de goûter à nouveau.", "Add salt, chilli or acidity in small pinches, mix, then wait 30 seconds before tasting again."];
+    if (includesAny(value, ["emincer", "couper", "trancher", "hacher", "slice", "cut", "chop"])) return ["Recoupez les morceaux les plus gros pour les aligner sur les plus petits; gardez les chutes pour la sauce ou le bouillon.", "Trim the largest pieces to match the smaller ones; reserve trimmings for the sauce or stock."];
+    if (includesAny(value, ["servir", "dresser", "serve", "plate"])) return ["Si un élément a refroidi, réchauffez-le séparément avant le dressage afin de ne pas cuire les garnitures fraîches.", "If one component has cooled, reheat it separately before plating so fresh garnishes do not cook."];
+    return ["Si le repère attendu n’est pas atteint, corrigez une seule variable à la fois puis contrôlez de nouveau avant de poursuivre.", "If the expected cue is not reached, adjust one variable at a time and check again before continuing."];
+  })();
+  return recovery[locale === "fr" ? 0 : 1];
+}
+
 export function recipeStepDetailScore(raw: string) {
   const value = normalize(raw.trim());
   if (!value) return 0;
@@ -282,7 +328,7 @@ export function buildRecipeStepGuide(
   const phase = phaseFromText(instruction, heat);
   return {
     raw,
-    title: actionTitle(instruction, index, locale),
+    title: cleanText(details?.title) || actionTitle(instruction, index, locale),
     instruction,
     durationMinutes,
     durationLabel: storedDuration ? `${durationMinutes} min` : inferredRestMinutes > 0 ? `≈ ${durationMinutes} min` : explicitDuration?.label ?? `≈ ${durationMinutes} min`,
@@ -297,6 +343,9 @@ export function buildRecipeStepGuide(
     cue: cleanText(details?.cue) || expectedCue(instruction, locale),
     tip: cleanText(details?.tip) || practicalTip(instruction, locale),
     warning: details?.warning === "" ? null : cleanText(details?.warning) || safetyWarning(instruction, locale),
+    why: cleanText(details?.why) || whyThisStep(instruction, locale),
+    recovery: cleanText(details?.recovery) || recoveryAdvice(instruction, locale),
+    ingredientProductIds: cleanIds(details?.ingredientProductIds),
     phase,
     phaseLabel: phaseLabel(phase, locale),
     detailScore: recipeStepDetailScore(instruction),
