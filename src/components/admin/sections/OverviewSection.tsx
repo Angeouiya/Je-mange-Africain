@@ -9,14 +9,18 @@ import {
   ArrowUpRight,
   BarChart3,
   Boxes,
+  BadgePercent,
   CheckCircle2,
+  ChefHat,
   CircleDollarSign,
   ClipboardCheck,
   Minus,
   PackageCheck,
+  Megaphone,
   ReceiptText,
   ShoppingBag,
   Sparkles,
+  Store,
   TimerReset,
   Truck,
   UsersRound,
@@ -144,6 +148,70 @@ function WorkflowRail({ data, locale, onNavigate }: { data: DashboardPayload; lo
   );
 }
 
+function StorefrontMirror({ data, locale, onNavigate }: { data: DashboardPayload; locale: Locale; onNavigate: (section: AdminSectionId) => void }) {
+  const isFr = locale === "fr";
+  const productIssues = data.storefront.productsMissingImages + Math.max(0, data.storefront.publishedProducts - data.storefront.availableProducts);
+  const recipeIssues = data.storefront.recipesMissingImages + Math.max(0, data.storefront.publishedRecipes - data.storefront.purchasableRecipes);
+  const channels: Array<{ id: string; target: AdminSectionId; icon: LucideIcon; value: string; label: string; detail: string; issues: number; tone: string }> = [
+    {
+      id: "products",
+      target: "catalog",
+      icon: Store,
+      value: `${formatNumber(data.storefront.availableProducts, locale)}/${formatNumber(data.storefront.publishedProducts, locale)}`,
+      label: isFr ? "Produits achetables" : "Purchasable products",
+      detail: isFr ? `${data.storefront.productsMissingImages} visuel(s) à compléter` : `${data.storefront.productsMissingImages} image(s) to complete`,
+      issues: productIssues,
+      tone: "bg-terre/10 text-terre",
+    },
+    {
+      id: "recipes",
+      target: "recipes",
+      icon: ChefHat,
+      value: `${formatNumber(data.storefront.purchasableRecipes, locale)}/${formatNumber(data.storefront.publishedRecipes, locale)}`,
+      label: isFr ? "Recettes composables" : "Basket-ready recipes",
+      detail: isFr ? "image et ingrédients liés" : "image and linked ingredients",
+      issues: recipeIssues,
+      tone: "bg-gold/20 text-charcoal",
+    },
+    {
+      id: "promotions",
+      target: "promotions",
+      icon: BadgePercent,
+      value: formatNumber(data.storefront.activePromotions, locale),
+      label: isFr ? "Avantages actifs" : "Active offers",
+      detail: isFr ? "applicables dans le panier" : "applicable in the basket",
+      issues: 0,
+      tone: "bg-burgundy/[0.08] text-burgundy",
+    },
+    {
+      id: "advertising",
+      target: "advertising",
+      icon: Megaphone,
+      value: formatNumber(data.storefront.liveAdvertisements, locale),
+      label: isFr ? "Campagnes visibles" : "Visible campaigns",
+      detail: isFr ? "diffusées dans la boutique" : "live across the storefront",
+      issues: 0,
+      tone: "bg-terre/[0.07] text-terre",
+    },
+  ];
+  const issueCount = channels.reduce((sum, channel) => sum + channel.issues, 0);
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-charcoal/8 bg-white" aria-labelledby="storefront-mirror-title" data-testid="storefront-mirror">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-charcoal/8 px-4 py-4 sm:px-5">
+        <div><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Miroir client" : "Customer mirror"}</p><h3 id="storefront-mirror-title" className="mt-1 text-sm font-black text-charcoal">{isFr ? "Ce que la boutique montre maintenant" : "What the storefront shows now"}</h3></div>
+        <span className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[9px] font-black ${issueCount ? "bg-gold/20 text-charcoal" : "bg-burgundy/[0.07] text-burgundy"}`}>{issueCount ? <AlertTriangle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}{issueCount ? `${issueCount} ${isFr ? "point(s) à traiter" : "item(s) to resolve"}` : (isFr ? "Prêt à vendre" : "Ready to sell")}</span>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4">
+        {channels.map((channel, index) => {
+          const Icon = channel.icon;
+          return <button key={channel.id} type="button" onClick={() => onNavigate(channel.target)} className={`group min-w-0 p-4 text-left transition hover:bg-terre/[0.025] sm:p-5 ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "lg:border-r" : "lg:border-r-0"} lg:border-b-0`} aria-label={`${channel.label}: ${channel.value}`}><span className="flex items-start justify-between gap-2"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${channel.tone}`}><Icon className="h-4 w-4" /></span><ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-terre" /></span><strong className="mt-3 block text-xl font-black tabular-nums text-charcoal">{channel.value}</strong><span className="mt-1 block text-[11px] font-extrabold text-charcoal">{channel.label}</span><span className="mt-1 block text-[9px] leading-4 text-muted-foreground">{channel.detail}</span></button>;
+        })}
+      </div>
+    </section>
+  );
+}
+
 function RecentOrders({ orders, locale, onNavigate }: { orders: DashboardPayload["recentOrders"]; locale: Locale; onNavigate: (section: AdminSectionId) => void }) {
   const isFr = locale === "fr";
   return (
@@ -189,6 +257,8 @@ export default function OverviewSection({ locale, onNavigate }: { locale: Locale
         <MetricCell position={2} locale={locale} icon={ClipboardCheck} label={isFr ? "Commandes actives" : "Active orders"} value={formatNumber(data.kpis.activeOrders, locale)} detail={`${data.kpis.toPrepare} ${isFr ? "à qualifier avant préparation" : "to qualify before fulfilment"}`} tone="burgundy" />
         <MetricCell position={3} locale={locale} icon={Boxes} label={isFr ? "Catalogue disponible" : "Available catalogue"} value={`${formatNumber(data.kpis.stockCoverageRate, locale, 1)} %`} detail={`${data.kpis.outOfStock} ${isFr ? "produits indisponibles" : "unavailable products"}`} tone="soft" />
       </section>
+
+      <StorefrontMirror data={data} locale={locale} onNavigate={onNavigate} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(20rem,0.82fr)]">
         <RevenuePulse data={data} locale={locale} />

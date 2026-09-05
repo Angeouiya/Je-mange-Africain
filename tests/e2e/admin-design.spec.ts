@@ -24,6 +24,16 @@ const dashboard = {
     stockCoverageRate: 97.4,
   },
   comparison: { revenue: 12.4, orders: 8.6, averageBasket: 3.8 },
+  storefront: {
+    publishedProducts: 78,
+    availableProducts: 76,
+    productsMissingImages: 1,
+    publishedRecipes: 24,
+    purchasableRecipes: 22,
+    recipesMissingImages: 1,
+    activePromotions: 3,
+    liveAdvertisements: 4,
+  },
   pulse: [
     { date: "2026-08-27T00:00:00.000Z", label: "jeu", revenue: 2480, orders: 42 },
     { date: "2026-08-28T00:00:00.000Z", label: "ven", revenue: 3210, orders: 54 },
@@ -997,11 +1007,18 @@ test("platform settings publish durable customer-facing contact details", async 
 test("the operations home turns live signals into clear decisions", async ({ page }) => {
   await mockAdminApi(page);
   await page.goto("/admin#overview", { waitUntil: "domcontentloaded" });
+  const mobile = (page.viewportSize()?.width || 0) < 768;
 
   await expect(page.getByRole("heading", { name: "Sept jours d'encaissement" })).toBeVisible();
   await expect(page.getByTestId("dashboard-pulse-bar")).toHaveCount(7);
   await expect(page.getByText("97,4 %", { exact: true })).toBeVisible();
   await expect(page.getByText("+12,4 %", { exact: true })).toBeVisible();
+  const storefrontMirror = page.getByTestId("storefront-mirror");
+  await expect(storefrontMirror.getByRole("heading", { name: "Ce que la boutique montre maintenant" })).toBeVisible();
+  await expect(storefrontMirror.getByRole("button", { name: "Produits achetables: 76/78" })).toBeVisible();
+  await expect(storefrontMirror.getByRole("button", { name: "Recettes composables: 22/24" })).toBeVisible();
+  await expect(storefrontMirror.getByRole("button", { name: "Avantages actifs: 3" })).toBeVisible();
+  await expect(storefrontMirror.getByRole("button", { name: "Campagnes visibles: 4" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Décisions à prendre maintenant" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Livraisons hors délai/ })).toContainText("2");
   await expect(page.getByText("JMA-260902-0142", { exact: true })).toBeVisible();
@@ -1020,10 +1037,23 @@ test("the operations home turns live signals into clear decisions", async ({ pag
     await page.screenshot({ path: join(directory, `overview-command-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: true });
   }
 
+  const mirrorDestinations = [
+    { button: "Produits achetables: 76/78", heading: "Produits vendus" },
+    { button: "Recettes composables: 22/24", heading: "Recettes achetables" },
+    { button: "Avantages actifs: 3", heading: "Piloter les promotions" },
+    { button: "Campagnes visibles: 4", heading: "Piloter les emplacements" },
+  ];
+  for (const destination of mirrorDestinations) {
+    await page.getByTestId("storefront-mirror").getByRole("button", { name: destination.button }).click();
+    await expect(page.locator("header h1")).toHaveText(destination.heading);
+    if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
+    await page.getByRole("navigation", { name: "Navigation professionnelle" }).getByRole("button", { name: /^Décider aujourd'hui/ }).click();
+    await expect(page.getByTestId("storefront-mirror")).toBeVisible();
+  }
+
   await page.getByRole("button", { name: /Livraisons hors délai/ }).click();
   await expect(page.locator("header h1")).toHaveText("Orchestrer les commandes");
 
-  const mobile = (page.viewportSize()?.width || 0) < 768;
   if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
   await page.getByRole("navigation", { name: "Navigation professionnelle" }).getByRole("button", { name: /^Décider aujourd'hui/ }).click();
   if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
@@ -1031,6 +1061,7 @@ test("the operations home turns live signals into clear decisions", async ({ pag
   await expect(page.getByRole("heading", { name: "Seven days of collected revenue" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Most purchased products" })).toBeVisible();
   await expect(page.getByText("Available catalogue", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What the storefront shows now" })).toBeVisible();
 });
 
 test("the audit center qualifies, filters and exports operational evidence", async ({ page }) => {

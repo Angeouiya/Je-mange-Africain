@@ -19,8 +19,14 @@ export async function GET(req: NextRequest) {
   const expiryHorizon = new Date(now.getTime() + 14 * 86_400_000);
   const staleThreshold = new Date(now.getTime() - 24 * 3_600_000);
 
-  const [products, expiringSoon, expiredActive, windowOrders, statusRows, paymentRows, customers, newCustomersMonth, delayedShipments, failedDeliveries, stalePreparation, recentOrders] = await Promise.all([
+  const [products, productsMissingImages, publishedRecipes, purchasableRecipes, recipesMissingImages, activePromotions, liveAdvertisements, expiringSoon, expiredActive, windowOrders, statusRows, paymentRows, customers, newCustomersMonth, delayedShipments, failedDeliveries, stalePreparation, recentOrders] = await Promise.all([
     db.product.findMany({ where: { status: "published" }, select: { id: true, stockQty: true, reservedQty: true, alertThreshold: true } }),
+    db.product.count({ where: { status: "published", OR: [{ imageUrl: null }, { imageUrl: "" }] } }),
+    db.recipe.count({ where: { status: "published" } }),
+    db.recipe.count({ where: { status: "published", imageUrl: { not: null }, NOT: { imageUrl: "" }, ingredients: { some: {} } } }),
+    db.recipe.count({ where: { status: "published", OR: [{ imageUrl: null }, { imageUrl: "" }] } }),
+    db.promotion.count({ where: { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] } }),
+    db.advertisement.count({ where: { status: "published", AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] } }),
     db.inventoryBatch.count({ where: { status: "active", expiryDate: { gt: now, lte: expiryHorizon } } }),
     db.inventoryBatch.count({ where: { status: "active", expiryDate: { lte: now } } }),
     db.order.findMany({ where: { createdAt: { gte: previousWindow.start, lte: now } }, include: { items: true, payments: true } }),
@@ -48,6 +54,8 @@ export async function GET(req: NextRequest) {
   const stockCoverageRate = products.length ? Math.round((availableProducts / products.length) * 1_000) / 10 : 0;
   const paymentAttention = (paymentCounts.pending || 0) + (paymentCounts.failed || 0);
   const toPrepare = ["validated", "paymentConfirmed", "stockReserved"].reduce((sum, status) => sum + (statusCounts[status] || 0), 0);
+  const recipesNeedingAttention = Math.max(0, publishedRecipes - purchasableRecipes);
+  const missingStorefrontImages = productsMissingImages + recipesMissingImages;
   const priorityCandidates = [
     { id: "expired", level: "critical" as const, count: expiredActive, title: locale === "fr" ? "Lots arrivés à échéance" : "Expired active batches", detail: locale === "fr" ? "Bloquez ou sortez ces lots avant toute nouvelle allocation." : "Block or remove these batches before any new allocation.", target: "inventory" as const },
     { id: "delivery-delay", level: "critical" as const, count: delayedShipments, title: locale === "fr" ? "Livraisons hors délai" : "Overdue deliveries", detail: locale === "fr" ? "Les dates estimées sont dépassées et demandent un suivi transporteur." : "Estimated dates have passed and require carrier follow-up.", target: "orders" as const },
@@ -55,6 +63,8 @@ export async function GET(req: NextRequest) {
     { id: "payment", level: "attention" as const, count: paymentAttention, title: locale === "fr" ? "Paiements à rapprocher" : "Payments to reconcile", detail: locale === "fr" ? "Les paiements en attente ou en échec du mois doivent être examinés." : "This month's pending or failed payments need review.", target: "finance" as const },
     { id: "stockout", level: "attention" as const, count: outOfStock, title: locale === "fr" ? "Produits indisponibles" : "Unavailable products", detail: locale === "fr" ? "L'offre publiée n'est plus vendable avec le stock actuellement disponible." : "Published products are no longer sellable with current available stock.", target: "inventory" as const },
     { id: "stale-preparation", level: "attention" as const, count: stalePreparation, title: locale === "fr" ? "Préparations sans mouvement" : "Stalled fulfilment", detail: locale === "fr" ? "Ces commandes n'ont pas progressé depuis plus de 24 heures." : "These orders have not progressed for more than 24 hours.", target: "orders" as const },
+    { id: "storefront-media", level: "attention" as const, count: missingStorefrontImages, title: locale === "fr" ? "Visuels publics manquants" : "Missing public images", detail: locale === "fr" ? "Ces produits ou recettes sont publiés sans image exploitable dans la boutique." : "These products or recipes are published without a usable storefront image.", target: "catalog" as const },
+    { id: "recipe-readiness", level: "monitor" as const, count: recipesNeedingAttention, title: locale === "fr" ? "Recettes à finaliser" : "Recipes to complete", detail: locale === "fr" ? "Ajoutez une image et au moins un ingrédient lié au stock avant leur mise en avant." : "Add an image and at least one stock-linked ingredient before featuring them.", target: "recipes" as const },
     { id: "expiry", level: "monitor" as const, count: expiringSoon, title: locale === "fr" ? "Échéances sous 14 jours" : "Expiring within 14 days", detail: locale === "fr" ? "Priorisez ces lots dans les prochaines vagues selon la règle FEFO." : "Prioritise these batches in upcoming FEFO waves.", target: "inventory" as const },
   ];
 
@@ -80,6 +90,16 @@ export async function GET(req: NextRequest) {
       revenue: percentageChange(current.revenue, previous.revenue),
       orders: percentageChange(current.orders, previous.orders),
       averageBasket: percentageChange(current.averageBasket, previous.averageBasket),
+    },
+    storefront: {
+      publishedProducts: products.length,
+      availableProducts,
+      productsMissingImages,
+      publishedRecipes,
+      purchasableRecipes,
+      recipesMissingImages,
+      activePromotions,
+      liveAdvertisements,
     },
     pulse: buildDailyPulse(windowOrders, now, locale),
     workflow,

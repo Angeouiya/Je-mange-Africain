@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
   productFindMany: vi.fn(),
+  productCount: vi.fn(),
+  recipeCount: vi.fn(),
+  promotionCount: vi.fn(),
+  advertisementCount: vi.fn(),
   inventoryCount: vi.fn(),
   orderFindMany: vi.fn(),
   orderGroupBy: vi.fn(),
@@ -16,7 +20,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/admin-auth", () => ({ authorizeAdminRequest: mocks.authorize }));
 vi.mock("@/lib/db", () => ({
   db: {
-    product: { findMany: mocks.productFindMany },
+    product: { findMany: mocks.productFindMany, count: mocks.productCount },
+    recipe: { count: mocks.recipeCount },
+    promotion: { count: mocks.promotionCount },
+    advertisement: { count: mocks.advertisementCount },
     inventoryBatch: { count: mocks.inventoryCount },
     order: { findMany: mocks.orderFindMany, groupBy: mocks.orderGroupBy, count: mocks.orderCount },
     payment: { groupBy: mocks.paymentGroupBy },
@@ -55,6 +62,10 @@ describe("GET /api/admin/dashboard", () => {
     vi.setSystemTime(new Date("2026-09-03T12:00:00.000Z"));
     mocks.authorize.mockResolvedValue({ ok: true, user: { id: "admin-1", email: "direction@example.com", role: "super_admin" } });
     mocks.productFindMany.mockResolvedValue([{ id: "available", stockQty: 10, reservedQty: 2, alertThreshold: 3 }, { id: "empty", stockQty: 2, reservedQty: 2, alertThreshold: 3 }]);
+    mocks.productCount.mockResolvedValue(1);
+    mocks.recipeCount.mockResolvedValueOnce(12).mockResolvedValueOnce(10).mockResolvedValueOnce(1);
+    mocks.promotionCount.mockResolvedValue(3);
+    mocks.advertisementCount.mockResolvedValue(2);
     mocks.inventoryCount.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
     mocks.orderFindMany.mockResolvedValueOnce([currentOrder, previousOrder]).mockResolvedValueOnce([currentOrder]);
     mocks.orderGroupBy.mockResolvedValue([
@@ -91,6 +102,16 @@ describe("GET /api/admin/dashboard", () => {
       newCustomersMonth: 4,
     });
     expect(payload.comparison).toEqual({ revenue: 80, orders: 0, averageBasket: 80 });
+    expect(payload.storefront).toEqual({
+      publishedProducts: 2,
+      availableProducts: 1,
+      productsMissingImages: 1,
+      publishedRecipes: 12,
+      purchasableRecipes: 10,
+      recipesMissingImages: 1,
+      activePromotions: 3,
+      liveAdvertisements: 2,
+    });
     expect(payload.pulse).toHaveLength(7);
     expect(payload.pulse.at(-1)).toMatchObject({ revenue: 90, orders: 1 });
     expect(payload.workflow).toEqual([
@@ -99,7 +120,7 @@ describe("GET /api/admin/dashboard", () => {
       { id: "deliver", count: 1 },
       { id: "closed", count: 5 },
     ]);
-    expect(payload.priorities).toHaveLength(7);
+    expect(payload.priorities).toHaveLength(9);
     expect(payload.recentOrders[0]).toMatchObject({ number: "JMA-260903-001", itemCount: 2, imageUrl: "/attieke.webp" });
     expect(payload.topProducts[0]).toMatchObject({ productId: "attieke", units: 2, revenue: 72 });
   });

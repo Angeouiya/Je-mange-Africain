@@ -37,6 +37,16 @@ export type DashboardPayload = {
     orders: number | null;
     averageBasket: number | null;
   };
+  storefront: {
+    publishedProducts: number;
+    availableProducts: number;
+    productsMissingImages: number;
+    publishedRecipes: number;
+    purchasableRecipes: number;
+    recipesMissingImages: number;
+    activePromotions: number;
+    liveAdvertisements: number;
+  };
   pulse: Array<{ date: string; label: string; revenue: number; orders: number }>;
   workflow: Array<{ id: "validate" | "prepare" | "deliver" | "closed"; count: number }>;
   priorities: Array<{
