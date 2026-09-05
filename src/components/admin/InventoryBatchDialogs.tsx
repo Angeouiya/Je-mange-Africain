@@ -112,10 +112,12 @@ export function BatchReceiptDialog({
 }) {
   const isFr = locale === "fr";
   const [open, setOpen] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [draft, setDraft] = useState<ReceiptDraft>(() => draftFor(products, warehouses));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const product = products.find((item) => item.id === draft.productId);
+  const warehouse = warehouses.find((item) => item.id === draft.warehouseId);
   const compatibleWarehouses = useMemo(() => warehouses.filter((warehouse) => !product || warehouse.supports.includes(product.thermalClass)), [product, warehouses]);
   const stockValue = Number(draft.quantity || 0) * Number(draft.costPrice || 0);
   const complete = Boolean(draft.productId && draft.warehouseId && draft.lotNumber.trim().length >= 3 && Number(draft.quantity) > 0 && Number(draft.costPrice) >= 0 && draft.receiptDate && draft.reason.trim().length >= 5);
@@ -127,6 +129,7 @@ export function BatchReceiptDialog({
     if (next) {
       setDraft(draftFor(products, warehouses));
       setError("");
+      setConfirmationOpen(false);
     }
   };
   const selectProduct = (productId: string) => {
@@ -134,33 +137,40 @@ export function BatchReceiptDialog({
     const nextWarehouse = warehouses.find((warehouse) => nextProduct && warehouse.supports.includes(nextProduct.thermalClass));
     setDraft((current) => ({ ...current, productId, warehouseId: nextWarehouse?.id || "" }));
   };
-  const submit = async (event: FormEvent) => {
+  const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!complete) return;
+    if (!complete || busy) return;
+    setConfirmationOpen(true);
+  };
+  const recordReceipt = async () => {
+    if (!complete || busy) return;
     setBusy(true);
     setError("");
     try {
       const response = await fetch("/api/admin/stock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || (isFr ? "Réception impossible." : "Unable to record receipt."));
+      setConfirmationOpen(false);
       setOpen(false);
       onCreated();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : (isFr ? "Réception impossible." : "Unable to record receipt."));
+      setConfirmationOpen(false);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogTrigger asChild>
-        <Button type="button" size="sm" disabled={disabled || !products.length || !warehouses.length} className="h-10 bg-terre text-white hover:bg-terre-dark">
-          <PackagePlus className="mr-1.5 h-4 w-4" />{isFr ? "Réceptionner un lot" : "Receive a batch"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent showCloseButton={false} className="max-h-[calc(100svh-1rem)] overflow-hidden p-0 sm:max-w-2xl">
-        <form onSubmit={submit} className="flex max-h-[calc(100svh-1rem)] min-h-0 flex-col">
+    <>
+      <Dialog open={open} onOpenChange={handleOpen}>
+        <DialogTrigger asChild>
+          <Button type="button" size="sm" disabled={disabled || !products.length || !warehouses.length} className="h-10 bg-terre text-white hover:bg-terre-dark">
+            <PackagePlus className="mr-1.5 h-4 w-4" />{isFr ? "Réceptionner un lot" : "Receive a batch"}
+          </Button>
+        </DialogTrigger>
+        <DialogContent showCloseButton={false} className="max-h-[calc(100svh-1rem)] overflow-hidden p-0 sm:max-w-2xl">
+          <form onSubmit={submit} className="flex max-h-[calc(100svh-1rem)] min-h-0 flex-col">
           <DialogHeader className="shrink-0 border-b border-border px-5 py-5 pr-14 text-left sm:px-6 sm:pr-14">
             <DialogDismiss locale={locale} disabled={busy} />
             <div className="flex items-start gap-3">
@@ -218,9 +228,16 @@ export function BatchReceiptDialog({
             <Button type="button" variant="outline" onClick={() => handleOpen(false)} disabled={busy}>{isFr ? "Annuler" : "Cancel"}</Button>
             <Button type="submit" disabled={!complete || busy} className="bg-terre text-white hover:bg-terre-dark">{busy ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer la réception" : "Record receipt"}</Button>
           </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={confirmationOpen} onOpenChange={(next) => { if (!busy) setConfirmationOpen(next); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-terre/[0.08] text-terre"><PackagePlus className="h-5 w-5" /></span><AlertDialogTitle>{draft.status === "active" ? (isFr ? "Rendre ce lot disponible ?" : "Make this batch available?") : (isFr ? "Enregistrer ce lot en quarantaine ?" : "Record this batch in quarantine?")}</AlertDialogTitle><AlertDialogDescription>{isFr ? `${draft.quantity} unité(s) de ${product?.name || "ce produit"} seront ajoutées à ${warehouse?.name || "l'entrepôt sélectionné"} sous le lot ${draft.lotNumber}. La valeur brute enregistrée sera de ${formatPrice(stockValue, locale)}. ${draft.status === "active" ? "Elles entreront immédiatement dans le stock vendable." : "Elles resteront bloquées jusqu'à une décision de contrôle."}` : `${draft.quantity} unit(s) of ${product?.name || "this product"} will be added to ${warehouse?.name || "the selected warehouse"} under batch ${draft.lotNumber}. The recorded gross value will be ${formatPrice(stockValue, locale)}. ${draft.status === "active" ? "They will immediately enter sellable stock." : "They will remain blocked until a review decision is made."}`}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel disabled={busy}>{isFr ? "Vérifier le lot" : "Review batch"}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void recordReceipt(); }} disabled={busy} className="bg-terre text-white hover:bg-terre-dark">{busy ? <LoaderCircle className="mr-1.5 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-1.5 h-4 w-4" />}{isFr ? "Confirmer la réception" : "Confirm receipt"}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

@@ -19,6 +19,7 @@ export function InviteMemberDialog({ locale, roles, onInvited }: { locale: "fr" 
   const isFr = locale === "fr";
   const emptyDraft = (): MemberDraft => ({ email: "", firstName: "", lastName: "", role: roles[0]?.id || "support" });
   const [open, setOpen] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState<MemberDraft>(emptyDraft);
@@ -32,11 +33,17 @@ export function InviteMemberDialog({ locale, roles, onInvited }: { locale: "fr" 
     if (next) {
       setDraft(emptyDraft());
       setError("");
+      setConfirmationOpen(false);
     }
   };
 
-  const submit = async (event: FormEvent) => {
+  const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (!complete || busy) return;
+    setConfirmationOpen(true);
+  };
+
+  const sendInvitation = async () => {
     if (!complete || busy) return;
     setBusy(true);
     setError("");
@@ -44,37 +51,47 @@ export function InviteMemberDialog({ locale, roles, onInvited }: { locale: "fr" 
       const response = await fetch("/api/admin/team", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || (isFr ? "Invitation impossible." : "Unable to send invitation."));
+      setConfirmationOpen(false);
       setOpen(false);
       onInvited();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : (isFr ? "Invitation impossible." : "Unable to send invitation."));
+      setConfirmationOpen(false);
     } finally {
       setBusy(false);
     }
   };
 
-  return <Dialog open={open} onOpenChange={handleOpen}>
-    <DialogTrigger asChild><Button size="sm" className="h-10 bg-burgundy text-white hover:bg-burgundy-dark"><MailPlus className="mr-1.5 h-4 w-4" />{isFr ? "Inviter un membre" : "Invite member"}</Button></DialogTrigger>
-    <DialogContent closeLabel={isFr ? "Fermer" : "Close"} className="max-h-[calc(100svh-1rem)] overflow-hidden p-0 sm:max-w-3xl">
-      <form onSubmit={submit} className="flex max-h-[calc(100svh-1rem)] min-h-0 flex-col">
-        <DialogHeader className="shrink-0 border-b border-border px-5 py-5 pr-14 text-left sm:px-6"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-burgundy text-white"><MailPlus className="h-4 w-4" /></span><div><DialogTitle>{isFr ? "Créer un accès professionnel" : "Create professional access"}</DialogTitle><DialogDescription className="mt-1">{isFr ? "L'invitation attribue un rôle précis, vérifié à chaque action par le serveur." : "The invitation assigns a precise role, verified by the server on every action."}</DialogDescription></div></div></DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_20rem]">
-            <div className="grid content-start gap-4 px-5 py-5 sm:grid-cols-2 sm:px-6">
-              <TeamField label={isFr ? "Prénom" : "First name"} required><Input required autoComplete="given-name" value={draft.firstName} onChange={(event) => setDraft((current) => ({ ...current, firstName: event.target.value }))} /></TeamField>
-              <TeamField label={isFr ? "Nom" : "Last name"} required><Input required autoComplete="family-name" value={draft.lastName} onChange={(event) => setDraft((current) => ({ ...current, lastName: event.target.value }))} /></TeamField>
-              <div className="sm:col-span-2"><TeamField label="E-mail" required><Input required type="email" autoComplete="email" value={draft.email} onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))} placeholder="prenom@entreprise.com" /></TeamField></div>
-              <div className="sm:col-span-2"><TeamField label={isFr ? "Rôle attribué" : "Assigned role"} required><select value={draft.role} onChange={(event) => setDraft((current) => ({ ...current, role: event.target.value }))} className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal">{roles.map((role) => <option key={role.id} value={role.id}>{roleLabel(role.id, locale)}</option>)}</select></TeamField></div>
-              <div className="sm:col-span-2 border-y border-gold/35 bg-gold/[0.07] px-3 py-3 text-xs leading-5 text-charcoal"><div className="flex gap-2"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><p>{isFr ? "Le lien est envoyé par e-mail. Le membre ne peut ni élargir son rôle ni accéder aux espaces absents de ce périmètre." : "The link is sent by email. The member cannot expand their role or access workspaces outside this scope."}</p></div></div>
+  return <>
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <DialogTrigger asChild><Button size="sm" className="h-10 bg-burgundy text-white hover:bg-burgundy-dark"><MailPlus className="mr-1.5 h-4 w-4" />{isFr ? "Inviter un membre" : "Invite member"}</Button></DialogTrigger>
+      <DialogContent closeLabel={isFr ? "Fermer" : "Close"} className="max-h-[calc(100svh-1rem)] overflow-hidden p-0 sm:max-w-3xl">
+        <form onSubmit={submit} className="flex max-h-[calc(100svh-1rem)] min-h-0 flex-col">
+          <DialogHeader className="shrink-0 border-b border-border px-5 py-5 pr-14 text-left sm:px-6"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-burgundy text-white"><MailPlus className="h-4 w-4" /></span><div><DialogTitle>{isFr ? "Créer un accès professionnel" : "Create professional access"}</DialogTitle><DialogDescription className="mt-1">{isFr ? "L'invitation attribue un rôle précis, vérifié à chaque action par le serveur." : "The invitation assigns a precise role, verified by the server on every action."}</DialogDescription></div></div></DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_20rem]">
+              <div className="grid content-start gap-4 px-5 py-5 sm:grid-cols-2 sm:px-6">
+                <TeamField label={isFr ? "Prénom" : "First name"} required><Input required autoComplete="given-name" value={draft.firstName} onChange={(event) => setDraft((current) => ({ ...current, firstName: event.target.value }))} /></TeamField>
+                <TeamField label={isFr ? "Nom" : "Last name"} required><Input required autoComplete="family-name" value={draft.lastName} onChange={(event) => setDraft((current) => ({ ...current, lastName: event.target.value }))} /></TeamField>
+                <div className="sm:col-span-2"><TeamField label="E-mail" required><Input required type="email" autoComplete="email" value={draft.email} onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))} placeholder="prenom@entreprise.com" /></TeamField></div>
+                <div className="sm:col-span-2"><TeamField label={isFr ? "Rôle attribué" : "Assigned role"} required><select value={draft.role} onChange={(event) => setDraft((current) => ({ ...current, role: event.target.value }))} className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal">{roles.map((role) => <option key={role.id} value={role.id}>{roleLabel(role.id, locale)}</option>)}</select></TeamField></div>
+                <div className="sm:col-span-2 border-y border-gold/35 bg-gold/[0.07] px-3 py-3 text-xs leading-5 text-charcoal"><div className="flex gap-2"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><p>{isFr ? "Le lien est envoyé par e-mail. Le membre ne peut ni élargir son rôle ni accéder aux espaces absents de ce périmètre." : "The link is sent by email. The member cannot expand their role or access workspaces outside this scope."}</p></div></div>
+              </div>
+              <aside className="border-t border-border bg-[#F8F7F4] px-5 py-5 lg:border-l lg:border-t-0"><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Périmètre accordé" : "Granted scope"}</p><h3 className="mt-1 text-sm font-black text-charcoal">{selected ? roleLabel(selected.id, locale) : "—"}</h3><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{selected ? roleDescription(selected.id, locale) : ""}</p><div className="mt-3 flex gap-2"><Badge variant="outline" className="bg-white text-[9px]">{totals.modules} {isFr ? "modules" : "modules"}</Badge><Badge variant="outline" className="bg-white text-[9px]">{totals.actions} {isFr ? "actions" : "actions"}</Badge></div>{selected ? <div className="mt-4"><TeamPermissionList permissions={selected.permissions} locale={locale} /></div> : null}</aside>
             </div>
-            <aside className="border-t border-border bg-[#F8F7F4] px-5 py-5 lg:border-l lg:border-t-0"><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Périmètre accordé" : "Granted scope"}</p><h3 className="mt-1 text-sm font-black text-charcoal">{selected ? roleLabel(selected.id, locale) : "—"}</h3><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{selected ? roleDescription(selected.id, locale) : ""}</p><div className="mt-3 flex gap-2"><Badge variant="outline" className="bg-white text-[9px]">{totals.modules} {isFr ? "modules" : "modules"}</Badge><Badge variant="outline" className="bg-white text-[9px]">{totals.actions} {isFr ? "actions" : "actions"}</Badge></div>{selected ? <div className="mt-4"><TeamPermissionList permissions={selected.permissions} locale={locale} /></div> : null}</aside>
+            {error ? <p role="alert" className="mx-5 mb-4 border-l-2 border-destructive bg-destructive/[0.04] px-3 py-2 text-xs text-destructive sm:mx-6">{error}</p> : null}
           </div>
-          {error ? <p role="alert" className="mx-5 mb-4 border-l-2 border-destructive bg-destructive/[0.04] px-3 py-2 text-xs text-destructive sm:mx-6">{error}</p> : null}
-        </div>
-        <DialogFooter className="shrink-0 border-t border-border bg-white px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => handleOpen(false)} disabled={busy}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={!complete || busy} className="bg-burgundy text-white hover:bg-burgundy-dark">{busy ? <LoaderCircle className="mr-1.5 h-4 w-4 animate-spin" /> : <MailPlus className="mr-1.5 h-4 w-4" />}{isFr ? "Envoyer l'invitation" : "Send invitation"}</Button></DialogFooter>
-      </form>
-    </DialogContent>
-  </Dialog>;
+          <DialogFooter className="shrink-0 border-t border-border bg-white px-5 py-4 sm:px-6"><Button type="button" variant="outline" onClick={() => handleOpen(false)} disabled={busy}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={!complete || busy} className="bg-burgundy text-white hover:bg-burgundy-dark"><MailPlus className="mr-1.5 h-4 w-4" />{isFr ? "Envoyer l'invitation" : "Send invitation"}</Button></DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+    <AlertDialog open={confirmationOpen} onOpenChange={(next) => { if (!busy) setConfirmationOpen(next); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-burgundy/[0.08] text-burgundy"><MailPlus className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Confirmer cette invitation ?" : "Confirm this invitation?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? `Un e-mail sera envoyé à ${draft.firstName.trim()} ${draft.lastName.trim()} (${draft.email.trim()}). Après activation, cette personne disposera du rôle ${selected ? roleLabel(selected.id, locale) : "—"}, couvrant ${totals.modules} module(s) et ${totals.actions} action(s).` : `An email will be sent to ${draft.firstName.trim()} ${draft.lastName.trim()} (${draft.email.trim()}). Once activated, this person will have the ${selected ? roleLabel(selected.id, locale) : "—"} role, covering ${totals.modules} module(s) and ${totals.actions} action(s).`}</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel disabled={busy}>{isFr ? "Vérifier le rôle" : "Review role"}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void sendInvitation(); }} disabled={busy} className="bg-burgundy text-white hover:bg-burgundy-dark">{busy ? <LoaderCircle className="mr-1.5 h-4 w-4 animate-spin" /> : <MailPlus className="mr-1.5 h-4 w-4" />}{isFr ? "Confirmer l'invitation" : "Confirm invitation"}</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>;
 }
 
 export function MemberAccessDialog({ member, roles, locale, onClose, onUpdated }: { member: TeamMember; roles: TeamRole[]; locale: "fr" | "en"; onClose: () => void; onUpdated: () => void }) {

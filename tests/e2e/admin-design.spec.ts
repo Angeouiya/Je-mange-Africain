@@ -758,6 +758,18 @@ test("the team cockpit grants least-privilege access and documents sensitive dec
     await page.screenshot({ path: join(directory, `team-invite-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }
   await inviteAction.click();
+  const inviteConfirmation = page.getByRole("alertdialog", { name: "Confirmer cette invitation ?" });
+  await expect(inviteConfirmation).toBeVisible();
+  await expect(inviteConfirmation).toContainText("fatou@je-mange-africain.com");
+  await expect(inviteConfirmation).toContainText("Responsable catalogue");
+  await expect.poll(() => mutations.filter((item) => item.method === "POST").length).toBe(0);
+  const inviteConfirmationAccessibility = await new AxeBuilder({ page }).include('[role="alertdialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(inviteConfirmationAccessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    await page.screenshot({ path: join(directory, `team-invite-confirmation-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await inviteConfirmation.getByRole("button", { name: "Confirmer l'invitation" }).click();
   await expect(inviteDialog).toBeHidden();
   await expect.poll(() => mutations.filter((item) => item.method === "POST").length).toBe(1);
   expect(mutations.find((item) => item.method === "POST")?.body).toMatchObject({ email: "fatou@je-mange-africain.com", firstName: "Fatou", lastName: "Ndiaye", role: "catalog_manager" });
@@ -984,6 +996,19 @@ test("the inventory desk receives, values and secures a traceable batch", async 
     await page.screenshot({ path: join(directory, `inventory-receipt-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }
   await receiptDialog.getByRole("button", { name: "Enregistrer la réception" }).click();
+  const receiptConfirmation = page.getByRole("alertdialog", { name: "Rendre ce lot disponible ?" });
+  await expect(receiptConfirmation).toBeVisible();
+  await expect(receiptConfirmation).toContainText("48 unité(s) de Attiéké frais");
+  await expect(receiptConfirmation).toContainText("141,60 €");
+  await expect(receiptConfirmation).toContainText("stock vendable");
+  await expect.poll(() => receiptPayloads.length).toBe(0);
+  const receiptConfirmationAccessibility = await new AxeBuilder({ page }).include('[role="alertdialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(receiptConfirmationAccessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    await page.screenshot({ path: join(directory, `inventory-receipt-confirmation-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await receiptConfirmation.getByRole("button", { name: "Confirmer la réception" }).click();
   await expect(receiptDialog).toBeHidden();
   await expect.poll(() => receiptPayloads.length).toBe(1);
   expect(receiptPayloads[0]).toMatchObject({ productId: "product-1", warehouseId: "warehouse-1", lotNumber: "ATT-2609-FR", quantity: "48", costPrice: "2.95", status: "active" });
