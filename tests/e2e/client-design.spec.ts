@@ -133,6 +133,8 @@ test("the client application exposes clear catalogue, recipe and basket workspac
     expect(columnCount).toBe(5);
   }
   if (process.env.CLIENT_SCREENSHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: `output/playwright/audit/home-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
 
