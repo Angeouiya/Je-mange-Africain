@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { getBrandAccentColor, getRecipePhoto } from "@/lib/market-media";
 import { recipeStepCount, recipeStockReadiness } from "@/lib/recipe-operations";
-import { recipeAdminInput, recipeSlug } from "@/lib/admin-recipe-schema";
+import { recipeAdminInput, recipeSlug, recipeStepDetailsForLocale } from "@/lib/admin-recipe-schema";
+import { serializeRecipeSteps } from "@/lib/recipe-step-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -99,8 +100,8 @@ export async function POST(request: NextRequest) {
         status: input.status,
         translations: {
           create: [
-            { locale: "fr", title: input.titleFr, description: input.descriptionFr, steps: JSON.stringify(input.stepsFr) },
-            { locale: "en", title: input.titleEn, description: input.descriptionEn, steps: JSON.stringify(input.stepsEn) },
+            { locale: "fr", title: input.titleFr, description: input.descriptionFr, steps: serializeRecipeSteps(input.stepsFr, recipeStepDetailsForLocale(input, "fr"), "fr") },
+            { locale: "en", title: input.titleEn, description: input.descriptionEn, steps: serializeRecipeSteps(input.stepsEn, recipeStepDetailsForLocale(input, "en"), "en") },
           ],
         },
         ingredients: {

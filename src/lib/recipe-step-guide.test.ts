@@ -76,4 +76,27 @@ describe("recipe preparation guide", () => {
     expect(guide.cue).toContain("feuilles très tendres");
     expect(guide.cue).not.toContain("chair est opaque");
   });
+
+  it("uses authored professional cues instead of estimated guidance", () => {
+    const guide = buildRecipeStepGuide("Cuire la sauce.", 2, "fr", {
+      durationMinutes: 18,
+      restMinutes: 5,
+      heat: "low",
+      temperatureC: 92,
+      equipment: "Cocotte à fond épais et cuillère en bois",
+      cue: "La sauce est brillante et laisse une trace nette sur la cuillère.",
+      tip: "Ajouter le bouillon en trois fois.",
+      warning: "Ouvrir la cocotte loin du visage.",
+    });
+
+    expect(guide).toMatchObject({
+      durationLabel: "18 min",
+      durationEstimated: false,
+      restLabel: "5 min",
+      heatLabel: "Feu doux",
+      temperatureLabel: "92 °C",
+      equipment: "Cocotte à fond épais et cuillère en bois",
+    });
+    expect(guide.cue).toContain("trace nette");
+  });
 });

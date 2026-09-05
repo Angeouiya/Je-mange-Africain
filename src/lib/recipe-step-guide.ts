@@ -7,12 +7,28 @@ export type RecipeStepGuide = {
   durationMinutes: number;
   durationLabel: string;
   durationEstimated: boolean;
+  restMinutes: number;
+  restLabel: string | null;
   heat: RecipeStepHeat;
   heatLabel: string;
+  temperatureC: number | null;
+  temperatureLabel: string | null;
+  equipment: string | null;
   cue: string;
   tip: string;
   warning: string | null;
   detailScore: number;
+};
+
+export type RecipeStepDetails = {
+  durationMinutes?: number | null;
+  restMinutes?: number | null;
+  heat?: RecipeStepHeat | null;
+  temperatureC?: number | null;
+  equipment?: string | null;
+  cue?: string | null;
+  tip?: string | null;
+  warning?: string | null;
 };
 
 type Locale = "fr" | "en";
@@ -98,6 +114,16 @@ function heatLabel(heat: RecipeStepHeat, locale: Locale) {
     : { none: "Off heat", low: "Low heat", medium: "Medium heat", high: "High heat", oven: "Oven" };
   return labels[heat];
 }
+
+function positiveInteger(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+}
+
+function nonNegativeInteger(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.round(value) : null;
+}
+
+const cleanText = (value: string | null | undefined) => value?.trim() || null;
 
 function actionTitle(raw: string, index: number, locale: Locale) {
   const value = normalize(raw);
@@ -192,27 +218,36 @@ export function buildRecipeStepGuide(
   raw: string,
   index: number,
   locale: Locale,
+  details?: RecipeStepDetails | null,
 ): RecipeStepGuide {
   const instruction = raw.trim();
   const explicitDuration = durationFromText(instruction, locale);
-  const durationMinutes = explicitDuration?.minutes ?? estimatedDuration(instruction);
-  const heat = heatFromText(instruction);
+  const storedDuration = positiveInteger(details?.durationMinutes);
+  const durationMinutes = storedDuration ?? explicitDuration?.minutes ?? estimatedDuration(instruction);
+  const restMinutes = nonNegativeInteger(details?.restMinutes) ?? 0;
+  const heat = details?.heat || heatFromText(instruction);
+  const temperatureC = positiveInteger(details?.temperatureC);
   return {
     raw,
     title: actionTitle(instruction, index, locale),
     instruction,
     durationMinutes,
-    durationLabel: explicitDuration?.label ?? `≈ ${durationMinutes} min`,
-    durationEstimated: !explicitDuration,
+    durationLabel: storedDuration ? `${durationMinutes} min` : explicitDuration?.label ?? `≈ ${durationMinutes} min`,
+    durationEstimated: !storedDuration && !explicitDuration,
+    restMinutes,
+    restLabel: restMinutes > 0 ? `${restMinutes} min` : null,
     heat,
     heatLabel: heatLabel(heat, locale),
-    cue: expectedCue(instruction, locale),
-    tip: practicalTip(instruction, locale),
-    warning: safetyWarning(instruction, locale),
+    temperatureC,
+    temperatureLabel: temperatureC ? `${temperatureC} °C` : null,
+    equipment: cleanText(details?.equipment),
+    cue: cleanText(details?.cue) || expectedCue(instruction, locale),
+    tip: cleanText(details?.tip) || practicalTip(instruction, locale),
+    warning: details?.warning === "" ? null : cleanText(details?.warning) || safetyWarning(instruction, locale),
     detailScore: recipeStepDetailScore(instruction),
   };
 }
 
-export function buildRecipeStepGuides(steps: string[], locale: Locale) {
-  return steps.map((step, index) => buildRecipeStepGuide(step, index, locale));
+export function buildRecipeStepGuides(steps: string[], locale: Locale, details: RecipeStepDetails[] = []) {
+  return steps.map((step, index) => buildRecipeStepGuide(step, index, locale, details[index]));
 }

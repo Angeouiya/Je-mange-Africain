@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, Eye, Flame, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, Search, Timer, Trash2, UsersRound } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpenCheck, ChefHat, CheckCircle2, Clock3, CookingPot, Eye, Flame, Hourglass, Lightbulb, LoaderCircle, MapPin, PackageSearch, PencilLine, Plus, Search, ShieldAlert, Thermometer, Timer, Trash2, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -30,7 +30,7 @@ import { MediaUploadField } from "@/components/admin/MediaUploadField";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { RecipeCardPreview, type RecipeListItem } from "@/components/shared/RecipeCard";
 import { getRecipePhoto } from "@/lib/market-media";
-import { buildRecipeStepGuide, recipeStepDetailScore } from "@/lib/recipe-step-guide";
+import { buildRecipeStepGuide, type RecipeStepDetails, type RecipeStepHeat } from "@/lib/recipe-step-guide";
 
 type ProductOption = {
   id: string;
@@ -50,6 +50,21 @@ type IngredientDraft = {
   role: "protein" | "base" | "aromatic" | "spice" | "fat" | "side" | "optional";
   optional: boolean;
   note?: string | null;
+};
+
+type StepDetailDraft = {
+  durationMinutes: string;
+  restMinutes: string;
+  heat: RecipeStepHeat;
+  temperatureC: string;
+  equipmentFr: string;
+  equipmentEn: string;
+  cueFr: string;
+  cueEn: string;
+  tipFr: string;
+  tipEn: string;
+  warningFr: string;
+  warningEn: string;
 };
 
 type DishTemplateIngredient = {
@@ -102,6 +117,7 @@ type RecipeDraft = {
   status: "draft" | "published" | "archived";
   stepsFr: string[];
   stepsEn: string[];
+  stepDetails: StepDetailDraft[];
   ingredients: IngredientDraft[];
 };
 
@@ -127,10 +143,45 @@ type RecipeEditPayload = {
   status: RecipeDraft["status"];
   stepsFr: string[];
   stepsEn: string[];
+  stepDetails?: Array<Omit<StepDetailDraft, "durationMinutes" | "restMinutes" | "temperatureC"> & { durationMinutes: number; restMinutes: number; temperatureC: number | null }>;
   ingredients: Array<Omit<IngredientDraft, "quantityPerBase"> & { quantityPerBase: number }>;
 };
 
 const emptyIngredient = (): IngredientDraft => ({ productId: "", quantityPerBase: "", unit: "g", role: "base", optional: false, note: null });
+const emptyStepDetail = (): StepDetailDraft => ({
+  durationMinutes: "",
+  restMinutes: "0",
+  heat: "none",
+  temperatureC: "",
+  equipmentFr: "",
+  equipmentEn: "",
+  cueFr: "",
+  cueEn: "",
+  tipFr: "",
+  tipEn: "",
+  warningFr: "",
+  warningEn: "",
+});
+
+const stepDetailFromInstructions = (stepFr: string, stepEn: string, index: number): StepDetailDraft => {
+  if (!stepFr.trim() && !stepEn.trim()) return emptyStepDetail();
+  const french = buildRecipeStepGuide(stepFr, index, "fr");
+  const english = buildRecipeStepGuide(stepEn, index, "en");
+  return {
+    durationMinutes: String(french.durationMinutes),
+    restMinutes: String(french.restMinutes),
+    heat: french.heat,
+    temperatureC: "",
+    equipmentFr: "",
+    equipmentEn: "",
+    cueFr: french.cue,
+    cueEn: english.cue,
+    tipFr: french.tip,
+    tipEn: english.tip,
+    warningFr: french.warning || "",
+    warningEn: english.warning || "",
+  };
+};
 const recipeColours = [
   { value: "#D65A32", fr: "Terre cuite", en: "Terracotta" },
   { value: "#F2A900", fr: "Or solaire", en: "Sun gold" },
@@ -157,6 +208,7 @@ const initialDraft = (): RecipeDraft => ({
   status: "draft",
   stepsFr: ["", ""],
   stepsEn: ["", ""],
+  stepDetails: [emptyStepDetail(), emptyStepDetail()],
   ingredients: [emptyIngredient()],
 });
 
@@ -179,6 +231,18 @@ const draftFromRecipe = (recipe: RecipeEditPayload): RecipeDraft => ({
   status: recipe.status,
   stepsFr: recipe.stepsFr.length ? recipe.stepsFr : ["", ""],
   stepsEn: recipe.stepsEn.length ? recipe.stepsEn : ["", ""],
+  stepDetails: recipe.stepsFr.length
+    ? recipe.stepsFr.map((step, index) => {
+        const detail = recipe.stepDetails?.[index];
+        if (!detail) return stepDetailFromInstructions(step, recipe.stepsEn[index] || "", index);
+        return {
+          ...detail,
+          durationMinutes: String(detail.durationMinutes),
+          restMinutes: String(detail.restMinutes),
+          temperatureC: detail.temperatureC ? String(detail.temperatureC) : "",
+        };
+      })
+    : [emptyStepDetail(), emptyStepDetail()],
   ingredients: recipe.ingredients.length ? recipe.ingredients.map((ingredient) => ({ ...ingredient, quantityPerBase: String(ingredient.quantityPerBase) })) : [emptyIngredient()],
 });
 
@@ -281,6 +345,12 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
   }, [open, editRequest.data]);
 
   const completeSteps = draft.stepsFr.every((step) => step.trim().length >= 5) && draft.stepsEn.every((step) => step.trim().length >= 5);
+  const completeStepDetails = draft.stepDetails.length === draft.stepsFr.length && draft.stepDetails.every((detail) => (
+    Number(detail.durationMinutes) >= 1
+    && Number(detail.restMinutes) >= 0
+    && detail.cueFr.trim().length >= 10
+    && detail.cueEn.trim().length >= 10
+  ));
   const completeIngredients = draft.ingredients.length > 0 && draft.ingredients.every((ingredient) => ingredient.productId && Number(ingredient.quantityPerBase) > 0);
   const pristineDraft = editing && editRequest.data ? draftFromRecipe(editRequest.data) : initialDraft();
   const dirty = JSON.stringify(draft) !== JSON.stringify(pristineDraft);
@@ -293,24 +363,28 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     && Number(draft.timeMinutes) >= 5
     && Number(draft.baseServings) >= 1
     && completeSteps
+    && completeStepDetails
     && completeIngredients
   );
 
   const update = <K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const updateStep = (language: "stepsFr" | "stepsEn", index: number, value: string) => update(language, draft[language].map((step, stepIndex) => stepIndex === index ? value : step));
-  const addStep = () => setDraft((current) => ({ ...current, stepsFr: [...current.stepsFr, ""], stepsEn: [...current.stepsEn, ""] }));
+  const updateStepDetail = <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => update("stepDetails", draft.stepDetails.map((detail, stepIndex) => stepIndex === index ? { ...detail, [key]: value } : detail));
+  const addStep = () => setDraft((current) => ({ ...current, stepsFr: [...current.stepsFr, ""], stepsEn: [...current.stepsEn, ""], stepDetails: [...current.stepDetails, emptyStepDetail()] }));
   const moveStep = (index: number, direction: -1 | 1) => setDraft((current) => {
     const target = index + direction;
     if (target < 0 || target >= current.stepsFr.length) return current;
     const stepsFr = [...current.stepsFr];
     const stepsEn = [...current.stepsEn];
+    const stepDetails = [...current.stepDetails];
     [stepsFr[index], stepsFr[target]] = [stepsFr[target], stepsFr[index]];
     [stepsEn[index], stepsEn[target]] = [stepsEn[target], stepsEn[index]];
-    return { ...current, stepsFr, stepsEn };
+    [stepDetails[index], stepDetails[target]] = [stepDetails[target], stepDetails[index]];
+    return { ...current, stepsFr, stepsEn, stepDetails };
   });
   const removeStep = (index: number) => {
     if (draft.stepsFr.length <= 2) return;
-    setDraft((current) => ({ ...current, stepsFr: current.stepsFr.filter((_, stepIndex) => stepIndex !== index), stepsEn: current.stepsEn.filter((_, stepIndex) => stepIndex !== index) }));
+    setDraft((current) => ({ ...current, stepsFr: current.stepsFr.filter((_, stepIndex) => stepIndex !== index), stepsEn: current.stepsEn.filter((_, stepIndex) => stepIndex !== index), stepDetails: current.stepDetails.filter((_, stepIndex) => stepIndex !== index) }));
   };
   const updateIngredient = <K extends keyof IngredientDraft>(index: number, key: K, value: IngredientDraft[K]) => update("ingredients", draft.ingredients.map((ingredient, ingredientIndex) => ingredientIndex === index ? { ...ingredient, [key]: value } : ingredient));
 
@@ -336,6 +410,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
       status: "draft",
       stepsFr: template.stepsFr,
       stepsEn: template.stepsEn,
+      stepDetails: template.stepsFr.map((step, index) => stepDetailFromInstructions(step, template.stepsEn[index] || "", index)),
       ingredients,
     });
     setImportSummary({ name: isFr ? template.nameFr : template.nameEn, matched, total: ingredients.length });
@@ -468,8 +543,8 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
             </section>
 
             <section className="border-y border-border bg-[#F7F7F4] px-5 py-6 sm:px-7" aria-labelledby="recipe-steps-title">
-              <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation guidée" : "Guided preparation"} description={isFr ? "Décrivez une action précise avec sa durée, son niveau de feu et le résultat que le client doit observer." : "Describe one precise action with its duration, heat level and the result the customer should observe."} />
-              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onAdd={addStep} onRemove={removeStep} onMove={moveStep} isFr={isFr} />
+              <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation guidée professionnelle" : "Professional guided preparation"} description={isFr ? "Documentez chaque geste : temps actif et repos, chaleur, température, matériel, résultat observable, conseil et vigilance. Ces repères apparaîtront dans le mode cuisson du client." : "Document every action: active and resting time, heat, temperature, equipment, visible result, tip and safety note. These cues appear in the customer's cooking mode."} />
+              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} details={draft.stepDetails} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onChangeDetail={updateStepDetail} onAdd={addStep} onRemove={removeStep} onMove={moveStep} isFr={isFr} />
             </section>
 
             <section className="px-5 py-6 sm:px-7" aria-labelledby="recipe-ingredients-title">
@@ -559,22 +634,38 @@ function RecipeColourPicker({ value, onChange, locale }: { value: string; onChan
   return <div className="flex min-h-9 flex-wrap items-center gap-1" role="group" aria-label={locale === "fr" ? "Nuancier de la recette" : "Recipe colour palette"}>{recipeColours.map((colour) => <button key={colour.value} type="button" onClick={() => onChange(colour.value)} aria-label={locale === "fr" ? colour.fr : colour.en} aria-pressed={value === colour.value} title={locale === "fr" ? colour.fr : colour.en} className={`h-7 w-7 shrink-0 rounded-md border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/35 ${value === colour.value ? "border-charcoal ring-2 ring-charcoal/15" : "border-white shadow-sm hover:border-charcoal/25"}`} style={{ backgroundColor: colour.value }} />)}</div>;
 }
 
-function PreparationSteps({ stepsFr, stepsEn, onChangeFr, onChangeEn, onAdd, onRemove, onMove, isFr }: { stepsFr: string[]; stepsEn: string[]; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onAdd: () => void; onRemove: (index: number) => void; onMove: (index: number, direction: -1 | 1) => void; isFr: boolean }) {
+function PreparationSteps({ stepsFr, stepsEn, details, onChangeFr, onChangeEn, onChangeDetail, onAdd, onRemove, onMove, isFr }: { stepsFr: string[]; stepsEn: string[]; details: StepDetailDraft[]; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onChangeDetail: <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => void; onAdd: () => void; onRemove: (index: number) => void; onMove: (index: number, direction: -1 | 1) => void; isFr: boolean }) {
+  const activeMinutes = details.reduce((total, detail) => total + (Number(detail.durationMinutes) || 0), 0);
+  const restMinutes = details.reduce((total, detail) => total + (Number(detail.restMinutes) || 0), 0);
+  const completeCues = details.filter((detail) => detail.cueFr.trim().length >= 10 && detail.cueEn.trim().length >= 10).length;
   return <div className="mt-5">
-    <div className="mb-4 grid grid-cols-3 divide-x divide-border border-y border-border bg-white py-3 text-center" aria-label={isFr ? "Repères attendus dans chaque étape" : "Expected details in every step"}>
-      <div className="min-w-0 px-2"><Timer className="mx-auto h-4 w-4 text-terre" /><p className="mt-1 text-[9px] font-black uppercase text-charcoal">{isFr ? "Durée" : "Duration"}</p></div>
-      <div className="min-w-0 px-2"><Flame className="mx-auto h-4 w-4 text-gold" /><p className="mt-1 text-[9px] font-black uppercase text-charcoal">{isFr ? "Chaleur" : "Heat"}</p></div>
-      <div className="min-w-0 px-2"><Eye className="mx-auto h-4 w-4 text-burgundy" /><p className="mt-1 text-[9px] font-black uppercase text-charcoal">{isFr ? "Résultat visible" : "Visible result"}</p></div>
+    <div className="mb-4 grid grid-cols-4 divide-x divide-border border-y border-border bg-white py-3 text-center" aria-label={isFr ? "Couverture détaillée de la préparation" : "Detailed preparation coverage"} data-testid="recipe-step-coverage">
+      <div className="min-w-0 px-1.5"><Timer className="mx-auto h-4 w-4 text-terre" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{activeMinutes} min</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "actives" : "active"}</p></div>
+      <div className="min-w-0 px-1.5"><Hourglass className="mx-auto h-4 w-4 text-gold" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{restMinutes} min</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "repos" : "rest"}</p></div>
+      <div className="min-w-0 px-1.5"><CookingPot className="mx-auto h-4 w-4 text-burgundy" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{stepsFr.length}</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "gestes" : "actions"}</p></div>
+      <div className="min-w-0 px-1.5"><Eye className="mx-auto h-4 w-4 text-terre" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{completeCues}/{stepsFr.length}</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "repères" : "cues"}</p></div>
     </div>
     <div className="hidden grid-cols-[2rem_1fr_1fr_7.5rem] gap-2 px-1 pb-2 text-[10px] font-black uppercase text-muted-foreground lg:grid"><span /><span>{isFr ? "Français" : "French"}</span><span>English</span><span>{isFr ? "Ordre" : "Order"}</span></div>
     <ol className="space-y-3">{stepsFr.map((step, index) => {
+      const detail = details[index] || emptyStepDetail();
       const previewLocale = isFr ? "fr" : "en";
       const previewText = isFr ? step : (stepsEn[index] || "");
-      const guide = buildRecipeStepGuide(previewText, index, previewLocale);
-      const detailScore = Math.min(recipeStepDetailScore(step), recipeStepDetailScore(stepsEn[index] || ""));
-      const quality = detailScore >= 3
+      const previewDetails: RecipeStepDetails = {
+        durationMinutes: Number(detail.durationMinutes) || null,
+        restMinutes: Number(detail.restMinutes) || 0,
+        heat: detail.heat,
+        temperatureC: Number(detail.temperatureC) || null,
+        equipment: isFr ? detail.equipmentFr : detail.equipmentEn,
+        cue: isFr ? detail.cueFr : detail.cueEn,
+        tip: isFr ? detail.tipFr : detail.tipEn,
+        warning: isFr ? detail.warningFr : detail.warningEn,
+      };
+      const guide = buildRecipeStepGuide(previewText, index, previewLocale, previewDetails);
+      const detailed = Number(detail.durationMinutes) >= 1 && detail.cueFr.trim().length >= 10 && detail.cueEn.trim().length >= 10;
+      const enhanced = detailed && Boolean(detail.equipmentFr.trim() && detail.equipmentEn.trim() && detail.tipFr.trim() && detail.tipEn.trim());
+      const quality = enhanced
         ? { label: isFr ? "Guidage complet" : "Complete guidance", className: "bg-burgundy/[0.08] text-burgundy" }
-        : detailScore >= 2
+        : detailed
           ? { label: isFr ? "À enrichir" : "Add more detail", className: "bg-gold/15 text-charcoal" }
           : { label: isFr ? "Trop bref" : "Too brief", className: "bg-terre/[0.08] text-terre" };
       return <li key={index} className="grid gap-3 border-y border-border bg-white px-3 py-3 lg:grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem] lg:items-start">
@@ -586,16 +677,46 @@ function PreparationSteps({ stepsFr, stepsEn, onChangeFr, onChangeEn, onAdd, onR
           <Button type="button" variant="outline" size="icon" disabled={index === stepsFr.length - 1} onClick={() => onMove(index, 1)} className="h-9 w-9 bg-white" aria-label={isFr ? `Descendre l'étape ${index + 1}` : `Move step ${index + 1} down`}><ArrowDown className="h-4 w-4" /></Button>
           <Button type="button" variant="ghost" size="icon" disabled={stepsFr.length <= 2} onClick={() => onRemove(index)} className="h-9 w-9 text-destructive" aria-label={isFr ? `Supprimer l'étape ${index + 1}` : `Remove step ${index + 1}`}><Trash2 className="h-4 w-4" /></Button>
         </div>
-        {previewText.trim() ? <div className="min-w-0 border-l-2 border-terre bg-[#F7F7F4] px-3 py-2.5 lg:col-span-2 lg:col-start-2" data-testid={`recipe-step-preview-${index + 1}`}>
+        <fieldset className="min-w-0 border-t border-border pt-3 lg:col-span-3 lg:col-start-2" data-testid={`recipe-step-details-${index + 1}`}>
+          <legend className="pr-2 text-[9px] font-black uppercase text-burgundy">{isFr ? "Repères professionnels" : "Professional cues"}</legend>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Field label={isFr ? "Temps actif (min)" : "Active time (min)"} required><Input aria-label={`${isFr ? "Temps actif de l'étape" : "Step active time"} ${index + 1}`} type="number" inputMode="numeric" min="1" max="240" value={detail.durationMinutes} onChange={(event) => onChangeDetail(index, "durationMinutes", event.target.value)} /></Field>
+            <Field label={isFr ? "Repos (min)" : "Rest (min)"}><Input aria-label={`${isFr ? "Temps de repos de l'étape" : "Step resting time"} ${index + 1}`} type="number" inputMode="numeric" min="0" max="720" value={detail.restMinutes} onChange={(event) => onChangeDetail(index, "restMinutes", event.target.value)} /></Field>
+            <Field label={isFr ? "Chaleur" : "Heat"}><select aria-label={`${isFr ? "Niveau de chaleur de l'étape" : "Step heat level"} ${index + 1}`} value={detail.heat} onChange={(event) => onChangeDetail(index, "heat", event.target.value as RecipeStepHeat)} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"><option value="none">{isFr ? "Sans cuisson" : "No heat"}</option><option value="low">{isFr ? "Feu doux" : "Low heat"}</option><option value="medium">{isFr ? "Feu moyen" : "Medium heat"}</option><option value="high">{isFr ? "Feu vif" : "High heat"}</option><option value="oven">{isFr ? "Four" : "Oven"}</option></select></Field>
+            <Field label={isFr ? "Température (°C)" : "Temperature (°C)"}><Input aria-label={`${isFr ? "Température de l'étape" : "Step temperature"} ${index + 1}`} type="number" inputMode="numeric" min="30" max="300" value={detail.temperatureC} onChange={(event) => onChangeDetail(index, "temperatureC", event.target.value)} placeholder="180" /></Field>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <PreparationLanguageFields language="fr" index={index} detail={detail} onChange={onChangeDetail} />
+            <PreparationLanguageFields language="en" index={index} detail={detail} onChange={onChangeDetail} />
+          </div>
+        </fieldset>
+        {previewText.trim() ? <div className="min-w-0 border-l-2 border-terre bg-[#F7F7F4] px-3 py-2.5 lg:col-span-3 lg:col-start-2" data-testid={`recipe-step-preview-${index + 1}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-[9px] font-black uppercase text-charcoal">{isFr ? "Aperçu du guide client" : "Customer guide preview"}</p>
             <span className={`rounded px-1.5 py-0.5 text-[8px] font-black uppercase ${quality.className}`}>{quality.label}</span>
           </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-bold text-muted-foreground"><span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span><span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-gold" />{guide.heatLabel}</span></div>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-bold text-muted-foreground"><span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span>{guide.restLabel ? <span className="inline-flex items-center gap-1"><Hourglass className="h-3 w-3 text-gold" />{guide.restLabel}</span> : null}<span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-gold" />{guide.heatLabel}</span>{guide.temperatureLabel ? <span className="inline-flex items-center gap-1"><Thermometer className="h-3 w-3 text-terre" />{guide.temperatureLabel}</span> : null}</div>
           <p className="mt-1.5 text-[10px] leading-4 text-muted-foreground"><strong className="text-charcoal/75">{isFr ? "Résultat attendu :" : "Expected result:"}</strong> {guide.cue}</p>
         </div> : null}
       </li>;
     })}</ol>
     <Button type="button" variant="outline" size="sm" onClick={onAdd} className="mt-3"><Plus className="mr-1.5 h-4 w-4" /> {isFr ? "Ajouter une étape bilingue" : "Add bilingual step"}</Button>
+  </div>;
+}
+
+function PreparationLanguageFields({ language, index, detail, onChange }: { language: "fr" | "en"; index: number; detail: StepDetailDraft; onChange: <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => void }) {
+  const french = language === "fr";
+  const equipmentKey: "equipmentFr" | "equipmentEn" = french ? "equipmentFr" : "equipmentEn";
+  const cueKey: "cueFr" | "cueEn" = french ? "cueFr" : "cueEn";
+  const tipKey: "tipFr" | "tipEn" = french ? "tipFr" : "tipEn";
+  const warningKey: "warningFr" | "warningEn" = french ? "warningFr" : "warningEn";
+  return <div className="min-w-0 border-t-2 border-burgundy/10 pt-3">
+    <p className="mb-3 text-[9px] font-black uppercase text-charcoal">{french ? "Détails en français" : "Details in English"}</p>
+    <div className="space-y-3">
+      <Field label={french ? "Matériel utile" : "Useful equipment"}><div className="relative"><CookingPot className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label={`${french ? "Matériel de l'étape" : "Step equipment"} ${index + 1} ${language}`} value={detail[equipmentKey]} onChange={(event) => onChange(index, equipmentKey, event.target.value)} maxLength={160} className="pl-9" placeholder={french ? "Cocotte, spatule large" : "Heavy pot, wide spatula"} /></div></Field>
+      <Field label={french ? "Résultat observable" : "Visible result"} required><div className="relative"><Eye className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-burgundy" /><Textarea aria-label={`${french ? "Résultat attendu de l'étape" : "Step expected result"} ${index + 1} ${language}`} value={detail[cueKey]} onChange={(event) => onChange(index, cueKey, event.target.value)} rows={2} maxLength={500} className="min-h-20 resize-y pl-9 leading-5" placeholder={french ? "La sauce est brillante et nappe la cuillère." : "The sauce is glossy and coats a spoon."} /></div></Field>
+      <Field label={french ? "Conseil du chef" : "Chef's tip"}><div className="relative"><Lightbulb className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-gold" /><Textarea aria-label={`${french ? "Conseil de l'étape" : "Step tip"} ${index + 1} ${language}`} value={detail[tipKey]} onChange={(event) => onChange(index, tipKey, event.target.value)} rows={2} maxLength={500} className="min-h-20 resize-y pl-9 leading-5" /></div></Field>
+      <Field label={french ? "Vigilance ou allergène" : "Safety or allergen note"}><div className="relative"><ShieldAlert className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-terre" /><Textarea aria-label={`${french ? "Vigilance de l'étape" : "Step warning"} ${index + 1} ${language}`} value={detail[warningKey]} onChange={(event) => onChange(index, warningKey, event.target.value)} rows={2} maxLength={500} className="min-h-20 resize-y pl-9 leading-5" /></div></Field>
+    </div>
   </div>;
 }

@@ -35,6 +35,7 @@ vi.mock("@/lib/db", () => {
 });
 
 import { PATCH } from "@/app/api/admin/recipes/[id]/route";
+import { parseRecipeSteps } from "@/lib/recipe-step-storage";
 
 const validRecipe = {
   titleFr: "Attiéké au poisson braisé",
@@ -80,7 +81,8 @@ describe("PATCH /api/admin/recipes/:id", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.translationUpsert).toHaveBeenCalledTimes(2);
-    expect(mocks.translationUpsert).toHaveBeenCalledWith(expect.objectContaining({ update: expect.objectContaining({ steps: JSON.stringify(validRecipe.stepsFr) }) }));
+    const frenchUpdate = mocks.translationUpsert.mock.calls.find(([call]) => call.where.recipeId_locale.locale === "fr")?.[0];
+    expect(parseRecipeSteps(frenchUpdate.update.steps, "fr").map((step) => step.instruction)).toEqual(validRecipe.stepsFr);
     expect(mocks.ingredientDeleteMany).toHaveBeenCalledWith({ where: { recipeId: "recipe-1" } });
     expect(mocks.ingredientCreateMany).toHaveBeenCalledWith({ data: [expect.objectContaining({ recipeId: "recipe-1", productId: "product-1", quantityPerBase: 500 })] });
     expect(mocks.auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ action: "recipe_update", entityId: "recipe-1" }) });

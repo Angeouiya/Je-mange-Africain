@@ -7,6 +7,7 @@ import {
   Bookmark, Share2, AlertTriangle, Check, Package, Sparkles, Sliders,
   Trash2, Undo2, RefreshCw, House, ChevronDown, ChefHat, ArrowRight,
   Timer, Eye, Lightbulb,
+  CookingPot, Hourglass, Thermometer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,7 @@ import { shareRecipe } from "@/lib/client-actions";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { getPreparationProgress, togglePreparationStep } from "@/lib/recipe-preparation";
-import { buildRecipeStepGuides } from "@/lib/recipe-step-guide";
+import { buildRecipeStepGuides, type RecipeStepDetails } from "@/lib/recipe-step-guide";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { recipeEditorialHighlight } from "@/lib/editorial-flags";
 
@@ -35,6 +36,7 @@ interface CalcResult {
   thermalSplit: string[];
   packageCount: number;
   steps: { fr: string[]; en: string[] };
+  stepSourceIndexes: { fr: number[]; en: number[] };
   unavailableCount: number;
   leftoverCount: number;
 }
@@ -236,7 +238,12 @@ export function RecipeConfiguratorView() {
         ? t.new
         : "";
   const preparationSteps = calc?.steps?.[locale as "fr" | "en"] || recipe.steps || [];
-  const preparationGuides = buildRecipeStepGuides(preparationSteps, locale);
+  const preparationSourceIndexes = calc?.stepSourceIndexes?.[locale as "fr" | "en"] || preparationSteps.map((_: string, index: number) => index);
+  const preparationDetails = preparationSourceIndexes.map((sourceIndex: number) => recipe.stepDetails?.[sourceIndex] || {}) as RecipeStepDetails[];
+  const preparationGuides = buildRecipeStepGuides(preparationSteps, locale, preparationDetails);
+  const activePreparationMinutes = preparationGuides.reduce((total, guide) => total + guide.durationMinutes, 0);
+  const restingPreparationMinutes = preparationGuides.reduce((total, guide) => total + guide.restMinutes, 0);
+  const preparationEquipment = Array.from(new Set(preparationGuides.map((guide) => guide.equipment).filter(Boolean)));
   const preparationProgress = getPreparationProgress(preparationSteps.length, completedSteps);
   const completedStepCount = preparationProgress.completedCount;
   const currentPreparationGuide = preparationProgress.nextStepIndex === null ? null : preparationGuides[preparationProgress.nextStepIndex];
@@ -531,6 +538,12 @@ export function RecipeConfiguratorView() {
                       <span className="text-xs font-bold text-burgundy">{completedStepCount}/{preparationSteps.length}</span>
                       {completedStepCount > 0 ? <button type="button" onClick={() => setCompletedSteps([])} className="inline-flex min-h-7 items-center px-1 text-xs font-semibold text-terre hover:underline">{locale === "fr" ? "Recommencer" : "Restart"}</button> : null}
                     </div>
+                    <div className="mb-4 grid grid-cols-4 divide-x divide-border border-y border-border bg-[#FFFCFA] py-3 text-center" data-testid="recipe-preparation-summary" aria-label={locale === "fr" ? "Résumé détaillé de la préparation" : "Detailed preparation summary"}>
+                      <PreparationSummaryMetric icon={Timer} label={locale === "fr" ? "Actif" : "Active"} value={`${activePreparationMinutes} min`} />
+                      <PreparationSummaryMetric icon={Hourglass} label={locale === "fr" ? "Repos" : "Rest"} value={`${restingPreparationMinutes} min`} />
+                      <PreparationSummaryMetric icon={CookingPot} label={locale === "fr" ? "Matériel" : "Equipment"} value={String(preparationEquipment.length)} />
+                      <PreparationSummaryMetric icon={Clock} label={locale === "fr" ? "Total recette" : "Recipe total"} value={`${recipe.timeMinutes} min`} />
+                    </div>
                     {preparationAdjustments.length > 0 ? (
                       <div className="mb-3 border-l-2 border-gold bg-gold/8 px-3 py-2">
                         <p className="text-xs font-bold text-charcoal">{locale === "fr" ? "Vos adaptations à appliquer pendant la préparation" : "Your preparation adjustments"}</p>
@@ -557,13 +570,14 @@ export function RecipeConfiguratorView() {
                         </div>
                       </div>
                       <div className="grid grid-cols-4 divide-x divide-burgundy/10 border-y border-burgundy/10 bg-white/75 py-2.5 text-center">
-                        <PreparationMetric label={locale === "fr" ? "Étape" : "Step time"} value={currentPreparationGuide?.durationLabel || "—"} />
+                        <PreparationMetric label={locale === "fr" ? "Temps actif" : "Active time"} value={currentPreparationGuide?.durationLabel || "—"} />
+                        <PreparationMetric label={locale === "fr" ? "Repos" : "Rest"} value={currentPreparationGuide?.restLabel || "0 min"} />
                         <PreparationMetric label={locale === "fr" ? "Chaleur" : "Heat"} value={currentPreparationGuide?.heatLabel || (locale === "fr" ? "Service" : "Serving")} />
-                        <PreparationMetric label={locale === "fr" ? "Recette" : "Recipe"} value={`${recipe.timeMinutes} min`} />
-                        <PreparationMetric label={locale === "fr" ? "Progression" : "Progress"} value={`${preparationProgress.progressPercent} %`} />
+                        <PreparationMetric label={locale === "fr" ? "Température" : "Temperature"} value={currentPreparationGuide?.temperatureLabel || "—"} />
                       </div>
                       {!preparationProgress.isComplete && currentPreparationGuide ? (
                         <div className="divide-y divide-burgundy/10 bg-white/55 px-3 md:px-4">
+                          {currentPreparationGuide.equipment ? <PreparationInsight icon={CookingPot} label={locale === "fr" ? "Matériel" : "Equipment"} text={currentPreparationGuide.equipment} tone="equipment" /> : null}
                           <PreparationInsight icon={Eye} label={locale === "fr" ? "Repère de réussite" : "Success cue"} text={currentPreparationGuide.cue} tone="success" />
                           <PreparationInsight icon={Lightbulb} label={locale === "fr" ? "Conseil cuisine" : "Kitchen tip"} text={currentPreparationGuide.tip} tone="tip" />
                           {currentPreparationGuide.warning ? <PreparationInsight icon={AlertTriangle} label={locale === "fr" ? "Vigilance" : "Take care"} text={currentPreparationGuide.warning} tone="warning" /> : null}
@@ -593,11 +607,14 @@ export function RecipeConfiguratorView() {
                                 <span className={`font-black leading-5 ${completedSteps.includes(i) ? "line-through" : "text-charcoal"}`}>{guide.title}</span>
                                 <span className="inline-flex shrink-0 items-center gap-2 text-[9px] font-bold text-muted-foreground">
                                   <span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span>
+                                  {guide.restLabel ? <span className="inline-flex items-center gap-1"><Hourglass className="h-3 w-3 text-gold" />{guide.restLabel}</span> : null}
                                   <span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-gold" />{guide.heatLabel}</span>
+                                  {guide.temperatureLabel ? <span className="inline-flex items-center gap-1"><Thermometer className="h-3 w-3 text-terre" />{guide.temperatureLabel}</span> : null}
                                 </span>
                               </span>
                               <span className={`mt-1 block text-xs leading-5 ${completedSteps.includes(i) ? "line-through" : "text-charcoal/75"}`}>{guide.instruction}</span>
                               <span className="mt-2 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Eye className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Résultat :" : "Result:"}</strong> {guide.cue}</span></span>
+                              {guide.equipment ? <span className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><CookingPot className="mt-0.5 h-3 w-3 shrink-0 text-terre" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Matériel :" : "Equipment:"}</strong> {guide.equipment}</span></span> : null}
                             </span>
                           </button>
                         </li>
@@ -666,8 +683,12 @@ function PreparationMetric({ label, value }: { label: string; value: string }) {
   return <div className="min-w-0 px-1.5"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className="mt-0.5 truncate text-[10px] font-extrabold text-charcoal md:text-xs">{value}</p></div>;
 }
 
-function PreparationInsight({ icon: Icon, label, text, tone }: { icon: React.ComponentType<{ className?: string }>; label: string; text: string; tone: "success" | "tip" | "warning" }) {
-  const toneClasses = tone === "success" ? "text-burgundy" : tone === "warning" ? "text-terre" : "text-charcoal";
+function PreparationSummaryMetric({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+  return <div className="min-w-0 px-1"><Icon className="mx-auto h-3.5 w-3.5 text-terre" /><p className="mt-1 truncate text-[10px] font-black text-charcoal">{value}</p><p className="truncate text-[8px] font-semibold uppercase text-muted-foreground">{label}</p></div>;
+}
+
+function PreparationInsight({ icon: Icon, label, text, tone }: { icon: React.ComponentType<{ className?: string }>; label: string; text: string; tone: "success" | "tip" | "warning" | "equipment" }) {
+  const toneClasses = tone === "success" ? "text-burgundy" : tone === "warning" || tone === "equipment" ? "text-terre" : "text-charcoal";
   return (
     <div className="flex items-start gap-2 py-2.5">
       <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${toneClasses}`} />

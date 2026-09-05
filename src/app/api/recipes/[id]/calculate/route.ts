@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { computeRecipe, type RecipeConfigInput } from "@/lib/recipe-engine";
 import { getProductPhoto } from "@/lib/market-media";
+import { parseRecipeSteps } from "@/lib/recipe-step-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -92,8 +93,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }));
 
   const steps = {
-    fr: (() => { try { return JSON.parse(recipe.translations.find((t) => t.locale === "fr")?.steps || "[]"); } catch { return []; } })(),
-    en: (() => { try { return JSON.parse(recipe.translations.find((t) => t.locale === "en")?.steps || "[]"); } catch { return []; } })(),
+    fr: parseRecipeSteps(recipe.translations.find((t) => t.locale === "fr")?.steps, "fr").map((step) => step.instruction),
+    en: parseRecipeSteps(recipe.translations.find((t) => t.locale === "en")?.steps, "en").map((step) => step.instruction),
   };
 
   const result = computeRecipe(body, {

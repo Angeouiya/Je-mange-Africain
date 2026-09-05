@@ -84,6 +84,7 @@ export interface EngineResult {
   thermalSplit: ThermalClass[];
   packageCount: number;
   steps: { fr: string[]; en: string[] };
+  stepSourceIndexes: { fr: number[]; en: number[] };
   unavailableCount: number;
   leftoverCount: number;
 }
@@ -258,13 +259,16 @@ function adaptRecipeSteps(steps: string[], ingredients: EngineIngredient[], loca
     .filter(Boolean);
 
   return steps
-    .map((step) => replacements.reduce((adapted, ingredient) => replaceIngredientInStep(
-      adapted,
-      locale === "fr" ? ingredient.originalNameFr : ingredient.originalNameEn,
-      locale === "fr" ? ingredient.nameFr : ingredient.nameEn,
-      locale,
-    ), step))
-    .filter((step) => !removedNames.some((name) => new RegExp(escapeRegExp(name), "iu").test(step)));
+    .map((step, sourceIndex) => ({
+      sourceIndex,
+      instruction: replacements.reduce((adapted, ingredient) => replaceIngredientInStep(
+        adapted,
+        locale === "fr" ? ingredient.originalNameFr : ingredient.originalNameEn,
+        locale === "fr" ? ingredient.nameFr : ingredient.nameEn,
+        locale,
+      ), step),
+    }))
+    .filter((step) => !removedNames.some((name) => new RegExp(escapeRegExp(name), "iu").test(step.instruction)));
 }
 
 export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineResult {
@@ -465,10 +469,9 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
   const costPerPerson = input.servings > 0 ? totalCost / input.servings : totalCost;
   const unavailableCount = ingredients.filter((i) => !i.available && !i.removed).length;
   const leftoverCount = ingredients.filter((i) => i.leftover > 0 && !i.removed).length;
-  const adaptedSteps = {
-    fr: adaptRecipeSteps(steps.fr, ingredients, "fr"),
-    en: adaptRecipeSteps(steps.en, ingredients, "en"),
-  };
+  const frenchSteps = adaptRecipeSteps(steps.fr, ingredients, "fr");
+  const englishSteps = adaptRecipeSteps(steps.en, ingredients, "en");
+  const adaptedSteps = { fr: frenchSteps.map((step) => step.instruction), en: englishSteps.map((step) => step.instruction) };
 
   return {
     recipeId,
@@ -484,6 +487,7 @@ export function computeRecipe(input: RecipeConfigInput, ctx: RecipeCtx): EngineR
     thermalSplit,
     packageCount: thermalSplit.length || 1,
     steps: adaptedSteps,
+    stepSourceIndexes: { fr: frenchSteps.map((step) => step.sourceIndex), en: englishSteps.map((step) => step.sourceIndex) },
     unavailableCount,
     leftoverCount,
   };

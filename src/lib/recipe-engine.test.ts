@@ -75,6 +75,7 @@ describe("computeRecipe", () => {
     expect(result.ingredients[0]).toMatchObject({ removed: true, removalReason: "excluded", packs: 0, lineTotal: 0 });
     expect(result.totalCost).toBe(0);
     expect(result.steps).toEqual({ fr: [], en: [] });
+    expect(result.stepSourceIndexes).toEqual({ fr: [], en: [] });
   });
 
   it("rewrites preparation steps when an ingredient is replaced", () => {
@@ -93,6 +94,7 @@ describe("computeRecipe", () => {
     expect(result.ingredients[0]).toMatchObject({ productId: "egusi", isReplacement: true, originalNameFr: "Riz parfumé", nameFr: "Égousi" });
     expect(result.steps.fr).toEqual(["Rincer l’égousi.", "Cuire l’égousi."]);
     expect(result.steps.en).toEqual(["Rinse the egusi seeds.", "Cook the egusi seeds."]);
+    expect(result.stepSourceIndexes).toEqual({ fr: [0, 1], en: [0, 1] });
   });
 });
 

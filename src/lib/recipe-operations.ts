@@ -21,7 +21,9 @@ export function recipeStockReadiness(ingredients: RecipeStockIngredient[]) {
 export function recipeStepCount(serializedSteps?: string | null) {
   try {
     const steps = JSON.parse(serializedSteps || "[]");
-    return Array.isArray(steps) ? steps.filter((step) => typeof step === "string" && step.trim()).length : 0;
+    return Array.isArray(steps) ? steps.filter((step) => (
+      typeof step === "string" ? step.trim() : step && typeof step === "object" && typeof step.instruction === "string" && step.instruction.trim()
+    )).length : 0;
   } catch {
     return 0;
   }

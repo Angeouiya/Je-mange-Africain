@@ -1386,6 +1386,16 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
     payload.galleryUrls = ["/recipes/sauce-gombo.webp", "/recipes/mafe.webp"];
     payload.isPopular = false;
     payload.isRecommended = true;
+    payload.stepDetails = payload.steps.map((_: string, index: number) => ({
+      durationMinutes: 12 + index,
+      restMinutes: index === 0 ? 5 : 0,
+      heat: index === 0 ? "low" : "medium",
+      temperatureC: index === 0 ? 92 : null,
+      equipment: index === 0 ? "Cocotte à fond épais et cuillère en bois" : "Spatule et bol de préparation",
+      cue: "La texture est homogène, brillante et prête pour le geste suivant.",
+      tip: "Préparer les ingrédients du geste suivant avant de continuer.",
+      warning: index === 0 ? "Diriger la vapeur loin du visage et des mains." : null,
+    }));
     await route.fulfill({ response, json: payload });
   });
   await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
@@ -1464,7 +1474,12 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
 
   const cookingFocus = page.getByTestId("recipe-cooking-focus");
   await expect(cookingFocus).toContainText(/à faire maintenant|do this now/i);
-  await expect(cookingFocus).toContainText(/progression\s*0 %|progress\s*0 %/i);
+  await expect(page.getByTestId("recipe-preparation-summary")).toContainText(/actif|active/i);
+  await expect(page.getByTestId("recipe-preparation-summary")).toContainText(/repos|rest/i);
+  await expect(page.getByTestId("recipe-preparation-summary")).toContainText(/matériel|equipment/i);
+  await expect(cookingFocus).toContainText(/temps actif|active time/i);
+  await expect(cookingFocus).toContainText(/92 °C/);
+  await expect(cookingFocus).toContainText(/cocotte à fond épais|heavy pot/i);
   await expect(cookingFocus).toContainText(/repère de réussite|success cue/i);
   await expect(cookingFocus).toContainText(/conseil cuisine|kitchen tip/i);
   await expect(page.getByTestId("recipe-detailed-steps")).toContainText(/résultat|result/i);

@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { z } from "zod";
 import { getBrandAccentColor, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
-import { recipeAdminInput, recipeImageReference, type RecipeAdminInput } from "@/lib/admin-recipe-schema";
+import { recipeAdminInput, recipeImageReference, recipeStepDetailsForLocale, type RecipeAdminInput } from "@/lib/admin-recipe-schema";
+import { parseRecipeSteps, serializeRecipeSteps } from "@/lib/recipe-step-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -38,10 +39,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const translation = recipe.translations.find((item) => item.locale === locale) || recipe.translations[0];
   const french = recipe.translations.find((item) => item.locale === "fr");
   const english = recipe.translations.find((item) => item.locale === "en");
-  const parseSteps = (value?: string | null) => {
-    try { return value ? JSON.parse(value) as string[] : []; } catch { return []; }
-  };
-  const steps = parseSteps(translation?.steps);
+  const steps = parseRecipeSteps(translation?.steps, locale);
+  const frenchSteps = parseRecipeSteps(french?.steps, "fr");
+  const englishSteps = parseRecipeSteps(english?.steps, "en");
+  const stepDetails = Array.from({ length: Math.max(frenchSteps.length, englishSteps.length) }, (_, index) => {
+    const frenchStep = frenchSteps[index];
+    const englishStep = englishSteps[index];
+    const timing = frenchStep || englishStep;
+    return {
+      durationMinutes: timing?.durationMinutes || 5,
+      restMinutes: timing?.restMinutes || 0,
+      heat: timing?.heat || "none",
+      temperatureC: timing?.temperatureC || null,
+      equipmentFr: frenchStep?.equipment || "",
+      equipmentEn: englishStep?.equipment || "",
+      cueFr: frenchStep?.cue || "",
+      cueEn: englishStep?.cue || "",
+      tipFr: frenchStep?.tip || "",
+      tipEn: englishStep?.tip || "",
+      warningFr: frenchStep?.warning || "",
+      warningEn: englishStep?.warning || "",
+    };
+  });
 
   return NextResponse.json({
     id: recipe.id,
@@ -61,13 +80,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     status: recipe.status,
     title: translation?.title,
     description: translation?.description,
-    steps,
+    steps: steps.map((step) => step.instruction),
     titleFr: french?.title || "",
     titleEn: english?.title || "",
     descriptionFr: french?.description || "",
     descriptionEn: english?.description || "",
-    stepsFr: parseSteps(french?.steps),
-    stepsEn: parseSteps(english?.steps),
+    stepsFr: frenchSteps.map((step) => step.instruction),
+    stepsEn: englishSteps.map((step) => step.instruction),
+    stepDetails,
     ingredients: recipe.ingredients.map((ingredient) => ({
       recipeIngredientId: ingredient.id,
       productId: ingredient.productId,
@@ -151,13 +171,13 @@ async function updateFullRecipe(id: string, input: RecipeAdminInput, adminEmail:
     });
     await transaction.recipeTranslation.upsert({
       where: { recipeId_locale: { recipeId: id, locale: "fr" } },
-      create: { recipeId: id, locale: "fr", title: input.titleFr, description: input.descriptionFr, steps: JSON.stringify(input.stepsFr) },
-      update: { title: input.titleFr, description: input.descriptionFr, steps: JSON.stringify(input.stepsFr) },
+      create: { recipeId: id, locale: "fr", title: input.titleFr, description: input.descriptionFr, steps: serializeRecipeSteps(input.stepsFr, recipeStepDetailsForLocale(input, "fr"), "fr") },
+      update: { title: input.titleFr, description: input.descriptionFr, steps: serializeRecipeSteps(input.stepsFr, recipeStepDetailsForLocale(input, "fr"), "fr") },
     });
     await transaction.recipeTranslation.upsert({
       where: { recipeId_locale: { recipeId: id, locale: "en" } },
-      create: { recipeId: id, locale: "en", title: input.titleEn, description: input.descriptionEn, steps: JSON.stringify(input.stepsEn) },
-      update: { title: input.titleEn, description: input.descriptionEn, steps: JSON.stringify(input.stepsEn) },
+      create: { recipeId: id, locale: "en", title: input.titleEn, description: input.descriptionEn, steps: serializeRecipeSteps(input.stepsEn, recipeStepDetailsForLocale(input, "en"), "en") },
+      update: { title: input.titleEn, description: input.descriptionEn, steps: serializeRecipeSteps(input.stepsEn, recipeStepDetailsForLocale(input, "en"), "en") },
     });
     await transaction.recipeIngredient.deleteMany({ where: { recipeId: id } });
     await transaction.recipeIngredient.createMany({

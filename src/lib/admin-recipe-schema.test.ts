@@ -57,6 +57,27 @@ describe("admin recipe contract", () => {
     expect(recipeAdminInput.safeParse({ ...validRecipe, stepsFr: ["a".repeat(801), detailedStep], stepsEn: [detailedStepEn, detailedStepEn] }).success).toBe(false);
   });
 
+  it("validates the professional cues attached to every step", () => {
+    const detail = {
+      durationMinutes: "12",
+      restMinutes: "5",
+      heat: "medium",
+      temperatureC: "95",
+      equipmentFr: "Cocotte",
+      equipmentEn: "Heavy pot",
+      cueFr: "La sauce nappe nettement la cuillère.",
+      cueEn: "The sauce clearly coats the spoon.",
+      tipFr: "Remuer depuis le fond.",
+      tipEn: "Stir from the bottom.",
+      warningFr: "Attention à la vapeur.",
+      warningEn: "Watch out for steam.",
+    };
+    const result = recipeAdminInput.parse({ ...validRecipe, stepDetails: [detail, detail] });
+
+    expect(result.stepDetails[0]).toMatchObject({ durationMinutes: 12, restMinutes: 5, temperatureC: 95 });
+    expect(recipeAdminInput.safeParse({ ...validRecipe, stepDetails: [detail] }).success).toBe(false);
+  });
+
   it("creates a stable URL slug from an accented French title", () => {
     expect(recipeSlug("Kédjénou de poulet à l'ivoirienne")).toBe("kedjenou-de-poulet-a-l-ivoirienne");
   });

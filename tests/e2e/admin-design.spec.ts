@@ -1813,6 +1813,8 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   await expect(dialog.getByLabel("Step 1 in English")).toHaveValue("Season the fish thoroughly.");
   await expect(dialog.getByTestId("recipe-step-preview-1")).toContainText(/aperçu du guide client|customer guide preview/i);
   await expect(dialog.getByTestId("recipe-step-preview-1")).toContainText(/résultat attendu|expected result/i);
+  await expect(dialog.getByLabel("Temps actif de l'étape 1")).toHaveValue("5");
+  await expect(dialog.getByLabel("Résultat attendu de l'étape 1 fr")).not.toHaveValue("");
   await expect(dialog.getByLabel("Produit 1")).toHaveValue("product-1");
   await expect(dialog.getByText(/84 en stock/)).toBeVisible();
   const dialogOverflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
@@ -1824,6 +1826,11 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   await dialog.getByRole("button", { name: "Descendre l'étape 1" }).click();
   await expect(dialog.getByLabel("Étape 1 en français")).toHaveValue("Braiser puis servir avec l'attiéké.");
   await expect(dialog.getByLabel("Step 1 in English")).toHaveValue("Grill and serve with the attieke.");
+  await expect(dialog.getByLabel("Temps actif de l'étape 1")).toHaveValue("10");
+  await dialog.getByLabel("Temps de repos de l'étape 1").fill("7");
+  await dialog.getByLabel("Température de l'étape 1").fill("180");
+  await dialog.getByLabel("Matériel de l'étape 1 fr").fill("Gril, pince longue et thermomètre");
+  await dialog.getByLabel("Step equipment 1 en").fill("Grill, long tongs and thermometer");
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
@@ -1833,9 +1840,10 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/admin/recipes/recipe-1" && request.method() === "PATCH");
   await dialog.getByRole("button", { name: "Enregistrer les modifications" }).click();
   const updateRequest = await requestPromise;
-  const update = updateRequest.postDataJSON() as { stepsFr: string[]; stepsEn: string[]; ingredients: Array<{ productId: string; quantityPerBase: string }> };
+  const update = updateRequest.postDataJSON() as { stepsFr: string[]; stepsEn: string[]; stepDetails: Array<{ durationMinutes: string; restMinutes: string; temperatureC: string; equipmentFr: string; equipmentEn: string }>; ingredients: Array<{ productId: string; quantityPerBase: string }> };
   expect(update.stepsFr[0]).toBe("Braiser puis servir avec l'attiéké.");
   expect(update.stepsEn[0]).toBe("Grill and serve with the attieke.");
+  expect(update.stepDetails[0]).toMatchObject({ durationMinutes: "10", restMinutes: "7", temperatureC: "180", equipmentFr: "Gril, pince longue et thermomètre", equipmentEn: "Grill, long tongs and thermometer" });
   expect(update.ingredients[0]).toMatchObject({ productId: "product-1", quantityPerBase: "500" });
   await expect(dialog).toBeHidden();
 

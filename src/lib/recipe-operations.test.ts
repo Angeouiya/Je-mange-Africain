@@ -24,6 +24,7 @@ describe("recipe operations", () => {
 
   it("counts valid preparation steps defensively", () => {
     expect(recipeStepCount('["Préparer", "Cuire", ""]')).toBe(2);
+    expect(recipeStepCount('[{"version":1,"instruction":"Préparer avec soin"},{"instruction":""}]')).toBe(1);
     expect(recipeStepCount("not-json")).toBe(0);
   });
 });

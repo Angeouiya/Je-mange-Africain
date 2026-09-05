@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
+import { parseRecipeSteps, publicStepDetails } from "@/lib/recipe-step-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!recipe) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const t = recipe.translations.find((x) => x.locale === locale) || recipe.translations[0];
-  let steps: string[] = [];
-  try { steps = t?.steps ? JSON.parse(t.steps) : []; } catch {}
+  const steps = parseRecipeSteps(t?.steps, locale);
 
   return NextResponse.json({
     id: recipe.id,
@@ -49,7 +49,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     isRecommended: recipe.isRecommended,
     title: t?.title,
     description: t?.description,
-    steps,
+    steps: steps.map((step) => step.instruction),
+    stepDetails: publicStepDetails(steps),
     ingredients: recipe.ingredients.map((ri) => ({
       recipeIngredientId: ri.id,
       productId: ri.productId,
