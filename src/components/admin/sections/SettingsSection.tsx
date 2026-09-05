@@ -76,6 +76,7 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
 
   const dirty = useMemo(() => Boolean(draft && saved && JSON.stringify(draft) !== JSON.stringify(saved)), [draft, saved]);
   const readyCount = data?.integrations.filter((integration) => integration.state === "ready").length || 0;
+  const readiness = useMemo(() => platformReadiness(data?.integrations || []), [data?.integrations]);
 
   const update = <K extends keyof Configuration>(field: K, value: Configuration[K]) => {
     setDraft((current) => current ? { ...current, [field]: value } : current);
@@ -121,6 +122,8 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
         variant="control"
         accent={BRAND_COLORS.burgundy}
       />
+
+      <ProductionReadiness readiness={readiness} locale={locale} />
 
       <div className="mt-6 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-9">
         <form onSubmit={submit} className="min-w-0 space-y-6" aria-label={isFr ? "Coordonnées publiques de service" : "Public service contact details"}>
@@ -226,13 +229,54 @@ function IntegrationStatus({ integration, locale }: { integration: Integration; 
   const StateIcon = state.icon;
   const completed = Object.values(integration.capabilities).filter(Boolean).length;
   const total = Object.keys(integration.capabilities).length;
+  const capabilities = Object.entries(integration.capabilities);
 
   return (
     <div className="min-w-0 rounded-md border border-charcoal/8 bg-white p-3" data-testid={`integration-${integration.id}`}>
       <div className="flex items-start justify-between gap-2"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-terre/[0.07] text-terre"><Icon className="h-4 w-4" /></span><span className={`inline-flex min-h-6 items-center gap-1 rounded px-1.5 text-[8px] font-black uppercase ${state.className}`}><StateIcon className="h-3 w-3" />{state.label}</span></div>
       <p className="mt-3 truncate text-[11px] font-black text-charcoal">{isFr ? presentation.titleFr : presentation.titleEn}</p>
       <p className="mt-0.5 line-clamp-2 min-h-7 text-[9px] leading-3.5 text-muted-foreground">{isFr ? presentation.detailFr : presentation.detailEn}</p>
-      <div className="mt-3 flex items-center justify-between border-t border-charcoal/6 pt-2 text-[8px] font-bold text-muted-foreground"><span>{integration.provider}</span><span className="tabular-nums">{completed}/{total}</span></div>
+      <div className="mt-3 space-y-1.5 border-t border-charcoal/6 pt-2">{capabilities.map(([capability, available]) => <div key={capability} className="flex items-center justify-between gap-2 text-[8px] font-bold"><span className="truncate text-muted-foreground">{capabilityLabel(integration.id, capability, locale)}</span><span className={`inline-flex items-center gap-1 ${available ? "text-burgundy" : "text-terre"}`}>{available ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}{available ? (isFr ? "Oui" : "Yes") : (isFr ? "Non" : "No")}</span></div>)}</div>
+      <div className="mt-2 flex items-center justify-between border-t border-charcoal/6 pt-2 text-[8px] font-bold text-muted-foreground"><span className="truncate">{integration.provider}</span><span className="tabular-nums">{completed}/{total}</span></div>
     </div>
   );
+}
+
+type PlatformReadiness = ReturnType<typeof platformReadiness>;
+
+function platformReadiness(integrations: Integration[]) {
+  const totalCapabilities = integrations.reduce((sum, integration) => sum + Object.keys(integration.capabilities).length, 0);
+  const completedCapabilities = integrations.reduce((sum, integration) => sum + Object.values(integration.capabilities).filter(Boolean).length, 0);
+  const attention = integrations.filter((integration) => integration.state === "attention").length;
+  const partial = integrations.filter((integration) => integration.state === "partial").length;
+  const percentage = totalCapabilities ? Math.round(completedCapabilities / totalCapabilities * 100) : 0;
+  return { total: integrations.length, ready: integrations.filter((integration) => integration.state === "ready").length, attention, partial, percentage, productionReady: integrations.length > 0 && attention === 0 && partial === 0 };
+}
+
+function ProductionReadiness({ readiness, locale }: { readiness: PlatformReadiness; locale: "fr" | "en" }) {
+  const isFr = locale === "fr";
+  const Icon = readiness.productionReady ? ShieldCheck : AlertTriangle;
+  return (
+    <section className={`mt-5 border-y px-4 py-4 sm:px-5 ${readiness.productionReady ? "border-burgundy/18 bg-burgundy/[0.035]" : "border-gold/35 bg-gold/[0.075]"}`} aria-labelledby="production-readiness-title" data-testid="production-readiness">
+      <div className="flex items-start gap-3">
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${readiness.productionReady ? "bg-burgundy text-white" : "bg-terre text-white"}`}><Icon className="h-4.5 w-4.5" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Préparation opérationnelle" : "Operational readiness"}</p><h2 id="production-readiness-title" className="mt-0.5 text-sm font-black text-charcoal">{readiness.productionReady ? (isFr ? "Socle prêt pour la production" : "Production foundation ready") : (isFr ? "Mise en production à finaliser" : "Production setup to complete")}</h2></div><strong className="text-xl font-black tabular-nums text-charcoal">{readiness.percentage} %</strong></div>
+          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{readiness.productionReady ? (isFr ? "Les cinq services critiques répondent à toutes les capacités contrôlées." : "All five critical services satisfy every checked capability.") : (isFr ? `${readiness.attention} service(s) à configurer et ${readiness.partial} connexion(s) partielle(s). Les cartes ci-dessous indiquent précisément les capacités manquantes.` : `${readiness.attention} service(s) need setup and ${readiness.partial} connection(s) are partial. The cards below identify each missing capability.`)}</p>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-sm bg-white/80" role="progressbar" aria-label={isFr ? "Progression de la préparation opérationnelle" : "Operational readiness progress"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={readiness.percentage}><span className={`block h-full ${readiness.productionReady ? "bg-burgundy" : "bg-terre"}`} style={{ width: `${readiness.percentage}%` }} /></div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function capabilityLabel(integrationId: Integration["id"], capability: string, locale: "fr" | "en") {
+  const labels: Record<Integration["id"], Record<string, [string, string]>> = {
+    database: { connection: ["Connexion", "Connection"], persistence: ["Persistance", "Persistence"], production: ["Base de production", "Production database"] },
+    payments: { connection: ["Encaissement", "Payment collection"], webhook: ["Confirmation serveur", "Server confirmation"] },
+    identity: { connection: ["API publique", "Public API"], serverAccess: ["Accès serveur", "Server access"] },
+    cache: { connection: ["Protection active", "Protection active"] },
+    push: { connection: ["Diffusion active", "Delivery active"] },
+  };
+  return labels[integrationId][capability]?.[locale === "fr" ? 0 : 1] || capability;
 }

@@ -77,16 +77,43 @@ export async function readPlatformConfiguration() {
   }
 }
 
-export function platformIntegrationStatus(databaseAvailable: boolean) {
-  const databaseUrl = process.env.DATABASE_URL || "";
-  const stripeCore = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && process.env.STRIPE_SECRET_KEY);
-  const supabaseCore = Boolean((process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL) && (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY));
+type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
+  | "DATABASE_URL"
+  | "NODE_ENV"
+  | "VERCEL"
+  | "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+  | "STRIPE_SECRET_KEY"
+  | "STRIPE_WEBHOOK_SECRET"
+  | "NEXT_PUBLIC_SUPABASE_URL"
+  | "SUPABASE_URL"
+  | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+  | "SUPABASE_PUBLISHABLE_KEY"
+  | "SUPABASE_SERVICE_ROLE_KEY"
+  | "UPSTASH_REDIS_REST_URL"
+  | "UPSTASH_REDIS_REST_TOKEN"
+  | "NEXT_PUBLIC_VAPID_PUBLIC_KEY"
+  | "VAPID_PRIVATE_KEY"
+>>;
+
+export function platformIntegrationStatus(databaseAvailable: boolean, environment: PlatformEnvironment = process.env) {
+  const databaseUrl = environment.DATABASE_URL || "";
+  const postgres = /^postgres(?:ql)?:/i.test(databaseUrl);
+  const deployed = environment.VERCEL === "1" || environment.NODE_ENV === "production";
+  const persistentDatabase = databaseAvailable && (postgres || !deployed);
+  const productionDatabase = databaseAvailable && postgres;
+  const stripeCore = Boolean(environment.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && environment.STRIPE_SECRET_KEY);
+  const supabaseCore = Boolean((environment.NEXT_PUBLIC_SUPABASE_URL || environment.SUPABASE_URL) && (environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || environment.SUPABASE_PUBLISHABLE_KEY));
 
   return [
-    { id: "database", state: databaseAvailable ? "ready" : "attention", provider: /^postgres(?:ql)?:/i.test(databaseUrl) ? "PostgreSQL" : "SQLite", capabilities: { connection: databaseAvailable } },
-    { id: "payments", state: stripeCore && process.env.STRIPE_WEBHOOK_SECRET ? "ready" : stripeCore ? "partial" : "attention", provider: "Stripe", capabilities: { connection: stripeCore, webhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET) } },
-    { id: "identity", state: supabaseCore && process.env.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, serverAccess: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) } },
-    { id: "cache", state: process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) } },
-    { id: "push", state: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) } },
+    {
+      id: "database",
+      state: databaseAvailable && (!deployed || productionDatabase) ? "ready" : "attention",
+      provider: postgres ? "PostgreSQL" : deployed ? "SQLite temporaire" : "SQLite locale",
+      capabilities: { connection: databaseAvailable, persistence: persistentDatabase, production: productionDatabase },
+    },
+    { id: "payments", state: stripeCore && environment.STRIPE_WEBHOOK_SECRET ? "ready" : stripeCore ? "partial" : "attention", provider: "Stripe", capabilities: { connection: stripeCore, webhook: Boolean(environment.STRIPE_WEBHOOK_SECRET) } },
+    { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
+    { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
+    { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
   ] as const;
 }

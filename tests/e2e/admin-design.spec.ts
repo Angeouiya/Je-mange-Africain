@@ -555,7 +555,7 @@ async function mockAdminApi(page: Page) {
       configuration: settingsConfiguration,
       metadata: { persisted: true, updatedBy: "direction@je-mange-africain.com", updatedAt: now },
       integrations: [
-        { id: "database", state: "ready", provider: "PostgreSQL", capabilities: { connection: true } },
+        { id: "database", state: "ready", provider: "PostgreSQL", capabilities: { connection: true, persistence: true, production: true } },
         { id: "payments", state: "partial", provider: "Stripe", capabilities: { connection: true, webhook: false } },
         { id: "identity", state: "ready", provider: "Supabase", capabilities: { connection: true, serverAccess: true } },
         { id: "cache", state: "attention", provider: "Upstash Redis", capabilities: { connection: false } },
@@ -898,6 +898,10 @@ test("platform settings publish durable customer-facing contact details", async 
   await page.goto("/admin#settings", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("heading", { name: "Configuration de la plateforme" })).toBeVisible();
+  await expect(page.getByTestId("production-readiness")).toContainText("Mise en production à finaliser");
+  await expect(page.getByTestId("production-readiness")).toContainText("78 %");
+  await expect(page.getByTestId("integration-database")).toContainText("Base de production");
+  await expect(page.getByTestId("integration-payments")).toContainText("Confirmation serveur");
   const form = page.getByRole("form", { name: "Coordonnées publiques de service" });
   await form.getByLabel("E-mail d'assistance").fill("service-client@je-mange-africain.com");
   await form.getByLabel("Délai indicatif (heures)").fill("24");
@@ -915,6 +919,12 @@ test("platform settings publish durable customer-facing contact details", async 
   expect(overflow).toBeLessThanOrEqual(1);
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious")).toEqual([]);
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `platform-readiness-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: true });
+  }
 });
 
 test("the operations home turns live signals into clear decisions", async ({ page }) => {
