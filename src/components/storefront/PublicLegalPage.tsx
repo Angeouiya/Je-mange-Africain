@@ -42,7 +42,7 @@ export function PublicLegalPage({ kind, locale, pathname }: { kind: LegalKind; l
           <nav aria-label={text.language} className="flex shrink-0 items-center gap-1 rounded-md border border-border bg-muted/45 p-1">
             <Globe2 className="ml-1.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
             {(["fr", "en"] as const).map((language) => (
-              <Link key={language} href={`${pathname}?lang=${language}`} hrefLang={language} aria-current={locale === language ? "page" : undefined} className={`grid h-8 min-w-9 place-items-center rounded px-2 text-[10px] font-black transition ${locale === language ? "bg-charcoal text-white" : "text-muted-foreground hover:bg-white hover:text-charcoal"}`}>
+              <Link key={language} href={`${pathname}?lang=${language}`} hrefLang={language} aria-current={locale === language ? "page" : undefined} className={`grid h-8 min-w-9 place-items-center rounded px-2 text-[10px] font-black transition ${locale === language ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-white hover:text-charcoal"}`}>
                 {language.toUpperCase()}
               </Link>
             ))}

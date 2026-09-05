@@ -417,7 +417,7 @@ export function LegalDocument({ kind, locale }: { kind: LegalKind; locale: Local
 
       <footer className="flex flex-col gap-4 border-y border-gold/35 bg-gold/[0.07] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-2xl text-xs font-medium leading-5 text-charcoal">{doc.note}</p>
-        <a href={`mailto:${contactEmail}`} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-charcoal px-3 text-[11px] font-bold text-white transition hover:bg-terre"><Mail className="h-3.5 w-3.5" />{contactEmail}</a>
+        <a href={`mailto:${contactEmail}`} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-burgundy px-3 text-[11px] font-bold text-white transition hover:bg-terre"><Mail className="h-3.5 w-3.5" />{contactEmail}</a>
       </footer>
     </article>
   );

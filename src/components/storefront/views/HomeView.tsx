@@ -200,7 +200,7 @@ export function HomeView() {
         </div>
 
         <section className="border-y border-charcoal/10 bg-[#FFFCFA]" aria-label={t.home.commitmentsTitle}>
-          <div className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0">
+          <div tabIndex={0} aria-label={locale === "fr" ? "Engagements Je mange Africain, défilement horizontal" : "Je mange Africain commitments, horizontal scroll"} className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-inset [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0">
             {commitments.map((commitment) => {
               const Icon = commitment.icon;
               return (

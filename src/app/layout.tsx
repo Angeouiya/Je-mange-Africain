@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/lib/store-provider";
 import { StructuredData } from "@/components/shared/StructuredData";
 import { PwaRegistration } from "@/components/shared/PwaRegistration";
+import { PrivacyPreferenceCenter } from "@/components/storefront/PrivacyPreferenceCenter";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -91,7 +92,10 @@ export default function RootLayout({
         <StructuredData />
         <PwaRegistration />
         <StoreProvider>
-          <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+          <TooltipProvider delayDuration={200}>
+            {children}
+            <PrivacyPreferenceCenter />
+          </TooltipProvider>
         </StoreProvider>
       </body>
     </html>

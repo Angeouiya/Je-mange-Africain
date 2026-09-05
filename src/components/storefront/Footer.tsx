@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Globe2, Mail } from "lucide-react";
+import { Globe2, Mail, SlidersHorizontal } from "lucide-react";
 import { useStore, ViewId } from "@/lib/store";
 import { dict } from "@/lib/i18n";
+import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 
 export function Footer() {
   const locale = useStore((s) => s.locale);
@@ -34,7 +35,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="mt-auto bg-charcoal text-cream">
+    <footer className="mt-auto border-t border-burgundy/10 bg-[#FFF8F4] text-charcoal">
       <div className="african-kente-stripe h-1.5" />
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-9 md:grid-cols-[1.15fr_0.85fr_1fr] lg:px-6">
         {/* about */}
@@ -42,43 +43,44 @@ export function Footer() {
           <div className="flex items-center gap-3">
             <Image src="/brand/logo-mark-burgundy.png" alt="Je mange Africain" width={120} height={120} className="h-16 w-16 object-contain" />
             <div>
-              <p className="text-base font-extrabold text-cream">Je mange Africain</p>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gold">Épicerie mobile</p>
+              <p className="text-base font-extrabold text-charcoal">Je mange Africain</p>
+              <p className="text-xs font-semibold uppercase text-terre">Épicerie mobile</p>
             </div>
           </div>
-          <p className="text-sm text-cream/70">{t.footer.aboutDesc}</p>
-          <div className="space-y-1.5 pt-2 text-xs text-cream/60"><a href="mailto:bonjour@je-mange-africain.com" className="flex items-center gap-2 transition hover:text-gold"><Mail className="h-3.5 w-3.5" /> bonjour@je-mange-africain.com</a><a href="https://je-mange-africain.com" className="flex items-center gap-2 transition hover:text-gold"><Globe2 className="h-3.5 w-3.5" /> je-mange-africain.com</a></div>
+          <p className="text-sm text-muted-foreground">{t.footer.aboutDesc}</p>
+          <div className="space-y-1.5 pt-2 text-xs text-muted-foreground"><a href="mailto:bonjour@je-mange-africain.com" className="flex items-center gap-2 transition hover:text-terre"><Mail className="h-3.5 w-3.5" /> bonjour@je-mange-africain.com</a><a href="https://je-mange-africain.com" className="flex items-center gap-2 transition hover:text-terre"><Globe2 className="h-3.5 w-3.5" /> je-mange-africain.com</a></div>
         </div>
 
         {/* shop */}
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gold">{t.footer.shop}</h3>
-          <ul className="space-y-2 text-sm text-cream/80">
+          <h3 className="mb-3 text-sm font-semibold uppercase text-burgundy">{t.footer.shop}</h3>
+          <ul className="space-y-2 text-sm text-charcoal/80">
             {shopLinks.map(([label, view, params]) => (
-              <li key={label}><button onClick={() => go(view, params)} className="transition hover:text-gold hover:underline">{label}</button></li>
+              <li key={label}><button onClick={() => go(view, params)} className="transition hover:text-terre hover:underline">{label}</button></li>
             ))}
           </ul>
         </div>
 
         {/* help */}
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gold">{t.footer.help}</h3>
-          <ul className="space-y-2 text-sm text-cream/80">
+          <h3 className="mb-3 text-sm font-semibold uppercase text-burgundy">{t.footer.help}</h3>
+          <ul className="space-y-2 text-sm text-charcoal/80">
             {helpLinks.map(([label, view, params]) => (
-              <li key={label}><button onClick={() => go(view, params)} className="transition hover:text-gold hover:underline">{label}</button></li>
+              <li key={label}><button onClick={() => go(view, params)} className="transition hover:text-terre hover:underline">{label}</button></li>
             ))}
           </ul>
-          <h3 className="mb-3 mt-6 text-sm font-semibold uppercase text-gold">{locale === "fr" ? "Cadre légal" : "Legal"}</h3>
-          <ul className="space-y-1.5 text-xs text-cream/60">
+          <h3 className="mb-3 mt-6 text-sm font-semibold uppercase text-burgundy">{locale === "fr" ? "Cadre légal" : "Legal"}</h3>
+          <ul className="space-y-1.5 text-xs text-muted-foreground">
             {legalLinks.map(([label, view, params]) => (
-              <li key={label}><button onClick={() => go(view, params)} className="transition hover:text-gold hover:underline">{label}</button></li>
+              <li key={label}><button onClick={() => go(view, params)} className="transition hover:text-terre hover:underline">{label}</button></li>
             ))}
+            <li><button type="button" onClick={requestPrivacyPreferences} className="inline-flex items-center gap-1.5 font-bold text-burgundy transition hover:text-terre hover:underline"><SlidersHorizontal className="h-3.5 w-3.5" />{locale === "fr" ? "Gérer mes choix" : "Manage my choices"}</button></li>
           </ul>
         </div>
       </div>
 
-      <div className="border-t border-cream/10 py-4 text-center text-xs text-cream/50">
-        © {new Date().getFullYear()} Je mange Africain — {t.footer.rights}
+      <div className="border-t border-burgundy/10 bg-white/45 py-4 text-center text-xs text-muted-foreground">
+        © {new Date().getFullYear()} Je mange Africain · {t.footer.rights}
       </div>
     </footer>
   );

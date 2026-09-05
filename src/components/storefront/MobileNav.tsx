@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, LayoutGrid, Boxes, ChefHat, ShoppingBag, User, Settings, LifeBuoy, LogIn, LogOut, ClipboardList } from "lucide-react";
+import { Home, LayoutGrid, Boxes, ChefHat, ShoppingBag, User, Settings, LifeBuoy, LogIn, LogOut, ClipboardList, SlidersHorizontal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore, ViewId, cartCount } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
+import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 
 export function MobileNav() {
   const locale = useStore((s) => s.locale);
@@ -127,6 +128,7 @@ export function MobileNav() {
           ) : null}
           {customer ? <button onClick={() => navigate("account", { accountSection: "settings" })} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><Settings className="h-4 w-4" /> {locale === "fr" ? "Paramètres" : "Settings"}</button> : <button onClick={() => navigate("account")} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><LogIn className="h-4 w-4" /> {t.nav.login}</button>}
           <button onClick={() => navigate("info", { infoPage: "help" })} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><LifeBuoy className="h-4 w-4" /> {t.nav.help}</button>
+          <button type="button" onClick={requestPrivacyPreferences} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><SlidersHorizontal className="h-4 w-4" /> {locale === "fr" ? "Confidentialité" : "Privacy"}</button>
           {customer ? (
             <LogoutConfirmDialog>
               <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-terre transition hover:bg-terre/5"><LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>

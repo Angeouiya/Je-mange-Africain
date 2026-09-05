@@ -1,6 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+const privacyConsentFixture = JSON.stringify({ version: 1, necessary: true, analytics: false, personalization: false, marketing: false, updatedAt: "2026-09-05T12:00:00.000Z" });
+
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.title.includes("privacy choices are granular")) return;
+  await page.addInitScript((consent) => localStorage.setItem("jma-privacy-consent-v1", consent), privacyConsentFixture);
+});
+
 async function expectNoHorizontalOverflow(page: Page, scope?: Locator) {
   const overflow = await (scope || page.locator("html")).evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
@@ -834,6 +841,65 @@ test("public legal documents are bilingual, navigable and free of drafting notes
   }
 });
 
+test("privacy choices are granular, durable and equally easy to refuse", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const center = page.getByTestId("privacy-preference-center");
+  await expect(center).toBeVisible();
+  await expect(center).toHaveAccessibleName("Vos choix, sans détour");
+  await expect(center.getByRole("button", { name: "Continuer sans options" })).toBeVisible();
+  await expect(center.getByRole("button", { name: "Tout accepter" })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("jma-privacy-consent-v1"))).toBeNull();
+  await expectNoHorizontalOverflow(page, center);
+  await page.waitForTimeout(600);
+  await expectNoSeriousA11yViolations(page);
+  await expectBrandSafeUiColors(page);
+  const viewport = (page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop";
+  if (process.env.CLIENT_SCREENSHOTS) await page.screenshot({ path: `output/playwright/audit/privacy-choice-${viewport}.png`, scale: "css" });
+
+  await center.getByRole("button", { name: "Personnaliser" }).click();
+  await expect(center).toHaveAccessibleName("Centre de préférences");
+  const analytics = center.getByRole("switch", { name: "Autoriser Mesure d’audience" });
+  const personalization = center.getByRole("switch", { name: "Autoriser Personnalisation" });
+  const marketing = center.getByRole("switch", { name: "Autoriser Mesure marketing" });
+  await analytics.click();
+  await personalization.click();
+  await expect(center).toContainText("2/3 finalités optionnelles actives");
+  await expect(analytics).toBeChecked();
+  await expect(personalization).toBeChecked();
+  await expect(marketing).not.toBeChecked();
+  await page.waitForTimeout(200);
+  if (process.env.CLIENT_SCREENSHOTS) await page.screenshot({ path: `output/playwright/audit/privacy-preferences-${viewport}.png`, scale: "css" });
+  await center.getByRole("button", { name: "Enregistrer mes choix" }).click();
+  await expect(center).toBeHidden();
+
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("jma-privacy-consent-v1") || "{}"));
+  expect(stored).toMatchObject({ version: 1, necessary: true, analytics: true, personalization: true, marketing: false });
+  expect(await page.evaluate(() => document.cookie)).toContain("jma_privacy_consent=v1.110");
+
+  if (viewport === "mobile") {
+    await page.getByRole("button", { name: "Menu" }).click();
+    await page.getByRole("button", { name: "Gérer mes choix" }).click();
+  } else {
+    await page.getByTestId("client-sidebar").getByRole("button", { name: "Confidentialité" }).click();
+  }
+  await expect(center).toBeVisible();
+  await center.getByRole("button", { name: "Fermer les préférences" }).click();
+  await expect(center).toBeHidden();
+
+  await page.goto("/?view=info&infoPage=cookies", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { level: 1, name: "Politique de cookies" })).toBeVisible();
+  await page.getByRole("main").getByRole("button", { name: "Gérer mes choix" }).click();
+  await expect(center).toBeVisible();
+  await expect(analytics).toBeChecked();
+  await expect(personalization).toBeChecked();
+  await expect(marketing).not.toBeChecked();
+  await center.getByRole("button", { name: "Tout refuser" }).click();
+  await expect(center).toBeHidden();
+  expect(await page.evaluate(() => document.cookie)).toContain("jma_privacy_consent=v1.000");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("jma-privacy-consent-v1") || "{}"))).toMatchObject({ analytics: false, personalization: false, marketing: false });
+});
+
 test("the customer workspace edits identity and manages a persistent address book", async ({ page }) => {
   let account = {
     customer: { id: "customer-account", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 180, walletCredit: 12.5, preferredLang: "fr" },
@@ -1035,6 +1101,13 @@ test("account settings synchronize language and protect session actions", async 
   await page.getByRole("button", { name: "English", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
   await expect.poll(() => preferredLanguage).toBe("en");
+
+  await page.getByRole("button", { name: "Manage choices" }).click();
+  const privacyCenter = page.getByTestId("privacy-preference-center");
+  await expect(privacyCenter).toHaveAccessibleName("Preference centre");
+  await expect(privacyCenter.getByRole("switch")).toHaveCount(3);
+  await privacyCenter.getByRole("button", { name: "Close preferences" }).click();
+  await expect(privacyCenter).toBeHidden();
 
   await page.getByRole("button", { name: "Send link" }).click();
   await expect(page.getByText("A secure link has just been sent to your email address.")).toBeVisible();

@@ -24,6 +24,7 @@ import {
   Phone,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   ShoppingBag,
   Snowflake,
   Truck,
@@ -40,6 +41,7 @@ import { dict } from "@/lib/i18n";
 import { LegalDocument } from "@/components/storefront/LegalDocument";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { useFetch } from "@/lib/use-fetch";
+import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 
 interface ContactFormState {
   name: string;
@@ -200,6 +202,7 @@ export function InfoView() {
       <div className="mx-auto max-w-4xl px-4 py-7 md:px-7 md:py-10 lg:px-8">
         <PageBackButton fallbackView="home" className="mb-3" />
         {legalContent[page as keyof typeof legalContent]}
+        {page === "cookies" ? <div className="mt-5 flex items-center justify-between gap-4 border-y border-burgundy/12 bg-[#FFF8F4] px-4 py-4"><div className="min-w-0"><p className="text-xs font-black text-charcoal">{locale === "fr" ? "Vos préférences actuelles" : "Your current preferences"}</p><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{locale === "fr" ? "Réouvrez le centre pour modifier chaque finalité." : "Reopen the centre to change each purpose."}</p></div><Button type="button" onClick={requestPrivacyPreferences} aria-label={locale === "fr" ? "Gérer mes choix" : "Manage choices"} className="shrink-0 bg-burgundy text-white hover:bg-terre"><SlidersHorizontal className="mr-1.5 h-4 w-4" /><span className="hidden sm:inline">{locale === "fr" ? "Gérer mes choix" : "Manage choices"}</span><span className="sm:hidden">{locale === "fr" ? "Gérer" : "Manage"}</span></Button></div> : null}
       </div>
     );
   }

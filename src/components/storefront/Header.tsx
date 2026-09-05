@@ -14,6 +14,7 @@ import {
   MessageCircle,
   ScrollText,
   ShieldCheck,
+  SlidersHorizontal,
   Store,
   UserRound,
 } from "lucide-react";
@@ -25,6 +26,7 @@ import { SearchBar } from "@/components/shared/SearchBar";
 import { LanguageSwitch } from "@/components/shared/LanguageSwitch";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
+import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 
 const NotificationCenter = dynamic(
   () => import("@/components/storefront/NotificationCenter").then((module) => module.NotificationCenter),
@@ -56,6 +58,10 @@ export function Header() {
   const go = (view: any, params?: any) => {
     navigate(view, params);
     setMobileOpen(false);
+  };
+  const openPrivacy = () => {
+    setMobileOpen(false);
+    window.requestAnimationFrame(requestPrivacyPreferences);
   };
   return (
     <header className="sticky top-0 z-40 w-full border-b border-burgundy/10 bg-white/[0.97] shadow-[0_12px_28px_-28px_rgba(90,38,50,0.55)] backdrop-blur-xl">
@@ -118,6 +124,10 @@ export function Header() {
                 <button onClick={() => go("info", { infoPage: "cgv" })} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-muted-foreground hover:bg-muted hover:text-charcoal">
                   <ScrollText className="h-4 w-4" />
                   {locale === "fr" ? "Conditions générales" : "Terms and conditions"}
+                </button>
+                <button type="button" onClick={openPrivacy} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-burgundy hover:bg-burgundy/[0.05] hover:text-terre">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {locale === "fr" ? "Gérer mes choix" : "Manage my choices"}
                 </button>
               </div>
               <div className="mt-4 border-t border-border pt-3">
