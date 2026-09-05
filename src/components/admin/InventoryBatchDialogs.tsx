@@ -113,6 +113,7 @@ export function BatchReceiptDialog({
   const isFr = locale === "fr";
   const [open, setOpen] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [draft, setDraft] = useState<ReceiptDraft>(() => draftFor(products, warehouses));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -121,16 +122,32 @@ export function BatchReceiptDialog({
   const compatibleWarehouses = useMemo(() => warehouses.filter((warehouse) => !product || warehouse.supports.includes(product.thermalClass)), [product, warehouses]);
   const stockValue = Number(draft.quantity || 0) * Number(draft.costPrice || 0);
   const complete = Boolean(draft.productId && draft.warehouseId && draft.lotNumber.trim().length >= 3 && Number(draft.quantity) > 0 && Number(draft.costPrice) >= 0 && draft.receiptDate && draft.reason.trim().length >= 5);
+  const initialDraft = draftFor(products, warehouses);
+  const draftDirty = (Object.keys(initialDraft) as Array<keyof ReceiptDraft>).some((key) => draft[key] !== initialDraft[key]);
 
   const update = <Key extends keyof ReceiptDraft>(key: Key, value: ReceiptDraft[Key]) => setDraft((current) => ({ ...current, [key]: value }));
   const handleOpen = (next: boolean) => {
     if (busy) return;
-    setOpen(next);
     if (next) {
-      setDraft(draftFor(products, warehouses));
+      setDraft(initialDraft);
       setError("");
       setConfirmationOpen(false);
+      setDiscardOpen(false);
+      setOpen(true);
+      return;
     }
+    if (draftDirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    setOpen(false);
+  };
+  const discardDraft = () => {
+    setDraft(initialDraft);
+    setError("");
+    setConfirmationOpen(false);
+    setDiscardOpen(false);
+    setOpen(false);
   };
   const selectProduct = (productId: string) => {
     const nextProduct = products.find((item) => item.id === productId);
@@ -235,6 +252,12 @@ export function BatchReceiptDialog({
         <AlertDialogContent>
           <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-terre/[0.08] text-terre"><PackagePlus className="h-5 w-5" /></span><AlertDialogTitle>{draft.status === "active" ? (isFr ? "Rendre ce lot disponible ?" : "Make this batch available?") : (isFr ? "Enregistrer ce lot en quarantaine ?" : "Record this batch in quarantine?")}</AlertDialogTitle><AlertDialogDescription>{isFr ? `${draft.quantity} unité(s) de ${product?.name || "ce produit"} seront ajoutées à ${warehouse?.name || "l'entrepôt sélectionné"} sous le lot ${draft.lotNumber}. La valeur brute enregistrée sera de ${formatPrice(stockValue, locale)}. ${draft.status === "active" ? "Elles entreront immédiatement dans le stock vendable." : "Elles resteront bloquées jusqu'à une décision de contrôle."}` : `${draft.quantity} unit(s) of ${product?.name || "this product"} will be added to ${warehouse?.name || "the selected warehouse"} under batch ${draft.lotNumber}. The recorded gross value will be ${formatPrice(stockValue, locale)}. ${draft.status === "active" ? "They will immediately enter sellable stock." : "They will remain blocked until a review decision is made."}`}</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel disabled={busy}>{isFr ? "Vérifier le lot" : "Review batch"}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void recordReceipt(); }} disabled={busy} className="bg-terre text-white hover:bg-terre-dark">{busy ? <LoaderCircle className="mr-1.5 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-1.5 h-4 w-4" />}{isFr ? "Confirmer la réception" : "Confirm receipt"}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><X className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Abandonner cette réception ?" : "Discard this receipt?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? "Le numéro de lot, les quantités, la valeur et la référence saisis seront effacés. Aucun stock physique ou vendable ne sera modifié." : "The entered batch number, quantities, value and reference will be cleared. No physical or sellable stock will be changed."}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{isFr ? "Continuer la réception" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardDraft} className="bg-destructive text-white hover:bg-destructive/90"><X className="mr-1.5 h-4 w-4" />{isFr ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>

@@ -752,6 +752,20 @@ test("the team cockpit grants least-privilege access and documents sensitive dec
   await expect(inviteDialog.getByRole("heading", { name: "Responsable catalogue" })).toBeVisible();
   await expect(inviteDialog.getByText("Supprimer", { exact: true })).toBeVisible();
   await expect(inviteAction).toBeEnabled();
+  await inviteDialog.getByRole("button", { name: "Fermer" }).click();
+  const inviteDiscard = page.getByRole("alertdialog", { name: "Abandonner cette invitation ?" });
+  await expect(inviteDiscard).toBeVisible();
+  await expect(inviteDiscard).toContainText("Aucun accès professionnel ne sera créé");
+  await expect.poll(() => mutations.filter((item) => item.method === "POST").length).toBe(0);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `team-invite-discard-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await inviteDiscard.getByRole("button", { name: "Continuer l'invitation" }).click();
+  await expect(inviteDialog.getByLabel("Prénom")).toHaveValue("Fatou");
+  await expect(inviteDialog.getByLabel("E-mail")).toHaveValue("fatou@je-mange-africain.com");
+  await expect(inviteDialog.getByLabel("Rôle attribué")).toHaveValue("catalog_manager");
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
@@ -990,6 +1004,20 @@ test("the inventory desk receives, values and secures a traceable batch", async 
   const receiptBlocking = receiptAccessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
   expect(receiptBlocking, receiptBlocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
   await expectBrandSafeUiColors(page);
+  await receiptDialog.getByRole("button", { name: "Fermer" }).click();
+  const receiptDiscard = page.getByRole("alertdialog", { name: "Abandonner cette réception ?" });
+  await expect(receiptDiscard).toBeVisible();
+  await expect(receiptDiscard).toContainText("Aucun stock physique ou vendable ne sera modifié");
+  await expect.poll(() => receiptPayloads.length).toBe(0);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `inventory-receipt-discard-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await receiptDiscard.getByRole("button", { name: "Continuer la réception" }).click();
+  await expect(receiptDialog.getByLabel("Numéro de lot")).toHaveValue("ATT-2609-FR");
+  await expect(receiptDialog.getByLabel("Quantité physique")).toHaveValue("48");
+  await expect(receiptDialog.getByLabel("Coût brut unitaire (€)")).toHaveValue("2.95");
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });

@@ -20,21 +20,38 @@ export function InviteMemberDialog({ locale, roles, onInvited }: { locale: "fr" 
   const emptyDraft = (): MemberDraft => ({ email: "", firstName: "", lastName: "", role: roles[0]?.id || "support" });
   const [open, setOpen] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState<MemberDraft>(emptyDraft);
   const selected = roles.find((role) => role.id === draft.role) || roles[0];
   const totals = permissionTotals(selected?.permissions || {});
   const complete = draft.firstName.trim().length >= 2 && draft.lastName.trim().length >= 2 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim()) && Boolean(selected);
+  const draftDirty = Boolean(draft.email.trim() || draft.firstName.trim() || draft.lastName.trim() || draft.role !== (roles[0]?.id || "support"));
 
   const handleOpen = (next: boolean) => {
     if (busy) return;
-    setOpen(next);
     if (next) {
       setDraft(emptyDraft());
       setError("");
       setConfirmationOpen(false);
+      setDiscardOpen(false);
+      setOpen(true);
+      return;
     }
+    if (draftDirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    setOpen(false);
+  };
+
+  const discardDraft = () => {
+    setDraft(emptyDraft());
+    setError("");
+    setConfirmationOpen(false);
+    setDiscardOpen(false);
+    setOpen(false);
   };
 
   const submit = (event: FormEvent) => {
@@ -89,6 +106,12 @@ export function InviteMemberDialog({ locale, roles, onInvited }: { locale: "fr" 
       <AlertDialogContent>
         <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-burgundy/[0.08] text-burgundy"><MailPlus className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Confirmer cette invitation ?" : "Confirm this invitation?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? `Un e-mail sera envoyé à ${draft.firstName.trim()} ${draft.lastName.trim()} (${draft.email.trim()}). Après activation, cette personne disposera du rôle ${selected ? roleLabel(selected.id, locale) : "—"}, couvrant ${totals.modules} module(s) et ${totals.actions} action(s).` : `An email will be sent to ${draft.firstName.trim()} ${draft.lastName.trim()} (${draft.email.trim()}). Once activated, this person will have the ${selected ? roleLabel(selected.id, locale) : "—"} role, covering ${totals.modules} module(s) and ${totals.actions} action(s).`}</AlertDialogDescription></AlertDialogHeader>
         <AlertDialogFooter><AlertDialogCancel disabled={busy}>{isFr ? "Vérifier le rôle" : "Review role"}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void sendInvitation(); }} disabled={busy} className="bg-burgundy text-white hover:bg-burgundy-dark">{busy ? <LoaderCircle className="mr-1.5 h-4 w-4 animate-spin" /> : <MailPlus className="mr-1.5 h-4 w-4" />}{isFr ? "Confirmer l'invitation" : "Confirm invitation"}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><Trash2 className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Abandonner cette invitation ?" : "Discard this invitation?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? "L'identité, l'adresse e-mail et le rôle saisis seront effacés. Aucun accès professionnel ne sera créé et aucun e-mail ne sera envoyé." : "The entered identity, email address and role will be cleared. No professional access will be created and no email will be sent."}</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel>{isFr ? "Continuer l'invitation" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardDraft} className="bg-destructive text-white hover:bg-destructive/90"><Trash2 className="mr-1.5 h-4 w-4" />{isFr ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   </>;
