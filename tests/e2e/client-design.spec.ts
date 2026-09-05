@@ -1225,7 +1225,12 @@ test("checkout compares delivery services and protects the cold chain", async ({
     await expect(orderSummary).toBeVisible();
     await expectLoadedProductImages(orderSummary.getByRole("img", { name: /gombo surgelé|frozen okra/i }), 1);
   }
-  await expect(page.getByLabel(/pays de livraison|delivery country/i)).toHaveValue("France");
+  const deliveryCountry = page.getByLabel(/pays de livraison|delivery country/i);
+  await expect(deliveryCountry).toHaveValue("France");
+  await expect(deliveryCountry.locator("option")).toHaveCount(32);
+  await expect(deliveryCountry.locator('option[value="Pologne"]')).toHaveText("Pologne");
+  await expect(deliveryCountry.locator('option[value="Suisse"]')).toHaveText("Suisse");
+  await expect(deliveryCountry.locator('option[value="Royaume-Uni"]')).toHaveText("Royaume-Uni");
   await expect(page.getByRole("heading", { name: /coordonnées de contact|contact details/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /adresse de livraison|delivery address/i })).toBeVisible();
   const savedAddress = page.getByLabel(/utiliser une adresse enregistrée|use a saved address/i);
@@ -1258,7 +1263,7 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expect(deliveryOptions).toContainText(/12 à 24 h|12-24 h/i);
   if (isMobile) await expect(checkoutDock).toContainText(/29,90\s*€/);
 
-  await page.getByLabel(/pays de livraison|delivery country/i).selectOption("Belgique");
+  await deliveryCountry.selectOption("Belgique");
   await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Belgique");
   await expect(page.locator("body")).not.toContainText(/doit être configuré avant l'ouverture|must be configured before orders/i);
   if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {

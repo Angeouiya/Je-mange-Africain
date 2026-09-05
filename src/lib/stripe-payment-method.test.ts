@@ -18,6 +18,14 @@ describe("Stripe payment method resolution", () => {
     } as never)).toBe("card");
   });
 
+  it("preserves the wallet used behind a card payment", () => {
+    expect(paymentMethodUsed({
+      payment_method: { type: "card", card: { wallet: { type: "apple_pay" } } },
+      payment_method_types: ["card", "paypal"],
+      latest_charge: { payment_method_details: { type: "card", card: { wallet: { type: "google_pay" } } } },
+    } as never)).toBe("google_pay");
+  });
+
   it("does not mislabel the first dynamic option as the selected method", () => {
     expect(paymentMethodUsed({
       payment_method: null,

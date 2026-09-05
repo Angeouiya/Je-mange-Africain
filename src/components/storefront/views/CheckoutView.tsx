@@ -20,6 +20,8 @@ import { dict } from "@/lib/i18n";
 import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStore } from "@/lib/store";
 import { postJSON } from "@/lib/use-fetch";
 import { clearPendingCheckout, readPendingCheckout, rememberPendingCheckout, type PendingCheckoutPayload } from "@/lib/checkout-return";
+import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
+import { paymentMethodFamily, paymentMethodHint, paymentMethodLabel, uniquePaymentMethods } from "@/lib/payment-methods";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -74,7 +76,7 @@ export function CheckoutView() {
     street: address?.street || "",
     postalCode: address?.postalCode || "",
     city: address?.city || "",
-    country: address?.country || "France",
+    country: europeanCountryValue(address?.country) || "France",
   });
   const [slot, setSlot] = useState<DeliveryService>("standard");
   const [shipQuote, setShipQuote] = useState<ShippingQuoteResponse | null>(null);
@@ -114,7 +116,7 @@ export function CheckoutView() {
       street: selected.street,
       postalCode: selected.postalCode,
       city: selected.city,
-      country: selected.country,
+      country: europeanCountryValue(selected.country) || "France",
     }));
   };
 
@@ -297,7 +299,7 @@ export function CheckoutView() {
     <div className="space-y-4">
       <div className="rounded-lg bg-muted/40 p-3 text-sm">
         <p className="font-semibold text-charcoal">{form.firstName} {form.lastName}</p>
-        <p className="text-muted-foreground">{form.street}, {form.postalCode} {form.city}, {form.country}</p>
+        <p className="text-muted-foreground">{form.street}, {form.postalCode} {form.city}, {europeanCountryLabel(form.country, locale)}</p>
         <p className="text-muted-foreground">{form.email}{form.phone ? ` · ${form.phone}` : ""}</p>
       </div>
       <div className="space-y-1.5">
@@ -378,7 +380,7 @@ export function CheckoutView() {
                 <div className="mt-3">
                   <Label htmlFor="checkout-saved-address" className="mb-1.5 block text-xs font-semibold text-charcoal">{locale === "fr" ? "Utiliser une adresse enregistrée" : "Use a saved address"}</Label>
                   <select id="checkout-saved-address" value={selectedAddressId} onChange={(event) => chooseAddress(event.target.value)} className="h-11 w-full rounded-md border border-charcoal/12 bg-white px-3 text-sm font-semibold text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">
-                    {addresses.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.city}, {item.country}</option>)}
+                    {addresses.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.city}, {europeanCountryLabel(item.country, locale)}</option>)}
                     <option value="custom">{selectedAddressId === "custom" && form.street.trim() ? (locale === "fr" ? "Adresse modifiée pour cette commande" : "Address changed for this order") : (locale === "fr" ? "Saisir une nouvelle adresse" : "Enter a new address")}</option>
                   </select>
                 </div>
@@ -390,11 +392,7 @@ export function CheckoutView() {
                 <div className="col-span-2 sm:col-span-1">
                   <Label htmlFor="checkout-country" className="mb-1.5 block text-xs font-semibold text-charcoal">{locale === "fr" ? "Pays de livraison" : "Delivery country"}</Label>
                   <select id="checkout-country" value={form.country} onChange={(event) => updateForm("country", event.target.value)} autoComplete="country-name" className="h-11 w-full rounded-md border border-charcoal/12 bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">
-                    <option value="France">France</option>
-                    <option value="Belgique">{locale === "fr" ? "Belgique" : "Belgium"}</option>
-                    <option value="Allemagne">{locale === "fr" ? "Allemagne" : "Germany"}</option>
-                    <option value="Pays-Bas">{locale === "fr" ? "Pays-Bas" : "Netherlands"}</option>
-                    <option value="Luxembourg">Luxembourg</option>
+                    {europeanCountryOptions(locale).map((country) => <option key={country.code} value={country.value}>{country.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -439,6 +437,7 @@ export function CheckoutView() {
                   setPaymentError={setPaymentError}
                   amount={displayTotal}
                   locale={locale}
+                  paymentMethodTypes={intent.paymentMethodTypes}
                   review={review}
                   onBeforeConfirm={() => rememberPendingCheckout(intent.paymentIntentId, checkoutPayload)}
                   onConfirm={finalizeOrder}
@@ -520,7 +519,7 @@ function CheckoutBasketPreview({
   );
 }
 
-function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentError, setPaymentError, amount, locale, review, onBeforeConfirm, onConfirm }: {
+function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentError, setPaymentError, amount, locale, paymentMethodTypes, review, onBeforeConfirm, onConfirm }: {
   step: number;
   setStep: (step: number) => void;
   clientSecret: string;
@@ -529,6 +528,7 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   setPaymentError: (message: string) => void;
   amount: number;
   locale: "fr" | "en";
+  paymentMethodTypes: string[];
   review: ReactNode;
   onBeforeConfirm: () => boolean;
   onConfirm: (paymentIntentId: string) => Promise<void>;
@@ -589,13 +589,12 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
       <div className={step === 1 ? "space-y-4" : "hidden"} aria-hidden={step !== 1}>
-        <PaymentCapabilityPanel locale={locale} />
+        <PaymentCapabilityPanel locale={locale} methodTypes={paymentMethodTypes} />
         <div className="border-t border-charcoal/8 pt-4">
           <p className="mb-3 text-xs font-extrabold text-charcoal">{t.checkout.paymentMethod}</p>
           <PaymentElement options={{
-            layout: { type: "accordion", defaultCollapsed: false, radios: "always", spacedAccordionItems: false },
+            layout: { type: "accordion", defaultCollapsed: false, radios: "always", spacedAccordionItems: false, visibleAccordionItemsCount: 5 },
             business: { name: "Je mange Africain" },
-            paymentMethodOrder: ["paypal", "apple_pay", "google_pay", "card", "link", "klarna", "ideal", "bancontact"],
           }} />
         </div>
         <p className="flex items-start gap-1.5 text-[11px] leading-5 text-muted-foreground"><Lock className="mt-0.5 h-3 w-3 shrink-0" />{locale === "fr" ? "Les données bancaires sont chiffrées et traitées directement par Stripe." : "Bank details are encrypted and processed directly by Stripe."}</p>
@@ -629,28 +628,30 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   );
 }
 
-function PaymentCapabilityPanel({ locale }: { locale: "fr" | "en" }) {
-  const methods = [
-    { icon: CreditCard, label: locale === "fr" ? "Cartes" : "Cards", detail: "Visa · Mastercard" },
-    { icon: WalletCards, label: "PayPal", detail: locale === "fr" ? "Selon éligibilité" : "When eligible" },
-    { icon: Smartphone, label: locale === "fr" ? "Wallets" : "Wallets", detail: "Apple Pay · Google Pay" },
-    { icon: Landmark, label: locale === "fr" ? "Méthodes locales" : "Local methods", detail: locale === "fr" ? "Selon le pays" : "Country based" },
-  ];
+function PaymentCapabilityPanel({ locale, methodTypes }: { locale: "fr" | "en"; methodTypes: string[] }) {
+  const methods = uniquePaymentMethods(methodTypes.length ? methodTypes : ["card"]);
 
   return (
-    <section className="overflow-hidden rounded-lg border border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_58%,#FFF5E6_100%)]" aria-labelledby="payment-choice-title" data-testid="payment-capabilities">
-      <div className="flex items-start gap-3 border-b border-burgundy/10 px-3.5 py-3">
+    <section className="overflow-hidden border-y border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_58%,#FFF5E6_100%)]" aria-labelledby="payment-choice-title" data-testid="payment-capabilities">
+      <div className="flex items-start gap-3 px-3.5 py-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white shadow-[0_10px_24px_-16px_rgba(138,48,66,0.9)]"><ShieldCheck className="h-4 w-4" /></span>
         <div className="min-w-0">
           <h2 id="payment-choice-title" className="text-xs font-black text-charcoal">{locale === "fr" ? "Choisissez votre moyen de paiement" : "Choose your payment method"}</h2>
-          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{locale === "fr" ? "Les options compatibles apparaissent selon votre pays, votre appareil et le montant." : "Compatible options appear according to your country, device and order amount."}</p>
+          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{locale === "fr" ? `${methods.length} option(s) activée(s) pour cette commande. Stripe les ordonne selon votre pays, votre appareil et le montant.` : `${methods.length} option(s) enabled for this order. Stripe orders them for your country, device and amount.`}</p>
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4">
-        {methods.map((method, index) => <div key={method.label} className={`flex min-w-0 items-center gap-2 px-3 py-3 ${index % 2 === 0 ? "border-r border-burgundy/10" : ""} ${index < 2 ? "border-b border-burgundy/10 sm:border-b-0" : ""} ${index > 0 ? "sm:border-l sm:border-burgundy/10" : ""}`}><method.icon className="h-4 w-4 shrink-0 text-terre" /><span className="min-w-0"><strong className="block truncate text-[10px] text-charcoal">{method.label}</strong><span className="mt-0.5 block truncate text-[8px] text-muted-foreground">{method.detail}</span></span></div>)}
+      <div className="grid grid-cols-2 border-t border-burgundy/10 sm:grid-cols-3">
+        {methods.map((method) => <PaymentCapability key={method} method={method} locale={locale} />)}
       </div>
+      {methods.includes("card") ? <p className="border-t border-burgundy/10 px-3.5 py-2 text-[9px] leading-4 text-muted-foreground">{locale === "fr" ? "Apple Pay et Google Pay apparaissent avec l'option carte lorsque l'appareil et la carte sont compatibles." : "Apple Pay and Google Pay appear with the card option when the device and card are compatible."}</p> : null}
     </section>
   );
+}
+
+function PaymentCapability({ method, locale }: { method: string; locale: "fr" | "en" }) {
+  const family = paymentMethodFamily(method);
+  const Icon = family === "card" ? CreditCard : family === "bank" ? Landmark : family === "wallet" ? Smartphone : WalletCards;
+  return <div className="flex min-w-0 items-center gap-2 border-b border-r border-burgundy/10 px-3 py-3 last:border-r-0"><Icon className="h-4 w-4 shrink-0 text-terre" /><span className="min-w-0"><strong className="block truncate text-[10px] text-charcoal">{paymentMethodLabel(method, locale)}</strong><span className="mt-0.5 block truncate text-[8px] text-muted-foreground">{paymentMethodHint(method, locale)}</span></span></div>;
 }
 
 function stripPaymentReturnParams() {

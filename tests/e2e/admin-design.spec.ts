@@ -100,7 +100,7 @@ const order = {
   payments: [
     { id: "payment-1", method: "card", status: "captured", amount: 48.7, reference: "pi_jma_260902", createdAt: now },
     { id: "payment-2", method: "apple_pay", status: "pending", amount: 32.4, reference: "pi_jma_pending", createdAt: "2026-09-02T09:35:00.000Z" },
-    { id: "payment-3", method: "card", status: "failed", amount: 64.9, reference: "pi_jma_failed", createdAt: "2026-09-02T09:40:00.000Z" },
+    { id: "payment-3", method: "paypal", status: "failed", amount: 64.9, reference: "pi_jma_failed", createdAt: "2026-09-02T09:40:00.000Z" },
   ],
 };
 
@@ -919,6 +919,17 @@ test("admin searches report, filter and clear results consistently", async ({ pa
   await page.getByRole("button", { name: "Effacer la recherche" }).click();
   await expect(paymentSearch).toHaveValue("");
   await expect(page.getByText("pi_jma_260902", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+
+  await page.goto("/admin#orders", { waitUntil: "domcontentloaded" });
+  await page.getByTestId("admin-order-card-order-1").click();
+  const orderDialog = page.getByRole("dialog", { name: /JMA-260902-0142/ });
+  await expect(orderDialog.getByText("Carte bancaire", { exact: true })).toBeVisible();
+  await expect(orderDialog.getByText("Apple Pay", { exact: true })).toBeVisible();
+  await expect(orderDialog.getByText("PayPal", { exact: true })).toBeVisible();
+  await expect(orderDialog).toContainText("Capturé");
+  await expect(orderDialog).toContainText("En attente");
+  await expect(orderDialog).toContainText("Échoué");
+  await expect(orderDialog).not.toContainText("apple_pay");
 });
 
 test("the finance cockpit explains margin, exports records and leads to action", async ({ page }) => {
@@ -969,6 +980,9 @@ test("the finance cockpit explains margin, exports records and leads to action",
   await page.getByRole("tab", { name: "Encaissements" }).click();
   await expect(page.getByText("Taux rapproché")).toBeVisible();
   await expect(page.getByText("33,3 %")).toBeVisible();
+  await expect(page.getByText("Carte bancaire", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText("Apple Pay", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText("PayPal", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await page.getByRole("tab", { name: /Exceptions/ }).click();
   await expect(page.getByText("pi_jma_failed", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   const paymentsDownload = page.waitForEvent("download");

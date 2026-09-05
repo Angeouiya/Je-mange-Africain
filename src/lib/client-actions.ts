@@ -1,3 +1,6 @@
+import { paymentMethodLabel } from "@/lib/payment-methods";
+import { europeanCountryLabel } from "@/lib/european-countries";
+
 const escapeHtml = (value: unknown) => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -43,20 +46,6 @@ const invoiceDate = (value: unknown, language: string) => {
   const date = value ? new Date(String(value)) : null;
   if (!date || Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString(language, { day: "2-digit", month: "long", year: "numeric" });
-};
-
-const paymentMethodLabel = (value: unknown, isFr: boolean) => {
-  const key = String(value || "").trim().toLowerCase();
-  const labels: Record<string, [string, string]> = {
-    card: ["Carte bancaire", "Payment card"],
-    apple_pay: ["Apple Pay", "Apple Pay"],
-    google_pay: ["Google Pay", "Google Pay"],
-    paypal: ["PayPal", "PayPal"],
-    sepa_debit: ["Prélèvement SEPA", "SEPA Direct Debit"],
-    bank_transfer: ["Virement bancaire", "Bank transfer"],
-    cash: ["Espèces", "Cash"],
-  };
-  return labels[key]?.[isFr ? 0 : 1] || String(value || (isFr ? "Enregistré avec la commande" : "Recorded with the order")).replaceAll("_", " ");
 };
 
 const shipmentStatusLabel = (value: unknown, isFr: boolean) => {
@@ -117,7 +106,7 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
       order[`${prefix}Name`] || (fallback ? order.deliveryName : ""),
       order[`${prefix}Address`] || (fallback ? order.deliveryAddress : ""),
       [order[`${prefix}PostalCode`] || (fallback ? order.deliveryPostalCode : ""), order[`${prefix}City`] || (fallback ? order.deliveryCity : "")].filter(Boolean).join(" "),
-      order[`${prefix}Country`] || (fallback ? order.deliveryCountry : ""),
+      europeanCountryLabel(order[`${prefix}Country`] || (fallback ? order.deliveryCountry : ""), isFr ? "fr" : "en"),
       fallback ? order.customerEmail : "",
       fallback ? order.customerPhone : "",
     ].filter(Boolean);
@@ -128,7 +117,7 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
     order.deliveryName,
     order.deliveryAddress,
     [order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(" "),
-    order.deliveryCountry,
+    europeanCountryLabel(order.deliveryCountry, isFr ? "fr" : "en"),
   ].filter(Boolean).map((line, index) => index === 0 ? `<strong>${escapeHtml(line)}</strong>` : `<span>${escapeHtml(line)}</span>`).join("");
   const defaultVatRate = Math.min(100, Math.max(0, finiteNumber(order.vatRate, 20)));
   const rows = items.map((item: Record<string, any>) => {
@@ -148,7 +137,7 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
   }).join("");
   const payment = Array.isArray(order.payments) ? order.payments[0] : null;
   const reference = payment?.reference || order.paymentReference || "";
-  const paymentMethod = paymentMethodLabel(payment?.method || order.paymentMethod, isFr);
+  const paymentMethod = paymentMethodLabel(payment?.method || order.paymentMethod, isFr ? "fr" : "en");
   const paymentStatus = String(payment?.status || "").toLowerCase();
   const paymentStatusLabel = ["captured", "paid", "succeeded"].includes(paymentStatus)
     ? (isFr ? "Payée" : "Paid")

@@ -6,6 +6,7 @@ import { assessCheckoutRisk } from "@/lib/fraud";
 import { enforceRateLimit, redis } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 import { deliveryContactFingerprint } from "@/lib/checkout-security";
+import { europeanCountryCode } from "@/lib/european-countries";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,10 @@ export async function POST(request: NextRequest) {
 
   const parsed = IntentRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Le panier ou l'adresse est invalide." }, { status: 400 });
+  const shippingCountryCode = europeanCountryCode(parsed.data.address.country);
+  if (!shippingCountryCode) {
+    return NextResponse.json({ error: parsed.data.locale === "fr" ? "Ce pays n'est pas encore desservi." : "This country is not yet supported." }, { status: 400 });
+  }
   if (!stripe) return NextResponse.json({ error: stripeConfigurationError(parsed.data.locale) }, { status: 503 });
 
   try {
@@ -89,7 +94,7 @@ export async function POST(request: NextRequest) {
           line1: parsed.data.address.street,
           postal_code: parsed.data.address.postalCode,
           city: parsed.data.address.city,
-          country: countryCode(parsed.data.address.country),
+          country: shippingCountryCode,
         },
       },
     }, { idempotencyKey: `jma:${customer.id}:${parsed.data.checkoutAttemptId}` });
@@ -129,14 +134,4 @@ async function paymentVelocity(customerId: string) {
   } catch {
     return 0;
   }
-}
-
-function countryCode(country: string) {
-  const normalized = country.trim().toLowerCase();
-  if (normalized === "france" || normalized === "fr") return "FR";
-  if (normalized === "belgique" || normalized === "belgium" || normalized === "be") return "BE";
-  if (normalized === "allemagne" || normalized === "germany" || normalized === "de") return "DE";
-  if (normalized === "pays-bas" || normalized === "netherlands" || normalized === "nl") return "NL";
-  if (normalized === "luxembourg" || normalized === "lu") return "LU";
-  return "FR";
 }
