@@ -51,6 +51,7 @@ import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue } fr
 
 type AccountSection = "profile" | "addresses" | "saved" | "settings";
 type RequestStatus = "idle" | "busy" | "success" | "error";
+type AddressDraft = Omit<Address, "id">;
 
 type AccountResponse = {
   customer: NonNullable<ReturnType<typeof useStore.getState>["customer"]>;
@@ -82,6 +83,7 @@ export function AccountWorkspace() {
   const [addressOpen, setAddressOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addressForm, setAddressForm] = useState(() => blankAddress(customer));
+  const [addressBaseline, setAddressBaseline] = useState(() => blankAddress(customer));
   const [addressStatus, setAddressStatus] = useState<RequestStatus>("idle");
   const [addressMessage, setAddressMessage] = useState("");
   const contentRef = useRef<HTMLElement>(null);
@@ -113,6 +115,7 @@ export function AccountWorkspace() {
   const orderCount = orderData?.orders?.length || 0;
   const defaultAddress = useMemo(() => addresses.find((address) => address.isDefault) || addresses[0], [addresses]);
   const profileDirty = profile.firstName !== customer.firstName || profile.lastName !== customer.lastName || profile.phone !== customer.phone;
+  const addressDirty = addressDraftKey(addressForm) !== addressDraftKey(addressBaseline);
 
   const selectSection = (nextSection: AccountSection) => {
     setSection(nextSection);
@@ -149,8 +152,10 @@ export function AccountWorkspace() {
   };
 
   const openAddressEditor = (address?: Address) => {
+    const draft = address ? { ...address, country: europeanCountryValue(address.country) || address.country, phone: address.phone || "", isDefault: Boolean(address.isDefault) } : blankAddress(customer, addresses.length === 0);
     setEditingAddressId(address?.id || null);
-    setAddressForm(address ? { ...address, country: europeanCountryValue(address.country) || address.country, phone: address.phone || "", isDefault: Boolean(address.isDefault) } : blankAddress(customer, addresses.length === 0));
+    setAddressForm(draft);
+    setAddressBaseline(draft);
     setAddressStatus("idle");
     setAddressMessage("");
     setAddressOpen(true);
@@ -321,7 +326,7 @@ export function AccountWorkspace() {
         ) : null}
       </main>
 
-      <AddressEditor open={addressOpen} onOpenChange={setAddressOpen} locale={locale} address={addressForm} setAddress={setAddressForm} editing={Boolean(editingAddressId)} status={addressStatus} message={addressMessage} onSubmit={saveAddress} />
+      <AddressEditor open={addressOpen} onOpenChange={setAddressOpen} locale={locale} address={addressForm} setAddress={setAddressForm} editing={Boolean(editingAddressId)} dirty={addressDirty} status={addressStatus} message={addressMessage} onSubmit={saveAddress} />
     </div>
   );
 }
@@ -352,8 +357,22 @@ function AddressCard({ address, locale, busy, onEdit, onDefault, onDelete }: { a
   );
 }
 
-function AddressEditor({ open, onOpenChange, locale, address, setAddress, editing, status, message, onSubmit }: { open: boolean; onOpenChange: (open: boolean) => void; locale: "fr" | "en"; address: Omit<Address, "id">; setAddress: (address: Omit<Address, "id">) => void; editing: boolean; status: RequestStatus; message: string; onSubmit: (event: FormEvent) => void }) {
-  return <Dialog open={open} onOpenChange={(next) => status !== "busy" && onOpenChange(next)}><DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto p-5 sm:max-w-xl sm:p-6"><DialogHeader><span className="grid h-11 w-11 place-items-center rounded-lg bg-terre/10 text-terre"><MapPin className="h-5 w-5" /></span><DialogTitle>{editing ? (locale === "fr" ? "Modifier l'adresse" : "Edit address") : (locale === "fr" ? "Nouvelle adresse" : "New address")}</DialogTitle><DialogDescription>{locale === "fr" ? "Ces informations seront proposées au paiement et utilisées par le transporteur." : "These details will be suggested at checkout and used by the carrier."}</DialogDescription></DialogHeader><form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2"><TextField id="address-label" label={locale === "fr" ? "Nom de l'adresse" : "Address name"} value={address.label} onChange={(value) => setAddress({ ...address, label: value })} autoComplete="off" required /><div className="hidden sm:block" /><TextField id="address-first-name" label={locale === "fr" ? "Prénom" : "First name"} value={address.firstName} onChange={(value) => setAddress({ ...address, firstName: value })} autoComplete="given-name" required /><TextField id="address-last-name" label={locale === "fr" ? "Nom" : "Last name"} value={address.lastName} onChange={(value) => setAddress({ ...address, lastName: value })} autoComplete="family-name" required /><div className="sm:col-span-2"><TextField id="address-street" label={locale === "fr" ? "Adresse complète" : "Street address"} value={address.street} onChange={(value) => setAddress({ ...address, street: value })} autoComplete="street-address" required /></div><TextField id="address-postal-code" label={locale === "fr" ? "Code postal" : "Postal code"} value={address.postalCode} onChange={(value) => setAddress({ ...address, postalCode: value })} autoComplete="postal-code" required /><TextField id="address-city" label={locale === "fr" ? "Ville" : "City"} value={address.city} onChange={(value) => setAddress({ ...address, city: value })} autoComplete="address-level2" required /><div><Label htmlFor="address-country" className="mb-1.5 block text-xs font-bold text-charcoal">{locale === "fr" ? "Pays" : "Country"}</Label><select id="address-country" value={europeanCountryValue(address.country) || address.country} onChange={(event) => setAddress({ ...address, country: event.target.value })} autoComplete="country-name" className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">{europeanCountryOptions(locale).map((country) => <option key={country.code} value={country.value}>{country.label}</option>)}</select></div><TextField id="address-phone" label={locale === "fr" ? "Téléphone du destinataire" : "Recipient phone"} value={address.phone || ""} onChange={(value) => setAddress({ ...address, phone: value })} autoComplete="tel" required /><label className="flex min-h-11 items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 text-xs font-bold text-charcoal sm:col-span-2"><Checkbox checked={Boolean(address.isDefault)} onCheckedChange={(checked) => setAddress({ ...address, isDefault: checked === true })} />{locale === "fr" ? "Proposer cette adresse en priorité au paiement" : "Suggest this address first at checkout"}</label><InlineStatus status={status} message={message} className="sm:col-span-2" /><DialogFooter className="mt-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={status === "busy"}>{locale === "fr" ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={status === "busy"} className="bg-terre text-white hover:bg-terre-dark">{status === "busy" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{editing ? (locale === "fr" ? "Enregistrer" : "Save") : (locale === "fr" ? "Ajouter au carnet" : "Add to address book")}</Button></DialogFooter></form></DialogContent></Dialog>;
+function AddressEditor({ open, onOpenChange, locale, address, setAddress, editing, dirty, status, message, onSubmit }: { open: boolean; onOpenChange: (open: boolean) => void; locale: "fr" | "en"; address: AddressDraft; setAddress: (address: AddressDraft) => void; editing: boolean; dirty: boolean; status: RequestStatus; message: string; onSubmit: (event: FormEvent) => void }) {
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const handleOpenChange = (next: boolean) => {
+    if (status === "busy") return;
+    if (!next && dirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    onOpenChange(next);
+  };
+  const discardDraft = () => {
+    setDiscardOpen(false);
+    onOpenChange(false);
+  };
+
+  return <><Dialog open={open} onOpenChange={handleOpenChange}><DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto p-5 sm:max-w-xl sm:p-6"><DialogHeader><span className="grid h-11 w-11 place-items-center rounded-lg bg-terre/10 text-terre"><MapPin className="h-5 w-5" /></span><DialogTitle>{editing ? (locale === "fr" ? "Modifier l'adresse" : "Edit address") : (locale === "fr" ? "Nouvelle adresse" : "New address")}</DialogTitle><DialogDescription>{locale === "fr" ? "Ces informations seront proposées au paiement et utilisées par le transporteur." : "These details will be suggested at checkout and used by the carrier."}</DialogDescription></DialogHeader><form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2"><TextField id="address-label" label={locale === "fr" ? "Nom de l'adresse" : "Address name"} value={address.label} onChange={(value) => setAddress({ ...address, label: value })} autoComplete="off" required /><div className="hidden sm:block" /><TextField id="address-first-name" label={locale === "fr" ? "Prénom" : "First name"} value={address.firstName} onChange={(value) => setAddress({ ...address, firstName: value })} autoComplete="given-name" required /><TextField id="address-last-name" label={locale === "fr" ? "Nom" : "Last name"} value={address.lastName} onChange={(value) => setAddress({ ...address, lastName: value })} autoComplete="family-name" required /><div className="sm:col-span-2"><TextField id="address-street" label={locale === "fr" ? "Adresse complète" : "Street address"} value={address.street} onChange={(value) => setAddress({ ...address, street: value })} autoComplete="street-address" required /></div><TextField id="address-postal-code" label={locale === "fr" ? "Code postal" : "Postal code"} value={address.postalCode} onChange={(value) => setAddress({ ...address, postalCode: value })} autoComplete="postal-code" required /><TextField id="address-city" label={locale === "fr" ? "Ville" : "City"} value={address.city} onChange={(value) => setAddress({ ...address, city: value })} autoComplete="address-level2" required /><div><Label htmlFor="address-country" className="mb-1.5 block text-xs font-bold text-charcoal">{locale === "fr" ? "Pays" : "Country"}</Label><select id="address-country" value={europeanCountryValue(address.country) || address.country} onChange={(event) => setAddress({ ...address, country: event.target.value })} autoComplete="country-name" className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">{europeanCountryOptions(locale).map((country) => <option key={country.code} value={country.value}>{country.label}</option>)}</select></div><TextField id="address-phone" label={locale === "fr" ? "Téléphone du destinataire" : "Recipient phone"} value={address.phone || ""} onChange={(value) => setAddress({ ...address, phone: value })} autoComplete="tel" required /><label className="flex min-h-11 items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 text-xs font-bold text-charcoal sm:col-span-2"><Checkbox checked={Boolean(address.isDefault)} onCheckedChange={(checked) => setAddress({ ...address, isDefault: checked === true })} />{locale === "fr" ? "Proposer cette adresse en priorité au paiement" : "Suggest this address first at checkout"}</label><InlineStatus status={status} message={message} className="sm:col-span-2" /><DialogFooter className="mt-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={status === "busy"}>{locale === "fr" ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={status === "busy"} className="bg-terre text-white hover:bg-terre-dark">{status === "busy" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{editing ? (locale === "fr" ? "Enregistrer" : "Save") : (locale === "fr" ? "Ajouter au carnet" : "Add to address book")}</Button></DialogFooter></form></DialogContent></Dialog><AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}><AlertDialogContent><AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><Trash2 className="h-5 w-5" /></span><AlertDialogTitle>{locale === "fr" ? "Abandonner cette adresse ?" : "Discard this address?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? "Les coordonnées de livraison saisies seront effacées. Votre carnet et l'adresse utilisée par vos commandes existantes resteront inchangés." : "The entered delivery details will be cleared. Your address book and the address used by existing orders will remain unchanged."}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{locale === "fr" ? "Continuer la saisie" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardDraft} className="bg-destructive text-white hover:bg-destructive/90"><Trash2 className="mr-2 h-4 w-4" />{locale === "fr" ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
 }
 
 function SavedSection({ locale, savedTab, setSavedTab, favorites, savedRecipes }: { locale: "fr" | "en"; savedTab: "products" | "recipes"; setSavedTab: (tab: "products" | "recipes") => void; favorites: string[]; savedRecipes: string[] }) {
@@ -451,8 +470,12 @@ function InlineStatus({ status, message, className = "" }: { status: RequestStat
   return <p role={success ? "status" : "alert"} className={`${className} flex items-center gap-2 rounded-md border px-3 py-2 text-xs ${success ? "border-burgundy/20 bg-burgundy/5 text-burgundy" : "border-destructive/25 bg-destructive/[0.06] text-destructive"}`}>{success ? <Check className="h-4 w-4 shrink-0" /> : null}{message}</p>;
 }
 
-function blankAddress(customer: { firstName: string; lastName: string; phone: string }, isDefault = false): Omit<Address, "id"> {
+function blankAddress(customer: { firstName: string; lastName: string; phone: string }, isDefault = false): AddressDraft {
   return { label: "", firstName: customer.firstName, lastName: customer.lastName, street: "", postalCode: "", city: "", country: "France", phone: customer.phone, isDefault };
+}
+
+function addressDraftKey(address: AddressDraft) {
+  return [address.label, address.firstName, address.lastName, address.street, address.postalCode, address.city, address.country, address.phone || "", address.isDefault ? "1" : "0"].map((value) => String(value).trim()).join("\u0000");
 }
 
 function initials(firstName: string, lastName: string) {

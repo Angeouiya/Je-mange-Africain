@@ -901,6 +901,14 @@ test("the customer workspace edits identity and manages a persistent address boo
   await page.getByRole("button", { name: /^ajouter( une adresse)?$|^add( address)?$/i }).first().click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel(/nom de l'adresse|address name/i).fill("Bureau");
+  await dialog.getByRole("button", { name: /annuler|cancel/i }).click();
+  const discard = page.getByRole("alertdialog", { name: /abandonner cette adresse|discard this address/i });
+  await expect(discard).toContainText(/carnet.*commandes existantes|address book.*existing orders/i);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/address-discard-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await discard.getByRole("button", { name: /continuer la saisie|keep editing/i }).click();
+  await expect(dialog.getByLabel(/nom de l'adresse|address name/i)).toHaveValue("Bureau");
   await dialog.getByLabel(/adresse complète|street address/i).fill("8 avenue de l'Europe");
   await dialog.getByLabel(/code postal|postal code/i).fill("69002");
   await dialog.getByLabel(/ville|city/i).fill("Lyon");
