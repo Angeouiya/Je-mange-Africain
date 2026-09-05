@@ -16,6 +16,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { getOrderDeliveryOverview, getShipmentTrackingHref } from "@/lib/order-experience";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
+import { OrderRefundSummary } from "@/components/storefront/OrderRefundSummary";
 import type { Order } from "@/lib/types";
 import { europeanCountryLabel } from "@/lib/european-countries";
 
@@ -86,6 +87,8 @@ export function OrderTrackingView() {
         testId="delivery-progress"
         className="mb-4"
       />
+
+      {order.refunds?.length ? <div className="mb-4"><OrderRefundSummary refunds={order.refunds} paymentAmount={order.payments.find((payment) => ["captured", "refunded"].includes(payment.status))?.amount || order.total} locale={locale} /></div> : null}
 
       <nav className="mb-4 grid grid-cols-2 rounded-md border border-burgundy/12 bg-white p-1 md:hidden" aria-label={locale === "fr" ? "Informations de la commande" : "Order information"} data-testid="tracking-mobile-tabs">
         <button type="button" onClick={() => setMobilePanel("delivery")} aria-pressed={mobilePanel === "delivery"} className={`flex min-h-11 items-center justify-center gap-2 rounded-sm text-xs font-black transition ${mobilePanel === "delivery" ? "bg-terre text-white" : "text-muted-foreground"}`}><Truck className="h-4 w-4" />{locale === "fr" ? "Livraison" : "Delivery"}</button>

@@ -1619,6 +1619,7 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     ],
     timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-01T09:30:00.000Z", actor: null }, { status: "delivered", label: "Delivered", at: "2026-09-02T15:12:00.000Z", actor: null }],
     payments: [{ method: "Carte", status: "captured", amount: 45.9, reference: "pi_proof" }],
+    refunds: [{ id: "refund-proof", amount: 12.5, status: "completed", createdAt: "2026-09-03T10:00:00.000Z" }],
   };
   const activeOrder = {
     ...deliveredOrder,
@@ -1663,6 +1664,8 @@ test("delivered orders expose carrier tracking and proof without leaking interna
   await expect(deliveredFilter).toHaveAttribute("aria-pressed", "true");
   await expect(deliveredFilter).toHaveCSS("background-color", "rgb(138, 48, 66)");
   await expect(page.getByTestId("order-progress-order-delivered").getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+  await expect(page.getByTestId("order-refund-summary")).toContainText(/remboursement confirmé|refund confirmed/i);
+  await expect(page.getByTestId("order-refund-summary")).toContainText(/12,50\s*€|€12\.50/);
   await expectLoadedProductImages(page.getByRole("img", { name: /attiéké frais|fresh attieke|piment frais|fresh chilli/i }), 2);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
@@ -1683,6 +1686,8 @@ test("delivered orders expose carrier tracking and proof without leaking interna
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   await expect(page.getByRole("heading", { name: "JMA-260902-0098" })).toBeVisible();
   await expect(page.getByRole("button", { name: /facture|invoice/i })).toBeVisible();
+  await expect(page.getByTestId("order-refund-summary")).toContainText(/recrédité sur le moyen de paiement d'origine|returned to the original payment method/i);
+  await expect(page.locator("body")).not.toContainText(/delivery_incident|retard transporteur confirmé/i);
   const deliveryCommandCenter = page.getByTestId("delivery-command-center");
   await expect(deliveryCommandCenter).toContainText(/commande a été remise|order has been delivered/i);
   await expect(deliveryCommandCenter).toContainText(/chrono frais europe/i);

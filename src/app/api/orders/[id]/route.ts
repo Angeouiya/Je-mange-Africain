@@ -22,6 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       shipments: { include: { carrier: true } },
       timeline: { orderBy: { at: "asc" } },
       payments: true,
+      refunds: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -91,5 +92,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     })),
     timeline: order.timeline.map((e) => ({ status: e.status, label: e.label, at: e.at, actor: access.scope === "admin" ? e.actor : null })),
     payments: order.payments.map((p) => ({ id: p.id, method: p.method, status: p.status, amount: Number(p.amount), reference: p.reference })),
+    refunds: order.refunds.map((refund) => ({
+      id: refund.id,
+      amount: Number(refund.amount),
+      status: refund.status,
+      createdAt: refund.createdAt,
+      ...(access.scope === "admin" ? { reason: refund.reason } : {}),
+    })),
   });
 }

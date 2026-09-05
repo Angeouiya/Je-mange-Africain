@@ -9,7 +9,7 @@ import { ProfitabilityPanel } from "@/components/admin/ProfitabilityPanel";
 type FinanceView = "profitability" | "payments";
 type FinanceDestination = "catalog" | "inventory" | "orders";
 
-export default function FinanceSection({ locale, onNavigate }: { locale: "fr" | "en"; onNavigate?: (destination: FinanceDestination) => void }) {
+export default function FinanceSection({ locale, canUpdate, onNavigate }: { locale: "fr" | "en"; canUpdate: boolean; onNavigate?: (destination: FinanceDestination) => void }) {
   const isFr = locale === "fr";
   const [view, setView] = useState<FinanceView>("profitability");
 
@@ -29,7 +29,7 @@ export default function FinanceSection({ locale, onNavigate }: { locale: "fr" | 
         { value: "payments", label: isFr ? "Encaissements" : "Payments", description: isFr ? "Transactions et rapprochements" : "Transactions and reconciliation", icon: Landmark, accent: "#B9472B" },
       ]} />
 
-      {view === "profitability" ? <ProfitabilityPanel locale={locale} onNavigate={onNavigate} /> : <FinancePaymentLedger locale={locale} onNavigate={onNavigate} />}
+      {view === "profitability" ? <ProfitabilityPanel locale={locale} onNavigate={onNavigate} /> : <FinancePaymentLedger locale={locale} canUpdate={canUpdate} onNavigate={onNavigate} />}
     </div>
   );
 }

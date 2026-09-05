@@ -212,8 +212,9 @@ export interface OrderPayment {
 export interface OrderRefund {
   id: string;
   amount: number;
-  reason: string;
+  reason?: string;
   status: string;
+  createdAt?: string;
 }
 
 export interface Order {

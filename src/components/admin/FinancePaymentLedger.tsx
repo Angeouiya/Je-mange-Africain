@@ -1,45 +1,64 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, ArrowRight, CalendarClock, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Download, Landmark, ReceiptText, ShieldCheck, Smartphone, WalletCards } from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarClock, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Download, Landmark, ReceiptText, RotateCcw, ShieldCheck, Smartphone, WalletCards } from "lucide-react";
 import { AdminEmptyState, AdminErrorState, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
+import { PaymentRefundDialog } from "@/components/admin/PaymentRefundDialog";
 import type { AdminOrder } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDateTime, formatPrice, normalize } from "@/lib/format";
 import { paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodLabel, paymentStatusLabel, summarizePaymentMethods, type PaymentMethodSummary } from "@/lib/payment-methods";
+import { refundAmounts } from "@/lib/admin-refunds";
 import { useFetch } from "@/lib/use-fetch";
 
-type PaymentFilter = "all" | "captured" | "pending" | "exceptions";
-type PaymentRow = AdminOrder["payments"][number] & { id: string; orderId: string; orderNumber: string; date: string; customer: string };
+type PaymentFilter = "all" | "captured" | "pending" | "refunds" | "exceptions";
+type PaymentRow = AdminOrder["payments"][number] & {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  orderStatus: string;
+  date: string;
+  customer: string;
+  refunds: NonNullable<AdminOrder["refunds"]>;
+};
 
 const EMPTY_ORDERS: AdminOrder[] = [];
 
-export function FinancePaymentLedger({ locale, onNavigate }: { locale: "fr" | "en"; onNavigate?: (destination: "orders") => void }) {
+export function FinancePaymentLedger({ locale, canUpdate, onNavigate }: { locale: "fr" | "en"; canUpdate: boolean; onNavigate?: (destination: "orders") => void }) {
   const isFr = locale === "fr";
   const request = useFetch<{ orders: AdminOrder[] }>(`/api/orders?locale=${locale}`, [locale]);
   const [filter, setFilter] = useState<PaymentFilter>("all");
   const [query, setQuery] = useState("");
   const orders = request.data?.orders ?? EMPTY_ORDERS;
-  const payments: PaymentRow[] = useMemo(() => orders.flatMap((order) => order.payments.map((payment, index) => ({
-    ...payment,
-    id: payment.id || `${order.id}-${index}`,
-    orderId: order.id,
-    orderNumber: order.number,
-    date: payment.createdAt || order.createdAt,
-    customer: order.deliveryName,
-  }))), [orders]);
-  const captured = payments.filter((payment) => payment.status === "captured");
+  const payments: PaymentRow[] = useMemo(() => orders.flatMap((order) => {
+    const refundPaymentId = order.payments.find((payment) => ["captured", "refunded"].includes(payment.status))?.id;
+    return order.payments.map((payment, index) => ({
+      ...payment,
+      id: payment.id || `${order.id}-${index}`,
+      orderId: order.id,
+      orderNumber: order.number,
+      orderStatus: order.status,
+      date: payment.createdAt || order.createdAt,
+      customer: order.deliveryName,
+      refunds: payment.id === refundPaymentId ? order.refunds || [] : [],
+    }));
+  }), [orders]);
+  const captured = payments.filter((payment) => ["captured", "refunded"].includes(payment.status));
   const pending = payments.filter((payment) => ["pending", "authorized"].includes(payment.status));
-  const exceptions = payments.filter((payment) => ["failed", "refunded"].includes(payment.status));
-  const capturedAmount = captured.reduce((sum, payment) => sum + payment.amount, 0);
+  const refunds = payments.flatMap((payment) => payment.refunds);
+  const refundPayments = payments.filter((payment) => payment.refunds.length > 0);
+  const exceptions = payments.filter((payment) => payment.status === "failed");
+  const grossCapturedAmount = captured.reduce((sum, payment) => sum + payment.amount, 0);
+  const refundedAmount = refunds.filter((refund) => refund.status === "completed").reduce((sum, refund) => sum + refund.amount, 0);
+  const capturedAmount = Math.max(0, grossCapturedAmount - refundedAmount);
   const pendingAmount = pending.reduce((sum, payment) => sum + payment.amount, 0);
   const exceptionAmount = exceptions.reduce((sum, payment) => sum + payment.amount, 0);
   const reconciliationRate = payments.length ? (captured.length / payments.length) * 100 : 0;
   const paymentMix = useMemo(() => summarizePaymentMethods(payments), [payments]);
   const filteredPayments = useMemo(() => payments.filter((payment) => {
-    const matchesFilter = filter === "all" || (filter === "captured" && payment.status === "captured") || (filter === "pending" && ["pending", "authorized"].includes(payment.status)) || (filter === "exceptions" && ["failed", "refunded"].includes(payment.status));
+    const matchesFilter = filter === "all" || (filter === "captured" && ["captured", "refunded"].includes(payment.status)) || (filter === "pending" && ["pending", "authorized"].includes(payment.status)) || (filter === "refunds" && payment.refunds.length > 0) || (filter === "exceptions" && payment.status === "failed");
     const matchesQuery = normalize(`${payment.orderNumber} ${payment.reference || ""} ${payment.method} ${paymentMethodLabel(payment.method, locale)} ${paymentMethodFamilyLabel(payment.method, locale)} ${payment.customer}`).includes(normalize(query));
     return matchesFilter && matchesQuery;
   }), [filter, locale, payments, query]);
@@ -50,21 +69,25 @@ export function FinancePaymentLedger({ locale, onNavigate }: { locale: "fr" | "e
   return (
     <div className="space-y-5">
       <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white xl:grid-cols-4" aria-label={isFr ? "Santé des encaissements" : "Payment health"}>
-        <PaymentMetric position={0} icon={CircleDollarSign} label={isFr ? "Capturé" : "Captured"} value={formatPrice(capturedAmount, locale)} detail={paymentCountLabel(captured.length, locale)} tone="earth" />
+        <PaymentMetric position={0} icon={CircleDollarSign} label={isFr ? "Net encaissé" : "Net collected"} value={formatPrice(capturedAmount, locale)} detail={`${paymentCountLabel(captured.length, locale)} · ${formatNumber(reconciliationRate, locale)} % ${isFr ? "rapprochés" : "reconciled"}`} tone="earth" />
         <PaymentMetric position={1} icon={Clock3} label={isFr ? "À finaliser" : "To complete"} value={formatPrice(pendingAmount, locale)} detail={`${pending.length} ${isFr ? "en attente" : "pending"}`} tone="gold" />
-        <PaymentMetric position={2} icon={AlertCircle} label={isFr ? "Exceptions" : "Exceptions"} value={formatPrice(exceptionAmount, locale)} detail={`${exceptions.length} ${isFr ? "à examiner" : "to review"}`} tone={exceptions.length ? "alert" : "burgundy"} />
-        <PaymentMetric position={3} icon={ShieldCheck} label={isFr ? "Taux rapproché" : "Reconciled rate"} value={`${formatNumber(reconciliationRate, locale)} %`} detail={isFr ? "sur le registre chargé" : "of loaded ledger"} tone="burgundy" />
+        <PaymentMetric position={2} icon={RotateCcw} label={isFr ? "Remboursé" : "Refunded"} value={formatPrice(refundedAmount, locale)} detail={`${refunds.length} ${isFr ? "décision(s) tracée(s)" : "audited decision(s)"}`} tone="burgundy" />
+        <PaymentMetric position={3} icon={AlertCircle} label={isFr ? "Incidents" : "Issues"} value={formatPrice(exceptionAmount, locale)} detail={`${exceptions.length} ${isFr ? "à examiner" : "to review"}`} tone={exceptions.length ? "alert" : "burgundy"} />
       </section>
 
       <PaymentMethodMix methods={paymentMix} locale={locale} />
 
-      <div className="flex items-start gap-3 border-y border-burgundy/15 bg-burgundy/[0.045] px-4 py-3 text-xs leading-5 text-burgundy"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p><strong>{isFr ? "Registre contrôlé" : "Controlled ledger"}</strong> · {isFr ? "Chaque ligne conserve la référence du prestataire, la commande, le client et son horodatage réel." : "Every line retains its provider reference, order, customer and actual timestamp."}</p></div>
+      <div className="flex flex-col gap-3 border-y border-burgundy/15 bg-burgundy/[0.045] px-4 py-3 text-xs leading-5 text-burgundy sm:flex-row sm:items-center">
+        <div className="flex min-w-0 items-start gap-3"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p><strong>{isFr ? "Registre contrôlé" : "Controlled ledger"}</strong> · {isFr ? "Chaque remboursement est plafonné au solde capturé, confirmé par le prestataire, attribué à son auteur et répercuté dans la rentabilité." : "Every refund is capped to the captured balance, confirmed by the provider, attributed to its author and reflected in profitability."}</p></div>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-burgundy/15 pt-2 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0"><span className="text-[9px] font-black uppercase">{isFr ? "Taux rapproché" : "Reconciliation rate"}</span><strong className="text-sm font-black tabular-nums text-terre">{formatNumber(reconciliationRate, locale)} %</strong></div>
+      </div>
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <SectionTabs value={filter} onChange={setFilter} label={isFr ? "Statuts financiers" : "Financial statuses"} items={[
           { value: "all", label: isFr ? "Tous" : "All", count: payments.length },
           { value: "captured", label: isFr ? "Capturés" : "Captured", count: captured.length },
           { value: "pending", label: isFr ? "En attente" : "Pending", count: pending.length },
+          { value: "refunds", label: isFr ? "Remboursements" : "Refunds", count: refundPayments.length },
           { value: "exceptions", label: isFr ? "Exceptions" : "Exceptions", count: exceptions.length },
         ]} />
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
@@ -74,8 +97,8 @@ export function FinancePaymentLedger({ locale, onNavigate }: { locale: "fr" | "e
       </div>
 
       {filteredPayments.length ? <section className="overflow-hidden rounded-lg border border-charcoal/8 bg-white" aria-label={isFr ? "Registre des encaissements" : "Payment ledger"}>
-        <div className="hidden overflow-x-auto md:block"><Table><TableHeader><TableRow><TableHead>{isFr ? "Référence" : "Reference"}</TableHead><TableHead>{isFr ? "Commande et client" : "Order and customer"}</TableHead><TableHead>{isFr ? "Méthode" : "Method"}</TableHead><TableHead>{isFr ? "Statut" : "Status"}</TableHead><TableHead>{isFr ? "Horodatage" : "Timestamp"}</TableHead><TableHead className="text-right">{isFr ? "Montant" : "Amount"}</TableHead><TableHead><span className="sr-only">{isFr ? "Action" : "Action"}</span></TableHead></TableRow></TableHeader><TableBody>{filteredPayments.map((payment) => <TableRow key={payment.id}><TableCell><div className="flex items-center gap-2"><ReceiptText className="h-4 w-4 text-terre" /><span className="text-xs font-bold text-charcoal">{payment.reference || "—"}</span></div></TableCell><TableCell><p className="text-xs font-extrabold text-terre">{payment.orderNumber}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{payment.customer}</p></TableCell><TableCell><PaymentMethodIdentity method={payment.method} locale={locale} /></TableCell><TableCell><PaymentStatusBadge status={payment.status} locale={locale} /></TableCell><TableCell className="text-[10px] text-muted-foreground">{formatDateTime(payment.date, locale)}</TableCell><TableCell className="text-right text-sm font-black tabular-nums">{formatPrice(payment.amount, locale)}</TableCell><TableCell className="text-right">{onNavigate ? <Button type="button" variant="ghost" size="icon" onClick={() => onNavigate("orders")} title={isFr ? "Ouvrir les commandes" : "Open orders"} aria-label={`${isFr ? "Ouvrir la commande" : "Open order"} ${payment.orderNumber}`} className="h-8 w-8 text-muted-foreground hover:text-terre"><ArrowRight className="h-4 w-4" /></Button> : null}</TableCell></TableRow>)}</TableBody></Table></div>
-        <div className="divide-y divide-border md:hidden">{filteredPayments.map((payment) => <article key={payment.id} className="p-4"><div className="flex items-start gap-3"><PaymentMethodIcon method={payment.method} className="h-10 w-10" /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-black text-charcoal">{payment.reference || payment.orderNumber}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{payment.orderNumber} · {payment.customer}</p></div><PaymentStatusBadge status={payment.status} locale={locale} /></div></div></div><div className="mt-3 grid grid-cols-3 border-y border-charcoal/8 py-3 text-[9px]"><div><span className="text-muted-foreground">{isFr ? "Montant" : "Amount"}</span><strong className="mt-1 block text-xs tabular-nums">{formatPrice(payment.amount, locale)}</strong></div><div className="min-w-0"><span className="text-muted-foreground">{isFr ? "Méthode" : "Method"}</span><strong className="mt-1 block truncate text-xs">{paymentMethodLabel(payment.method, locale)}</strong><span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{paymentMethodFamilyLabel(payment.method, locale)}</span></div><div className="text-right"><span className="text-muted-foreground">{isFr ? "Reçu" : "Received"}</span><strong className="mt-1 block text-[10px]">{formatDateTime(payment.date, locale)}</strong></div></div>{onNavigate ? <Button type="button" variant="ghost" size="sm" onClick={() => onNavigate("orders")} className="mt-2 h-8 w-full justify-between px-1 text-[10px] font-black text-terre hover:bg-transparent hover:text-terre-dark">{isFr ? "Examiner la commande" : "Review order"}<ArrowRight className="h-3.5 w-3.5" /></Button> : null}</article>)}</div>
+        <div className="hidden overflow-x-auto md:block"><Table><TableHeader><TableRow><TableHead>{isFr ? "Référence" : "Reference"}</TableHead><TableHead>{isFr ? "Commande et client" : "Order and customer"}</TableHead><TableHead>{isFr ? "Méthode" : "Method"}</TableHead><TableHead>{isFr ? "Statut" : "Status"}</TableHead><TableHead>{isFr ? "Horodatage" : "Timestamp"}</TableHead><TableHead className="text-right">{isFr ? "Montant" : "Amount"}</TableHead><TableHead><span className="sr-only">{isFr ? "Actions" : "Actions"}</span></TableHead></TableRow></TableHeader><TableBody>{filteredPayments.map((payment) => { const refundPosition = refundAmounts(payment.amount, payment.refunds); return <TableRow key={payment.id}><TableCell><div className="flex items-center gap-2"><ReceiptText className="h-4 w-4 text-terre" /><span className="text-xs font-bold text-charcoal">{payment.reference || "—"}</span></div>{refundPosition.committed > 0 ? <p className="mt-1 text-[9px] font-bold text-burgundy">{formatPrice(refundPosition.committed, locale)} {isFr ? "remboursés ou engagés" : "refunded or pending"}</p> : null}</TableCell><TableCell><p className="text-xs font-extrabold text-terre">{payment.orderNumber}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{payment.customer}</p></TableCell><TableCell><PaymentMethodIdentity method={payment.method} locale={locale} /></TableCell><TableCell><PaymentStatusBadge status={payment.status} locale={locale} /></TableCell><TableCell className="text-[10px] text-muted-foreground">{formatDateTime(payment.date, locale)}</TableCell><TableCell className="text-right text-sm font-black tabular-nums">{formatPrice(payment.amount, locale)}</TableCell><TableCell className="text-right"><div className="flex justify-end gap-1"><PaymentRefundDialog payment={payment} order={{ id: payment.orderId, number: payment.orderNumber, customer: payment.customer, status: payment.orderStatus }} refunds={payment.refunds} locale={locale} canUpdate={canUpdate} onCompleted={request.refetch} />{onNavigate ? <Button type="button" variant="ghost" size="icon" onClick={() => onNavigate("orders")} title={isFr ? "Ouvrir les commandes" : "Open orders"} aria-label={`${isFr ? "Ouvrir la commande" : "Open order"} ${payment.orderNumber}`} className="h-8 w-8 text-muted-foreground hover:text-terre"><ArrowRight className="h-4 w-4" /></Button> : null}</div></TableCell></TableRow>; })}</TableBody></Table></div>
+        <div className="divide-y divide-border md:hidden">{filteredPayments.map((payment) => { const refundPosition = refundAmounts(payment.amount, payment.refunds); return <article key={payment.id} className="p-4"><div className="flex items-start gap-3"><PaymentMethodIcon method={payment.method} className="h-10 w-10" /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-black text-charcoal">{payment.reference || payment.orderNumber}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{payment.orderNumber} · {payment.customer}</p></div><PaymentStatusBadge status={payment.status} locale={locale} /></div></div></div><div className="mt-3 grid grid-cols-3 border-y border-charcoal/8 py-3 text-[9px]"><div><span className="text-muted-foreground">{isFr ? "Montant" : "Amount"}</span><strong className="mt-1 block text-xs tabular-nums">{formatPrice(payment.amount, locale)}</strong>{refundPosition.committed > 0 ? <span className="mt-0.5 block text-[9px] font-bold text-burgundy">-{formatPrice(refundPosition.committed, locale)}</span> : null}</div><div className="min-w-0"><span className="text-muted-foreground">{isFr ? "Méthode" : "Method"}</span><strong className="mt-1 block truncate text-xs">{paymentMethodLabel(payment.method, locale)}</strong><span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{paymentMethodFamilyLabel(payment.method, locale)}</span></div><div className="text-right"><span className="text-muted-foreground">{isFr ? "Reçu" : "Received"}</span><strong className="mt-1 block text-[10px]">{formatDateTime(payment.date, locale)}</strong></div></div><div className="mt-2 flex gap-2"><PaymentRefundDialog compact payment={payment} order={{ id: payment.orderId, number: payment.orderNumber, customer: payment.customer, status: payment.orderStatus }} refunds={payment.refunds} locale={locale} canUpdate={canUpdate} onCompleted={request.refetch} />{onNavigate ? <Button type="button" variant="ghost" size="sm" onClick={() => onNavigate("orders")} className="h-9 flex-1 justify-between px-2 text-[10px] font-black text-terre hover:bg-transparent hover:text-terre-dark">{isFr ? "Examiner" : "Review"}<ArrowRight className="h-3.5 w-3.5" /></Button> : null}</div></article>; })}</div>
       </section> : <AdminEmptyState icon={<ReceiptText className="h-5 w-5" />} title={isFr ? "Aucun mouvement financier" : "No financial movements"} description={isFr ? "Aucun paiement ne correspond aux filtres sélectionnés." : "No payment matches the selected filters."} />}
     </div>
   );

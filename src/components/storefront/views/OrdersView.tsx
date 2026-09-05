@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { OrderRefundSummary } from "@/components/storefront/OrderRefundSummary";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
@@ -202,6 +203,8 @@ export function OrdersView() {
                     </div>
 
                     <OrderProgress order={order} locale={locale} />
+
+                    <OrderRefundSummary refunds={order.refunds} paymentAmount={order.payments.find((payment) => ["captured", "refunded"].includes(payment.status))?.amount || order.total} locale={locale} compact />
 
                     <div className="grid grid-cols-2 divide-x divide-charcoal/10 border-b border-border/70 px-4 py-3">
                       <OrderFact icon={MapPin} label={locale === "fr" ? "Destination" : "Destination"} value={[order.deliveryCity, europeanCountryLabel(order.deliveryCountry, locale)].filter(Boolean).join(", ") || (locale === "fr" ? "À confirmer" : "To be confirmed")} />

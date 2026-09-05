@@ -102,6 +102,7 @@ const order = {
     { id: "payment-2", method: "apple_pay", status: "pending", amount: 32.4, reference: "pi_jma_pending", createdAt: "2026-09-02T09:35:00.000Z" },
     { id: "payment-3", method: "paypal", status: "failed", amount: 64.9, reference: "pi_jma_failed", createdAt: "2026-09-02T09:40:00.000Z" },
   ],
+  refunds: [] as Array<{ id: string; amount: number; status: string; reason?: string; createdAt: string }>,
 };
 
 const customerRecords = [
@@ -366,6 +367,16 @@ async function mockAdminApi(page: Page) {
 
     if (path === "/api/admin/session") payload = { user: { email: "direction@je-mange-africain.com", role: "super_admin" } };
     else if (path === "/api/admin/dashboard") payload = dashboard;
+    else if (path === "/api/admin/payments/payment-1/refund" && request.method() === "POST") {
+      const body = request.postDataJSON() as { amount: number; reason: string; note: string; requestId: string };
+      const refund = { id: body.requestId, amount: body.amount, status: "completed", reason: `${body.reason}:${body.note}`, createdAt: "2026-09-02T10:45:00.000Z" };
+      operationalOrder = { ...operationalOrder, refunds: [...operationalOrder.refunds, refund] };
+      payload = {
+        refund,
+        payment: { id: "payment-1", status: "captured", completed: body.amount, pending: 0, committed: body.amount, refundable: 48.7 - body.amount },
+        order: { id: operationalOrder.id, status: operationalOrder.status },
+      };
+    }
     else if (path === "/api/admin/orders/order-1" && request.method() === "PATCH") {
       const body = request.postDataJSON() as {
         status?: string;
@@ -1175,7 +1186,7 @@ test("the finance cockpit explains margin, exports records and leads to action",
   await page.goto("/admin#finance", { waitUntil: "domcontentloaded" });
   await page.getByRole("tab", { name: "Encaissements" }).click();
   await expect(page.getByText("Taux rapproché")).toBeVisible();
-  await expect(page.getByText("33,3 %")).toBeVisible();
+  await expect(page.getByText("33,3 %", { exact: true })).toBeVisible();
   await expect(page.getByText("Carte bancaire", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText("Apple Pay", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText("PayPal", { exact: true }).filter({ visible: true }).first()).toBeVisible();
@@ -1201,6 +1212,49 @@ test("the finance cockpit explains margin, exports records and leads to action",
     mkdirSync(directory, { recursive: true });
     await page.screenshot({ path: join(directory, `finance-ledger-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
   }
+});
+
+test("a sensitive refund is confirmed, audited and reflected without overflow", async ({ page }) => {
+  test.setTimeout(120_000);
+  let submittedRefund: Record<string, unknown> | null = null;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/admin/payments/payment-1/refund" && request.method() === "POST") submittedRefund = request.postDataJSON();
+  });
+  await mockAdminApi(page);
+  await page.goto("/admin#finance", { waitUntil: "domcontentloaded" });
+  await page.getByRole("tab", { name: "Encaissements" }).click();
+
+  await page.getByRole("button", { name: /Rembourser/ }).filter({ visible: true }).first().click();
+  const dialog = page.getByTestId("payment-refund-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAccessibleName("Confirmer un remboursement");
+  await expect(dialog).toContainText("48,70 €");
+  await expect(dialog).toContainText("ne pourra pas être annulée");
+  await dialog.getByRole("button", { name: "Montant partiel" }).click();
+  await dialog.getByLabel("Montant à rembourser").fill("12.50");
+  await dialog.getByLabel("Motif opérationnel").selectOption("delivery_incident");
+  await dialog.getByLabel("Justification interne").fill("Retard transporteur confirmé par le suivi du colis.");
+  await expect(dialog).toContainText("La commande conservera son état logistique");
+
+  const overflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).include('[data-testid="payment-refund-dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  const blocking = accessibility.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+  expect(blocking, blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `payment-refund-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), scale: "css" });
+  }
+
+  await dialog.getByRole("button", { name: "Oui, rembourser 12,50 €" }).click();
+  await expect(dialog.getByText("Remboursement confirmé", { exact: true })).toBeVisible();
+  await expect.poll(() => submittedRefund).toMatchObject({ amount: 12.5, reason: "delivery_incident", note: "Retard transporteur confirmé par le suivi du colis.", locale: "fr" });
+  expect(submittedRefund).toHaveProperty("requestId");
+  await dialog.getByRole("button", { name: "Fermer" }).click();
+  if ((page.viewportSize()?.width || 0) < 768) await expect(page.getByText("-12,50 €", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  else await expect(page.getByText(/12,50 € remboursés ou engagés/).filter({ visible: true }).first()).toBeVisible();
 });
 
 test("the inventory desk receives, values and secures a traceable batch", async ({ page }) => {

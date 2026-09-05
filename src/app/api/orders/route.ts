@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
       shipments: { include: { carrier: true } },
       timeline: { orderBy: { at: "asc" } },
       payments: true,
+      refunds: { orderBy: { createdAt: "desc" } },
     },
   });
   const productIds = Array.from(new Set(orders.flatMap((order) => order.items.map((item) => item.productId))));
@@ -97,6 +98,13 @@ export async function GET(req: NextRequest) {
       })),
       timeline: o.timeline.map((e) => ({ status: e.status, label: e.label, at: e.at, actor: access.scope === "admin" ? e.actor : null })),
       payments: o.payments.map((p) => ({ id: p.id, method: p.method, status: p.status, amount: Number(p.amount), reference: p.reference, createdAt: p.createdAt })),
+      refunds: o.refunds.map((refund) => ({
+        id: refund.id,
+        amount: Number(refund.amount),
+        status: refund.status,
+        createdAt: refund.createdAt,
+        ...(access.scope === "admin" ? { reason: refund.reason } : {}),
+      })),
     })),
   });
 }

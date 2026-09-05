@@ -119,6 +119,7 @@ export type AdminOrder = {
   }>;
   timeline: Array<{ status: string; label: string; at: string; actor?: string | null }>;
   payments: Array<{ id?: string; method: string; status: string; amount: number; reference?: string | null; createdAt?: string }>;
+  refunds?: Array<{ id: string; amount: number; status: string; reason?: string; createdAt: string }>;
 };
 
 export type AdminCustomer = {
