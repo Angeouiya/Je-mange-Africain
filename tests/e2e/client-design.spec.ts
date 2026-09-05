@@ -400,7 +400,7 @@ test("the adaptive client navigation keeps every destination clear and touch fri
 });
 
 test("the wholesale market applies volume pricing and preserves case quantities in the basket", async ({ page }) => {
-  let quotePayload: { message?: string } | null = null;
+  let quotePayload: { company?: string; contactName?: string; country?: string; postalCode?: string; deliveryRequirements?: string; items?: Array<{ productId: string; packs: number }> } | null = null;
   const wholesaleProduct = {
     id: "wholesale-attieke",
     sku: "JMA-WHO-ATT",
@@ -433,9 +433,9 @@ test("the wholesale market applies volume pricing and preserves case quantities 
     const localizedProduct = { ...wholesaleProduct, name: english ? wholesaleProduct.nameEn : wholesaleProduct.nameFr, description: english ? "Fresh cassava semolina for restaurants and caterers." : wholesaleProduct.description };
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [localizedProduct], total: 1, page: 1, pageSize: 48, pages: 1, filters: { categories: [wholesaleProduct.category], brands: [], countries: ["Côte d'Ivoire"] } }) });
   });
-  await page.route("**/api/contact", async (route) => {
+  await page.route("**/api/wholesale/quotes", async (route) => {
     quotePayload = route.request().postDataJSON();
-    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ ok: true, reference: "JMA-PRO-2042" }) });
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ quote: { id: "quote-2042", reference: "JMA-GROS-260905-2042AB", status: "new", estimatedSubtotal: 128, totalPacks: 4, currency: "EUR", createdAt: "2026-09-05T12:00:00.000Z" } }) });
   });
 
   await page.goto("/?view=wholesale", { waitUntil: "domcontentloaded" });
@@ -488,13 +488,16 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   await selectedQuoteDialog.getByLabel(/^contact$/i).fill("Awa Traore");
   await selectedQuoteDialog.getByLabel(/^email$/i).fill("awa@maison.example");
   await selectedQuoteDialog.getByLabel(/téléphone|phone/i).fill("+33612345678");
+  await selectedQuoteDialog.getByLabel(/pays de livraison|delivery country/i).selectOption("France");
+  await selectedQuoteDialog.getByLabel(/code postal|postcode/i).fill("75011");
   await selectedQuoteDialog.getByLabel(/contraintes de livraison|delivery requirements/i).fill("Livraison réfrigérée le mardi matin.");
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/wholesale-quote-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
-  await selectedQuoteDialog.getByRole("button", { name: /envoyer la demande|send request/i }).click();
-  await expect(selectedQuoteDialog).toContainText("JMA-PRO-2042");
-  await expect.poll(() => quotePayload?.message || "").toContain("Attiéké professionnel: 4 x Carton de 6 sachets = 128,00 €");
+  await selectedQuoteDialog.getByRole("button", { name: /enregistrer la demande|record request/i }).click();
+  await expect(selectedQuoteDialog).toContainText("JMA-GROS-260905-2042AB");
+  await expect(selectedQuoteDialog.getByTestId("wholesale-quote-receipt")).toContainText(/4 colis.*128,00\s*€/i);
+  expect(quotePayload).toMatchObject({ company: "Maison Awa", contactName: "Awa Traore", country: "France", postalCode: "75011", deliveryRequirements: "Livraison réfrigérée le mardi matin.", items: [{ productId: "wholesale-attieke", packs: 4 }] });
   await selectedQuoteDialog.getByRole("button", { name: "Fermer", exact: true }).click();
   await page.getByRole("button", { name: /^(ajouter|add)$/i }).click();
   await page.getByRole("button", { name: /passer la plateforme en anglais|switch the platform to french/i }).click();

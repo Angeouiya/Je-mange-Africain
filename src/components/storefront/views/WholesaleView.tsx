@@ -15,6 +15,7 @@ import { useStore } from "@/lib/store";
 import { formatPrice, formatUnitPrice } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
 import { getProductPhoto } from "@/lib/market-media";
+import { europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
 import { nextWholesaleTier, wholesaleDiscountPercent, wholesaleLineEconomics, type WholesaleTier } from "@/lib/wholesale";
 
 type WholesaleProduct = {
@@ -220,9 +221,13 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
 function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { open: boolean; onOpenChange: (open: boolean) => void; lines: WholesaleQuoteLine[]; onLinesChange: (lines: WholesaleQuoteLine[]) => void }) {
   const locale = useStore((state) => state.locale);
   const customer = useStore((state) => state.customer);
-  const [form, setForm] = useState({ company: "", name: customer ? `${customer.firstName} ${customer.lastName}` : "", email: customer?.email || "", phone: customer?.phone || "", volume: "", message: "" });
+  const deliveryCountry = useStore((state) => state.country);
+  const deliveryPostalCode = useStore((state) => state.postalCode);
+  const [form, setForm] = useState({ company: "", contactName: customer ? `${customer.firstName} ${customer.lastName}` : "", email: customer?.email || "", phone: customer?.phone || "", country: europeanCountryValue(deliveryCountry) || "France", postalCode: deliveryPostalCode, additionalNeeds: "", deliveryRequirements: "" });
   const [status, setStatus] = useState<"idle" | "busy" | "success" | "error">("idle");
   const [reference, setReference] = useState("");
+  const [receipt, setReceipt] = useState({ estimatedSubtotal: 0, totalPacks: 0 });
+  const [errorMessage, setErrorMessage] = useState("");
   const isFr = locale === "fr";
   const estimatedSubtotal = lines.reduce((total, line) => total + wholesaleLineEconomics(line.product.price, line.product.wholesaleUnitsPerPack, line.product.wholesaleTiers, line.packs).lineTotal, 0);
   const totalPacks = lines.reduce((total, line) => total + line.packs, 0);
@@ -232,6 +237,7 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
     if (!next) {
       setStatus("idle");
       setReference("");
+      setErrorMessage("");
     }
     onOpenChange(next);
   };
@@ -247,23 +253,75 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setStatus("busy");
+    setErrorMessage("");
     try {
-      const selectedProducts = lines.map((line) => {
-        const economics = wholesaleLineEconomics(line.product.price, line.product.wholesaleUnitsPerPack, line.product.wholesaleTiers, line.packs);
-        return `- ${line.product.name}: ${line.packs} x ${line.product.wholesalePackLabel} = ${formatPrice(economics.lineTotal, locale)}`;
-      }).join("\n");
-      const response = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: `${form.name} · ${form.company}`, email: form.email, subject: isFr ? "Demande de devis marché de gros" : "Wholesale quote request", message: `${isFr ? "Téléphone" : "Phone"}: ${form.phone}\n${isFr ? "Sélection" : "Selection"}:\n${selectedProducts || (isFr ? "Aucune sélection préremplie" : "No prefilled selection")}\n${isFr ? "Estimation produits" : "Product estimate"}: ${formatPrice(estimatedSubtotal, locale)}\n${isFr ? "Besoin complémentaire" : "Additional requirement"}: ${form.volume || "-"}\n\n${form.message}` }) });
-      const payload = await response.json();
+      const response = await fetch("/api/wholesale/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locale,
+          company: form.company,
+          contactName: form.contactName,
+          email: form.email,
+          phone: form.phone,
+          country: form.country,
+          postalCode: form.postalCode,
+          additionalNeeds: form.additionalNeeds,
+          deliveryRequirements: form.deliveryRequirements,
+          items: lines.map((line) => ({ productId: line.product.id, packs: line.packs })),
+        }),
+      });
+      const payload = await response.json() as { error?: string; quote?: { reference: string; estimatedSubtotal: number; totalPacks: number } };
       if (!response.ok) throw new Error(payload.error || "Request failed");
-      setReference(payload.reference || "JMA");
+      setReference(payload.quote?.reference || "JMA-GROS");
+      setReceipt({ estimatedSubtotal: payload.quote?.estimatedSubtotal || estimatedSubtotal, totalPacks: payload.quote?.totalPacks || totalPacks });
       setStatus("success");
       onLinesChange([]);
-    } catch {
+    } catch (cause) {
+      setErrorMessage(cause instanceof Error ? cause.message : (isFr ? "La demande n'a pas pu être enregistrée." : "The request could not be saved."));
       setStatus("error");
     }
   };
 
-  return <Dialog open={open} onOpenChange={handleOpenChange}><DialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto p-5 sm:max-w-xl sm:p-6"><DialogHeader><span className="grid h-11 w-11 place-items-center rounded-md bg-terre/10 text-terre"><Boxes className="h-5 w-5" /></span><DialogTitle>{isFr ? "Demande de devis professionnel" : "Professional quote request"}</DialogTitle><DialogDescription>{isFr ? "Ajustez votre sélection. L'équipe commerciale confirmera les volumes, la logistique et les conditions applicables." : "Adjust your selection. The sales team will confirm volumes, logistics and applicable terms."}</DialogDescription></DialogHeader>{status === "success" ? <div className="border-y border-burgundy/20 py-7 text-center"><Check className="mx-auto h-7 w-7 text-burgundy" /><p className="mt-3 text-sm font-black text-charcoal">{isFr ? "Demande enregistrée" : "Request recorded"}</p><p className="mt-1 text-xs text-muted-foreground">{isFr ? "Référence" : "Reference"} · {reference}</p><Button type="button" onClick={() => handleOpenChange(false)} className="mt-5 bg-burgundy text-white hover:bg-burgundy/90">{isFr ? "Fermer" : "Close"}</Button></div> : <form onSubmit={submit} className="mt-2 grid gap-3 sm:grid-cols-2">{lines.length ? <section className="border-y border-burgundy/15 py-3 sm:col-span-2" aria-labelledby="quote-selection-title" data-testid="wholesale-quote-selection"><div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Bordereau à chiffrer" : "Pricing schedule"}</p><h3 id="quote-selection-title" className="mt-0.5 text-sm font-black text-charcoal">{lines.length} {isFr ? "produit(s) sélectionné(s)" : "selected product(s)"}</h3></div><p className="text-right text-sm font-black text-terre">{formatPrice(estimatedSubtotal, locale)}<span className="block text-[9px] font-bold text-muted-foreground">{totalPacks} {isFr ? "colis" : "cases"}</span></p></div><div className="mt-3 divide-y divide-border">{lines.map((line) => <WholesaleQuoteLineEditor key={line.product.id} line={line} locale={locale} onPacksChange={(packs) => changeLinePacks(line.product.id, packs)} onRemove={() => onLinesChange(lines.filter((item) => item.product.id !== line.product.id))} />)}</div></section> : <div className="border-y border-gold/30 bg-gold/[0.06] px-3 py-3 text-[11px] leading-5 text-charcoal sm:col-span-2">{isFr ? "Aucun produit présélectionné. Décrivez librement votre besoin ci-dessous." : "No product preselected. Describe your requirements below."}</div>}<QuoteField id="quote-company" label={isFr ? "Entreprise" : "Company"} value={form.company} onChange={(company) => setForm({ ...form, company })} required /><QuoteField id="quote-name" label={isFr ? "Contact" : "Contact"} value={form.name} onChange={(name) => setForm({ ...form, name })} required /><QuoteField id="quote-email" label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required /><QuoteField id="quote-phone" label={isFr ? "Téléphone" : "Phone"} type="tel" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} required /><div className="sm:col-span-2"><QuoteField id="quote-volume" label={lines.length ? (isFr ? "Besoin complémentaire (optionnel)" : "Additional requirement (optional)") : (isFr ? "Produits et volumes souhaités" : "Requested products and volumes")} value={form.volume} onChange={(volume) => setForm({ ...form, volume })} required={!lines.length} /></div><div className="sm:col-span-2"><Label htmlFor="quote-message" className="mb-1.5 block text-xs font-bold">{isFr ? "Contraintes de livraison" : "Delivery requirements"}</Label><Textarea id="quote-message" value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} rows={4} minLength={10} required /></div>{status === "error" ? <p role="alert" className="text-xs font-semibold text-destructive sm:col-span-2">{isFr ? "La demande n'a pas pu être envoyée. Vérifiez les champs puis réessayez." : "The request could not be sent. Check the fields and try again."}</p> : null}<DialogFooter className="mt-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={status === "busy"}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={status === "busy"} className="bg-terre text-white hover:bg-terre-dark">{status === "busy" ? (isFr ? "Envoi..." : "Sending...") : (isFr ? "Envoyer la demande" : "Send request")}</Button></DialogFooter></form>}</DialogContent></Dialog>;
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto p-5 sm:max-w-xl sm:p-6">
+        <DialogHeader>
+          <span className="grid h-11 w-11 place-items-center rounded-md bg-terre/10 text-terre"><Boxes className="h-5 w-5" /></span>
+          <DialogTitle>{isFr ? "Demande de devis professionnel" : "Professional quote request"}</DialogTitle>
+          <DialogDescription>{isFr ? "Ajustez votre sélection. Le montant est recalculé sur le stock et les paliers actifs au moment de l'envoi." : "Adjust your selection. The estimate is recalculated against live stock and pricing tiers when submitted."}</DialogDescription>
+        </DialogHeader>
+        {status === "success" ? (
+          <div className="border-y border-burgundy/20 py-7 text-center" data-testid="wholesale-quote-receipt">
+            <Check className="mx-auto h-7 w-7 text-burgundy" />
+            <p className="mt-3 text-sm font-black text-charcoal">{isFr ? "Dossier commercial enregistré" : "Commercial file recorded"}</p>
+            <p className="mt-1 text-xs font-bold text-burgundy">{reference}</p>
+            <p className="mx-auto mt-3 max-w-sm text-[11px] leading-5 text-muted-foreground">{isFr ? `${receipt.totalPacks} colis · estimation ${formatPrice(receipt.estimatedSubtotal, locale)}. L'équipe vérifiera le transport et vous répondra avec les conditions finales.` : `${receipt.totalPacks} cases · ${formatPrice(receipt.estimatedSubtotal, locale)} estimate. The team will confirm transport and final terms.`}</p>
+            <Button type="button" onClick={() => handleOpenChange(false)} className="mt-5 bg-burgundy text-white hover:bg-burgundy/90">{isFr ? "Fermer" : "Close"}</Button>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="mt-2 grid gap-3 sm:grid-cols-2">
+            {lines.length ? (
+              <section className="border-y border-burgundy/15 py-3 sm:col-span-2" aria-labelledby="quote-selection-title" data-testid="wholesale-quote-selection">
+                <div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Bordereau à chiffrer" : "Pricing schedule"}</p><h3 id="quote-selection-title" className="mt-0.5 text-sm font-black text-charcoal">{lines.length} {isFr ? "produit(s) sélectionné(s)" : "selected product(s)"}</h3></div><p className="text-right text-sm font-black text-terre">{formatPrice(estimatedSubtotal, locale)}<span className="block text-[9px] font-bold text-muted-foreground">{totalPacks} {isFr ? "colis" : "cases"}</span></p></div>
+                <div className="mt-3 divide-y divide-border">{lines.map((line) => <WholesaleQuoteLineEditor key={line.product.id} line={line} locale={locale} onPacksChange={(packs) => changeLinePacks(line.product.id, packs)} onRemove={() => onLinesChange(lines.filter((item) => item.product.id !== line.product.id))} />)}</div>
+              </section>
+            ) : <div className="border-y border-gold/30 bg-gold/[0.06] px-3 py-3 text-[11px] leading-5 text-charcoal sm:col-span-2">{isFr ? "Aucun produit présélectionné. Décrivez librement votre besoin ci-dessous." : "No product preselected. Describe your requirements below."}</div>}
+            <QuoteField id="quote-company" label={isFr ? "Entreprise" : "Company"} value={form.company} onChange={(company) => setForm({ ...form, company })} autoComplete="organization" required />
+            <QuoteField id="quote-name" label={isFr ? "Contact" : "Contact"} value={form.contactName} onChange={(contactName) => setForm({ ...form, contactName })} autoComplete="name" required />
+            <QuoteField id="quote-email" label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} autoComplete="email" required />
+            <QuoteField id="quote-phone" label={isFr ? "Téléphone" : "Phone"} type="tel" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} autoComplete="tel" required />
+            <div><Label htmlFor="quote-country" className="mb-1.5 block text-xs font-bold">{isFr ? "Pays de livraison" : "Delivery country"}</Label><select id="quote-country" value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} autoComplete="country-name" className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">{europeanCountryOptions(locale).map((country) => <option key={country.code} value={country.value}>{country.label}</option>)}</select></div>
+            <QuoteField id="quote-postal-code" label={isFr ? "Code postal" : "Postcode"} value={form.postalCode} onChange={(postalCode) => setForm({ ...form, postalCode })} autoComplete="postal-code" required />
+            <div className="sm:col-span-2"><QuoteField id="quote-volume" label={lines.length ? (isFr ? "Besoin complémentaire (optionnel)" : "Additional requirement (optional)") : (isFr ? "Produits et volumes souhaités" : "Requested products and volumes")} value={form.additionalNeeds} onChange={(additionalNeeds) => setForm({ ...form, additionalNeeds })} required={!lines.length} /></div>
+            <div className="sm:col-span-2"><Label htmlFor="quote-message" className="mb-1.5 block text-xs font-bold">{isFr ? "Contraintes de livraison" : "Delivery requirements"}</Label><Textarea id="quote-message" value={form.deliveryRequirements} onChange={(event) => setForm({ ...form, deliveryRequirements: event.target.value })} rows={4} minLength={10} required /></div>
+            {status === "error" ? <p role="alert" className="text-xs font-semibold text-destructive sm:col-span-2">{errorMessage}</p> : null}
+            <DialogFooter className="mt-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={status === "busy"}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={status === "busy"} className="bg-terre text-white hover:bg-terre-dark">{status === "busy" ? (isFr ? "Enregistrement..." : "Saving...") : (isFr ? "Enregistrer la demande" : "Record request")}</Button></DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function WholesaleQuoteLineEditor({ line, locale, onPacksChange, onRemove }: { line: WholesaleQuoteLine; locale: "fr" | "en"; onPacksChange: (packs: number) => void; onRemove: () => void }) {
@@ -276,6 +334,6 @@ function WholesaleQuoteLineEditor({ line, locale, onPacksChange, onRemove }: { l
   return <article className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-2.5 py-3"><ProductImage src={photo} fallbackSrc={getProductPhoto({ ...product, imageUrl: null })} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-12 w-12" rounded="rounded-md" /><div className="min-w-0"><p className="truncate text-[11px] font-black text-charcoal">{product.name}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{product.wholesalePackLabel}</p><p className="mt-1 text-[10px] font-black text-terre">{formatPrice(economics.lineTotal, locale)}</p></div><div className="flex items-center gap-1"><div className="grid grid-cols-[1.75rem_2rem_1.75rem] overflow-hidden rounded-md border border-border"><button type="button" onClick={() => onPacksChange(line.packs - 1)} disabled={line.packs <= product.wholesaleMinPacks} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Diminuer ${product.name}` : `Decrease ${product.name}`}><Minus className="h-3 w-3" /></button><span className="grid h-8 place-items-center border-x border-border text-[10px] font-black tabular-nums">{line.packs}</span><button type="button" onClick={() => onPacksChange(line.packs + 1)} disabled={line.packs >= maximum} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter ${product.name}` : `Increase ${product.name}`}><Plus className="h-3 w-3" /></button></div><button type="button" onClick={onRemove} className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-destructive/[0.05] hover:text-destructive" aria-label={isFr ? `Retirer ${product.name} du devis` : `Remove ${product.name} from quote`} title={isFr ? "Retirer" : "Remove"}><Trash2 className="h-3.5 w-3.5" /></button></div></article>;
 }
 
-function QuoteField({ id, label, value, onChange, type = "text", required = false }: { id: string; label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean }) {
-  return <div><Label htmlFor={id} className="mb-1.5 block text-xs font-bold">{label}</Label><Input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} required={required} /></div>;
+function QuoteField({ id, label, value, onChange, type = "text", autoComplete, required = false }: { id: string; label: string; value: string; onChange: (value: string) => void; type?: string; autoComplete?: string; required?: boolean }) {
+  return <div><Label htmlFor={id} className="mb-1.5 block text-xs font-bold">{label}</Label><Input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} required={required} /></div>;
 }

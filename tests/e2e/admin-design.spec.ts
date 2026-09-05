@@ -122,6 +122,32 @@ const order = {
   refunds: [] as Array<{ id: string; amount: number; status: string; reason?: string; createdAt: string }>,
 };
 
+const wholesaleQuotesPayload = {
+  generatedAt: now,
+  quotes: [{
+    id: "quote-1",
+    reference: "JMA-GROS-260902-A1B2C3",
+    status: "new",
+    locale: "fr",
+    company: "Maison Awa",
+    contactName: "Awa Traore",
+    email: "awa@maison.example",
+    phone: "+33 6 12 34 56 78",
+    country: "France",
+    postalCode: "75011",
+    deliveryRequirements: "Livraison réfrigérée le mardi matin avant 10 h.",
+    additionalNeeds: "Prévoir une fréquence hebdomadaire.",
+    estimatedSubtotal: 150,
+    totalPacks: 5,
+    currency: "EUR",
+    adminNote: null,
+    assignedTo: null,
+    createdAt: now,
+    updatedAt: now,
+    items: [{ id: "quote-line-1", productId: "product-1", productNameFr: "Attiéké professionnel", productNameEn: "Professional attieke", sku: "JMA-WHO-ATT", imageUrl: "/products/attieke.webp", packLabel: "Carton de 6 sachets", packs: 5, unitsPerPack: 6, unitPrice: 30, lineTotal: 150, thermalClass: "REFRIGERATED" }],
+  }],
+};
+
 type PaymentLedgerOrder = Pick<typeof order, "id" | "number" | "status" | "deliveryName" | "deliveryCountry" | "payments" | "refunds">;
 
 function paymentLedgerPayload(currentOrder: PaymentLedgerOrder, url: URL) {
@@ -422,6 +448,7 @@ async function expectBrandSafeUiColors(page: Page) {
 async function mockAdminApi(page: Page) {
   let logistics = structuredClone(logisticsPayload);
   let promotions = structuredClone(promotionsPayload.promotions);
+  let wholesaleQuotes = structuredClone(wholesaleQuotesPayload.quotes);
   let settingsConfiguration = {
     supportEmail: "bonjour@je-mange-africain.com",
     supportPhone: "+33 1 84 80 20 26",
@@ -448,6 +475,13 @@ async function mockAdminApi(page: Page) {
 
     if (path === "/api/admin/session") payload = { user: { email: "direction@je-mange-africain.com", role: "super_admin" } };
     else if (path === "/api/admin/dashboard") payload = dashboard;
+    else if (path.startsWith("/api/admin/wholesale-quotes/") && request.method() === "PATCH") {
+      const id = path.split("/").at(-1);
+      const body = request.postDataJSON();
+      wholesaleQuotes = wholesaleQuotes.map((quote) => quote.id === id ? { ...quote, ...body, updatedAt: "2026-09-02T10:30:00.000Z" } : quote);
+      payload = { quote: wholesaleQuotes.find((quote) => quote.id === id) };
+    }
+    else if (path === "/api/admin/wholesale-quotes") payload = { generatedAt: now, quotes: wholesaleQuotes };
     else if (path === "/api/admin/payments/payment-1/refund" && request.method() === "POST") {
       const body = request.postDataJSON() as { amount: number; reason: string; note: string; requestId: string };
       const refund = { id: body.requestId, amount: body.amount, status: "completed", reason: `${body.reason}:${body.note}`, createdAt: "2026-09-02T10:45:00.000Z" };
@@ -655,6 +689,7 @@ const sections = [
   { id: "overview", nav: "Décider aujourd'hui", title: "Ce qui demande votre attention" },
   { id: "catalog", nav: "Produits vendus", title: "Ce qui est réellement vendu" },
   { id: "recipes", nav: "Recettes achetables", title: "Construire des recettes achetables" },
+  { id: "wholesaleQuotes", nav: "Qualifier les devis de gros", title: "Qualifier les demandes de gros" },
   { id: "orders", nav: "Orchestrer les commandes", title: "Du paiement jusqu'à la porte" },
   { id: "inventory", nav: "Tracer les lots", title: "Inventaire piloté par les lots" },
   { id: "logistics", nav: "Piloter la livraison", title: "Promesse de livraison" },
@@ -780,6 +815,40 @@ test("every professional workspace has a clear purpose and stays inside the view
       await page.screenshot({ path: join(directory, `${section.id}-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
     }
   }
+});
+
+test("wholesale requests preserve product evidence and confirm a final refusal", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#wholesaleQuotes", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Qualifier les demandes de gros" })).toBeVisible();
+  const register = page.getByTestId("wholesale-quote-register");
+  await expect(register).toContainText("JMA-GROS-260902-A1B2C3");
+  const quoteImage = register.getByRole("img", { name: "Attiéké professionnel" });
+  await expect(quoteImage).toBeVisible();
+  await expect.poll(() => quoteImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await register.getByRole("button", { name: /ouvrir JMA-GROS-260902-A1B2C3/i }).click();
+
+  const dialog = page.getByRole("dialog", { name: /Maison Awa/ });
+  await expect(dialog).toContainText("Livraison réfrigérée le mardi matin");
+  await expect(dialog).toContainText(/150,00\s*€/);
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `wholesale-quote-detail-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await dialog.getByLabel("Responsable").fill("Équipe grands comptes");
+  await dialog.getByLabel("Note interne").fill("Volumes vérifiés avec l'entrepôt.");
+  await dialog.getByLabel("Étape").selectOption("declined");
+  await dialog.getByRole("button", { name: "Enregistrer la qualification" }).click();
+
+  const confirmation = page.getByRole("alertdialog", { name: "Refuser définitivement cette demande ?" });
+  await expect(confirmation).toContainText("sortira du pipeline actif");
+  await confirmation.getByRole("button", { name: "Oui, refuser" }).click();
+  await expect(page.getByText("Refusé", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  await expectBrandSafeUiColors(page);
 });
 
 test("professional workspaces recover without presenting outages as business data", async ({ page }) => {

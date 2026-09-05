@@ -2,6 +2,7 @@ export type AdminSectionId =
   | "overview"
   | "catalog"
   | "recipes"
+  | "wholesaleQuotes"
   | "orders"
   | "inventory"
   | "logistics"
@@ -131,6 +132,42 @@ export type AdminOrder = {
   timeline: Array<{ status: string; label: string; at: string; actor?: string | null }>;
   payments: Array<{ id?: string; method: string; status: string; amount: number; reference?: string | null; createdAt?: string }>;
   refunds?: Array<{ id: string; amount: number; status: string; reason?: string; createdAt: string }>;
+};
+
+export type AdminWholesaleQuote = {
+  id: string;
+  reference: string;
+  status: "new" | "reviewing" | "quoted" | "accepted" | "declined" | "expired";
+  locale: "fr" | "en";
+  company: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  country: string;
+  postalCode: string;
+  deliveryRequirements: string;
+  additionalNeeds?: string | null;
+  estimatedSubtotal: number;
+  totalPacks: number;
+  currency: string;
+  adminNote?: string | null;
+  assignedTo?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: Array<{
+    id: string;
+    productId: string;
+    productNameFr: string;
+    productNameEn: string;
+    sku: string;
+    imageUrl?: string | null;
+    packLabel: string;
+    packs: number;
+    unitsPerPack: number;
+    unitPrice: number;
+    lineTotal: number;
+    thermalClass: string;
+  }>;
 };
 
 export type AdminCustomer = {

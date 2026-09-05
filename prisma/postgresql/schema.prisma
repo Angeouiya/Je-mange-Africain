@@ -530,6 +530,53 @@ model OrderItem {
   unitsPerPack    Int     @default(1)
 }
 
+model WholesaleQuote {
+  id                   String               @id @default(cuid())
+  reference            String               @unique
+  status               String               @default("new") // new | reviewing | quoted | accepted | declined | expired
+  locale               String               @default("fr")
+  company              String
+  contactName          String
+  email                String
+  phone                String
+  country              String
+  postalCode           String
+  deliveryRequirements String
+  additionalNeeds      String?
+  estimatedSubtotal    Decimal              @default(0)
+  totalPacks           Int                  @default(0)
+  currency             String               @default("EUR")
+  adminNote            String?
+  assignedTo           String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  items                WholesaleQuoteItem[]
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+}
+
+model WholesaleQuoteItem {
+  id            String         @id @default(cuid())
+  quoteId       String
+  quote         WholesaleQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  productId     String
+  productNameFr String
+  productNameEn String
+  sku           String
+  imageUrl      String?
+  packLabel     String
+  packs         Int
+  unitsPerPack  Int
+  unitPrice     Decimal
+  lineTotal     Decimal
+  thermalClass  String
+  createdAt     DateTime       @default(now())
+
+  @@index([quoteId])
+  @@index([productId])
+}
+
 /**
  * -----------------------------------------------------------------
  */
