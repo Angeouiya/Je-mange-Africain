@@ -11,6 +11,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { RecipeCard, type RecipeListItem } from "@/components/shared/RecipeCard";
 import { DishDetailsDialog, DishLibraryCard, type DishLibraryItem } from "@/components/shared/DishLibraryCard";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
+import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 
 type CategoryOption = { slug: string; name: string };
 type RecipeResponse = { recipes: RecipeListItem[]; categories: CategoryOption[] };
@@ -31,13 +32,13 @@ export function RecipesView() {
   const recipeQuery = new URLSearchParams({ locale });
   if (category) recipeQuery.set("category", category);
   if (deferredSearch) recipeQuery.set("q", deferredSearch);
-  const { data, loading } = useFetch<RecipeResponse>(`/api/recipes?${recipeQuery.toString()}`, [locale, category, deferredSearch]);
+  const { data, loading, error, refetch } = useFetch<RecipeResponse>(`/api/recipes?${recipeQuery.toString()}`, [locale, category, deferredSearch]);
 
   const dishQuery = new URLSearchParams({ locale });
   if (category) dishQuery.set("category", category);
   if (country) dishQuery.set("country", country);
   if (deferredSearch) dishQuery.set("q", deferredSearch);
-  const { data: dishData, loading: dishesLoading } = useFetch<DishResponse>(`/api/dishes?${dishQuery.toString()}`, [locale, category, country, deferredSearch]);
+  const { data: dishData, loading: dishesLoading, error: dishesError, refetch: refetchDishes } = useFetch<DishResponse>(`/api/dishes?${dishQuery.toString()}`, [locale, category, country, deferredSearch]);
 
   const suggestions = isFr
     ? ["Attiéké poisson", "Sauce gombo", "Mafé", "Plantain", "Dîner rapide"]
@@ -118,11 +119,11 @@ export function RecipesView() {
         </section>
 
         <TabsContent value="recipes">
-          {loading ? <ResultSkeleton /> : <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4" data-testid="recipes-grid">{data?.recipes.length ? data.recipes.map((recipe, index) => <RecipeCard key={recipe.id} recipe={recipe} index={index} compact />) : <EmptyResult locale={locale} onReset={resetFilters} library={false} />}</div>}
+          {loading ? <ResultSkeleton /> : error ? <StorefrontUnavailableState surface="recipes" locale={locale} onRetry={refetch} /> : <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4" data-testid="recipes-grid">{data?.recipes.length ? data.recipes.map((recipe, index) => <RecipeCard key={recipe.id} recipe={recipe} index={index} compact />) : <EmptyResult locale={locale} onReset={resetFilters} library={false} />}</div>}
         </TabsContent>
 
         <TabsContent value="library">
-          {dishesLoading ? <ResultSkeleton /> : <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4" data-testid="dish-library-grid">{dishData?.dishes.length ? dishData.dishes.map((dish, index) => <DishLibraryCard key={dish.slug} dish={dish} onSelect={setSelectedDish} compact index={index} />) : <EmptyResult locale={locale} onReset={resetFilters} library />}</div>}
+          {dishesLoading ? <ResultSkeleton /> : dishesError ? <StorefrontUnavailableState surface="library" locale={locale} onRetry={refetchDishes} /> : <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4" data-testid="dish-library-grid">{dishData?.dishes.length ? dishData.dishes.map((dish, index) => <DishLibraryCard key={dish.slug} dish={dish} onSelect={setSelectedDish} compact index={index} />) : <EmptyResult locale={locale} onReset={resetFilters} library />}</div>}
         </TabsContent>
       </Tabs>
       <DishDetailsDialog dish={selectedDish} onClose={() => setSelectedDish(null)} />

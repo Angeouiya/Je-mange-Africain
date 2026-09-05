@@ -6,9 +6,12 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Bookmark,
+  ChevronRight,
   Clock,
   Headphones,
   Heart,
+  MapPinned,
+  PackageSearch,
   ShieldCheck,
   Snowflake,
   Sparkles,
@@ -28,6 +31,9 @@ import { getCategoryPhoto, getProductPhoto, getRecipePhoto } from "@/lib/market-
 import { useFetch } from "@/lib/use-fetch";
 import { useStore } from "@/lib/store";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
+import { DeliveryDestinationDialog } from "@/components/storefront/DeliveryDestinationDialog";
+import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
+import { EUROPEAN_COUNTRIES, europeanCountryLabel } from "@/lib/european-countries";
 
 type HomeCategory = {
   id: string;
@@ -49,7 +55,7 @@ export function HomeView() {
   const navigate = useStore((state) => state.navigate);
   const favorites = useStore((state) => state.favorites);
   const t = dict[locale];
-  const { data, loading } = useFetch<HomeCatalog>(`/api/catalog?section=home&locale=${locale}`, [locale]);
+  const { data, loading, error, refetch } = useFetch<HomeCatalog>(`/api/catalog?section=home&locale=${locale}`, [locale]);
 
   const allFeaturedProducts = useMemo(() => {
     const unique = new Map<string, ProductListItem>();
@@ -95,19 +101,19 @@ export function HomeView() {
   return (
     <div className="flex flex-col bg-white pb-8 md:pb-0">
       <div className="order-1 px-4 pb-1 pt-4 md:hidden">
-        <p className="text-[1.65rem] font-black leading-none text-charcoal">{copy.screenTitle}</p>
+        <div className="flex items-center justify-between gap-3"><p className="text-[1.65rem] font-black leading-none text-charcoal">{copy.screenTitle}</p><HomeDeliveryContext variant="mobile" /></div>
       </div>
 
-      <div className="order-2 mx-auto w-full max-w-7xl px-4 pb-5 pt-3 md:px-8 md:pb-9 md:pt-8">
+      {!error ? <div className="order-2 mx-auto w-full max-w-7xl px-4 pb-5 pt-3 md:px-8 md:pb-9 md:pt-8">
         <Section
           title={copy.favourites}
           actionLabel={copy.favouritesAction}
           onAction={() => navigate(savedFeaturedProducts.length ? "account" : "catalog", savedFeaturedProducts.length ? { accountSection: "saved" } : undefined)}
           compact
         >
-          {loading ? <StorySkeleton /> : <FavouriteShelf products={favouriteShelf} />}
+          {loading ? <StorySkeleton /> : favouriteShelf.length ? <FavouriteShelf products={favouriteShelf} /> : <HomeCollectionEmpty locale={locale} />}
         </Section>
-      </div>
+      </div> : null}
 
       <section className="relative order-3 min-h-[13.5rem] overflow-hidden md:order-1 md:min-h-[22rem]" data-testid="home-hero">
         <div className="absolute inset-0">
@@ -123,10 +129,11 @@ export function HomeView() {
           <div className="absolute inset-0 bg-burgundy/58 md:bg-gradient-to-r md:from-burgundy/95 md:via-burgundy/62 md:to-terre/10" />
         </div>
         <div className="relative mx-auto flex min-h-[13.5rem] max-w-7xl flex-col justify-end gap-2 px-4 py-4 md:min-h-[22rem] md:justify-center md:gap-4 md:px-12 md:py-10">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-center gap-3">
             <Badge className="border-0 bg-transparent p-0 text-[9px] font-extrabold uppercase text-gold shadow-none md:text-[10px]">
               <Sparkles className="mr-1 h-3 w-3" /> {t.home.heroBadge}
             </Badge>
+            <HomeDeliveryContext variant="desktop" />
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 14 }}
@@ -166,7 +173,7 @@ export function HomeView() {
       </section>
 
       <div className="order-4 mx-auto w-full max-w-7xl space-y-9 px-4 pt-7 md:order-3 md:space-y-14 md:px-8 md:pt-12">
-        <Section title={copy.categories} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
+        {error ? <StorefrontUnavailableState surface="home" locale={locale} onRetry={refetch} /> : <><Section title={copy.categories} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
           {loading ? <StorySkeleton /> : <CategoryShelf categories={data?.categories || []} />}
         </Section>
 
@@ -197,7 +204,7 @@ export function HomeView() {
           <Section title={copy.offers} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
             {loading ? <ProductRailSkeleton short /> : <ProductRail products={data?.onSale || []} testId="home-offer-rail" condensedDesktop />}
           </Section>
-        </div>
+        </div></>}
 
         <section className="border-y border-charcoal/10 bg-[#FFFCFA]" aria-label={t.home.commitmentsTitle}>
           <div tabIndex={0} aria-label={locale === "fr" ? "Engagements Je mange Africain, défilement horizontal" : "Je mange Africain commitments, horizontal scroll"} className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-inset [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0">
@@ -257,14 +264,37 @@ function FavouriteShelf({ products }: { products: ProductListItem[] }) {
         >
           <span className="relative block aspect-[4/3] overflow-hidden rounded-md bg-muted">
             <ProductImage src={getProductPhoto(product)} alt="" emoji={product.imageEmoji} color={product.imageColor} size="md" className="h-full w-full transition duration-300 group-hover:scale-[1.035]" rounded="rounded-none" />
+            {product.promoPrice !== null && product.promoPrice < product.price ? <span className="absolute left-1.5 top-1.5 rounded bg-burgundy px-1.5 py-0.5 text-[8px] font-black text-white">-{Math.round(((product.price - product.promoPrice) / product.price) * 100)} %</span> : null}
             <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-md bg-white/94 text-terre shadow-sm"><Heart className="h-3.5 w-3.5 fill-current" /></span>
           </span>
           <span className="mt-1.5 block line-clamp-2 min-h-7 text-[10px] font-extrabold leading-3.5 text-charcoal md:text-[11px]">{product.name}</span>
-          <span className="mt-0.5 block text-[10px] font-black text-terre">{formatPrice(product.promoPrice ?? product.price, locale)}</span>
+          <span className="mt-0.5 flex min-h-4 items-baseline gap-1.5"><span className="text-[10px] font-black text-terre">{formatPrice(product.promoPrice ?? product.price, locale)}</span>{product.promoPrice !== null && product.promoPrice < product.price ? <span className="text-[8px] font-semibold text-muted-foreground line-through">{formatPrice(product.price, locale)}</span> : null}</span>
         </motion.button>
       ))}
     </div>
   );
+}
+
+function HomeDeliveryContext({ variant }: { variant: "mobile" | "desktop" }) {
+  const locale = useStore((state) => state.locale);
+  const country = useStore((state) => state.country);
+  const postalCode = useStore((state) => state.postalCode);
+  const label = europeanCountryLabel(country, locale);
+  const isMobile = variant === "mobile";
+  return (
+    <DeliveryDestinationDialog weightGrams={0} thermalClasses={[]}>
+      <button type="button" data-testid={`home-delivery-${variant}`} aria-label={locale === "fr" ? `Modifier la destination de livraison : ${label}, ${postalCode}` : `Change delivery destination: ${label}, ${postalCode}`} className={`${isMobile ? "flex md:hidden" : "hidden md:flex"} min-w-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition ${isMobile ? "max-w-[11.5rem] border-burgundy/15 bg-[#FFFCFA] text-charcoal hover:border-terre/30" : "border-white/30 bg-white/12 text-white backdrop-blur-sm hover:bg-white/18"}`}>
+        <MapPinned className={`h-4 w-4 shrink-0 ${isMobile ? "text-terre" : "text-gold"}`} />
+        <span className="min-w-0"><span className={`block text-[8px] font-bold uppercase ${isMobile ? "text-muted-foreground" : "text-white/70"}`}>{locale === "fr" ? "Livrer à" : "Deliver to"}</span><span className="block max-w-[7.5rem] truncate text-[10px] font-black">{label}{postalCode ? ` · ${postalCode}` : ""}</span></span>
+        {!isMobile ? <span className="hidden text-[8px] font-bold text-white/75 lg:block">{EUROPEAN_COUNTRIES.length} {locale === "fr" ? "pays" : "countries"}</span> : null}
+        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+      </button>
+    </DeliveryDestinationDialog>
+  );
+}
+
+function HomeCollectionEmpty({ locale }: { locale: "fr" | "en" }) {
+  return <div className="flex min-h-28 items-center gap-3 border-y border-charcoal/10 px-3 py-4"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-terre/[0.07] text-terre"><PackageSearch className="h-5 w-5" /></span><span><strong className="block text-xs text-charcoal">{locale === "fr" ? "La sélection arrive bientôt" : "The selection is coming soon"}</strong><span className="mt-1 block text-[10px] text-muted-foreground">{locale === "fr" ? "Les prochaines références publiées apparaîtront ici." : "The next published products will appear here."}</span></span></div>;
 }
 
 function CategoryShelf({ categories }: { categories: HomeCategory[] }) {

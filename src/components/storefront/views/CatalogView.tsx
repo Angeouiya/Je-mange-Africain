@@ -15,6 +15,7 @@ import { ProductCard, type ProductListItem } from "@/components/shared/ProductCa
 import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
+import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 
 const THERMALS = ["AMBIANT", "REFRIGERATED", "FROZEN"];
 
@@ -65,7 +66,7 @@ export function CatalogView() {
   if (thermal) qs.set("thermal", thermal);
   if (maxPrice) qs.set("maxPrice", String(maxPrice));
 
-  const { data, loading } = useFetch<CatalogResponse>(`/api/catalog?${qs.toString()}`, [search, cat, brand, country, thermal, maxPrice, sort, page, locale]);
+  const { data, loading, error, refetch } = useFetch<CatalogResponse>(`/api/catalog?${qs.toString()}`, [search, cat, brand, country, thermal, maxPrice, sort, page, locale]);
 
   const filters = data?.filters;
   const clearFilters = () => { setCat(null); setBrand(null); setCountry(null); setThermal(null); setMaxPrice(null); };
@@ -205,6 +206,8 @@ export function CatalogView() {
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-md" />)}
             </div>
+          ) : error ? (
+            <StorefrontUnavailableState surface="catalog" locale={locale} onRetry={refetch} />
           ) : data?.products?.length === 0 ? (
             <section className="flex min-h-80 flex-col items-center justify-center border-y border-charcoal/10 px-4 py-14 text-center">
               <span className="grid h-16 w-16 place-items-center rounded-lg border border-terre/12 bg-terre/[0.055] text-terre"><PackageSearch className="h-7 w-7" strokeWidth={1.7} /></span>

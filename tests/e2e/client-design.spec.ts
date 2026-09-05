@@ -63,6 +63,7 @@ async function expectBrandSafeUiColors(page: Page) {
 }
 
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
+  const deliveryRequests: Array<Record<string, unknown>> = [];
   await page.route("**/api/catalog?*", async (route) => {
     const response = await route.fetch({ timeout: 45_000 });
     const payload = await response.json();
@@ -89,6 +90,15 @@ test("the client application exposes clear catalogue, recipe and basket workspac
     } as const;
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ advertisements: [campaigns[placement as keyof typeof campaigns]] }) });
   });
+  await page.route("**/api/shipping/quote", async (route) => {
+    deliveryRequests.push(route.request().postDataJSON());
+    const options = [
+      { service: "standard", fee: 7.9, carrier: "DPD Europe", packages: 1, minDelayHours: 48, maxDelayHours: 72, available: true, unavailableReason: null },
+      { service: "express", fee: 13.9, carrier: "DHL Express", packages: 1, minDelayHours: 24, maxDelayHours: 36, available: true, unavailableReason: null },
+      { service: "relay", fee: 5.9, carrier: "DPD Pickup", packages: 1, minDelayHours: 48, maxDelayHours: 72, available: true, unavailableReason: null },
+    ];
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...options[0], options }) });
+  });
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/dashboard admin|administration/i);
@@ -112,10 +122,22 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   const favouritesRail = page.getByTestId("home-favourites-rail");
   await expect(favouritesRail).toBeVisible();
   await expectLoadedProductImages(favouritesRail.locator("img"));
+  await expect(favouritesRail.getByText(/-\d+ %/).first()).toBeVisible();
+  await expect(favouritesRail.locator(".line-through").first()).toBeVisible();
   const categoryHeading = page.getByRole("heading", { name: /explorer les rayons|explore departments/i });
   await expect(categoryHeading).toBeVisible();
   const categoryBox = await categoryHeading.boundingBox();
   const isMobile = (page.viewportSize()?.width || 0) < 768;
+  const deliveryContext = page.getByTestId(isMobile ? "home-delivery-mobile" : "home-delivery-desktop");
+  await expect(deliveryContext).toContainText(/France.*75011/);
+  await deliveryContext.click();
+  const deliveryDialog = page.getByTestId("delivery-destination-dialog");
+  await deliveryDialog.getByLabel(/pays de livraison|delivery country/i).selectOption("Belgique");
+  await deliveryDialog.getByLabel(/code postal|postcode/i).fill("1000");
+  await expect.poll(() => deliveryRequests.at(-1)?.country).toBe("Belgique");
+  await deliveryDialog.getByRole("button", { name: /utiliser cette destination|use this destination/i }).click();
+  await expect(deliveryDialog).toBeHidden();
+  await expect(deliveryContext).toContainText(/Belgique.*1000/);
   if (isMobile) expect(categoryBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(page.viewportSize()?.height || 0);
   if (!isMobile) {
     const sidebar = page.getByTestId("client-sidebar");
@@ -268,6 +290,80 @@ test("the client application exposes clear catalogue, recipe and basket workspac
     await page.screenshot({ path: `output/playwright/audit/cart-empty-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
   await expectNoHorizontalOverflow(page);
+});
+
+test("public discovery workspaces recover without losing the customer journey", async ({ page }) => {
+  let homeAttempts = 0;
+  let catalogAttempts = 0;
+  let recipeAttempts = 0;
+  let dishAttempts = 0;
+  let recoverHome = false;
+  let recoverCatalog = false;
+  let recoverRecipes = false;
+  let recoverDishes = false;
+
+  await page.route("**/api/catalog?*", async (route) => {
+    const home = new URL(route.request().url()).searchParams.get("section") === "home";
+    if (home) {
+      homeAttempts += 1;
+      if (!recoverHome) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "offline" }) });
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ categories: [], bestsellers: [], news: [], onSale: [], popularRecipes: [] }) });
+    }
+    catalogAttempts += 1;
+    if (!recoverCatalog) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "offline" }) });
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [], total: 0, page: 1, pages: 0, filters: { categories: [], brands: [], countries: [] } }) });
+  });
+  await page.route("**/api/recipes?*", (route) => {
+    recipeAttempts += 1;
+    if (!recoverRecipes) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "offline" }) });
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ recipes: [], categories: [] }) });
+  });
+  await page.route("**/api/dishes?*", (route) => {
+    dishAttempts += 1;
+    if (!recoverDishes) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "offline" }) });
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ dishes: [], countries: [], categories: [] }) });
+  });
+  await page.route("**/api/advertisements?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ advertisements: [] }) }));
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const homeFailure = page.getByTestId("storefront-home-unavailable");
+  await expect(homeFailure).toBeVisible();
+  await expect(homeFailure).toContainText(/panier et vos favoris restent intacts|basket and favourites remain intact/i);
+  recoverHome = true;
+  await homeFailure.getByRole("button", { name: /réessayer|try again/i }).click();
+  await expect(homeFailure).toBeHidden();
+  await expect(page.getByText(/la sélection arrive bientôt|selection is coming soon/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first().click();
+  const catalogFailure = page.getByTestId("storefront-catalog-unavailable");
+  await expect(catalogFailure).toBeVisible();
+  recoverCatalog = true;
+  await catalogFailure.getByRole("button", { name: /réessayer|try again/i }).click();
+  await expect(catalogFailure).toBeHidden();
+  await expect(page.getByRole("heading", { name: /aucune référence trouvée|no matching product/i })).toBeVisible();
+
+  await page.getByRole("button", { name: /recette|cook a recipe/i }).first().click();
+  const recipeFailure = page.getByTestId("storefront-recipes-unavailable");
+  await expect(recipeFailure).toBeVisible();
+  recoverRecipes = true;
+  await recipeFailure.getByRole("button", { name: /réessayer|try again/i }).click();
+  await expect(recipeFailure).toBeHidden();
+  await expect(page.getByText(/aucun plat ne correspond|no dish matches/i).first()).toBeVisible();
+
+  await page.getByRole("tab", { name: /atlas des plats|dish atlas/i }).click();
+  const libraryFailure = page.getByTestId("storefront-library-unavailable");
+  await expect(libraryFailure).toBeVisible();
+  recoverDishes = true;
+  await libraryFailure.getByRole("button", { name: /réessayer|try again/i }).click();
+  await expect(libraryFailure).toBeHidden();
+  await expect(page.getByText(/aucun plat ne correspond|no dish matches/i).first()).toBeVisible();
+
+  expect(homeAttempts).toBeGreaterThanOrEqual(2);
+  expect(catalogAttempts).toBeGreaterThanOrEqual(2);
+  expect(recipeAttempts).toBeGreaterThanOrEqual(2);
+  expect(dishAttempts).toBeGreaterThanOrEqual(2);
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousA11yViolations(page);
 });
 
 test("the adaptive client navigation keeps every destination clear and touch friendly", async ({ page }) => {
