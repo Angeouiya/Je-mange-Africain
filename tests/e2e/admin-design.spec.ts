@@ -1247,6 +1247,18 @@ test("the advertising desk plans placements without oversized cards", async ({ p
     await page.screenshot({ path: join(directory, `advertising-editor-preview-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
   }
   await page.keyboard.press("Escape");
+  const discard = page.getByRole("alertdialog", { name: "Abandonner cette affiche ?" });
+  await expect(discard).toBeVisible();
+  await expect(discard).toContainText("les textes bilingues, la destination et le calendrier");
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    await page.screenshot({ path: join(directory, `advertising-discard-confirmation-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
+  await discard.getByRole("button", { name: "Continuer l'affiche" }).click();
+  await expect(editor).toBeVisible();
+  await editor.getByRole("button", { name: "Annuler" }).click();
+  await expect(discard).toBeVisible();
+  await discard.getByRole("button", { name: "Oui, abandonner" }).click();
   await expect(editor).toBeHidden();
 
   await expectBrandSafeUiColors(page);

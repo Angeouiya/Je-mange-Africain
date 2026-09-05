@@ -124,9 +124,12 @@ function AdvertisementEditor({ locale, advertisement, onSaved, compact = false }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [draft, setDraft] = useState(() => advertisement ? { ...advertisement, bodyFr: advertisement.bodyFr || "", bodyEn: advertisement.bodyEn || "", priority: String(advertisement.priority), startsAt: toLocalDate(advertisement.startsAt), endsAt: toLocalDate(advertisement.endsAt) } : blank);
   const update = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value }));
-  const reset = () => setDraft(advertisement ? { ...advertisement, bodyFr: advertisement.bodyFr || "", bodyEn: advertisement.bodyEn || "", priority: String(advertisement.priority), startsAt: toLocalDate(advertisement.startsAt), endsAt: toLocalDate(advertisement.endsAt) } : blank);
+  const pristineDraft = advertisement ? { ...advertisement, bodyFr: advertisement.bodyFr || "", bodyEn: advertisement.bodyEn || "", priority: String(advertisement.priority), startsAt: toLocalDate(advertisement.startsAt), endsAt: toLocalDate(advertisement.endsAt) } : blank;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(pristineDraft);
+  const reset = () => setDraft({ ...pristineDraft });
   const dateRangeValid = !draft.startsAt || !draft.endsAt || new Date(draft.endsAt).getTime() > new Date(draft.startsAt).getTime();
   const complete = Boolean(
     draft.imageUrl
@@ -159,8 +162,32 @@ function AdvertisementEditor({ locale, advertisement, onSaved, compact = false }
     finally { setSaving(false); }
   };
 
+  const handleOpen = (nextOpen: boolean) => {
+    if (saving) return;
+    if (nextOpen) {
+      reset();
+      setPreviewLocale(locale);
+      setError("");
+      setOpen(true);
+      return;
+    }
+    if (dirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    setOpen(false);
+  };
+
+  const discardChanges = () => {
+    reset();
+    setError("");
+    setDiscardOpen(false);
+    setOpen(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (saving) return; setOpen(nextOpen); if (nextOpen) { reset(); setPreviewLocale(locale); setError(""); } }}>
+    <>
+    <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
         {advertisement ? (compact ? <Button variant="outline" size="icon" className="h-9 w-9" aria-label={isFr ? `Modifier ${advertisement.titleFr}` : `Edit ${advertisement.titleEn}`}><Pencil className="h-3.5 w-3.5" /></Button> : <Button variant="outline" size="sm"><Pencil className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Modifier" : "Edit"}</Button>) : <Button size="sm" className="bg-terre text-white hover:bg-terre-dark"><ImagePlus className="mr-1.5 h-4 w-4" />{isFr ? "Nouvelle affiche" : "New artwork"}</Button>}
       </DialogTrigger>
@@ -217,12 +244,23 @@ function AdvertisementEditor({ locale, advertisement, onSaved, compact = false }
           {error ? <p role="alert" className="mx-5 border-y border-destructive/25 bg-destructive/[0.06] px-3 py-2 text-xs text-destructive sm:mx-6">{error}</p> : null}
           <DialogFooter className="border-t border-border px-5 py-4 sm:px-6">
             <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{complete ? (isFr ? "Prête à enregistrer" : "Ready to save") : (isFr ? "Complétez les champs obligatoires" : "Complete the required fields")}</p>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>
+            <Button type="button" variant="outline" onClick={() => handleOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>
             <Button type="submit" disabled={saving || !complete} className="bg-terre text-white hover:bg-terre-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{isFr ? "Enregistrer" : "Save"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+    <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><Trash2 className="h-5 w-5" /></span>
+          <AlertDialogTitle>{isFr ? "Abandonner cette affiche ?" : "Discard this artwork?"}</AlertDialogTitle>
+          <AlertDialogDescription>{isFr ? "Le visuel, les textes bilingues, la destination et le calendrier non enregistrés seront perdus. La campagne actuellement diffusée ne sera pas modifiée." : "Unsaved artwork, bilingual copy, destination and schedule will be lost. The campaign currently being delivered will not be changed."}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel>{isFr ? "Continuer l'affiche" : "Keep editing"}</AlertDialogCancel><AlertDialogAction onClick={discardChanges} className="bg-destructive text-white hover:bg-destructive/90">{isFr ? "Oui, abandonner" : "Yes, discard"}</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
