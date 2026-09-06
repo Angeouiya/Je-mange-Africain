@@ -849,23 +849,31 @@ model Notification {
 }
 
 model PushSubscription {
-  id           String    @id @default(cuid())
-  userId       String?
-  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  endpoint     String    @unique
-  p256dh       String
-  auth         String
-  deviceId     String?
-  locale       String    @default("fr")
-  userAgent    String?
-  enabled      Boolean   @default(true)
-  failureCount Int       @default(0)
-  lastSeenAt   DateTime  @default(now())
-  lastSentAt   DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  endpoint        String    @unique
+  p256dh          String
+  auth            String
+  deviceId        String?
+  locale          String    @default("fr")
+  userAgent       String?
+  enabled         Boolean   @default(true)
+  orderAlerts     Boolean   @default(true)
+  systemAlerts    Boolean   @default(true)
+  recipeAlerts    Boolean   @default(false)
+  promotionAlerts Boolean   @default(false)
+  failureCount    Int       @default(0)
+  lastSeenAt      DateTime  @default(now())
+  lastSentAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([deviceId])
   @@index([userId, enabled])
   @@index([enabled])
+  @@index([enabled, orderAlerts])
+  @@index([enabled, systemAlerts])
+  @@index([enabled, recipeAlerts])
+  @@index([enabled, promotionAlerts])
 }

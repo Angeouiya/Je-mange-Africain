@@ -546,6 +546,16 @@ test("global search and notifications navigate to useful client destinations", a
   await expect(page.getByRole("heading", { name: "Notifications" }).last()).toBeVisible();
   await expect(page.getByText(/centre d’activité|activity centre/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /actualiser les notifications|refresh notifications/i })).toBeVisible();
+  const pushPreferences = page.getByTestId("push-preferences");
+  await expect(pushPreferences).toBeVisible();
+  await expect(pushPreferences.getByRole("switch", { name: /recevoir : commandes|receive: orders/i })).toBeChecked();
+  await expect(pushPreferences.getByRole("switch", { name: /recevoir : service|receive: service/i })).toBeChecked();
+  await expect(pushPreferences.getByRole("switch", { name: /recevoir : recettes|receive: recipes/i })).not.toBeChecked();
+  const offersPreference = pushPreferences.getByRole("switch", { name: /recevoir : offres|receive: offers/i });
+  await expect(offersPreference).not.toBeChecked();
+  await offersPreference.click();
+  await expect(offersPreference).toBeChecked();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("jma-push-preferences-v1") || "null"))).toMatchObject({ order: true, system: true, recipe: false, promotion: true });
   const notificationFilters = page.getByRole("tablist", { name: /filtrer les notifications|filter notifications/i });
   await expect(notificationFilters).toBeVisible();
   await expectNoHorizontalOverflow(page, notificationFilters);

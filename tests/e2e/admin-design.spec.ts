@@ -651,13 +651,28 @@ async function mockAdminApi(page: Page) {
       tickets: [{ id: "ticket-1", number: "SUP-260901", subject: "Précision sur mon créneau de livraison", priority: "normal", status: "open", assignee: "Service client", updatedAt: now }],
     };
     else if (path === "/api/admin/customers") payload = customerPortfolioPayload;
-    else if (path === "/api/admin/push" && request.method() === "POST") payload = { campaign: { id: "push-2" }, delivery: { total: 184, sent: 184, failed: 0, configured: true } };
-    else if (path === "/api/admin/push") payload = {
-      activeSubscriptions: 1284,
-      configured: true,
-      audiences: { all: 1284, signed_in: 932, guests: 352, ambassador: 184, active: 516, at_risk: 126, new: 106 },
-      recent: [{ id: "push-1", titleFr: "Le marché du week-end", bodyFr: "Votre sélection ivoirienne est disponible.", sent: true, createdAt: now, type: "promotion", url: "/?view=catalog", audience: "all", recipientCount: 1268, deliveredCount: 1249, failedCount: 19 }],
-    };
+    else if (path === "/api/admin/push" && request.method() === "POST") {
+      const body = request.postDataJSON() as { type: "system" | "promotion" | "recipe"; audience: string };
+      const total = body.type === "promotion" && body.audience === "ambassador" ? 126 : 184;
+      payload = { campaign: { id: "push-2" }, delivery: { total, sent: total, failed: 0, configured: true } };
+    }
+    else if (path === "/api/admin/push") {
+      const campaignType = (new URL(request.url()).searchParams.get("type") || "system") as "system" | "promotion" | "recipe";
+      const audienceSets = {
+        system: { all: 1284, signed_in: 932, guests: 352, ambassador: 184, active: 516, at_risk: 126, new: 106 },
+        promotion: { all: 846, signed_in: 690, guests: 156, ambassador: 126, active: 340, at_risk: 92, new: 58 },
+        recipe: { all: 972, signed_in: 764, guests: 208, ambassador: 151, active: 402, at_risk: 101, new: 75 },
+      };
+      const audiences = audienceSets[campaignType];
+      payload = {
+        activeSubscriptions: audiences.all,
+        eligibleSubscriptions: audiences.all,
+        configured: true,
+        audiences,
+        type: campaignType,
+        recent: [{ id: "push-1", titleFr: "Le marché du week-end", bodyFr: "Votre sélection ivoirienne est disponible.", sent: true, createdAt: now, type: "promotion", url: "/?view=catalog", audience: "all", recipientCount: 1268, deliveredCount: 1249, failedCount: 19 }],
+      };
+    }
     else if (path === "/api/admin/advertisements") payload = { advertisements: [{ id: "ad-1", placement: "home", titleFr: "Saveurs de Côte d'Ivoire", titleEn: "Flavours of Côte d'Ivoire", bodyFr: "Une sélection prête à cuisiner.", bodyEn: "A selection ready to cook.", imageUrl: "/hero-feast-v2.webp", imageAltFr: "Table de plats ivoiriens", imageAltEn: "Table of Ivorian dishes", linkUrl: "/?view=catalog", status: "published", priority: 1, startsAt: now, endsAt: "2026-09-30T23:59:59.000Z" }] };
     else if (path === "/api/admin/profitability") payload = profitabilityPayload;
     else if (path === "/api/admin/audit") payload = auditPayload;
@@ -875,7 +890,7 @@ test("professional workspaces recover without presenting outages as business dat
   let pushAvailable = false;
   let teamAvailable = true;
 
-  await page.route("**/api/admin/push", async (route) => {
+  await page.route("**/api/admin/push*", async (route) => {
     if (route.request().method() !== "GET") return route.fallback();
     if (!pushAvailable) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporarily_unavailable" }) });
     return route.fulfill({
@@ -883,9 +898,11 @@ test("professional workspaces recover without presenting outages as business dat
       contentType: "application/json",
       body: JSON.stringify({
         activeSubscriptions: 1284,
+        eligibleSubscriptions: 1284,
         configured: true,
         audiences: { all: 1284, signed_in: 932, guests: 352, ambassador: 184, active: 516, at_risk: 126, new: 106 },
         recent: [],
+        type: "system",
       }),
     });
   });
@@ -2407,7 +2424,8 @@ test("push campaigns target a measured audience and preview both languages", asy
   await page.getByLabel("English title").fill("Weekend flavours");
   await page.getByLabel("English message").fill("Discover an Ivorian selection prepared for you.");
   await page.getByLabel("Audience", { exact: true }).selectOption("ambassador");
-  await expect(page.getByText("184 appareil(s) ciblé(s)")).toBeVisible();
+  await page.getByLabel("Type", { exact: true }).selectOption("promotion");
+  await expect(page.getByText("126 appareil(s) consentant(s)")).toBeVisible();
   await expect(readiness.getByText("4 contrôles sur 4")).toBeVisible();
   await expect(page.getByRole("button", { name: "Vérifier puis diffuser" })).toBeEnabled();
   await page.getByLabel("Langue de l’aperçu").getByRole("button", { name: "en", exact: true }).click();
@@ -2424,10 +2442,10 @@ test("push campaigns target a measured audience and preview both languages", asy
 
   await page.getByRole("button", { name: "Vérifier puis diffuser" }).click();
   const confirmation = page.getByRole("alertdialog", { name: "Diffuser cette campagne maintenant ?" });
-  await expect(confirmation).toContainText("184 appareil(s)");
+  await expect(confirmation).toContainText("126 appareil(s) consentant(s)");
   await expect(confirmation).toContainText("française ou anglaise");
   await confirmation.getByRole("button", { name: "Confirmer la diffusion" }).click();
-  await expect(page.getByRole("status")).toContainText("184 appareil(s) notifié(s)");
+  await expect(page.getByRole("status")).toContainText("126 appareil(s) notifié(s)");
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);

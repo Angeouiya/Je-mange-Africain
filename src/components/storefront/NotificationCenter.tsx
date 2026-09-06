@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Bell, CheckCheck, ChefHat, Inbox, PackageCheck, Percent, RefreshCw, ShieldAlert } from "lucide-react";
+import { ArrowRight, Bell, CheckCheck, ChefHat, Inbox, PackageCheck, Percent, RefreshCw, ShieldAlert, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateTime } from "@/lib/format";
 import { groupNotificationsByDay, parseNotificationDestination, type NotificationDateBucket } from "@/lib/notification-navigation";
+import { DEFAULT_PUSH_PREFERENCES, normalizePushPreferences, type PushPreferenceKey, type PushPreferences } from "@/lib/push-preferences";
 import { useFetch } from "@/lib/use-fetch";
 import { useStore } from "@/lib/store";
 
@@ -23,10 +24,12 @@ export type WebNotification = {
 };
 
 type PushState = "checking" | "active" | "inactive" | "busy" | "denied" | "unsupported" | "needs-install";
+type PreferenceState = "idle" | "prepared" | "saving" | "saved" | "error";
 
 const READ_STORAGE_KEY = "jma-read-notifications-v2";
 const DEVICE_STORAGE_KEY = "jma-push-device-v1";
 const SUBSCRIPTION_STORAGE_KEY = "jma-push-subscription-v1";
+const PREFERENCES_STORAGE_KEY = "jma-push-preferences-v1";
 const iconByType = {
   recipe: ChefHat,
   order: PackageCheck,
@@ -53,7 +56,19 @@ function isStandaloneApp() {
   return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
-async function persistSubscription(subscription: PushSubscription, locale: "fr" | "en") {
+function readStoredPushPreferences() {
+  try {
+    return normalizePushPreferences(JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY) || "null"));
+  } catch {
+    return { ...DEFAULT_PUSH_PREFERENCES };
+  }
+}
+
+function storePushPreferences(preferences: PushPreferences) {
+  localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+}
+
+async function persistSubscription(subscription: PushSubscription, locale: "fr" | "en", preferences: PushPreferences) {
   const serialized = subscription.toJSON();
   if (!serialized.endpoint || !serialized.keys?.p256dh || !serialized.keys.auth) throw new Error("Abonnement incomplet");
   const response = await fetch("/api/push/subscriptions", {
@@ -63,6 +78,7 @@ async function persistSubscription(subscription: PushSubscription, locale: "fr" 
       subscription: { endpoint: serialized.endpoint, keys: serialized.keys },
       deviceId: getDeviceId(),
       locale,
+      preferences,
     }),
   });
   const payload = await response.json();
@@ -81,6 +97,10 @@ export function NotificationCenter() {
   const [pushState, setPushState] = useState<PushState>("checking");
   const [publicKey, setPublicKey] = useState("");
   const [pushError, setPushError] = useState(false);
+  const [preferences, setPreferences] = useState<PushPreferences>({ ...DEFAULT_PUSH_PREFERENCES });
+  const preferencesRef = useRef<PushPreferences>({ ...DEFAULT_PUSH_PREFERENCES });
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [preferenceState, setPreferenceState] = useState<PreferenceState>("idle");
   const [open, setOpen] = useState(false);
   const notifications = data?.notifications || [];
   const readStorageKey = `${READ_STORAGE_KEY}:${customer?.id || "public"}`;
@@ -94,6 +114,13 @@ export function NotificationCenter() {
   }, [readStorageKey]);
 
   useEffect(() => {
+    const stored = readStoredPushPreferences();
+    preferencesRef.current = stored;
+    setPreferences(stored);
+    setPreferencesReady(true);
+  }, []);
+
+  useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     const onMessage = (event: MessageEvent) => {
       if (event.data?.type === "JMA_PUSH_RECEIVED") refetch();
@@ -103,6 +130,7 @@ export function NotificationCenter() {
   }, [refetch]);
 
   useEffect(() => {
+    if (!preferencesReady) return;
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       setPushState("unsupported");
       return;
@@ -124,7 +152,7 @@ export function NotificationCenter() {
       setPublicKey(config.publicKey);
       const subscription = await registration.pushManager.getSubscription();
       if (!active) return;
-      if (subscription) await persistSubscription(subscription, locale);
+      if (subscription) await persistSubscription(subscription, locale, preferencesRef.current);
       if (Notification.permission === "denied") setPushState("denied");
       else setPushState(subscription ? "active" : "inactive");
     }).catch(() => active && setPushState("unsupported"));
@@ -132,7 +160,7 @@ export function NotificationCenter() {
     return () => {
       active = false;
     };
-  }, [customer?.id, locale]);
+  }, [customer?.id, locale, preferencesReady]);
 
   const unread = useMemo(
     () => notifications.filter((notification) => !readIds.includes(notification.id)).length,
@@ -163,12 +191,44 @@ export function NotificationCenter() {
         userVisibleOnly: true,
         applicationServerKey: decodeApplicationKey(publicKey),
       });
-      await persistSubscription(subscription, locale);
+      await persistSubscription(subscription, locale, preferencesRef.current);
       setPushState("active");
       setPushError(false);
     } catch {
       setPushState("inactive");
       setPushError(true);
+    }
+  };
+
+  const updatePreference = async (key: PushPreferenceKey, checked: boolean) => {
+    const previous = preferencesRef.current;
+    const next = { ...previous, [key]: checked };
+    preferencesRef.current = next;
+    setPreferences(next);
+    storePushPreferences(next);
+
+    if (pushState !== "active") {
+      setPreferenceState("prepared");
+      return;
+    }
+
+    setPreferenceState("saving");
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) throw new Error("Abonnement introuvable");
+      const response = await fetch("/api/push/subscriptions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: subscription.endpoint, deviceId: getDeviceId(), preferences: next }),
+      });
+      if (!response.ok) throw new Error("Mise à jour impossible");
+      setPreferenceState("saved");
+    } catch {
+      preferencesRef.current = previous;
+      setPreferences(previous);
+      storePushPreferences(previous);
+      setPreferenceState("error");
     }
   };
 
@@ -235,9 +295,12 @@ export function NotificationCenter() {
       pushState={pushState}
       pushCopy={pushCopy}
       pushError={pushError}
+      preferences={preferences}
+      preferenceState={preferenceState}
       onReadAll={() => markRead(notifications.map((notification) => notification.id))}
       onOpenNotification={openNotification}
       onTogglePush={(checked) => void (checked ? enablePush() : disablePush())}
+      onPreferenceChange={(key, checked) => void updatePreference(key, checked)}
       onRetry={refetch}
     />
   );
@@ -274,9 +337,12 @@ function NotificationPanel({
   pushState,
   pushCopy,
   pushError,
+  preferences,
+  preferenceState,
   onReadAll,
   onOpenNotification,
   onTogglePush,
+  onPreferenceChange,
   onRetry,
 }: {
   locale: "fr" | "en";
@@ -288,9 +354,12 @@ function NotificationPanel({
   pushState: PushState;
   pushCopy: string;
   pushError: boolean;
+  preferences: PushPreferences;
+  preferenceState: PreferenceState;
   onReadAll: () => void;
   onOpenNotification: (notification: WebNotification) => void;
   onTogglePush: (checked: boolean) => void;
+  onPreferenceChange: (key: PushPreferenceKey, checked: boolean) => void;
   onRetry: () => void;
 }) {
   const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>("all");
@@ -324,6 +393,21 @@ function NotificationPanel({
     if (bucket === "yesterday") return locale === "fr" ? "Hier" : "Yesterday";
     return locale === "fr" ? "Plus tôt" : "Earlier";
   };
+  const preferenceItems: Array<{ key: PushPreferenceKey; icon: typeof Bell; label: string; description: string }> = [
+    { key: "order", icon: PackageCheck, label: locale === "fr" ? "Commandes" : "Orders", description: locale === "fr" ? "Livraison et statut" : "Delivery and status" },
+    { key: "system", icon: ShieldCheck, label: locale === "fr" ? "Service" : "Service", description: locale === "fr" ? "Compte et sécurité" : "Account and security" },
+    { key: "recipe", icon: ChefHat, label: locale === "fr" ? "Recettes" : "Recipes", description: locale === "fr" ? "Nouvelles inspirations" : "New inspiration" },
+    { key: "promotion", icon: Percent, label: locale === "fr" ? "Offres" : "Offers", description: locale === "fr" ? "Prix et avantages" : "Prices and benefits" },
+  ];
+  const preferenceCopy = preferenceState === "saving"
+    ? (locale === "fr" ? "Enregistrement des choix…" : "Saving choices…")
+    : preferenceState === "saved"
+      ? (locale === "fr" ? "Choix enregistrés sur cet appareil" : "Choices saved on this device")
+      : preferenceState === "error"
+        ? (locale === "fr" ? "Échec de l’enregistrement, choix restaurés" : "Could not save, choices restored")
+        : pushState === "active"
+          ? (locale === "fr" ? "Modifiables à tout moment" : "Change them at any time")
+          : (locale === "fr" ? "Ces choix seront appliqués à l’activation" : "These choices apply when alerts are enabled");
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white md:h-auto md:max-h-[min(42rem,calc(100vh-5rem))]">
@@ -351,6 +435,31 @@ function NotificationPanel({
           {pushState === "denied" ? <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" /> : (
             <Switch checked={pushState === "active"} disabled={["checking", "busy", "unsupported", "needs-install"].includes(pushState)} onCheckedChange={onTogglePush} aria-label={locale === "fr" ? "Activer les alertes mobiles" : "Enable mobile alerts"} />
           )}
+      </div>
+
+      <div className="shrink-0 border-b border-border bg-white px-4 py-3" data-testid="push-preferences">
+        <div className="flex items-start gap-2.5">
+          <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-terre" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black text-charcoal">{locale === "fr" ? "Ce que vous recevez" : "What you receive"}</p>
+            <p role={preferenceState === "error" ? "alert" : "status"} className={`mt-0.5 text-[9px] leading-4 ${preferenceState === "error" ? "text-destructive" : "text-muted-foreground"}`}>{preferenceCopy}</p>
+          </div>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+          {preferenceItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.key} className="flex min-w-0 items-center gap-2 border-t border-border/70 py-2">
+                <Icon className="h-3.5 w-3.5 shrink-0 text-burgundy" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[10px] font-black text-charcoal">{item.label}</span>
+                  <span className="block truncate text-[8px] text-muted-foreground">{item.description}</span>
+                </span>
+                <Switch checked={preferences[item.key]} disabled={preferenceState === "saving" || pushState === "busy"} onCheckedChange={(checked) => onPreferenceChange(item.key, checked)} aria-label={locale === "fr" ? `Recevoir : ${item.label}` : `Receive: ${item.label}`} className="shrink-0" />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {!loading && !error && notifications.length > 0 ? (

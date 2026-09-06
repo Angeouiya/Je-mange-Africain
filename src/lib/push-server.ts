@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { customerSegment, NON_COMMERCIAL_ORDER_STATUSES, type CustomerSegment } from "@/lib/customer-analytics";
 import { db } from "@/lib/db";
 import type { PushAudience, PushAudienceCounts } from "@/lib/push-audience";
+import { acceptsPushType, pushPreferenceField } from "@/lib/push-preferences";
 
 export type PushPayload = {
   title: string;
@@ -22,6 +23,10 @@ type DeliverySubscription = {
   auth: string;
   locale: string;
   failureCount: number;
+  orderAlerts: boolean;
+  systemAlerts: boolean;
+  recipeAlerts: boolean;
+  promotionAlerts: boolean;
 };
 
 function configureWebPush() {
@@ -66,6 +71,7 @@ async function deliverPush(subscription: DeliverySubscription, payload: PushPayl
 export async function sendPushToSubscriptionId(id: string, payload: PushPayload) {
   const subscription = await db.pushSubscription.findUnique({ where: { id } });
   if (!subscription?.enabled || !configureWebPush()) return { sent: false, reason: "unavailable" as const };
+  if (!acceptsPushType(subscription, payload.type)) return { sent: false, reason: "preference" as const };
   return deliverPush(subscription, payload);
 }
 
@@ -102,18 +108,23 @@ function audienceWhere(audience: PushAudience, segmentUserIds?: Record<CustomerS
   return { userId: { in: segmentUserIds?.[audience] || [] } };
 }
 
-export async function getPushAudienceCounts(): Promise<PushAudienceCounts> {
+function preferenceWhere(type: PushPayload["type"]): Prisma.PushSubscriptionWhereInput {
+  return { [pushPreferenceField(type)]: true } as Prisma.PushSubscriptionWhereInput;
+}
+
+export async function getPushAudienceCounts(type: PushPayload["type"] = "system"): Promise<PushAudienceCounts> {
+  const consent = preferenceWhere(type);
   const [all, signedIn, guests, segmentUserIds] = await Promise.all([
-    db.pushSubscription.count({ where: { enabled: true } }),
-    db.pushSubscription.count({ where: { enabled: true, userId: { not: null } } }),
-    db.pushSubscription.count({ where: { enabled: true, userId: null } }),
+    db.pushSubscription.count({ where: { enabled: true, ...consent } }),
+    db.pushSubscription.count({ where: { enabled: true, userId: { not: null }, ...consent } }),
+    db.pushSubscription.count({ where: { enabled: true, userId: null, ...consent } }),
     customerSegmentUserIds(),
   ]);
   const [ambassador, active, atRisk, newCustomers] = await Promise.all([
-    db.pushSubscription.count({ where: { enabled: true, ...audienceWhere("ambassador", segmentUserIds) } }),
-    db.pushSubscription.count({ where: { enabled: true, ...audienceWhere("active", segmentUserIds) } }),
-    db.pushSubscription.count({ where: { enabled: true, ...audienceWhere("at_risk", segmentUserIds) } }),
-    db.pushSubscription.count({ where: { enabled: true, ...audienceWhere("new", segmentUserIds) } }),
+    db.pushSubscription.count({ where: { enabled: true, ...audienceWhere("ambassador", segmentUserIds), ...consent } }),
+    db.pushSubscription.count({ where: { enabled: true, ...audienceWhere("active", segmentUserIds), ...consent } }),
+    db.pushSubscription.count({ where: { enabled: true, ...audienceWhere("at_risk", segmentUserIds), ...consent } }),
+    db.pushSubscription.count({ where: { enabled: true, ...audienceWhere("new", segmentUserIds), ...consent } }),
   ]);
   return { all, signed_in: signedIn, guests, ambassador, active, at_risk: atRisk, new: newCustomers };
 }
@@ -121,7 +132,8 @@ export async function getPushAudienceCounts(): Promise<PushAudienceCounts> {
 export async function broadcastLocalizedPush(payload: LocalizedPushPayload, audience: PushAudience = "all") {
   const segmentUserIds = ["ambassador", "active", "at_risk", "new"].includes(audience) ? await customerSegmentUserIds() : undefined;
   const target = audienceWhere(audience, segmentUserIds);
-  const total = await db.pushSubscription.count({ where: { enabled: true, ...target } });
+  const consent = preferenceWhere(payload.fr.type || payload.en.type || "system");
+  const total = await db.pushSubscription.count({ where: { enabled: true, ...target, ...consent } });
   if (!configureWebPush()) return { total, sent: 0, failed: total, configured: false };
   let sent = 0;
   let failed = 0;
@@ -129,10 +141,10 @@ export async function broadcastLocalizedPush(payload: LocalizedPushPayload, audi
 
   while (true) {
     const subscriptions = await db.pushSubscription.findMany({
-      where: { enabled: true, ...target, ...(lastId ? { id: { gt: lastId } } : {}) },
+      where: { enabled: true, ...target, ...consent, ...(lastId ? { id: { gt: lastId } } : {}) },
       orderBy: { id: "asc" },
       take: 500,
-      select: { id: true, endpoint: true, p256dh: true, auth: true, locale: true, failureCount: true },
+      select: { id: true, endpoint: true, p256dh: true, auth: true, locale: true, failureCount: true, orderAlerts: true, systemAlerts: true, recipeAlerts: true, promotionAlerts: true },
     });
     if (!subscriptions.length) break;
     lastId = subscriptions[subscriptions.length - 1].id;
@@ -148,8 +160,9 @@ export async function broadcastLocalizedPush(payload: LocalizedPushPayload, audi
 }
 
 export async function sendPushToUser(userId: string, payload: LocalizedPushPayload) {
-  if (!configureWebPush()) return { total: 0, sent: 0, failed: 0, configured: false };
-  const subscriptions = await db.pushSubscription.findMany({ where: { userId, enabled: true }, take: 20 });
+  const consent = preferenceWhere(payload.fr.type || payload.en.type || "system");
+  const subscriptions = await db.pushSubscription.findMany({ where: { userId, enabled: true, ...consent }, take: 20 });
+  if (!configureWebPush()) return { total: subscriptions.length, sent: 0, failed: subscriptions.length, configured: false };
   const results = await Promise.all(
     subscriptions.map((subscription) => deliverPush(subscription, payload[subscription.locale === "en" ? "en" : "fr"])),
   );

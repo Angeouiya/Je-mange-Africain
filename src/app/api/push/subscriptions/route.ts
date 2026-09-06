@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { authorizeCustomerRequest } from "@/lib/customer-auth";
+import { DEFAULT_PUSH_PREFERENCES, pushPreferenceData } from "@/lib/push-preferences";
 
 export const dynamic = "force-dynamic";
+
+const PreferencesBody = z.object({
+  order: z.boolean(),
+  system: z.boolean(),
+  recipe: z.boolean(),
+  promotion: z.boolean(),
+});
 
 const SubscriptionBody = z.object({
   subscription: z.object({
@@ -15,15 +23,21 @@ const SubscriptionBody = z.object({
   }),
   deviceId: z.string().min(8).max(128),
   locale: z.enum(["fr", "en"]).default("fr"),
+  preferences: PreferencesBody.default(DEFAULT_PUSH_PREFERENCES),
 });
 
 const DeleteBody = z.object({ endpoint: z.string().url().max(4096) });
+const PreferencesUpdateBody = z.object({
+  endpoint: z.string().url().max(4096),
+  deviceId: z.string().min(8).max(128),
+  preferences: PreferencesBody,
+});
 
 export async function POST(request: NextRequest) {
   const parsed = SubscriptionBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Abonnement push invalide." }, { status: 400 });
 
-  const { subscription, deviceId, locale } = parsed.data;
+  const { subscription, deviceId, locale, preferences } = parsed.data;
   const customer = await authorizeCustomerRequest(request);
   const directoryUser = customer
     ? await db.user.findUnique({ where: { email: customer.email.toLowerCase() }, select: { id: true } })
@@ -38,6 +52,7 @@ export async function POST(request: NextRequest) {
       deviceId,
       locale,
       userAgent: request.headers.get("user-agent")?.slice(0, 500),
+      ...pushPreferenceData(preferences),
     },
     update: {
       userId: directoryUser?.id || null,
@@ -49,10 +64,24 @@ export async function POST(request: NextRequest) {
       failureCount: 0,
       lastSeenAt: new Date(),
       userAgent: request.headers.get("user-agent")?.slice(0, 500),
+      ...pushPreferenceData(preferences),
     },
   });
 
-  return NextResponse.json({ id: saved.id, active: true });
+  return NextResponse.json({ id: saved.id, active: true, preferences });
+}
+
+export async function PATCH(request: NextRequest) {
+  const parsed = PreferencesUpdateBody.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Préférences push invalides." }, { status: 400 });
+
+  const { endpoint, deviceId, preferences } = parsed.data;
+  const updated = await db.pushSubscription.updateMany({
+    where: { endpoint, deviceId, enabled: true },
+    data: { ...pushPreferenceData(preferences), lastSeenAt: new Date() },
+  });
+  if (!updated.count) return NextResponse.json({ error: "Abonnement push introuvable." }, { status: 404 });
+  return NextResponse.json({ active: true, preferences });
 }
 
 export async function DELETE(request: NextRequest) {

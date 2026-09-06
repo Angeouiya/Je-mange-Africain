@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 const CAMPAIGN_ROLES = new Set(["super_admin", "direction", "marketing", "support"]);
+const CampaignType = z.enum(["promotion", "recipe", "system"]);
 const Campaign = z.object({
   titleFr: z.string().trim().min(3).max(80),
   titleEn: z.string().trim().min(3).max(80),
@@ -21,11 +22,12 @@ const Campaign = z.object({
 export async function GET(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request, { module: "marketing", action: "read" });
   if (!authorization.ok) return authorization.response;
+  const type = CampaignType.catch("system").parse(request.nextUrl.searchParams.get("type"));
   const [audiences, recent] = await Promise.all([
-    getPushAudienceCounts(),
+    getPushAudienceCounts(type),
     db.notification.findMany({ where: { channel: "push" }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
-  return NextResponse.json({ activeSubscriptions: audiences.all, configured: isPushConfigured(), audiences, recent });
+  return NextResponse.json({ activeSubscriptions: audiences.all, eligibleSubscriptions: audiences.all, configured: isPushConfigured(), audiences, recent, type });
 }
 
 export async function POST(request: NextRequest) {

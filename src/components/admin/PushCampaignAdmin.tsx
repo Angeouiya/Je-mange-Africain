@@ -39,9 +39,11 @@ type RecentPushCampaign = {
 
 type PushDashboard = {
   activeSubscriptions: number;
+  eligibleSubscriptions: number;
   configured: boolean;
   audiences: PushAudienceCounts;
   recent: RecentPushCampaign[];
+  type: CampaignDraft["type"];
 };
 
 type CampaignDraft = {
@@ -65,8 +67,8 @@ const initialCampaign: CampaignDraft = {
 };
 
 export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
-  const { data, loading, error, refetch } = useFetch<PushDashboard>("/api/admin/push");
   const [campaign, setCampaign] = useState(initialCampaign);
+  const { data, loading, error, refetch } = useFetch<PushDashboard>(`/api/admin/push?type=${campaign.type}`, [campaign.type]);
   const [editorLocale, setEditorLocale] = useState<"fr" | "en">(locale);
   const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
   const [sending, setSending] = useState(false);
@@ -115,7 +117,14 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
     { value: "new", label: locale === "fr" ? "À activer" : "To activate", description: locale === "fr" ? "Aucun achat" : "No purchase yet" },
   ];
   const selectedAudience = audienceOptions.find((audience) => audience.value === campaign.audience) || audienceOptions[0];
-  const audienceCount = data?.audiences?.[campaign.audience] ?? (campaign.audience === "all" ? data?.activeSubscriptions : 0) ?? 0;
+  const campaignTypeLabel = campaign.type === "promotion"
+    ? (locale === "fr" ? "offres" : "offers")
+    : campaign.type === "recipe"
+      ? (locale === "fr" ? "recettes" : "recipes")
+      : (locale === "fr" ? "informations de service" : "service information");
+  const audienceCount = data?.type === campaign.type
+    ? data.audiences?.[campaign.audience] ?? (campaign.audience === "all" ? data.activeSubscriptions : 0) ?? 0
+    : 0;
   const previewTitle = previewLocale === "fr" ? campaign.titleFr : campaign.titleEn;
   const previewBody = previewLocale === "fr" ? campaign.bodyFr : campaign.bodyEn;
   const localeReady = {
@@ -136,8 +145,8 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
         icon={<BellRing className="h-5 w-5" />}
         eyebrow={locale === "fr" ? "Engagement mobile" : "Mobile engagement"}
         title={locale === "fr" ? "Composer, vérifier, diffuser" : "Compose, verify, deliver"}
-        description={locale === "fr" ? "Préparez un message bilingue, contrôlez son rendu mobile et confirmez explicitement la diffusion vers les appareils abonnés." : "Prepare a bilingual message, review its mobile rendering and explicitly confirm delivery to subscribed devices."}
-        action={<Badge variant="outline" className="h-9 border-burgundy/30 bg-burgundy/5 px-3 text-burgundy"><Smartphone className="mr-1.5 h-3.5 w-3.5" /> {loading ? "…" : data?.activeSubscriptions || 0} {locale === "fr" ? "appareils joignables" : "reachable devices"}</Badge>}
+        description={locale === "fr" ? "Préparez un message bilingue, contrôlez son rendu mobile et confirmez explicitement la diffusion vers les appareils consentants." : "Prepare a bilingual message, review its mobile rendering and explicitly confirm delivery to consenting devices."}
+        action={<Badge variant="outline" className="h-9 border-burgundy/30 bg-burgundy/5 px-3 text-burgundy"><Smartphone className="mr-1.5 h-3.5 w-3.5" /> {loading || data?.type !== campaign.type ? "…" : data?.eligibleSubscriptions || 0} {locale === "fr" ? "consentants" : "consenting"}</Badge>}
       />
 
       {error && data ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
@@ -175,16 +184,16 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-burgundy text-white"><Target className="h-4 w-4" /></span><div><h3 id="campaign-routing-title" className="text-sm font-black text-charcoal">{locale === "fr" ? "Audience et destination" : "Audience and destination"}</h3><p className="mt-0.5 text-[10px] text-muted-foreground">{locale === "fr" ? "Chaque appareil reçoit la bonne langue et ouvre directement l’espace choisi." : "Each device receives the right language and opens the selected destination."}</p></div></div>
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               <div className="space-y-2"><Label htmlFor="push-audience">{locale === "fr" ? "Audience" : "Audience"}</Label><select id="push-audience" value={campaign.audience} onChange={(event) => setCampaign({ ...campaign, audience: event.target.value as PushAudience })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{audienceOptions.map((audience) => <option key={audience.value} value={audience.value}>{audience.label}</option>)}</select><p className="text-[9px] leading-4 text-muted-foreground">{selectedAudience.description}</p></div>
-              <div className="space-y-2"><Label htmlFor="push-type">Type</Label><select id="push-type" value={campaign.type} onChange={(event) => setCampaign({ ...campaign, type: event.target.value as CampaignDraft["type"] })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="system">Information</option><option value="promotion">Promotion</option><option value="recipe">{locale === "fr" ? "Recette" : "Recipe"}</option></select></div>
+              <div className="space-y-2"><Label htmlFor="push-type">Type</Label><select id="push-type" value={campaign.type} onChange={(event) => setCampaign({ ...campaign, type: event.target.value as CampaignDraft["type"] })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="system">Information</option><option value="promotion">Promotion</option><option value="recipe">{locale === "fr" ? "Recette" : "Recipe"}</option></select><p className="text-[9px] leading-4 text-muted-foreground">{locale === "fr" ? `Uniquement les appareils ayant accepté : ${campaignTypeLabel}.` : `Only devices that accepted: ${campaignTypeLabel}.`}</p></div>
               <div className="space-y-2"><Label htmlFor="push-url">Destination</Label><select id="push-url" value={campaign.url} onChange={(event) => setCampaign({ ...campaign, url: event.target.value as CampaignDraft["url"] })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{destinations.map((destination) => <option key={destination.value} value={destination.value}>{destination.label}</option>)}</select></div>
             </div>
 
-            <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal"><UsersRound className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-black text-charcoal">{audienceCount.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB")} {locale === "fr" ? "appareil(s) ciblé(s)" : "targeted device(s)"}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{selectedAudience.label} · {destinationLabel(campaign.url)}</p></div></div>
+            <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-charcoal/5 text-charcoal"><UsersRound className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-black text-charcoal">{loading || data?.type !== campaign.type ? "…" : audienceCount.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB")} {locale === "fr" ? "appareil(s) consentant(s)" : "consenting device(s)"}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{selectedAudience.label} · {campaignTypeLabel} · {destinationLabel(campaign.url)}</p></div></div>
 
             <AlertDialog>
               <AlertDialogTrigger asChild><Button disabled={!readiness.ready || sending} className="mt-5 h-11 w-full bg-terre text-white hover:bg-terre-dark sm:w-auto">{sending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{sending ? (locale === "fr" ? "Diffusion..." : "Delivering...") : (locale === "fr" ? "Vérifier puis diffuser" : "Review and deliver")}</Button></AlertDialogTrigger>
               <AlertDialogContent>
-                <AlertDialogHeader><AlertDialogTitle>{locale === "fr" ? "Diffuser cette campagne maintenant ?" : "Deliver this campaign now?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? `Le message sera envoyé aux ${audienceCount} appareil(s) de l’audience « ${selectedAudience.label} ». Chaque appareil recevra automatiquement la version française ou anglaise.` : `The message will be sent to ${audienceCount} device(s) in “${selectedAudience.label}”. Each device automatically receives the French or English version.`}</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogHeader><AlertDialogTitle>{locale === "fr" ? "Diffuser cette campagne maintenant ?" : "Deliver this campaign now?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? `Le message sera envoyé aux ${audienceCount} appareil(s) consentant(s) de l’audience « ${selectedAudience.label} ». Chaque appareil recevra automatiquement la version française ou anglaise.` : `The message will be sent to ${audienceCount} consenting device(s) in “${selectedAudience.label}”. Each device automatically receives the French or English version.`}</AlertDialogDescription></AlertDialogHeader>
                 <div className="border-y border-border bg-muted/45 px-3 py-3 text-xs"><p className="font-black text-charcoal">{campaign.titleFr}</p><p className="mt-1 leading-5 text-muted-foreground">{campaign.bodyFr}</p></div>
                 <AlertDialogFooter><AlertDialogCancel>{locale === "fr" ? "Revenir à l'édition" : "Return to editing"}</AlertDialogCancel><AlertDialogAction onClick={sendCampaign} className="bg-terre text-white hover:bg-terre-dark"><Send className="mr-2 h-4 w-4" /> {locale === "fr" ? "Confirmer la diffusion" : "Confirm delivery"}</AlertDialogAction></AlertDialogFooter>
               </AlertDialogContent>
