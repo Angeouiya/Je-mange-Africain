@@ -153,8 +153,11 @@ test("the client application exposes clear catalogue, recipe and basket workspac
     await expect.poll(() => sidebar.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 252, 250)");
   }
   const heroBox = await page.getByTestId("home-hero").boundingBox();
-  if (isMobile) expect(heroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(240);
-  else expect(heroBox?.height || 0).toBeGreaterThanOrEqual(340);
+  const favouritesBox = await favouritesRail.boundingBox();
+  if (isMobile) {
+    expect(heroBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(240);
+    expect(heroBox?.y || Number.POSITIVE_INFINITY).toBeLessThan(favouritesBox?.y || 0);
+  } else expect(heroBox?.height || 0).toBeGreaterThanOrEqual(340);
   const bestsellerRail = page.getByTestId("home-bestseller-rail");
   await expect(bestsellerRail).toBeVisible();
   await expectLoadedProductImages(bestsellerRail.getByRole("img"));

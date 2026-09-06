@@ -6,8 +6,11 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Bookmark,
+  ChefHat,
   ChevronRight,
   Clock,
+  CreditCard,
+  Globe2,
   Headphones,
   Heart,
   MapPinned,
@@ -80,6 +83,12 @@ export function HomeView() {
         recipes: "À cuisiner cette semaine",
         recipesAction: "Toutes les recettes",
         offers: "Offres du moment",
+        signalEurope: "Europe",
+        signalEuropeValue: "multi-zone",
+        signalPayment: "Paiement",
+        signalPaymentValue: "Carte + PayPal",
+        signalRecipe: "Recettes",
+        signalRecipeValue: "panier ajusté",
       }
     : {
         screenTitle: "Home",
@@ -89,6 +98,12 @@ export function HomeView() {
         recipes: "Cook this week",
         recipesAction: "All recipes",
         offers: "Current offers",
+        signalEurope: "Europe",
+        signalEuropeValue: "multi-zone",
+        signalPayment: "Payment",
+        signalPaymentValue: "Card + PayPal",
+        signalRecipe: "Recipes",
+        signalRecipeValue: "adjusted basket",
       };
 
   const commitments = [
@@ -97,6 +112,11 @@ export function HomeView() {
     { icon: Truck, title: t.home.commitment3Title, desc: t.home.commitment3Desc, color: "#D65A32" },
     { icon: Headphones, title: t.home.commitment4Title, desc: t.home.commitment4Desc, color: "#F2A900" },
   ];
+  const heroSignals = [
+    { icon: Globe2, label: copy.signalEurope, value: copy.signalEuropeValue },
+    { icon: CreditCard, label: copy.signalPayment, value: copy.signalPaymentValue },
+    { icon: ChefHat, label: copy.signalRecipe, value: copy.signalRecipeValue },
+  ];
 
   return (
     <div className="flex flex-col bg-white pb-8 md:pb-0">
@@ -104,18 +124,7 @@ export function HomeView() {
         <div className="flex items-center justify-between gap-3"><p className="text-[1.65rem] font-black leading-none text-charcoal">{copy.screenTitle}</p><HomeDeliveryContext variant="mobile" /></div>
       </div>
 
-      {!error ? <div className="order-2 mx-auto w-full max-w-7xl px-4 pb-5 pt-3 md:px-8 md:pb-9 md:pt-8">
-        <Section
-          title={copy.favourites}
-          actionLabel={copy.favouritesAction}
-          onAction={() => navigate(savedFeaturedProducts.length ? "account" : "catalog", savedFeaturedProducts.length ? { accountSection: "saved" } : undefined)}
-          compact
-        >
-          {loading ? <StorySkeleton /> : favouriteShelf.length ? <FavouriteShelf products={favouriteShelf} /> : <HomeCollectionEmpty locale={locale} />}
-        </Section>
-      </div> : null}
-
-      <section className="relative order-3 min-h-[13.5rem] overflow-hidden md:order-1 md:min-h-[22rem]" data-testid="home-hero">
+      <section className="relative order-2 min-h-[15rem] overflow-hidden md:order-1 md:min-h-[22rem]" data-testid="home-hero">
         <div className="absolute inset-0">
           <Image
             src="/hero-feast-v2.webp"
@@ -126,9 +135,9 @@ export function HomeView() {
             fetchPriority="high"
             className="object-cover object-[64%_center] md:object-center"
           />
-          <div className="absolute inset-0 bg-burgundy/58 md:bg-gradient-to-r md:from-burgundy/95 md:via-burgundy/62 md:to-terre/10" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(90,48,66,0.28),rgba(90,48,66,0.78))] md:bg-gradient-to-r md:from-burgundy/95 md:via-burgundy/62 md:to-terre/10" />
         </div>
-        <div className="relative mx-auto flex min-h-[13.5rem] max-w-7xl flex-col justify-end gap-2 px-4 py-4 md:min-h-[22rem] md:justify-center md:gap-4 md:px-12 md:py-10">
+        <div className="relative mx-auto flex min-h-[15rem] max-w-7xl flex-col justify-end gap-2 px-4 py-4 md:min-h-[22rem] md:justify-center md:gap-4 md:px-12 md:py-10">
           <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
             <Badge className="border-0 bg-transparent p-0 text-[9px] font-extrabold uppercase text-gold shadow-none md:text-[10px]">
               <Sparkles className="mr-1 h-3 w-3" /> {t.home.heroBadge}
@@ -154,6 +163,20 @@ export function HomeView() {
           >
             {t.home.heroSubtitle}
           </motion.p>
+          <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="grid max-w-lg grid-cols-3 gap-1.5 md:gap-2">
+            {heroSignals.map((signal) => {
+              const Icon = signal.icon;
+              return (
+                <span key={signal.label} className="flex min-h-10 items-center gap-1.5 rounded-md border border-white/22 bg-white/14 px-2 text-white shadow-[0_14px_30px_-26px_rgba(255,255,255,0.75)] backdrop-blur-md">
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-gold md:h-4 md:w-4" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-[7px] font-bold uppercase text-white/70 md:text-[8px]">{signal.label}</span>
+                    <span className="block truncate text-[8.5px] font-black leading-3 text-white md:text-[10px]">{signal.value}</span>
+                  </span>
+                </span>
+              );
+            })}
+          </motion.div>
           <motion.div
             initial={false}
             animate={{ opacity: 1, y: 0 }}
@@ -168,6 +191,17 @@ export function HomeView() {
           </motion.div>
         </div>
       </section>
+
+      {!error ? <div className="order-3 mx-auto w-full max-w-7xl px-4 pb-5 pt-5 md:order-2 md:px-8 md:pb-9 md:pt-8">
+        <Section
+          title={copy.favourites}
+          actionLabel={copy.favouritesAction}
+          onAction={() => navigate(savedFeaturedProducts.length ? "account" : "catalog", savedFeaturedProducts.length ? { accountSection: "saved" } : undefined)}
+          compact
+        >
+          {loading ? <StorySkeleton /> : favouriteShelf.length ? <FavouriteShelf products={favouriteShelf} /> : <HomeCollectionEmpty locale={locale} />}
+        </Section>
+      </div> : null}
 
       <div className="order-4 mx-auto w-full max-w-7xl space-y-9 px-4 pt-7 md:order-3 md:space-y-14 md:px-8 md:pt-12">
         {error ? <StorefrontUnavailableState surface="home" locale={locale} onRetry={refetch} /> : <><Section title={copy.categories} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
