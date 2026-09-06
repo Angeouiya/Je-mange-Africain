@@ -1,4 +1,5 @@
 import type { Organization, WebSite, WithContext } from "schema-dts";
+import { COMPANY_PROFILE } from "@/lib/company-profile";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://je-mange-africain.com";
 
@@ -6,18 +7,39 @@ const organization: WithContext<Organization> = {
   "@context": "https://schema.org",
   "@type": "Organization",
   "@id": `${siteUrl}/#organization`,
-  name: "Je mange Africain",
+  name: COMPANY_PROFILE.brandName,
+  legalName: COMPANY_PROFILE.legalName,
   url: siteUrl,
   logo: `${siteUrl}/brand/app-icon-512-burgundy.png`,
-  email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com",
+  email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || COMPANY_PROFILE.email,
+  telephone: process.env.NEXT_PUBLIC_COMPANY_PHONE || COMPANY_PROFILE.locations.france.phoneDisplay,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: COMPANY_PROFILE.locations.france.streetAddress,
+    postalCode: COMPANY_PROFILE.locations.france.postalCode,
+    addressLocality: COMPANY_PROFILE.locations.france.city,
+    addressCountry: "FR",
+  },
   areaServed: ["France", "Belgium", "Germany", "Netherlands", "Luxembourg"],
   knowsLanguage: ["fr-FR", "en-GB"],
-  contactPoint: {
-    "@type": "ContactPoint",
-    contactType: "customer support",
-    email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com",
-    availableLanguage: ["French", "English"],
-  },
+  contactPoint: [
+    {
+      "@type": "ContactPoint",
+      contactType: "customer support - Europe",
+      email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || COMPANY_PROFILE.email,
+      telephone: COMPANY_PROFILE.locations.france.phoneDisplay,
+      areaServed: "FR",
+      availableLanguage: ["French", "English"],
+    },
+    {
+      "@type": "ContactPoint",
+      contactType: "customer support - Côte d'Ivoire",
+      email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || COMPANY_PROFILE.email,
+      telephone: COMPANY_PROFILE.locations.ivoryCoast.phoneDisplay,
+      areaServed: "CI",
+      availableLanguage: ["French"],
+    },
+  ],
 };
 
 const website = {

@@ -100,6 +100,9 @@ describe("customer invoice document", () => {
     });
 
     expect(html).toContain("Livraison express");
+    expect(html).toContain("Je mange Africain");
+    expect(html).toContain("Promise Corporation");
+    expect(html).toContain("34 avenue du Président Salvador Allende");
   });
 
   it("uses stable invoice metadata and readable payment labels when supplied", () => {

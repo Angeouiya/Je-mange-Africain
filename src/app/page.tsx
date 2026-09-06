@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore, type ViewId, type ViewParams } from "@/lib/store";
@@ -10,18 +9,31 @@ import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
 
 const dynamicView = (loader: () => Promise<any>) => dynamic(loader, { loading: ViewLoading });
-const CatalogView = dynamicView(() => import("@/components/storefront/views/CatalogView").then((module) => module.CatalogView));
-const WholesaleView = dynamicView(() => import("@/components/storefront/views/WholesaleView").then((module) => module.WholesaleView));
-const ProductDetailView = dynamicView(() => import("@/components/storefront/views/ProductDetailView").then((module) => module.ProductDetailView));
-const RecipesView = dynamicView(() => import("@/components/storefront/views/RecipesView").then((module) => module.RecipesView));
-const RecipeConfiguratorView = dynamicView(() => import("@/components/storefront/views/RecipeConfiguratorView").then((module) => module.RecipeConfiguratorView));
-const CartView = dynamicView(() => import("@/components/storefront/views/CartView").then((module) => module.CartView));
-const CheckoutView = dynamicView(() => import("@/components/storefront/views/CheckoutView").then((module) => module.CheckoutView));
-const OrderConfirmationView = dynamicView(() => import("@/components/storefront/views/OrderConfirmationView").then((module) => module.OrderConfirmationView));
-const OrdersView = dynamicView(() => import("@/components/storefront/views/OrdersView").then((module) => module.OrdersView));
-const OrderTrackingView = dynamicView(() => import("@/components/storefront/views/OrderTrackingView").then((module) => module.OrderTrackingView));
-const AccountView = dynamicView(() => import("@/components/storefront/views/AccountView").then((module) => module.AccountView));
-const InfoView = dynamicView(() => import("@/components/storefront/views/InfoView").then((module) => module.InfoView));
+const loadCatalogView = () => import("@/components/storefront/views/CatalogView").then((module) => module.CatalogView);
+const loadWholesaleView = () => import("@/components/storefront/views/WholesaleView").then((module) => module.WholesaleView);
+const loadProductDetailView = () => import("@/components/storefront/views/ProductDetailView").then((module) => module.ProductDetailView);
+const loadRecipesView = () => import("@/components/storefront/views/RecipesView").then((module) => module.RecipesView);
+const loadRecipeConfiguratorView = () => import("@/components/storefront/views/RecipeConfiguratorView").then((module) => module.RecipeConfiguratorView);
+const loadCartView = () => import("@/components/storefront/views/CartView").then((module) => module.CartView);
+const loadCheckoutView = () => import("@/components/storefront/views/CheckoutView").then((module) => module.CheckoutView);
+const loadOrderConfirmationView = () => import("@/components/storefront/views/OrderConfirmationView").then((module) => module.OrderConfirmationView);
+const loadOrdersView = () => import("@/components/storefront/views/OrdersView").then((module) => module.OrdersView);
+const loadOrderTrackingView = () => import("@/components/storefront/views/OrderTrackingView").then((module) => module.OrderTrackingView);
+const loadAccountView = () => import("@/components/storefront/views/AccountView").then((module) => module.AccountView);
+const loadInfoView = () => import("@/components/storefront/views/InfoView").then((module) => module.InfoView);
+
+const CatalogView = dynamicView(loadCatalogView);
+const WholesaleView = dynamicView(loadWholesaleView);
+const ProductDetailView = dynamicView(loadProductDetailView);
+const RecipesView = dynamicView(loadRecipesView);
+const RecipeConfiguratorView = dynamicView(loadRecipeConfiguratorView);
+const CartView = dynamicView(loadCartView);
+const CheckoutView = dynamicView(loadCheckoutView);
+const OrderConfirmationView = dynamicView(loadOrderConfirmationView);
+const OrdersView = dynamicView(loadOrdersView);
+const OrderTrackingView = dynamicView(loadOrderTrackingView);
+const AccountView = dynamicView(loadAccountView);
+const InfoView = dynamicView(loadInfoView);
 
 export default function Page() {
   const view = useStore((s) => s.view);
@@ -40,6 +52,7 @@ export default function Page() {
           : view;
 
   useEffect(() => {
+    void useStore.persist.rehydrate();
     const sessionSubject = useStore.getState().customer?.id || null;
     const applyLocation = () => {
       const destination = storefrontDestination(new URLSearchParams(window.location.search));
@@ -76,6 +89,29 @@ export default function Page() {
   }, [navigate]);
 
   useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
+    const preloadPrimaryViews = () => {
+      void Promise.allSettled([
+        loadCatalogView(),
+        loadProductDetailView(),
+        loadRecipesView(),
+        loadCartView(),
+      ]);
+    };
+    const browser = window as typeof window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    if (browser.requestIdleCallback) {
+      const handle = browser.requestIdleCallback(preloadPrimaryViews, { timeout: 1_500 });
+      return () => browser.cancelIdleCallback?.(handle);
+    }
+    const timeout = window.setTimeout(preloadPrimaryViews, 700);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
     if (!mounted) return;
     if (view === "home" && !new URLSearchParams(window.location.search).has("view")) return;
     if (view === "checkout" && new URLSearchParams(window.location.search).has("payment_intent")) return;
@@ -96,20 +132,6 @@ export default function Page() {
     };
   }, [mounted, viewIdentity]);
 
-  // Avoid hydration mismatch: render a stable shell on first paint
-  if (!mounted) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-cream">
-        <div className="flex flex-col items-center gap-3">
-          <Image src="/brand/app-icon-192-burgundy.png" alt="Je mange Africain" width={96} height={96} loading="eager" fetchPriority="high" className="h-20 w-20 animate-pulse rounded-lg object-contain" />
-          <div className="h-1 w-24 overflow-hidden rounded-full bg-muted">
-            <div className="shimmer h-full w-full" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const isPublicAuthGate = view === "account" && !customer;
 
   return (
@@ -118,13 +140,13 @@ export default function Page() {
       <div className={`flex min-h-screen flex-col ${isPublicAuthGate ? "" : "md:pl-64"}`}>
       {isPublicAuthGate ? null : <Header />}
       <main id="main-content" tabIndex={-1} className={isPublicAuthGate ? "flex-1" : "flex-1 pb-20 md:pb-0"}>
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false} mode="sync">
           <motion.div
             key={viewIdentity}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: 0.12 }}
           >
             {renderView(view)}
           </motion.div>

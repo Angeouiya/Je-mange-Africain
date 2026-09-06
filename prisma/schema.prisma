@@ -653,11 +653,11 @@ model AdminMembership {
 model PlatformConfiguration {
   id                   String   @id @default("primary")
   supportEmail         String   @default("bonjour@je-mange-africain.com")
-  supportPhone         String   @default("")
+  supportPhone         String   @default("+33 7 69 59 16 42")
   supportHoursFr       String   @default("Du lundi au vendredi, de 9 h à 18 h")
   supportHoursEn       String   @default("Monday to Friday, 9am to 6pm")
   supportResponseHours Int      @default(48)
-  businessCity         String   @default("Paris")
+  businessCity         String   @default("Montreuil")
   businessCountry      String   @default("France")
   updatedBy            String?
   createdAt            DateTime @default(now())

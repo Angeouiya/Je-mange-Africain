@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import {
   ChefHat,
   Boxes,
+  Building2,
   CircleHelp,
   ClipboardList,
   Info,
@@ -27,6 +28,7 @@ import { LanguageSwitch } from "@/components/shared/LanguageSwitch";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
+import { COMPANY_PROFILE } from "@/lib/company-profile";
 
 const NotificationCenter = dynamic(
   () => import("@/components/storefront/NotificationCenter").then((module) => module.NotificationCenter),
@@ -133,6 +135,10 @@ export function Header() {
               <div className="mt-4 border-t border-border pt-3">
                 <LanguageSwitch />
               </div>
+              <p className="mt-4 flex items-center gap-2 border-t border-border px-3 pt-3 text-[10px] font-bold text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5 shrink-0 text-burgundy" />
+                {locale === "fr" ? "Créée par" : "Created by"} {COMPANY_PROFILE.legalName}
+              </p>
             </nav>
           </SheetContent>
         </Sheet>

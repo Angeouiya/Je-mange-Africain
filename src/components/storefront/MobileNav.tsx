@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, LayoutGrid, Boxes, ChefHat, ShoppingBag, User, Settings, LifeBuoy, LogIn, LogOut, ClipboardList, SlidersHorizontal } from "lucide-react";
+import { Home, LayoutGrid, Boxes, ChefHat, ShoppingBag, User, Settings, LifeBuoy, LogIn, LogOut, ClipboardList, SlidersHorizontal, Building2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore, ViewId, cartCount } from "@/lib/store";
 import { dict } from "@/lib/i18n";
@@ -10,6 +10,7 @@ import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog
 import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 import { clientPrimaryNavigationTarget, clientSidebarUtilityTarget } from "@/lib/client-navigation";
+import { COMPANY_PROFILE } from "@/lib/company-profile";
 
 export function MobileNav() {
   const locale = useStore((s) => s.locale);
@@ -168,6 +169,10 @@ export function MobileNav() {
               <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-terre transition hover:bg-terre/5"><LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
             </LogoutConfirmDialog>
           ) : null}
+          <p className="mt-2 flex items-center gap-2 border-t border-burgundy/8 px-3 pt-2 text-[9px] font-bold leading-4 text-muted-foreground">
+            <Building2 className="h-3.5 w-3.5 shrink-0 text-burgundy" />
+            <span>{locale === "fr" ? "Créée par" : "Created by"} {COMPANY_PROFILE.legalName}</span>
+          </p>
         </div>
       </aside>
     </>

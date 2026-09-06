@@ -4,6 +4,7 @@ import { BrandLockup } from "@/components/shared/BrandLockup";
 import { DocumentLocaleSync } from "@/components/shared/DocumentLocaleSync";
 import { LegalDocument, type LegalKind } from "@/components/storefront/LegalDocument";
 import type { Locale } from "@/lib/i18n";
+import { COMPANY_PROFILE } from "@/lib/company-profile";
 
 const copy = {
   fr: {
@@ -56,14 +57,17 @@ export function PublicLegalPage({ kind, locale, pathname }: { kind: LegalKind; l
 
       <footer className="border-t border-border bg-muted/30">
         <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-6 text-xs sm:flex-row sm:items-center sm:justify-between lg:px-6">
-          <nav aria-label={text.legal} className="flex flex-wrap items-center gap-x-5 gap-y-2 font-bold">
-            <Link href={`/conditions-generales?lang=${locale}`} className="hover:text-terre hover:underline">{text.terms}</Link>
-            <Link href={`/confidentialite?lang=${locale}`} className="hover:text-terre hover:underline">{text.privacy}</Link>
-          </nav>
-          <a href="mailto:bonjour@je-mange-africain.com" className="inline-flex w-fit max-w-full items-center gap-2 text-muted-foreground hover:text-terre">
+          <div>
+            <nav aria-label={text.legal} className="flex flex-wrap items-center gap-x-5 gap-y-2 font-bold">
+              <Link href={`/conditions-generales?lang=${locale}`} className="hover:text-terre hover:underline">{text.terms}</Link>
+              <Link href={`/confidentialite?lang=${locale}`} className="hover:text-terre hover:underline">{text.privacy}</Link>
+            </nav>
+            <p className="mt-2 text-[11px] text-muted-foreground">Je mange Africain · {locale === "fr" ? "Une création de" : "Created by"} {COMPANY_PROFILE.legalName}</p>
+          </div>
+          <a href={`mailto:${COMPANY_PROFILE.email}`} className="inline-flex w-fit max-w-full items-center gap-2 text-muted-foreground hover:text-terre">
             <Mail className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{text.contact}</span>
-            <strong className="break-all text-charcoal">bonjour@je-mange-africain.com</strong>
+            <strong className="break-all text-charcoal">{COMPANY_PROFILE.email}</strong>
           </a>
         </div>
       </footer>

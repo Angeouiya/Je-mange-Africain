@@ -87,7 +87,7 @@ export const dict = {
 
     // Home sections
     home: {
-      heroBadge: "Application premium d'épicerie africaine",
+      heroBadge: "Épicerie africaine",
       heroTitle: "Je mange Africain\nl'excellence livrée.",
       heroSubtitle: "Une sélection exigeante de produits africains, des recettes intelligentes, des paniers calculés et une livraison suivie pour cuisiner juste, vite et avec fierté.",
       heroCtaCatalog: "Découvrir le marché",

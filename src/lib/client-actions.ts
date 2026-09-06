@@ -1,5 +1,6 @@
 import { paymentMethodLabel } from "@/lib/payment-methods";
 import { europeanCountryLabel } from "@/lib/european-countries";
+import { COMPANY_PROFILE, PRIMARY_BUSINESS_LOCATION } from "@/lib/company-profile";
 
 const escapeHtml = (value: unknown) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -9,6 +10,7 @@ const escapeHtml = (value: unknown) => String(value ?? "")
   .replaceAll("'", "&#039;");
 
 type InvoiceCompany = {
+  brandName: string;
   name: string;
   address: string;
   legalFormCapital: string;
@@ -80,13 +82,14 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
   const currency = new Intl.NumberFormat(language, { style: "currency", currency: currencyCode });
   const formatMoney = (value: unknown) => currency.format(finiteNumber(value));
   const company: InvoiceCompany = {
-    name: options.company?.name || "Je mange Africain",
-    address: options.company?.address || "",
+    brandName: options.company?.brandName || COMPANY_PROFILE.brandName,
+    name: options.company?.name || COMPANY_PROFILE.legalName,
+    address: options.company?.address || PRIMARY_BUSINESS_LOCATION.addressLine,
     legalFormCapital: options.company?.legalFormCapital || "",
     registration: options.company?.registration || "",
     vat: options.company?.vat || "",
-    email: options.company?.email || "bonjour@je-mange-africain.com",
-    phone: options.company?.phone || "",
+    email: options.company?.email || COMPANY_PROFILE.email,
+    phone: options.company?.phone || PRIMARY_BUSINESS_LOCATION.phoneDisplay,
     paymentTerms: options.company?.paymentTerms || "",
     earlyPaymentTerms: options.company?.earlyPaymentTerms || "",
     latePaymentTerms: options.company?.latePaymentTerms || "",
@@ -211,7 +214,7 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
 <div class="toolbar" role="toolbar" aria-label="${escapeHtml(isFr ? "Actions de la facture" : "Invoice actions")}"><strong>${escapeHtml(isFr ? "Facture" : "Invoice")} ${escapeHtml(invoiceNumber)}</strong><button type="button" onclick="window.print()">${escapeHtml(isFr ? "Imprimer / PDF" : "Print / PDF")}</button></div>
 <main class="page" data-company-profile="${company.address && company.registration ? "complete" : "incomplete"}">
   <header class="header">
-    <div class="brand"><img src="${escapeHtml(logoUrl)}" alt="Je mange Africain"><div><h1>${escapeHtml(company.name)}</h1><p>${escapeHtml(isFr ? "Saveurs africaines, livrées avec soin" : "African flavours, delivered with care")}</p></div></div>
+    <div class="brand"><img src="${escapeHtml(logoUrl)}" alt="Je mange Africain"><div><h1>${escapeHtml(company.brandName)}</h1><p>${escapeHtml(isFr ? `Une création de ${company.name}` : `Created by ${company.name}`)}</p></div></div>
     <div class="meta"><span class="status">${escapeHtml(paymentStatusLabel)}</span><strong class="document-title">${escapeHtml(isFr ? "FACTURE" : "INVOICE")}</strong><dl><dt>${escapeHtml(isFr ? "Numéro" : "Number")}</dt><dd>${escapeHtml(invoiceNumber)}</dd><dt>${escapeHtml(isFr ? "Émission" : "Issued")}</dt><dd>${escapeHtml(issueDate)}</dd><dt>${escapeHtml(isFr ? "Vente" : "Sale")}</dt><dd>${escapeHtml(saleDate)}</dd><dt>${escapeHtml(isFr ? "Devise" : "Currency")}</dt><dd>${escapeHtml(currencyCode)}</dd><dt>${escapeHtml(isFr ? "Opération" : "Supply")}</dt><dd>${escapeHtml(isFr ? "Livraison de biens" : "Supply of goods")}</dd></dl></div>
   </header>
   <section class="identity-grid no-break">
@@ -226,7 +229,7 @@ export function buildOrderInvoiceHtml(order: Record<string, any>, locale: "fr" |
     <div class="operation"><h2>${escapeHtml(isFr ? "Livraison" : "Delivery")}</h2>${deliveryDetails ? `<div class="identity-address">${deliveryDetails}</div>` : ""}<dl>${deliveryServiceLabel ? `<div class="fact"><dt>${escapeHtml(isFr ? "Service" : "Service")}</dt><dd>${escapeHtml(deliveryServiceLabel)}</dd></div>` : ""}${shipmentRows}</dl></div>
   </section>
   ${legalTerms ? `<section class="terms no-break">${legalTerms}</section>` : ""}
-  <footer class="footer"><div><strong>${escapeHtml(company.name)}</strong><span>je-mange-africain.com</span></div><div class="footer-note"><span>${escapeHtml(isFr ? "Merci pour votre confiance." : "Thank you for your trust.")}</span><span>${escapeHtml(isFr ? "Conservez ce document comme justificatif d'achat." : "Keep this document as proof of purchase.")}</span></div></footer>
+  <footer class="footer"><div><strong>${escapeHtml(company.brandName)}</strong><span>${escapeHtml(isFr ? `Créée par ${company.name}` : `Created by ${company.name}`)}</span><span>je-mange-africain.com</span></div><div class="footer-note"><span>${escapeHtml(isFr ? "Merci pour votre confiance." : "Thank you for your trust.")}</span><span>${escapeHtml(isFr ? "Conservez ce document comme justificatif d'achat." : "Keep this document as proof of purchase.")}</span></div></footer>
 </main></body></html>`;
 }
 
@@ -234,13 +237,14 @@ export function downloadOrderInvoice(order: Record<string, any>, locale: "fr" | 
   const html = buildOrderInvoiceHtml(order, locale, {
     baseUrl: window.location.origin,
     company: {
-      name: process.env.NEXT_PUBLIC_COMPANY_LEGAL_NAME || "Je mange Africain",
-      address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS || "",
+      brandName: COMPANY_PROFILE.brandName,
+      name: process.env.NEXT_PUBLIC_COMPANY_LEGAL_NAME || COMPANY_PROFILE.legalName,
+      address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS || PRIMARY_BUSINESS_LOCATION.addressLine,
       legalFormCapital: process.env.NEXT_PUBLIC_COMPANY_LEGAL_FORM_CAPITAL || "",
       registration: process.env.NEXT_PUBLIC_COMPANY_REGISTRATION || "",
       vat: process.env.NEXT_PUBLIC_COMPANY_VAT_NUMBER || "",
-      email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com",
-      phone: process.env.NEXT_PUBLIC_COMPANY_PHONE || "",
+      email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || COMPANY_PROFILE.email,
+      phone: process.env.NEXT_PUBLIC_COMPANY_PHONE || PRIMARY_BUSINESS_LOCATION.phoneDisplay,
       paymentTerms: process.env.NEXT_PUBLIC_COMPANY_PAYMENT_TERMS || "",
       earlyPaymentTerms: process.env.NEXT_PUBLIC_COMPANY_EARLY_PAYMENT_TERMS || "",
       latePaymentTerms: process.env.NEXT_PUBLIC_COMPANY_LATE_PAYMENT_TERMS || "",

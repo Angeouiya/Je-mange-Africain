@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { COMPANY_PROFILE, PRIMARY_BUSINESS_LOCATION } from "@/lib/company-profile";
 
 export const PLATFORM_CONFIGURATION_ID = "primary";
 
@@ -26,13 +27,13 @@ export type PublicPlatformConfiguration = {
 };
 
 export const DEFAULT_PLATFORM_CONFIGURATION: PlatformConfigurationValues = {
-  supportEmail: process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com",
-  supportPhone: process.env.NEXT_PUBLIC_COMPANY_PHONE || "",
+  supportEmail: process.env.NEXT_PUBLIC_COMPANY_EMAIL || COMPANY_PROFILE.email,
+  supportPhone: process.env.NEXT_PUBLIC_COMPANY_PHONE || PRIMARY_BUSINESS_LOCATION.phoneDisplay,
   supportHoursFr: "Du lundi au vendredi, de 9 h à 18 h",
   supportHoursEn: "Monday to Friday, 9am to 6pm",
   supportResponseHours: 48,
-  businessCity: "Paris",
-  businessCountry: "France",
+  businessCity: PRIMARY_BUSINESS_LOCATION.city,
+  businessCountry: PRIMARY_BUSINESS_LOCATION.country,
 };
 
 type StoredPlatformConfiguration = Partial<PlatformConfigurationValues> & {

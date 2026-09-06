@@ -1,7 +1,13 @@
 {
-  "name": "nextjs_tailwind_shadcn_ts",
+  "name": "je-mange-africain",
   "version": "0.2.1",
   "private": true,
+  "imports": {
+    "#database-runtime": {
+      "workerd": "./src/lib/db.cloudflare.ts",
+      "default": "./src/lib/db.node.ts"
+    }
+  },
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "npm run db:generate:all && next build --webpack && node -e \"const fs=require('fs'); if (fs.existsSync('.next/standalone')) { fs.cpSync('.next/static','.next/standalone/.next/static',{recursive:true,force:true}); fs.cpSync('public','.next/standalone/public',{recursive:true,force:true}); }\"",
@@ -17,7 +23,11 @@
     "db:generate:all": "npm run db:generate && npm run db:generate:postgres",
     "db:migrate:postgres": "prisma migrate deploy --schema prisma/postgresql/schema.prisma",
     "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "dev:vinext": "vinext dev --port 3001",
+    "build:vinext": "npm run db:generate:postgres && vinext build",
+    "start:vinext": "wrangler dev --config dist/server/wrangler.json",
+    "deploy:vinext": "npm run db:generate:postgres && vinext-cloudflare deploy --config dist/server/wrangler.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -25,6 +35,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.1.1",
     "@mdxeditor/editor": "^3.39.1",
+    "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.11.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -60,6 +71,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.3",
+    "@vinext/cloudflare": "^1.0.0-beta.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -72,6 +84,7 @@
     "next-auth": "^4.24.11",
     "next-intl": "^4.3.4",
     "next-themes": "^0.4.6",
+    "pg": "^8.16.3",
     "prisma": "^6.11.1",
     "react": "^19.0.0",
     "react-day-picker": "^9.8.0",
@@ -79,6 +92,7 @@
     "react-hook-form": "^7.60.0",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^3.0.3",
+    "react-server-dom-webpack": "^19.2.8",
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.15.4",
     "schema-dts": "^2.0.0",
@@ -89,6 +103,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
+    "vinext": "^1.0.0-beta.9",
     "web-push": "^3.6.7",
     "z-ai-web-dev-sdk": "^0.0.18",
     "zod": "^4.0.2",
@@ -96,21 +111,28 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@cloudflare/vite-plugin": "^1.54.4",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
+    "@types/pg": "^8.15.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.2.0",
+    "@vitejs/plugin-rsc": "^0.5.34",
     "bun-types": "^1.3.4",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5",
-    "vitest": "^4.1.11"
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.129.0"
   },
   "overrides": {
     "deepmerge-ts": "8.0.2",
     "js-yaml": "4.3.1",
     "prismjs": "1.30.0"
-  }
+  },
+  "type": "module"
 }

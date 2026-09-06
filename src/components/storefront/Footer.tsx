@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { Globe2, Mail, SlidersHorizontal } from "lucide-react";
+import { Building2, Globe2, Mail, MapPin, Phone, SlidersHorizontal } from "lucide-react";
 import { useStore, ViewId } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
+import { COMPANY_PROFILE } from "@/lib/company-profile";
 
 export function Footer() {
   const locale = useStore((s) => s.locale);
@@ -47,8 +48,22 @@ export function Footer() {
               <p className="text-xs font-semibold uppercase text-terre">Épicerie mobile</p>
             </div>
           </div>
+          <p className="flex items-center gap-2 text-[11px] font-bold text-burgundy">
+            <Building2 className="h-3.5 w-3.5 shrink-0" />
+            {locale === "fr" ? "Une création de" : "Created by"} {COMPANY_PROFILE.legalName}
+          </p>
           <p className="text-sm text-muted-foreground">{t.footer.aboutDesc}</p>
-          <div className="space-y-1.5 pt-2 text-xs text-muted-foreground"><a href="mailto:bonjour@je-mange-africain.com" className="flex items-center gap-2 transition hover:text-terre"><Mail className="h-3.5 w-3.5" /> bonjour@je-mange-africain.com</a><a href="https://je-mange-africain.com" className="flex items-center gap-2 transition hover:text-terre"><Globe2 className="h-3.5 w-3.5" /> je-mange-africain.com</a></div>
+          <address className="space-y-3 pt-2 text-xs not-italic text-muted-foreground">
+            {Object.values(COMPANY_PROFILE.locations).map((location) => (
+              <div key={location.phoneHref} className="border-l-2 border-gold/50 pl-3">
+                <p className="font-bold text-charcoal">{locale === "fr" ? location.labelFr : location.labelEn}</p>
+                <a href={`tel:${location.phoneHref}`} className="mt-1 flex items-center gap-2 transition hover:text-terre"><Phone className="h-3.5 w-3.5 shrink-0" />{location.phoneDisplay}</a>
+                <p className="mt-1 flex items-start gap-2 leading-5"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>{location.addressLine}</span></p>
+              </div>
+            ))}
+            <a href={`mailto:${COMPANY_PROFILE.email}`} className="flex items-center gap-2 transition hover:text-terre"><Mail className="h-3.5 w-3.5 shrink-0" />{COMPANY_PROFILE.email}</a>
+            <a href={COMPANY_PROFILE.website} className="flex items-center gap-2 transition hover:text-terre"><Globe2 className="h-3.5 w-3.5 shrink-0" />je-mange-africain.com</a>
+          </address>
         </div>
 
         {/* shop */}
@@ -80,7 +95,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-burgundy/10 bg-white/45 py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Je mange Africain · {t.footer.rights}
+        © {new Date().getFullYear()} Je mange Africain · {COMPANY_PROFILE.legalName} · {t.footer.rights}
       </div>
     </footer>
   );

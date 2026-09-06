@@ -129,16 +129,15 @@ export function HomeView() {
           <div className="absolute inset-0 bg-burgundy/58 md:bg-gradient-to-r md:from-burgundy/95 md:via-burgundy/62 md:to-terre/10" />
         </div>
         <div className="relative mx-auto flex min-h-[13.5rem] max-w-7xl flex-col justify-end gap-2 px-4 py-4 md:min-h-[22rem] md:justify-center md:gap-4 md:px-12 md:py-10">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-center gap-3">
+          <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
             <Badge className="border-0 bg-transparent p-0 text-[9px] font-extrabold uppercase text-gold shadow-none md:text-[10px]">
               <Sparkles className="mr-1 h-3 w-3" /> {t.home.heroBadge}
             </Badge>
             <HomeDeliveryContext variant="desktop" />
           </motion.div>
           <motion.h1
-            initial={{ opacity: 0, y: 14 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.08 }}
             className="max-w-3xl font-display text-[1.55rem] font-semibold leading-[1.05] text-white sm:text-3xl md:text-[2.8rem]"
           >
             {t.home.heroTitle.split("\n").map((line, index) => (
@@ -149,17 +148,15 @@ export function HomeView() {
             ))}
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 14 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.14 }}
             className="line-clamp-2 max-w-xl text-[10px] leading-4 text-white/88 sm:text-xs md:text-sm md:leading-6"
           >
             {t.home.heroSubtitle}
           </motion.p>
           <motion.div
-            initial={{ opacity: 0, y: 14 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.2 }}
             className="flex gap-2"
           >
             <Button onClick={() => navigate("catalog")} className="h-9 bg-terre px-3 text-[11px] text-white shadow-lg hover:bg-terre-dark md:h-11 md:px-5 md:text-sm">

@@ -42,6 +42,7 @@ import { LegalDocument } from "@/components/storefront/LegalDocument";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { useFetch } from "@/lib/use-fetch";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
+import { COMPANY_PROFILE, PRIMARY_BUSINESS_LOCATION } from "@/lib/company-profile";
 
 interface ContactFormState {
   name: string;
@@ -340,11 +341,11 @@ function ContactForm({ locale, initialReason, configuration }: { locale: "fr" | 
   const [status, setStatus] = useState<"idle" | "busy" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [reference, setReference] = useState("");
-  const companyPhone = configuration?.support.phone || process.env.NEXT_PUBLIC_COMPANY_PHONE || "";
-  const supportEmail = configuration?.support.email || process.env.NEXT_PUBLIC_COMPANY_EMAIL || "bonjour@je-mange-africain.com";
+  const companyPhone = configuration?.support.phone || process.env.NEXT_PUBLIC_COMPANY_PHONE || PRIMARY_BUSINESS_LOCATION.phoneDisplay;
+  const supportEmail = configuration?.support.email || process.env.NEXT_PUBLIC_COMPANY_EMAIL || COMPANY_PROFILE.email;
   const supportHours = configuration?.support.hours[locale] || (isFr ? "Du lundi au vendredi, de 9 h à 18 h" : "Monday to Friday, 9am to 6pm");
   const supportResponseHours = configuration?.support.responseHours || 48;
-  const businessLocation = configuration ? `${configuration.location.city}, ${configuration.location.country}` : "Paris, France";
+  const businessLocation = configuration ? `${configuration.location.city}, ${configuration.location.country}` : `${PRIMARY_BUSINESS_LOCATION.city}, ${PRIMARY_BUSINESS_LOCATION.country}`;
   const orderRelevant = ["order", "delivery", "product"].includes(form.reason);
   const readyChecks = [form.name.trim().length >= 2, /^\S+@\S+\.\S+$/.test(form.email), form.subject.trim().length >= 3, form.message.trim().length >= 10];
   const readyCount = readyChecks.filter(Boolean).length;
@@ -515,7 +516,19 @@ function AboutStory({ locale, promise, onCatalog, onRecipes }: { locale: "fr" | 
           <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(90,38,50,0.02),rgba(90,38,50,0.78))]" />
           <figcaption className="absolute inset-x-0 bottom-0 p-5 font-display text-2xl font-semibold leading-tight text-white sm:p-7 sm:text-3xl">{promise}</figcaption>
         </figure>
-        <div className="mt-5 space-y-3 text-sm leading-7 text-charcoal"><p>{isFr ? "Je mange Africain est une épicerie digitale installée en France, née pour rendre les produits authentiques de la cuisine africaine aussi simples à trouver qu'à cuisiner." : "Je mange Africain is a digital grocery based in France, created to make authentic African ingredients as easy to find as they are to cook."}</p><p>{isFr ? "La plateforme n'est pas une marketplace : l'entreprise reste l'unique vendeuse et conserve la maîtrise de la sélection, des prix, des stocks et de la qualité logistique." : "The platform is not a marketplace: the company remains the sole seller and controls selection, pricing, inventory and logistics quality."}</p></div>
+        <div className="mt-5 space-y-3 text-sm leading-7 text-charcoal"><p>{isFr ? `Je mange Africain est une épicerie digitale créée par ${COMPANY_PROFILE.legalName}, née pour rendre les produits authentiques de la cuisine africaine aussi simples à trouver qu'à cuisiner.` : `Je mange Africain is a digital grocery created by ${COMPANY_PROFILE.legalName}, built to make authentic African ingredients as easy to find as they are to cook.`}</p><p>{isFr ? "La plateforme n'est pas une marketplace : l'entreprise reste l'unique vendeuse et conserve la maîtrise de la sélection, des prix, des stocks et de la qualité logistique." : "The platform is not a marketplace: the company remains the sole seller and controls selection, pricing, inventory and logistics quality."}</p></div>
+        <section className="mt-5 border-y border-burgundy/10 bg-[#FFF8F4] px-4 py-4" aria-label={isFr ? "Implantations de Promise Corporation" : "Promise Corporation locations"}>
+          <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-burgundy" /><p className="text-xs font-black text-charcoal">{COMPANY_PROFILE.legalName}</p></div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {Object.values(COMPANY_PROFILE.locations).map((location) => (
+              <address key={location.phoneHref} className="min-w-0 border-l-2 border-gold/60 pl-3 text-[11px] not-italic leading-5 text-muted-foreground">
+                <p className="font-black text-charcoal">{isFr ? location.labelFr : location.labelEn}</p>
+                <a href={`tel:${location.phoneHref}`} className="mt-1 flex items-center gap-2 font-bold text-burgundy hover:text-terre"><Phone className="h-3.5 w-3.5 shrink-0" />{location.phoneDisplay}</a>
+                <p className="mt-1 flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-terre" /><span>{location.addressLine}</span></p>
+              </address>
+            ))}
+          </div>
+        </section>
       </div>
       <aside className="self-start border-t border-charcoal/8 pt-5 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
         <p className="jma-eyebrow">{isFr ? "Notre modèle" : "Our model"}</p>

@@ -366,6 +366,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: "jma-store",
+      skipHydration: true,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         locale: s.locale,

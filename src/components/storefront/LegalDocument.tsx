@@ -1,5 +1,6 @@
 import type { Locale } from "@/lib/i18n";
 import { FileCheck2, Mail } from "lucide-react";
+import { COMPANY_PROFILE } from "@/lib/company-profile";
 
 export type LegalKind = "terms" | "privacy" | "cookies" | "delivery";
 
@@ -22,15 +23,16 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
     terms: {
       eyebrow: "Cadre contractuel",
       title: "Conditions générales d'utilisation et de vente",
-      updated: "Dernière mise à jour : 2 septembre 2026",
+      updated: "Dernière mise à jour : 6 septembre 2026",
       intro:
-        "Les présentes conditions encadrent l'accès, la navigation, la création de compte, l'achat de produits alimentaires, l'utilisation du configurateur de recettes et les services associés proposés par Je mange Africain. Toute utilisation de la plateforme vaut acceptation pleine et entière de ces conditions, sous réserve des dispositions impératives du droit applicable.",
+        `Les présentes conditions encadrent l'accès, la navigation, la création de compte, l'achat de produits alimentaires, l'utilisation du configurateur de recettes et les services associés proposés par Je mange Africain, plateforme créée par ${COMPANY_PROFILE.legalName}. Toute utilisation de la plateforme vaut acceptation pleine et entière de ces conditions, sous réserve des dispositions impératives du droit applicable.`,
       sections: [
         {
-          title: "1. Rôle de Je mange Africain",
+          title: "1. Éditeur, rôle et coordonnées",
           paragraphs: [
-            "Je mange Africain exploite une épicerie africaine digitale. La plateforme n'est pas une marketplace ouverte : les produits proposés sont sélectionnés, présentés, commercialisés ou organisés sous le contrôle de Je mange Africain.",
+            `Je mange Africain est une épicerie africaine digitale créée par ${COMPANY_PROFILE.legalName}. La plateforme n'est pas une marketplace ouverte : les produits proposés sont sélectionnés, présentés, commercialisés ou organisés sous son contrôle.`,
             "Je mange Africain se réserve le droit de modifier l'offre, les zones desservies, les prix, les frais, les fonctionnalités, les recettes, les conditions promotionnelles et les modalités de livraison afin de préserver la qualité, la sécurité, la conformité ou l'équilibre économique du service.",
+            `${COMPANY_PROFILE.legalName} peut être contactée en France au ${COMPANY_PROFILE.locations.france.phoneDisplay}, ${COMPANY_PROFILE.locations.france.addressLine}, et en Côte d'Ivoire au ${COMPANY_PROFILE.locations.ivoryCoast.phoneDisplay}, ${COMPANY_PROFILE.locations.ivoryCoast.addressLine}.`,
           ],
         },
         {
@@ -100,14 +102,14 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
     privacy: {
       eyebrow: "Données personnelles",
       title: "Politique de confidentialité",
-      updated: "Dernière mise à jour : 2 septembre 2026",
+      updated: "Dernière mise à jour : 6 septembre 2026",
       intro:
         "Cette politique explique comment Je mange Africain collecte, utilise, conserve et protège les données personnelles nécessaires à l'exploitation de son épicerie digitale, de son compte client, de son panier, de son configurateur de recettes, de ses paiements, de sa livraison et de son service client.",
       sections: [
         {
           title: "1. Responsable du traitement",
           paragraphs: [
-            "Le responsable du traitement est l'entité exploitant Je mange Africain, telle qu'identifiée dans les mentions légales de la plateforme. Pour toute demande liée aux données personnelles, l'utilisateur peut contacter : confidentialite@je-mange-africain.com.",
+            `${COMPANY_PROFILE.legalName}, société créatrice de Je mange Africain, est responsable du traitement des données de la plateforme. Elle peut être contactée à ${COMPANY_PROFILE.locations.france.addressLine}. Pour toute demande liée aux données personnelles, l'utilisateur peut écrire à ${COMPANY_PROFILE.privacyEmail}.`,
             "Lorsque certains services sont fournis par des partenaires techniques, de paiement, de livraison ou d'assistance, ceux-ci agissent selon leur rôle propre ou comme sous-traitants conformément au droit applicable.",
           ],
         },
@@ -216,15 +218,16 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
     terms: {
       eyebrow: "Contractual framework",
       title: "Terms of use and sale",
-      updated: "Last updated: September 2, 2026",
+      updated: "Last updated: September 6, 2026",
       intro:
-        "These terms govern access to Je mange Africain, account creation, food product purchases, recipe configuration and related services. Using the platform means accepting these terms, subject to mandatory applicable law.",
+        `These terms govern access to Je mange Africain, a platform created by ${COMPANY_PROFILE.legalName}, account creation, food product purchases, recipe configuration and related services. Using the platform means accepting these terms, subject to mandatory applicable law.`,
       sections: [
         {
-          title: "1. Je mange Africain's role",
+          title: "1. Publisher, role and contact details",
           paragraphs: [
-            "Je mange Africain operates a digital African grocery. It is not an open marketplace: products are selected, presented, sold or organized under Je mange Africain's control.",
+            `Je mange Africain is a digital African grocery platform created by ${COMPANY_PROFILE.legalName}. It is not an open marketplace: products are selected, presented, sold or organized under its control.`,
             "Je mange Africain may change the offer, covered areas, prices, fees, features, recipes, promotions and delivery methods to preserve quality, security, compliance or business balance.",
+            `${COMPANY_PROFILE.legalName} may be contacted in France at ${COMPANY_PROFILE.locations.france.phoneDisplay}, ${COMPANY_PROFILE.locations.france.addressLine}, and in Côte d'Ivoire at ${COMPANY_PROFILE.locations.ivoryCoast.phoneDisplay}, ${COMPANY_PROFILE.locations.ivoryCoast.addressLine}.`,
           ],
         },
         {
@@ -285,14 +288,14 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
     privacy: {
       eyebrow: "Personal data",
       title: "Privacy policy",
-      updated: "Last updated: September 2, 2026",
+      updated: "Last updated: September 6, 2026",
       intro:
         "This policy explains how Je mange Africain collects, uses, stores and protects personal data required to operate its digital grocery, customer account, basket, recipe configurator, payments, delivery and support.",
       sections: [
         {
           title: "1. Controller",
           paragraphs: [
-            "The controller is the entity operating Je mange Africain, as identified in the platform's legal notices. Data requests may be sent to confidentialite@je-mange-africain.com.",
+            `${COMPANY_PROFILE.legalName}, the company that created Je mange Africain, is the platform's data controller. It may be contacted at ${COMPANY_PROFILE.locations.france.addressLine}. Personal data requests may be sent to ${COMPANY_PROFILE.privacyEmail}.`,
             "Technical, payment, delivery or support partners act according to their own role or as processors under applicable law.",
           ],
         },
@@ -375,7 +378,7 @@ const legalContent: Record<Locale, Record<LegalKind, LegalContent>> = {
 export function LegalDocument({ kind, locale }: { kind: LegalKind; locale: Locale }) {
   const doc = legalContent[locale][kind];
   const summaryLabel = locale === "fr" ? "Sommaire du document" : "Document contents";
-  const contactEmail = kind === "privacy" ? "confidentialite@je-mange-africain.com" : "bonjour@je-mange-africain.com";
+  const contactEmail = kind === "privacy" ? COMPANY_PROFILE.privacyEmail : COMPANY_PROFILE.email;
 
   return (
     <article lang={locale} className="text-sm leading-relaxed text-charcoal">
