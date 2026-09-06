@@ -1020,6 +1020,8 @@ test("privacy choices are granular, durable and equally easy to refuse", async (
 });
 
 test("the customer workspace edits identity and manages a persistent address book", async ({ page }) => {
+  const narrowMobile = (page.viewportSize()?.width || 0) < 768;
+  if (narrowMobile) await page.setViewportSize({ width: 320, height: 700 });
   let account = {
     customer: { id: "customer-account", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 180, walletCredit: 12.5, preferredLang: "fr" },
     addresses: [{ id: "address-home", label: "Domicile", firstName: "Awa", lastName: "Traore", street: "12 rue des Cultures", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678", isDefault: true }],
@@ -1073,10 +1075,18 @@ test("the customer workspace edits identity and manages a persistent address boo
   await expect(page.getByRole("button", { name: /mes adresses|my addresses/i })).toBeVisible();
   const identityHeader = page.getByTestId("account-identity-header");
   await expect.poll(() => identityHeader.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 248, 244)");
-  await expect(page.getByTestId("account-command-summary")).toContainText("180 pts");
-  await expect(page.getByTestId("account-command-summary")).toContainText(/commandes\s*0|orders\s*0/i);
-  await expect(page.getByTestId("account-command-summary")).toContainText(/adresses\s*1|addresses\s*1/i);
-  await expect(page.getByTestId("account-command-summary")).toContainText(/devis\s*1|quotes\s*1/i);
+  const accountSummary = page.getByTestId("account-command-summary");
+  await expect(accountSummary).toContainText("180 pts");
+  await expect(accountSummary).toContainText(/commandes\s*0|orders\s*0/i);
+  await expect(accountSummary).toContainText(/adresses\s*1|addresses\s*1/i);
+  await expect(accountSummary).toContainText(/devis\s*1|quotes\s*1/i);
+  if (narrowMobile) {
+    const summaryLabelGeometry = await accountSummary.locator("[data-summary-label]").evaluateAll((labels) => labels.map((label) => ({
+      horizontalOverflow: label.scrollWidth - label.clientWidth,
+      verticalOverflow: label.scrollHeight - label.clientHeight,
+    })));
+    expect(summaryLabelGeometry.every(({ horizontalOverflow, verticalOverflow }) => horizontalOverflow <= 1 && verticalOverflow <= 1)).toBe(true);
+  }
   const accountNavigation = page.getByTestId("account-section-navigation");
   await expect(accountNavigation.locator('button[aria-current="page"]')).toHaveCount(1);
   await expect(accountNavigation.locator("button")).toHaveCount(5);
@@ -2008,6 +2018,8 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
 });
 
 test("delivered orders expose carrier tracking and proof without leaking internal notes", async ({ page }) => {
+  const narrowMobile = (page.viewportSize()?.width || 0) < 768;
+  if (narrowMobile) await page.setViewportSize({ width: 320, height: 700 });
   const deliveredOrder = {
     id: "order-delivered",
     number: "JMA-260902-0098",
@@ -2069,9 +2081,26 @@ test("delivered orders expose carrier tracking and proof without leaking interna
   await expect(portfolio).toContainText(/en cours|active/i);
   await expect(portfolio).toContainText(/livrées|delivered/i);
   await expect(portfolio).toContainText(/78,30 €|€78\.30/);
+  if (narrowMobile) {
+    const metricLabelGeometry = await portfolio.locator("[data-order-metric-label]").evaluateAll((labels) => labels.map((label) => ({
+      horizontalOverflow: label.scrollWidth - label.clientWidth,
+      verticalOverflow: label.scrollHeight - label.clientHeight,
+    })));
+    expect(metricLabelGeometry.every(({ horizontalOverflow, verticalOverflow }) => horizontalOverflow <= 1 && verticalOverflow <= 1)).toBe(true);
+  }
   await expect(page.getByTestId("order-focus")).toContainText("JMA-260903-0114");
   await expect(page.getByTestId("order-progress-order-active").getByRole("progressbar")).toHaveAttribute("aria-valuenow", "76");
   await expect(page.getByLabel(/n° de commande ou produit|order number or product/i)).toBeVisible();
+  const orderFilters = page.getByTestId("order-filter-controls");
+  await expect(orderFilters.getByRole("button")).toHaveCount(4);
+  if (narrowMobile) {
+    expect(await orderFilters.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(2);
+    const filterLabelGeometry = await orderFilters.locator("[data-filter-label]").evaluateAll((labels) => labels.map((label) => ({
+      horizontalOverflow: label.scrollWidth - label.clientWidth,
+      verticalOverflow: label.scrollHeight - label.clientHeight,
+    })));
+    expect(filterLabelGeometry.every(({ horizontalOverflow, verticalOverflow }) => horizontalOverflow <= 1 && verticalOverflow <= 1)).toBe(true);
+  }
   await page.getByLabel(/n° de commande ou produit|order number or product/i).fill("attiéké");
   await expect(page.getByText("JMA-260902-0098")).toBeVisible();
   await page.getByLabel(/n° de commande ou produit|order number or product/i).fill("introuvable");

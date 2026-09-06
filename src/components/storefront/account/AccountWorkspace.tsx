@@ -257,9 +257,9 @@ export function AccountWorkspace() {
           <span className="inline-flex w-fit items-center gap-2 rounded-md border border-burgundy/16 bg-white px-3 py-2 text-[11px] font-bold text-burgundy"><ShieldCheck className="h-4 w-4 text-terre" />{locale === "fr" ? "Compte protégé" : "Protected account"}</span>
         </div>
         <div className="mt-5 grid grid-cols-4 divide-x divide-burgundy/10 border-t border-burgundy/10" data-testid="account-command-summary">
-          <AccountSummaryFact icon={Star} label={t.account.loyalty} value={`${customer.loyaltyPoints} pts`} />
-          <AccountSummaryFact icon={Package} label={t.account.orders} value={String(orderCount)} />
-          <AccountSummaryFact icon={MapPin} label={t.account.addresses} value={String(addresses.length)} />
+          <AccountSummaryFact icon={Star} label={locale === "fr" ? "Fidélité" : "Loyalty"} value={`${customer.loyaltyPoints} pts`} />
+          <AccountSummaryFact icon={Package} label={locale === "fr" ? "Commandes" : "Orders"} value={String(orderCount)} />
+          <AccountSummaryFact icon={MapPin} label={locale === "fr" ? "Adresses" : "Addresses"} value={String(addresses.length)} />
           <AccountSummaryFact icon={BriefcaseBusiness} label={locale === "fr" ? "Devis" : "Quotes"} value={String(quoteCount)} />
         </div>
       </header>
@@ -354,7 +354,7 @@ function SectionHeading({ eyebrow, title, description, id }: { eyebrow: string; 
 }
 
 function AccountSummaryFact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
-  return <div className="min-w-0 px-3 py-3 first:pl-0 last:pr-0 sm:px-5 sm:py-4"><p className="flex items-center gap-1.5 text-[8px] font-black uppercase text-muted-foreground sm:text-[9px]"><Icon className="h-3.5 w-3.5 shrink-0 text-terre" /> <span className="truncate">{label}</span></p><p className="mt-1 truncate text-xs font-black text-charcoal sm:text-sm">{value}</p></div>;
+  return <div className="min-w-0 px-1.5 py-3 first:pl-0 last:pr-0 min-[390px]:px-3 sm:px-5 sm:py-4"><p className="flex min-w-0 flex-col items-start gap-0.5 text-[7px] font-black uppercase text-muted-foreground min-[390px]:flex-row min-[390px]:items-center min-[390px]:gap-1.5 min-[390px]:text-[8px] sm:text-[9px]"><Icon className="h-3 w-3 shrink-0 text-terre min-[390px]:h-3.5 min-[390px]:w-3.5" /> <span data-summary-label className="min-w-0 whitespace-nowrap">{label}</span></p><p className="mt-1 truncate text-xs font-black text-charcoal sm:text-sm">{value}</p></div>;
 }
 
 function TextField({ id, label, value, onChange, autoComplete, required }: { id: string; label: string; value: string; onChange: (value: string) => void; autoComplete?: string; required?: boolean }) {
