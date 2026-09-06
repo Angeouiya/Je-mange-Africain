@@ -15,6 +15,17 @@ export const customerAddressInput = z.object({
   locale: z.enum(["fr", "en"]).default("fr"),
 });
 
+export async function loadCustomerIdentity(session: CustomerSession) {
+  const email = session.email.trim().toLowerCase();
+  if (!email) return null;
+  const directory = await db.user.findUnique({
+    where: { email },
+    select: { id: true, role: true, isActive: true, customer: { select: { id: true } } },
+  });
+  if (!directory || directory.role !== "customer" || !directory.isActive || !directory.customer) return null;
+  return { userId: directory.id, customerId: directory.customer.id };
+}
+
 export async function loadCustomerAccount(session: CustomerSession, createMissing = false) {
   const email = session.email.trim().toLowerCase();
   let directory = await findDirectory(email);

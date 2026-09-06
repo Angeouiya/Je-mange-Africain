@@ -60,7 +60,7 @@ export interface ViewParams {
   query?: string;
   sort?: "popular" | "priceAsc" | "priceDesc" | "new" | "available";
   recipeMode?: "recipes" | "library";
-  accountSection?: "profile" | "addresses" | "saved" | "settings";
+  accountSection?: "profile" | "addresses" | "quotes" | "saved" | "settings";
   returnView?: ViewId;
   infoPage?: "about" | "help" | "contact" | "cgv" | "privacy" | "cookies" | "delivery";
   contactReason?: ContactReason;

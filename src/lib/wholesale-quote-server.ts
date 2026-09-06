@@ -39,3 +39,39 @@ export function projectWholesaleQuote(quote: {
     items: quote.items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice), lineTotal: Number(item.lineTotal) })),
   };
 }
+
+export function projectCustomerWholesaleQuote(quote: Parameters<typeof projectWholesaleQuote>[0]) {
+  return {
+    id: quote.id,
+    reference: quote.reference,
+    status: quote.status,
+    locale: quote.locale,
+    company: quote.company,
+    contactName: quote.contactName,
+    email: quote.email,
+    phone: quote.phone,
+    country: quote.country,
+    postalCode: quote.postalCode,
+    deliveryRequirements: quote.deliveryRequirements,
+    additionalNeeds: quote.additionalNeeds,
+    estimatedSubtotal: Number(quote.estimatedSubtotal),
+    totalPacks: quote.totalPacks,
+    currency: quote.currency,
+    createdAt: quote.createdAt,
+    updatedAt: quote.updatedAt,
+    items: quote.items.map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      productNameFr: item.productNameFr,
+      productNameEn: item.productNameEn,
+      sku: item.sku,
+      imageUrl: item.imageUrl,
+      packLabel: item.packLabel,
+      packs: item.packs,
+      unitsPerPack: item.unitsPerPack,
+      unitPrice: Number(item.unitPrice),
+      lineTotal: Number(item.lineTotal),
+      thermalClass: item.thermalClass,
+    })),
+  };
+}

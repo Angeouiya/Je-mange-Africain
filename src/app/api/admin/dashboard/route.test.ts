@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   paymentGroupBy: vi.fn(),
   customerCount: vi.fn(),
   shipmentCount: vi.fn(),
+  wholesaleQuoteGroupBy: vi.fn(),
 }));
 
 vi.mock("@/lib/admin-auth", () => ({ authorizeAdminRequest: mocks.authorize }));
@@ -30,6 +31,7 @@ vi.mock("@/lib/db", () => ({
     payment: { groupBy: mocks.paymentGroupBy },
     customer: { count: mocks.customerCount },
     shipment: { count: mocks.shipmentCount },
+    wholesaleQuote: { groupBy: mocks.wholesaleQuoteGroupBy },
   },
 }));
 
@@ -82,6 +84,7 @@ describe("GET /api/admin/dashboard", () => {
     mocks.customerCount.mockResolvedValueOnce(100).mockResolvedValueOnce(4);
     mocks.shipmentCount.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
     mocks.orderCount.mockResolvedValue(1);
+    mocks.wholesaleQuoteGroupBy.mockResolvedValue([{ status: "new", _count: { status: 2 } }, { status: "reviewing", _count: { status: 1 } }]);
   });
 
   afterEach(() => {
@@ -104,6 +107,8 @@ describe("GET /api/admin/dashboard", () => {
       stockCoverageRate: 50,
       outOfStock: 1,
       newCustomersMonth: 4,
+      wholesaleQuotesNew: 2,
+      wholesaleQuotesActive: 3,
     });
     expect(payload.comparison).toEqual({ revenue: 80, orders: 0, averageBasket: 80 });
     expect(payload.storefront).toEqual({
@@ -124,7 +129,8 @@ describe("GET /api/admin/dashboard", () => {
       { id: "deliver", count: 1 },
       { id: "closed", count: 5 },
     ]);
-    expect(payload.priorities).toHaveLength(9);
+    expect(payload.priorities).toHaveLength(10);
+    expect(payload.priorities).toContainEqual(expect.objectContaining({ id: "wholesale-quotes", count: 2, target: "wholesaleQuotes" }));
     expect(payload.recentOrders[0]).toMatchObject({ number: "JMA-260903-001", itemCount: 2, imageUrl: "/attieke.webp" });
     expect(payload.topProducts[0]).toMatchObject({ productId: "attieke", units: 2, revenue: 72 });
   });

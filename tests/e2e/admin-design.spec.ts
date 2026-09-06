@@ -22,6 +22,8 @@ const dashboard = {
     paymentAttention: 3,
     newCustomersMonth: 48,
     stockCoverageRate: 97.4,
+    wholesaleQuotesNew: 1,
+    wholesaleQuotesActive: 2,
   },
   comparison: { revenue: 12.4, orders: 8.6, averageBasket: 3.8 },
   storefront: {
@@ -46,6 +48,7 @@ const dashboard = {
   workflow: [{ id: "validate", count: 7 }, { id: "prepare", count: 10 }, { id: "deliver", count: 6 }, { id: "closed", count: 295 }],
   priorities: [
     { id: "delivery-delay", level: "critical", count: 2, title: "Livraisons hors délai", detail: "Les dates estimées sont dépassées et demandent un suivi transporteur.", target: "orders" },
+    { id: "wholesale-quotes", level: "attention", count: 1, title: "Nouveaux devis professionnels", detail: "Ces sélections attendent la vérification des volumes, du stock et du transport.", target: "wholesaleQuotes" },
     { id: "payment", level: "attention", count: 3, title: "Paiements à rapprocher", detail: "Les paiements en attente ou en échec du mois doivent être examinés.", target: "finance" },
     { id: "stockout", level: "attention", count: 2, title: "Produits indisponibles", detail: "L'offre publiée n'est plus vendable avec le stock actuellement disponible.", target: "inventory" },
     { id: "expiry", level: "monitor", count: 4, title: "Échéances sous 14 jours", detail: "Priorisez ces lots dans les prochaines vagues selon la règle FEFO.", target: "inventory" },

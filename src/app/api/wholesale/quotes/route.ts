@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { loadCustomerIdentity } from "@/lib/customer-account";
+import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
 import { europeanCountryValue } from "@/lib/european-countries";
 import { getProductPhoto } from "@/lib/market-media";
@@ -25,6 +27,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const session = await authorizeCustomerRequest(request);
+    const customerIdentity = session ? await loadCustomerIdentity(session).catch(() => null) : null;
     const products = input.items.length
       ? await db.product.findMany({
           where: { id: { in: input.items.map((item) => item.productId) }, status: "published", isWholesale: true, wholesalePrice: { not: null } },
@@ -83,6 +87,7 @@ export async function POST(request: NextRequest) {
     const quote = await db.$transaction(async (transaction) => {
       const created = await transaction.wholesaleQuote.create({
         data: {
+          customerId: customerIdentity?.customerId || null,
           reference,
           status: "new",
           locale: input.locale,
@@ -105,7 +110,7 @@ export async function POST(request: NextRequest) {
           action: "wholesale_quote_create",
           entityType: "WholesaleQuote",
           entityId: created.id,
-          after: JSON.stringify({ reference, company: input.company, country, totalPacks, itemCount: items.length, estimatedSubtotal }),
+          after: JSON.stringify({ reference, customerId: customerIdentity?.customerId || null, company: input.company, country, totalPacks, itemCount: items.length, estimatedSubtotal }),
           reason: "Demande créée depuis le marché de gros",
           ip: clientIp(request),
         },
@@ -122,6 +127,7 @@ export async function POST(request: NextRequest) {
         totalPacks: quote.totalPacks,
         currency: quote.currency,
         createdAt: quote.createdAt,
+        tracked: Boolean(customerIdentity),
       },
     }, { status: 201 });
   } catch (error) {

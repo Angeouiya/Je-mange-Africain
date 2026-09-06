@@ -42,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProductCard, type ProductListItem } from "@/components/shared/ProductCard";
 import { RecipeCard, type RecipeListItem } from "@/components/shared/RecipeCard";
+import { CustomerWholesaleQuotes, type CustomerWholesaleQuotesResponse } from "@/components/storefront/account/CustomerWholesaleQuotes";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { dict } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
@@ -51,7 +52,7 @@ import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 
-type AccountSection = "profile" | "addresses" | "saved" | "settings";
+type AccountSection = "profile" | "addresses" | "quotes" | "saved" | "settings";
 type RequestStatus = "idle" | "busy" | "success" | "error";
 type AddressDraft = Omit<Address, "id">;
 
@@ -91,6 +92,7 @@ export function AccountWorkspace() {
   const contentRef = useRef<HTMLElement>(null);
   const { data: accountData, loading: accountLoading } = useFetch<AccountResponse>(`/api/customer/account`, [customer.id]);
   const { data: orderData } = useFetch(customer ? `/api/orders?locale=${locale}` : null, [customer.id, locale]);
+  const quoteRequest = useFetch<CustomerWholesaleQuotesResponse>(customer ? "/api/customer/wholesale-quotes" : null, [customer.id]);
 
   useEffect(() => {
     if (!params.accountSection) return;
@@ -111,10 +113,12 @@ export function AccountWorkspace() {
   const nav: Array<{ id: AccountSection; icon: LucideIcon; label: string; shortLabel: string; purpose: string; accent: string }> = [
     { id: "profile", icon: User, label: t.account.profile, shortLabel: locale === "fr" ? "Profil" : "Profile", purpose: locale === "fr" ? "Identité et avantages" : "Identity and benefits", accent: BRAND_COLORS.earth },
     { id: "addresses", icon: MapPin, label: t.account.addresses, shortLabel: locale === "fr" ? "Adresses" : "Addresses", purpose: locale === "fr" ? "Priorité de livraison" : "Delivery priority", accent: BRAND_COLORS.burgundy },
+    { id: "quotes", icon: BriefcaseBusiness, label: locale === "fr" ? "Mes devis professionnels" : "My professional quotes", shortLabel: locale === "fr" ? "Devis" : "Quotes", purpose: locale === "fr" ? "Volumes et décisions" : "Volumes and decisions", accent: BRAND_COLORS.gold },
     { id: "saved", icon: Bookmark, label: locale === "fr" ? "Enregistrés" : "Saved", shortLabel: locale === "fr" ? "Favoris" : "Saved", purpose: locale === "fr" ? "Produits et recettes" : "Products and recipes", accent: BRAND_COLORS.terracotta },
     { id: "settings", icon: Settings, label: locale === "fr" ? "Réglages" : "Settings", shortLabel: locale === "fr" ? "Réglages" : "Settings", purpose: locale === "fr" ? "Langue et sécurité" : "Language and security", accent: BRAND_COLORS.gold },
   ];
   const orderCount = orderData?.orders?.length || 0;
+  const quoteCount = quoteRequest.data?.quotes.length || 0;
   const defaultAddress = useMemo(() => addresses.find((address) => address.isDefault) || addresses[0], [addresses]);
   const profileDirty = profile.firstName !== customer.firstName || profile.lastName !== customer.lastName || profile.phone !== customer.phone;
   const addressDirty = addressDraftKey(addressForm) !== addressDraftKey(addressBaseline);
@@ -245,14 +249,15 @@ export function AccountWorkspace() {
           </div>
           <span className="inline-flex w-fit items-center gap-2 rounded-md border border-burgundy/16 bg-white px-3 py-2 text-[11px] font-bold text-burgundy"><ShieldCheck className="h-4 w-4 text-terre" />{locale === "fr" ? "Compte protégé" : "Protected account"}</span>
         </div>
-        <div className="mt-5 grid grid-cols-3 divide-x divide-burgundy/10 border-t border-burgundy/10" data-testid="account-command-summary">
+        <div className="mt-5 grid grid-cols-4 divide-x divide-burgundy/10 border-t border-burgundy/10" data-testid="account-command-summary">
           <AccountSummaryFact icon={Star} label={t.account.loyalty} value={`${customer.loyaltyPoints} pts`} />
           <AccountSummaryFact icon={Package} label={t.account.orders} value={String(orderCount)} />
           <AccountSummaryFact icon={MapPin} label={t.account.addresses} value={String(addresses.length)} />
+          <AccountSummaryFact icon={BriefcaseBusiness} label={locale === "fr" ? "Devis" : "Quotes"} value={String(quoteCount)} />
         </div>
       </header>
 
-      <nav className="sticky top-[6.65rem] z-30 -mx-4 mt-4 grid grid-cols-4 gap-1 border-y border-border bg-white/[0.97] px-4 py-2 shadow-[0_14px_30px_-30px_rgba(90,38,50,0.72)] backdrop-blur-xl md:top-[4.4rem] md:-mx-7 md:px-7 lg:-mx-8 lg:px-8" aria-label={locale === "fr" ? "Rubriques du compte" : "Account sections"} data-testid="account-section-navigation">
+      <nav className="sticky top-[6.65rem] z-30 -mx-4 mt-4 grid grid-cols-5 gap-1 border-y border-border bg-white/[0.97] px-4 py-2 shadow-[0_14px_30px_-30px_rgba(90,38,50,0.72)] backdrop-blur-xl md:top-[4.4rem] md:-mx-7 md:px-7 lg:-mx-8 lg:px-8" aria-label={locale === "fr" ? "Rubriques du compte" : "Account sections"} data-testid="account-section-navigation">
         {nav.map((item) => {
           const Icon = item.icon;
           const active = section === item.id;
@@ -264,12 +269,13 @@ export function AccountWorkspace() {
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
               data-active={active ? "true" : "false"}
-              className={`group relative flex min-h-12 min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-md border px-1 text-[9px] font-extrabold transition sm:justify-start sm:gap-2 sm:px-2 sm:text-xs ${active ? "border-burgundy/12 bg-[linear-gradient(118deg,rgba(255,255,255,1),rgba(185,71,43,0.07))] text-charcoal shadow-[0_10px_24px_-20px_rgba(90,38,50,0.8)]" : "border-transparent text-muted-foreground hover:bg-burgundy/[0.04] hover:text-charcoal"}`}
+              className={`group relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md border px-0.5 py-1 text-[9px] font-extrabold leading-3 transition sm:min-h-12 sm:flex-row sm:justify-start sm:gap-2 sm:px-2 sm:py-0 sm:text-xs ${active ? "border-burgundy/12 bg-[linear-gradient(118deg,rgba(255,255,255,1),rgba(185,71,43,0.07))] text-charcoal shadow-[0_10px_24px_-20px_rgba(90,38,50,0.8)]" : "border-transparent text-muted-foreground hover:bg-burgundy/[0.04] hover:text-charcoal"}`}
             >
               {active ? <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-t-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}14`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><Icon className="h-4 w-4" /></span>
-              <span className="min-w-0 text-left"><span className="block sm:hidden">{item.shortLabel}</span><span className="hidden sm:block">{item.label}</span><span className="mt-0.5 hidden text-[8px] font-semibold leading-none text-muted-foreground lg:block">{item.purpose}</span></span>
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04] sm:h-8 sm:w-8" style={{ backgroundColor: active ? item.accent : `${item.accent}14`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><Icon className="h-4 w-4" /></span>
+              <span className="min-w-0 text-center sm:text-left"><span className="block whitespace-normal sm:hidden">{item.shortLabel}</span><span className="hidden sm:block">{item.label}</span><span className="mt-0.5 hidden text-[8px] font-semibold leading-none text-muted-foreground lg:block">{item.purpose}</span></span>
               {item.id === "addresses" && addresses.length ? <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 text-[8px] font-black text-charcoal">{addresses.length}</span> : null}
+              {item.id === "quotes" && quoteCount ? <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-burgundy px-1 text-[8px] font-black text-white">{quoteCount}</span> : null}
             </button>
           );
         })}
@@ -313,6 +319,8 @@ export function AccountWorkspace() {
             {defaultAddress ? <div className="mt-5 flex items-start gap-3 rounded-lg border border-burgundy/18 bg-burgundy/[0.045] p-4"><MapPinCheck className="mt-0.5 h-5 w-5 shrink-0 text-burgundy" /><div><p className="text-xs font-black text-charcoal">{locale === "fr" ? "Adresse proposée au paiement" : "Address suggested at checkout"}</p><p className="mt-1 text-[11px] text-muted-foreground">{defaultAddress.label} · {defaultAddress.postalCode} {defaultAddress.city}, {europeanCountryLabel(defaultAddress.country, locale)}</p></div></div> : null}
           </section>
         ) : null}
+
+        {section === "quotes" ? <CustomerWholesaleQuotes locale={locale} data={quoteRequest.data || undefined} loading={quoteRequest.loading} error={quoteRequest.error} onRetry={quoteRequest.refetch} /> : null}
 
         {section === "saved" ? <SavedSection locale={locale} savedTab={savedTab} setSavedTab={setSavedTab} favorites={favorites} savedRecipes={savedRecipes} /> : null}
 

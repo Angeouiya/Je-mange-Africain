@@ -1005,6 +1005,13 @@ test("the customer workspace edits identity and manages a persistent address boo
     customer: { id: "customer-account", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 180, walletCredit: 12.5, preferredLang: "fr" },
     addresses: [{ id: "address-home", label: "Domicile", firstName: "Awa", lastName: "Traore", street: "12 rue des Cultures", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678", isDefault: true }],
   };
+  const professionalQuotes = {
+    generatedAt: "2026-09-06T09:00:00.000Z",
+    quotes: [{
+      id: "quote-account-1", reference: "JMA-GROS-260906-ABC123", status: "reviewing", locale: "fr", company: "Maison Awa", contactName: "Awa Traore", email: "awa@example.fr", phone: "+33612345678", country: "France", postalCode: "75011", deliveryRequirements: "Livraison réfrigérée le mardi matin.", additionalNeeds: "Palette Europe consignée.", estimatedSubtotal: 180, totalPacks: 6, currency: "EUR", createdAt: "2026-09-06T08:00:00.000Z", updatedAt: "2026-09-06T09:00:00.000Z",
+      items: [{ id: "quote-item-1", productId: "product-attieke", productNameFr: "Attiéké professionnel", productNameEn: "Professional attieke", sku: "JMA-WHO-ATT", imageUrl: "/products/attieke.webp", packLabel: "Carton de 6 sachets", packs: 6, unitsPerPack: 6, unitPrice: 30, lineTotal: 180, thermalClass: "REFRIGERATED" }],
+    }],
+  };
 
   await page.addInitScript(({ persistedCustomer, persistedAddresses }) => {
     localStorage.setItem("jma-store", JSON.stringify({
@@ -1015,6 +1022,7 @@ test("the customer workspace edits identity and manages a persistent address boo
 
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
   await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [] }) }));
+  await page.route("**/api/customer/wholesale-quotes", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(professionalQuotes) }));
   await page.route("**/api/customer/account", async (route) => {
     if (route.request().method() === "PATCH") {
       const update = route.request().postDataJSON();
@@ -1049,9 +1057,10 @@ test("the customer workspace edits identity and manages a persistent address boo
   await expect(page.getByTestId("account-command-summary")).toContainText("180 pts");
   await expect(page.getByTestId("account-command-summary")).toContainText(/commandes\s*0|orders\s*0/i);
   await expect(page.getByTestId("account-command-summary")).toContainText(/adresses\s*1|addresses\s*1/i);
+  await expect(page.getByTestId("account-command-summary")).toContainText(/devis\s*1|quotes\s*1/i);
   const accountNavigation = page.getByTestId("account-section-navigation");
   await expect(accountNavigation.locator('button[aria-current="page"]')).toHaveCount(1);
-  await expect(accountNavigation.locator("button")).toHaveCount(4);
+  await expect(accountNavigation.locator("button")).toHaveCount(5);
   await expect(page.getByRole("button", { name: /coordonnées à jour|details up to date/i })).toBeDisabled();
 
   await page.getByLabel(/prénom|first name/i).fill("Aminata");
@@ -1059,6 +1068,26 @@ test("the customer workspace edits identity and manages a persistent address boo
   await page.getByRole("button", { name: /enregistrer mes coordonnées|save my details/i }).click();
   await expect(page.getByText(/coordonnées sont à jour|contact details are up to date/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Aminata Traore" })).toBeVisible();
+
+  await page.getByRole("button", { name: /mes devis professionnels|my professional quotes/i }).click();
+  await expect(page).toHaveURL(/accountSection=quotes/);
+  const quoteWorkspace = page.getByTestId("customer-wholesale-quotes");
+  await expect(quoteWorkspace.getByRole("heading", { name: /mes devis professionnels|my professional quotes/i })).toBeVisible();
+  await expect(quoteWorkspace).toContainText(/étude en cours|under review/i);
+  await expect(quoteWorkspace.getByRole("img", { name: "Attiéké professionnel" })).toBeVisible();
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/professional-quotes-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await quoteWorkspace.getByRole("button", { name: /ouvrir le devis|open quote/i }).click();
+  const quoteDialog = page.getByRole("dialog");
+  await expect(quoteDialog.getByTestId("customer-quote-journey")).toContainText(/progression|progress/i);
+  await expect(quoteDialog).toContainText("JMA-GROS-260906-ABC123");
+  await expect(quoteDialog).toContainText("Livraison réfrigérée le mardi matin.");
+  await expect(quoteDialog).not.toContainText(/marge à confirmer|direction@example/i);
+  if (process.env.CLIENT_SCREENSHOTS) {
+    await page.screenshot({ path: `output/playwright/audit/professional-quote-detail-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
+  }
+  await quoteDialog.getByRole("button", { name: /fermer le dossier|close file/i }).click();
 
   await page.getByRole("button", { name: /mes adresses|my addresses/i }).click();
   await expect(page).toHaveURL(/accountSection=addresses/);
@@ -1118,6 +1147,7 @@ test("the personal library filters and synchronizes saved products and recipes",
 
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
   await page.route("**/api/customer/account", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
+  await page.route("**/api/customer/wholesale-quotes", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ quotes: [], generatedAt: "2026-09-06T09:00:00.000Z" }) }));
   await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [] }) }));
   await page.route("**/api/catalog?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [product], total: 1, page: 1, pageSize: 100, pages: 1, filters: { categories: [], brands: [], countries: [] } }) }));
   await page.route("**/api/recipes?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ recipes: [recipe], categories: [] }) }));
@@ -1180,6 +1210,7 @@ test("account settings synchronize language and protect session actions", async 
 
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
   await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [] }) }));
+  await page.route("**/api/customer/wholesale-quotes", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ quotes: [], generatedAt: "2026-09-06T09:00:00.000Z" }) }));
   await page.route("**/api/customer/account", async (route) => {
     const update = route.request().method() === "PATCH" ? route.request().postDataJSON() : {};
     if (update.preferredLang) preferredLanguage = update.preferredLang;

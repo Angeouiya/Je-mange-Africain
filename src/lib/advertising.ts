@@ -58,7 +58,7 @@ export function advertisementLifecycle(advertisement: AdvertisementSchedule, now
 
 const ROUTABLE_VIEWS = new Set<ViewId>(["home", "catalog", "wholesale", "product", "recipes", "recipe-config", "cart", "checkout", "order-confirmation", "orders", "order-tracking", "account", "info"]);
 const SORT_OPTIONS = new Set<NonNullable<ViewParams["sort"]>>(["popular", "priceAsc", "priceDesc", "new", "available"]);
-const ACCOUNT_SECTIONS = new Set<NonNullable<ViewParams["accountSection"]>>(["profile", "addresses", "saved", "settings"]);
+const ACCOUNT_SECTIONS = new Set<NonNullable<ViewParams["accountSection"]>>(["profile", "addresses", "quotes", "saved", "settings"]);
 const INFO_PAGES = new Set<NonNullable<ViewParams["infoPage"]>>(["about", "help", "contact", "cgv", "privacy", "cookies", "delivery"]);
 const CONTACT_REASONS = new Set<NonNullable<ViewParams["contactReason"]>>(["order", "delivery", "product", "recipe", "wholesale", "other"]);
 

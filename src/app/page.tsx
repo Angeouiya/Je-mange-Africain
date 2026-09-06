@@ -167,7 +167,7 @@ function storefrontDestination(searchParams: URLSearchParams): { view: ViewId; p
   }
   if (view === "account") {
     const accountSection = searchParams.get("accountSection");
-    if (["profile", "addresses", "saved", "settings"].includes(accountSection || "")) params.accountSection = accountSection as ViewParams["accountSection"];
+    if (["profile", "addresses", "quotes", "saved", "settings"].includes(accountSection || "")) params.accountSection = accountSection as ViewParams["accountSection"];
     const returnView = searchParams.get("returnView") as ViewId | null;
     if (returnView && ROUTABLE_VIEWS.has(returnView)) params.returnView = returnView;
   }

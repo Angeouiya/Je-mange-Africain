@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const expiryHorizon = new Date(now.getTime() + 14 * 86_400_000);
   const staleThreshold = new Date(now.getTime() - 24 * 3_600_000);
 
-  const [products, productsMissingImages, publishedRecipes, purchasableRecipeRows, recipesMissingImages, activePromotions, liveAdvertisements, expiringSoon, expiredActive, windowOrders, statusRows, paymentRows, customers, newCustomersMonth, delayedShipments, failedDeliveries, stalePreparation, recentOrders] = await Promise.all([
+  const [products, productsMissingImages, publishedRecipes, purchasableRecipeRows, recipesMissingImages, activePromotions, liveAdvertisements, expiringSoon, expiredActive, windowOrders, statusRows, paymentRows, customers, newCustomersMonth, delayedShipments, failedDeliveries, stalePreparation, wholesaleQuoteStatusRows, recentOrders] = await Promise.all([
     db.product.findMany({ where: { status: "published" }, select: { id: true, stockQty: true, reservedQty: true, alertThreshold: true } }),
     db.product.count({ where: { status: "published", OR: [{ imageUrl: null }, { imageUrl: "" }] } }),
     db.recipe.count({ where: { status: "published" } }),
@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
     db.shipment.count({ where: { estimatedDelivery: { lt: now }, status: { notIn: ["delivered", "failed", "lost"] } } }),
     db.shipment.count({ where: { status: { in: ["failed", "lost"] } } }),
     db.order.count({ where: { status: { in: ["preparing", "packed"] }, updatedAt: { lt: staleThreshold } } }),
+    db.wholesaleQuote.groupBy({ by: ["status"], _count: { status: true } }),
     db.order.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { items: { select: { id: true, qty: true, imageUrl: true } } } }),
   ]);
 
@@ -69,10 +70,14 @@ export async function GET(req: NextRequest) {
   const toPrepare = ["validated", "paymentConfirmed", "stockReserved"].reduce((sum, status) => sum + (statusCounts[status] || 0), 0);
   const recipesNeedingAttention = Math.max(0, publishedRecipes - purchasableRecipes);
   const missingStorefrontImages = productsMissingImages + recipesMissingImages;
+  const wholesaleQuoteCounts = Object.fromEntries(wholesaleQuoteStatusRows.map((row) => [row.status, row._count.status]));
+  const wholesaleQuotesNew = wholesaleQuoteCounts.new || 0;
+  const wholesaleQuotesActive = ["new", "reviewing", "quoted"].reduce((sum, status) => sum + (wholesaleQuoteCounts[status] || 0), 0);
   const priorityCandidates = [
     { id: "expired", level: "critical" as const, count: expiredActive, title: locale === "fr" ? "Lots arrivés à échéance" : "Expired active batches", detail: locale === "fr" ? "Bloquez ou sortez ces lots avant toute nouvelle allocation." : "Block or remove these batches before any new allocation.", target: "inventory" as const },
     { id: "delivery-delay", level: "critical" as const, count: delayedShipments, title: locale === "fr" ? "Livraisons hors délai" : "Overdue deliveries", detail: locale === "fr" ? "Les dates estimées sont dépassées et demandent un suivi transporteur." : "Estimated dates have passed and require carrier follow-up.", target: "orders" as const },
     { id: "delivery-incident", level: "critical" as const, count: failedDeliveries, title: locale === "fr" ? "Incidents de transport" : "Delivery incidents", detail: locale === "fr" ? "Un échec ou une perte doit être qualifié puis communiqué au client." : "A failure or loss must be qualified and communicated to the customer.", target: "orders" as const },
+    { id: "wholesale-quotes", level: "attention" as const, count: wholesaleQuotesNew, title: locale === "fr" ? "Nouveaux devis professionnels" : "New professional quotes", detail: locale === "fr" ? "Ces sélections attendent la vérification des volumes, du stock et du transport." : "These selections are waiting for volume, stock and transport review.", target: "wholesaleQuotes" as const },
     { id: "payment", level: "attention" as const, count: paymentAttention, title: locale === "fr" ? "Paiements à rapprocher" : "Payments to reconcile", detail: locale === "fr" ? "Les paiements en attente ou en échec du mois doivent être examinés." : "This month's pending or failed payments need review.", target: "finance" as const },
     { id: "stockout", level: "attention" as const, count: outOfStock, title: locale === "fr" ? "Produits indisponibles" : "Unavailable products", detail: locale === "fr" ? "L'offre publiée n'est plus vendable avec le stock actuellement disponible." : "Published products are no longer sellable with current available stock.", target: "inventory" as const },
     { id: "stale-preparation", level: "attention" as const, count: stalePreparation, title: locale === "fr" ? "Préparations sans mouvement" : "Stalled fulfilment", detail: locale === "fr" ? "Ces commandes n'ont pas progressé depuis plus de 24 heures." : "These orders have not progressed for more than 24 hours.", target: "orders" as const },
@@ -98,6 +103,8 @@ export async function GET(req: NextRequest) {
       paymentAttention,
       newCustomersMonth,
       stockCoverageRate,
+      wholesaleQuotesNew,
+      wholesaleQuotesActive,
     },
     comparison: {
       revenue: percentageChange(current.revenue, previous.revenue),

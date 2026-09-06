@@ -226,6 +226,7 @@ export function AdminView({
 
   const badgeFor = (id: AdminSectionId) => {
     if (id === "orders") return dashboardData?.kpis.toPrepare || 0;
+    if (id === "wholesaleQuotes") return dashboardData?.kpis.wholesaleQuotesNew || 0;
     if (id === "inventory") return dashboardData?.kpis.outOfStock || dashboardData?.kpis.expiringSoon || 0;
     return 0;
   };

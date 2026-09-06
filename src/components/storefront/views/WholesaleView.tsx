@@ -221,12 +221,13 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
 function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { open: boolean; onOpenChange: (open: boolean) => void; lines: WholesaleQuoteLine[]; onLinesChange: (lines: WholesaleQuoteLine[]) => void }) {
   const locale = useStore((state) => state.locale);
   const customer = useStore((state) => state.customer);
+  const navigate = useStore((state) => state.navigate);
   const deliveryCountry = useStore((state) => state.country);
   const deliveryPostalCode = useStore((state) => state.postalCode);
   const [form, setForm] = useState({ company: "", contactName: customer ? `${customer.firstName} ${customer.lastName}` : "", email: customer?.email || "", phone: customer?.phone || "", country: europeanCountryValue(deliveryCountry) || "France", postalCode: deliveryPostalCode, additionalNeeds: "", deliveryRequirements: "" });
   const [status, setStatus] = useState<"idle" | "busy" | "success" | "error">("idle");
   const [reference, setReference] = useState("");
-  const [receipt, setReceipt] = useState({ estimatedSubtotal: 0, totalPacks: 0 });
+  const [receipt, setReceipt] = useState({ estimatedSubtotal: 0, totalPacks: 0, tracked: false });
   const [errorMessage, setErrorMessage] = useState("");
   const isFr = locale === "fr";
   const estimatedSubtotal = lines.reduce((total, line) => total + wholesaleLineEconomics(line.product.price, line.product.wholesaleUnitsPerPack, line.product.wholesaleTiers, line.packs).lineTotal, 0);
@@ -271,10 +272,10 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
           items: lines.map((line) => ({ productId: line.product.id, packs: line.packs })),
         }),
       });
-      const payload = await response.json() as { error?: string; quote?: { reference: string; estimatedSubtotal: number; totalPacks: number } };
+      const payload = await response.json() as { error?: string; quote?: { reference: string; estimatedSubtotal: number; totalPacks: number; tracked: boolean } };
       if (!response.ok) throw new Error(payload.error || "Request failed");
       setReference(payload.quote?.reference || "JMA-GROS");
-      setReceipt({ estimatedSubtotal: payload.quote?.estimatedSubtotal || estimatedSubtotal, totalPacks: payload.quote?.totalPacks || totalPacks });
+      setReceipt({ estimatedSubtotal: payload.quote?.estimatedSubtotal || estimatedSubtotal, totalPacks: payload.quote?.totalPacks || totalPacks, tracked: Boolean(payload.quote?.tracked) });
       setStatus("success");
       onLinesChange([]);
     } catch (cause) {
@@ -297,7 +298,8 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
             <p className="mt-3 text-sm font-black text-charcoal">{isFr ? "Dossier commercial enregistré" : "Commercial file recorded"}</p>
             <p className="mt-1 text-xs font-bold text-burgundy">{reference}</p>
             <p className="mx-auto mt-3 max-w-sm text-[11px] leading-5 text-muted-foreground">{isFr ? `${receipt.totalPacks} colis · estimation ${formatPrice(receipt.estimatedSubtotal, locale)}. L'équipe vérifiera le transport et vous répondra avec les conditions finales.` : `${receipt.totalPacks} cases · ${formatPrice(receipt.estimatedSubtotal, locale)} estimate. The team will confirm transport and final terms.`}</p>
-            <Button type="button" onClick={() => handleOpenChange(false)} className="mt-5 bg-burgundy text-white hover:bg-burgundy/90">{isFr ? "Fermer" : "Close"}</Button>
+            {receipt.tracked ? <p className="mx-auto mt-2 max-w-sm text-[10px] font-semibold leading-4 text-burgundy">{isFr ? "Ce dossier est maintenant disponible dans votre compte, rubrique Devis." : "This file is now available in the Quotes section of your account."}</p> : null}
+            <div className="mt-5 flex flex-wrap justify-center gap-2"><Button type="button" variant={receipt.tracked ? "outline" : "default"} onClick={() => handleOpenChange(false)} className={receipt.tracked ? "" : "bg-burgundy text-white hover:bg-burgundy/90"}>{isFr ? "Fermer" : "Close"}</Button>{receipt.tracked ? <Button type="button" onClick={() => { handleOpenChange(false); navigate("account", { accountSection: "quotes" }); }} className="bg-burgundy text-white hover:bg-burgundy/90"><FilePlus2 className="mr-1.5 h-4 w-4" />{isFr ? "Suivre mon devis" : "Track my quote"}</Button> : null}</div>
           </div>
         ) : (
           <form onSubmit={submit} className="mt-2 grid gap-3 sm:grid-cols-2">

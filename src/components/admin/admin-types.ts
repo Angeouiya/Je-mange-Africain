@@ -32,6 +32,8 @@ export type DashboardPayload = {
     paymentAttention: number;
     newCustomersMonth: number;
     stockCoverageRate: number;
+    wholesaleQuotesNew: number;
+    wholesaleQuotesActive: number;
   };
   comparison: {
     revenue: number | null;
