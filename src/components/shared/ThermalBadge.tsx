@@ -2,9 +2,12 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Snowflake, Refrigerator, Flame } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { CloudSnow } from "reicon/icons/CloudSnow";
+import { Fire } from "reicon/icons/Fire";
+import { Fridge } from "reicon/icons/Fridge";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
-import type { ReactNode } from "react";
 
 interface ThermalBadgeProps {
   thermalClass: string;
@@ -12,15 +15,15 @@ interface ThermalBadgeProps {
   showLabel?: boolean;
 }
 
-const icon: Record<string, ReactNode> = {
-  FROZEN: <Snowflake className="size-3" />,
-  REFRIGERATED: <Refrigerator className="size-3" />,
-  AMBIANT: <Flame className="size-3" />,
+const icons: Record<string, IconFunction> = {
+  FROZEN: CloudSnow,
+  REFRIGERATED: Fridge,
+  AMBIANT: Fire,
 };
 
 const colors: Record<string, string> = {
-  FROZEN: "bg-burgundy/10 text-burgundy border-burgundy/25",
-  REFRIGERATED: "bg-terre/10 text-terre border-terre/25",
+  FROZEN: "bg-burgundy/8 text-burgundy border-burgundy/20",
+  REFRIGERATED: "bg-terre/9 text-terre border-terre/22",
   AMBIANT: "bg-gold/15 text-charcoal border-gold/35",
 };
 
@@ -34,8 +37,8 @@ export function ThermalBadge({ thermalClass, className, showLabel = true }: Ther
   const locale = useStore((s) => s.locale);
   const c = colors[thermalClass] || "bg-muted text-muted-foreground border-border";
   return (
-    <Badge variant="outline" className={cn("border font-medium gap-1", c, className)}>
-      {icon[thermalClass]}
+    <Badge variant="outline" className={cn("gap-1 rounded-md border px-2 py-0.5 text-[10px] font-black shadow-[0_10px_22px_-22px_rgba(90,38,50,0.55)]", c, className)}>
+      {icons[thermalClass] ? <ReiconGlyph icon={icons[thermalClass]} weight="Filled" className="size-3" /> : null}
       {showLabel && (labels[thermalClass]?.[locale] || thermalClass)}
     </Badge>
   );

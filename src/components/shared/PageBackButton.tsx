@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "reicon/icons/ArrowLeft";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore, type ViewId, type ViewParams } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -21,11 +22,11 @@ export function PageBackButton({
       type="button"
       onClick={() => goBack(fallbackView, fallbackParams)}
       className={cn(
-        "inline-flex min-h-10 items-center gap-2 rounded-md px-1 text-sm font-semibold text-muted-foreground transition-colors hover:text-terre focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/30",
+        "inline-flex min-h-10 items-center gap-2 rounded-md border border-transparent px-2.5 text-sm font-bold text-muted-foreground transition-colors hover:border-terre/12 hover:bg-terre/[0.045] hover:text-terre focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/30",
         className,
       )}
     >
-      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+      <ReiconGlyph icon={ArrowLeft} className="h-4 w-4" />
       {locale === "fr" ? "Retour" : "Back"}
     </button>
   );

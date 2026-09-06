@@ -1,6 +1,7 @@
 "use client";
 
-import { Globe } from "lucide-react";
+import { Globe } from "reicon/icons/Globe";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
 import type { Locale } from "@/lib/i18n";
 
@@ -16,17 +17,17 @@ export function LanguageSwitch({ compact = false }: { compact?: boolean }) {
         type="button"
         onClick={toggle}
         aria-label={locale === "fr" ? "Passer la plateforme en anglais" : "Switch the platform to French"}
-        className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-charcoal transition hover:bg-muted"
+        className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-burgundy/10 bg-white px-2.5 text-xs font-black text-charcoal shadow-[0_10px_24px_-22px_rgba(90,38,50,0.6)] transition hover:border-terre/20 hover:bg-cream/70 hover:text-terre"
       >
-        <Globe className="h-3.5 w-3.5" />
+        <ReiconGlyph icon={Globe} className="h-3.5 w-3.5 text-burgundy" />
         {locale.toUpperCase()}
       </button>
     );
   }
 
   return (
-    <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5">
-      <Globe className="ml-2 mr-1 h-3.5 w-3.5 text-muted-foreground" />
+    <div className="inline-flex items-center rounded-md border border-burgundy/10 bg-white p-0.5 shadow-[0_10px_24px_-22px_rgba(90,38,50,0.6)]">
+      <ReiconGlyph icon={Globe} className="ml-2 mr-1 h-3.5 w-3.5 text-burgundy" />
       {(["fr", "en"] as Locale[]).map((l) => (
         <button
           type="button"
@@ -34,8 +35,8 @@ export function LanguageSwitch({ compact = false }: { compact?: boolean }) {
           onClick={() => setLocale(l)}
           aria-label={l === "fr" ? "Afficher la plateforme en français" : "Display the platform in English"}
           aria-pressed={locale === l}
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-            locale === l ? "bg-terre text-cream" : "text-charcoal hover:bg-muted"
+          className={`min-h-8 rounded-md px-2.5 text-xs font-black transition ${
+            locale === l ? "bg-burgundy text-white shadow-sm" : "text-charcoal hover:bg-cream/80"
           }`}
         >
           {l.toUpperCase()}
