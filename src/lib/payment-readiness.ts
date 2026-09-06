@@ -4,11 +4,14 @@ import { paymentMethodFamily, type PaymentMethodFamily } from "@/lib/payment-met
 
 const AUDITED_PAYMENT_METHODS = [
   "card",
+  "cartes_bancaires",
   "paypal",
   "apple_pay",
   "google_pay",
   "link",
   "klarna",
+  "bizum",
+  "blik",
   "ideal",
   "bancontact",
   "eps",
@@ -17,6 +20,7 @@ const AUDITED_PAYMENT_METHODS = [
   "swish",
   "twint",
   "revolut_pay",
+  "satispay",
 ] as const;
 
 export type AuditedPaymentMethod = (typeof AUDITED_PAYMENT_METHODS)[number];
@@ -47,11 +51,14 @@ type ConfigurationSnapshot = Pick<Stripe.PaymentMethodConfiguration, "active" | 
 
 const METHOD_ROLE: Record<AuditedPaymentMethod, PaymentReadinessMethod["role"]> = {
   card: "essential",
+  cartes_bancaires: "local",
   paypal: "essential",
   apple_pay: "express",
   google_pay: "express",
   link: "express",
   klarna: "express",
+  bizum: "local",
+  blik: "local",
   ideal: "local",
   bancontact: "local",
   eps: "local",
@@ -60,15 +67,19 @@ const METHOD_ROLE: Record<AuditedPaymentMethod, PaymentReadinessMethod["role"]> 
   swish: "local",
   twint: "local",
   revolut_pay: "express",
+  satispay: "local",
 };
 
 const METHOD_MARKETS: Record<AuditedPaymentMethod, string[]> = {
   card: ["EU"],
+  cartes_bancaires: ["FR"],
   paypal: ["EU"],
   apple_pay: ["DEVICE"],
   google_pay: ["DEVICE"],
   link: ["EU"],
   klarna: ["ELIGIBLE"],
+  bizum: ["ES"],
+  blik: ["PL"],
   ideal: ["NL"],
   bancontact: ["BE"],
   eps: ["AT"],
@@ -77,6 +88,7 @@ const METHOD_MARKETS: Record<AuditedPaymentMethod, string[]> = {
   swish: ["SE"],
   twint: ["CH"],
   revolut_pay: ["EU"],
+  satispay: ["IT"],
 };
 
 export function projectPaymentReadiness(configuration: ConfigurationSnapshot | null, checkedAt = new Date().toISOString()): PaymentProviderReadiness {

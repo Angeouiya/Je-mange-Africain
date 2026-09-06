@@ -3,9 +3,12 @@ import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMe
 
 describe("payment method presentation", () => {
   it("keeps European payment methods readable in both languages", () => {
+    expect(paymentMethodLabel("cartes_bancaires", "fr")).toBe("Cartes Bancaires");
     expect(paymentMethodLabel("sepa_debit", "fr")).toBe("Prélèvement SEPA");
     expect(paymentMethodLabel("ideal", "en")).toBe("iDEAL");
     expect(paymentMethodLabel("bancontact", "fr")).toBe("Bancontact");
+    expect(paymentMethodHint("bizum", "fr")).toContain("Espagne");
+    expect(paymentMethodHint("blik", "en")).toContain("Poland");
     expect(paymentMethodHint("klarna", "fr")).toContain("éligibilité");
   });
 
@@ -27,10 +30,13 @@ describe("payment method presentation", () => {
   });
 
   it("previews a country-aware European payment baseline before Stripe ranks methods", () => {
-    expect(recommendedEuropeanPaymentMethods("Belgique")).toEqual(["card", "paypal", "bancontact"]);
-    expect(recommendedEuropeanPaymentMethods("Netherlands")).toEqual(["card", "paypal", "ideal"]);
-    expect(recommendedEuropeanPaymentMethods("France")).toEqual(["card", "paypal", "link"]);
-    expect(recommendedEuropeanPaymentMethods("Pays inconnu")).toEqual(["card", "paypal"]);
+    expect(recommendedEuropeanPaymentMethods("Belgique")).toEqual(["card", "paypal", "link", "revolut_pay", "bancontact"]);
+    expect(recommendedEuropeanPaymentMethods("Netherlands")).toEqual(["card", "paypal", "link", "revolut_pay", "ideal"]);
+    expect(recommendedEuropeanPaymentMethods("France")).toEqual(["card", "paypal", "link", "revolut_pay", "cartes_bancaires"]);
+    expect(recommendedEuropeanPaymentMethods("Espagne")).toEqual(["card", "paypal", "link", "revolut_pay", "bizum"]);
+    expect(recommendedEuropeanPaymentMethods("Pologne")).toEqual(["card", "paypal", "link", "revolut_pay", "p24", "blik"]);
+    expect(recommendedEuropeanPaymentMethods("Italie")).toEqual(["card", "paypal", "link", "revolut_pay", "satispay"]);
+    expect(recommendedEuropeanPaymentMethods("Pays inconnu")).toEqual(["card", "paypal", "link", "revolut_pay"]);
   });
 
   it("translates provider statuses without leaking their technical codes", () => {

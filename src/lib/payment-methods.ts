@@ -20,11 +20,14 @@ type PaymentMethodDefinition = {
 
 const PAYMENT_METHODS: Record<string, PaymentMethodDefinition> = {
   card: { label: ["Carte bancaire", "Payment card"], family: "card", hint: ["Visa, Mastercard et wallets compatibles", "Visa, Mastercard and compatible wallets"] },
+  cartes_bancaires: { label: ["Cartes Bancaires", "Cartes Bancaires"], family: "card", hint: ["Réseau carte local français", "French local card network"] },
   apple_pay: { label: ["Apple Pay", "Apple Pay"], family: "wallet", hint: ["Wallet Apple sécurisé", "Secure Apple wallet"] },
   google_pay: { label: ["Google Pay", "Google Pay"], family: "wallet", hint: ["Wallet Google sécurisé", "Secure Google wallet"] },
   paypal: { label: ["PayPal", "PayPal"], family: "wallet", hint: ["Compte ou solde PayPal", "PayPal account or balance"] },
   link: { label: ["Link", "Link"], family: "wallet", hint: ["Paiement accéléré Stripe", "Stripe accelerated checkout"] },
   klarna: { label: ["Klarna", "Klarna"], family: "deferred", hint: ["Paiement flexible selon éligibilité", "Flexible payment when eligible"] },
+  bizum: { label: ["Bizum", "Bizum"], family: "bank", hint: ["Paiement bancaire mobile en Espagne", "Mobile bank payment in Spain"] },
+  blik: { label: ["BLIK", "BLIK"], family: "bank", hint: ["Code bancaire mobile en Pologne", "Mobile banking code in Poland"] },
   ideal: { label: ["iDEAL", "iDEAL"], family: "bank", hint: ["Paiement bancaire aux Pays-Bas", "Dutch online banking"] },
   bancontact: { label: ["Bancontact", "Bancontact"], family: "bank", hint: ["Paiement bancaire en Belgique", "Belgian bank payment"] },
   sepa_debit: { label: ["Prélèvement SEPA", "SEPA Direct Debit"], family: "bank", hint: ["Compte bancaire européen", "European bank account"] },
@@ -35,6 +38,7 @@ const PAYMENT_METHODS: Record<string, PaymentMethodDefinition> = {
   mobilepay: { label: ["MobilePay", "MobilePay"], family: "wallet", hint: ["Wallet mobile nordique", "Nordic mobile wallet"] },
   swish: { label: ["Swish", "Swish"], family: "wallet", hint: ["Paiement mobile en Suède", "Swedish mobile payment"] },
   twint: { label: ["TWINT", "TWINT"], family: "wallet", hint: ["Paiement mobile en Suisse", "Swiss mobile payment"] },
+  satispay: { label: ["Satispay", "Satispay"], family: "wallet", hint: ["Wallet mobile en Italie", "Mobile wallet in Italy"] },
   alipay: { label: ["Alipay", "Alipay"], family: "wallet", hint: ["Wallet international", "International wallet"] },
   wechat_pay: { label: ["WeChat Pay", "WeChat Pay"], family: "wallet", hint: ["Wallet international", "International wallet"] },
   customer_balance: { label: ["Virement bancaire", "Bank transfer"], family: "bank", hint: ["Virement suivi par référence", "Reference-tracked transfer"] },
@@ -50,11 +54,13 @@ const EUROPEAN_LOCAL_METHODS: Record<string, string[]> = {
   BE: ["bancontact"],
   CH: ["twint"],
   DK: ["mobilepay"],
+  ES: ["bizum"],
   FI: ["mobilepay"],
-  FR: ["link"],
+  FR: ["cartes_bancaires"],
   GB: ["link"],
+  IT: ["satispay"],
   NL: ["ideal"],
-  PL: ["p24"],
+  PL: ["p24", "blik"],
   SE: ["swish"],
 };
 
@@ -105,7 +111,7 @@ export function checkoutPaymentMethodSummary(values: readonly string[] | null | 
 
 export function recommendedEuropeanPaymentMethods(country: unknown) {
   const code = europeanCountryCode(country);
-  return uniquePaymentMethods(["card", "paypal", ...(code ? EUROPEAN_LOCAL_METHODS[code] || [] : [])]);
+  return uniquePaymentMethods(["card", "paypal", "link", "revolut_pay", ...(code ? EUROPEAN_LOCAL_METHODS[code] || [] : [])]);
 }
 
 export function availableExpressPaymentMethods(availability: ExpressPaymentAvailability | null | undefined) {
