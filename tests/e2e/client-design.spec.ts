@@ -1292,7 +1292,8 @@ test("the help center leads to a contextual and usable contact request", async (
   await expect(page.getByRole("searchbox", { name: /rechercher dans le centre d'aide|search the help centre/i })).toBeVisible();
   await page.getByRole("button", { name: /quels moyens de paiement|which payment methods/i }).click();
   await expect(page.getByText(/sécurisé par stripe|secured by stripe/i)).toBeVisible();
-  await expect(page.locator("main")).not.toContainText(/paypal|carte cadeau|gift card/i);
+  await expect(page.locator("main")).toContainText(/paypal/i);
+  await expect(page.locator("main")).not.toContainText(/carte cadeau|gift card/i);
   const helpSearch = page.getByRole("searchbox", { name: /rechercher dans le centre d'aide|search the help centre/i });
   await helpSearch.fill("remboursement");
   await expect(page.getByRole("button", { name: /produit manquant ou abîmé|missing or damaged product/i })).toBeVisible();

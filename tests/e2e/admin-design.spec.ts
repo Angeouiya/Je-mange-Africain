@@ -670,11 +670,27 @@ async function mockAdminApi(page: Page) {
       metadata: { persisted: true, updatedBy: "direction@je-mange-africain.com", updatedAt: now },
       integrations: [
         { id: "database", state: "ready", provider: "PostgreSQL", capabilities: { connection: true, persistence: true, production: true } },
-        { id: "payments", state: "partial", provider: "Stripe", capabilities: { connection: true, webhook: false } },
+        { id: "payments", state: "partial", provider: "Stripe", capabilities: { connection: true, webhook: false, configuration: true, card: true, paypal: true } },
         { id: "identity", state: "ready", provider: "Supabase", capabilities: { connection: true, serverAccess: true } },
         { id: "cache", state: "attention", provider: "Upstash Redis", capabilities: { connection: false } },
         { id: "push", state: "ready", provider: "Web Push", capabilities: { connection: true } },
       ],
+      paymentReadiness: {
+        provider: "Stripe", state: "ready", reachable: true, liveMode: true, configurationName: "European storefront", isDefault: true, checkedAt: now, card: true, paypal: true,
+        methods: [
+          { method: "card", family: "card", available: true, role: "essential", markets: ["EU"] },
+          { method: "paypal", family: "wallet", available: true, role: "essential", markets: ["EU"] },
+          { method: "apple_pay", family: "wallet", available: true, role: "express", markets: ["DEVICE"] },
+          { method: "google_pay", family: "wallet", available: true, role: "express", markets: ["DEVICE"] },
+          { method: "link", family: "wallet", available: true, role: "express", markets: ["EU"] },
+          { method: "klarna", family: "deferred", available: false, role: "express", markets: ["ELIGIBLE"] },
+          { method: "ideal", family: "bank", available: true, role: "local", markets: ["NL"] },
+          { method: "bancontact", family: "bank", available: true, role: "local", markets: ["BE"] },
+          { method: "eps", family: "bank", available: false, role: "local", markets: ["AT"] },
+          { method: "p24", family: "bank", available: false, role: "local", markets: ["PL"] },
+          { method: "revolut_pay", family: "wallet", available: false, role: "express", markets: ["EU"] },
+        ],
+      },
     };
     else if (path === "/api/categories") payload = { categories: [{ id: "cat-1", name: "Féculents et farines" }, { id: "cat-2", name: "Épices" }] };
     else if (path === "/api/brands") payload = { brands: [{ id: "brand-1", name: "Je mange Africain" }] };
@@ -1125,9 +1141,18 @@ test("platform settings publish durable customer-facing contact details", async 
 
   await expect(page.getByRole("heading", { name: "Configuration de la plateforme" })).toBeVisible();
   await expect(page.getByTestId("production-readiness")).toContainText("Mise en production à finaliser");
-  await expect(page.getByTestId("production-readiness")).toContainText("78 %");
+  await expect(page.getByTestId("production-readiness")).toContainText("83 %");
   await expect(page.getByTestId("integration-database")).toContainText("Base de production");
   await expect(page.getByTestId("integration-payments")).toContainText("Confirmation serveur");
+  const paymentReadiness = page.getByTestId("payment-readiness");
+  await expect(paymentReadiness).toContainText("Carte + PayPal actifs");
+  await expect(paymentReadiness).toContainText("LIVE");
+  await expect(paymentReadiness).toContainText("Apple Pay");
+  await expect(paymentReadiness).toContainText("iDEAL");
+  await expect(paymentReadiness).not.toContainText(/secret|sk_live/i);
+  const paymentConfiguration = paymentReadiness.getByText(/European storefront/);
+  await paymentConfiguration.scrollIntoViewIfNeeded();
+  await expect(paymentConfiguration).toBeVisible();
   const form = page.getByRole("form", { name: "Coordonnées publiques de service" });
   await form.getByLabel("E-mail d'assistance").fill("service-client@je-mange-africain.com");
   await form.getByLabel("Délai indicatif (heures)").fill("24");
@@ -1149,6 +1174,7 @@ test("platform settings publish durable customer-facing contact details", async 
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
+    await paymentReadiness.screenshot({ path: join(directory, `payment-readiness-detail-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`) });
     await page.screenshot({ path: join(directory, `platform-readiness-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), fullPage: true });
   }
 });

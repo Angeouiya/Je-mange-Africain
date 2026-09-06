@@ -10,6 +10,7 @@ import {
   Database,
   Gauge,
   KeyRound,
+  Landmark,
   LoaderCircle,
   Mail,
   MapPin,
@@ -17,6 +18,8 @@ import {
   Save,
   Settings2,
   ShieldCheck,
+  Smartphone,
+  WalletCards,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
@@ -26,6 +29,8 @@ import { Label } from "@/components/ui/label";
 import { useFetch } from "@/lib/use-fetch";
 import { BRAND_COLORS } from "@/lib/brand-colors";
 import { formatDateTime } from "@/lib/format";
+import { paymentMethodLabel } from "@/lib/payment-methods";
+import type { PaymentProviderReadiness, PaymentReadinessMethod } from "@/lib/payment-readiness";
 
 type Configuration = {
   supportEmail: string;
@@ -48,6 +53,7 @@ type SettingsPayload = {
   configuration: Configuration;
   metadata: { persisted: boolean; updatedBy: string | null; updatedAt: string | null };
   integrations: Integration[];
+  paymentReadiness: PaymentProviderReadiness;
 };
 
 const INTEGRATION_PRESENTATION: Record<Integration["id"], { icon: LucideIcon; titleFr: string; titleEn: string; detailFr: string; detailEn: string }> = {
@@ -126,6 +132,8 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
       {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
       <ProductionReadiness readiness={readiness} locale={locale} />
+
+      <EuropeanPaymentReadiness readiness={data?.paymentReadiness} locale={locale} />
 
       <div className="mt-6 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-9">
         <form onSubmit={submit} className="min-w-0 space-y-6" aria-label={isFr ? "Coordonnées publiques de service" : "Public service contact details"}>
@@ -219,6 +227,76 @@ function SettingsField({ id, label, icon: Icon, hint, children }: { id: string; 
   return <div className="min-w-0"><Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label><div className="relative"><Icon className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-terre" />{children}</div>{hint ? <p className="mt-1.5 text-[9px] leading-4 text-muted-foreground">{hint}</p> : null}</div>;
 }
 
+function EuropeanPaymentReadiness({ readiness, locale }: { readiness?: PaymentProviderReadiness; locale: "fr" | "en" }) {
+  if (!readiness) return null;
+  const isFr = locale === "fr";
+  const availableMethods = readiness.methods.filter((method) => method.available);
+  const localMethods = availableMethods.filter((method) => method.role === "local");
+  const expressMethods = availableMethods.filter((method) => method.role === "express");
+  const state = readiness.state === "ready"
+    ? { label: isFr ? "Carte + PayPal actifs" : "Card + PayPal active", className: "bg-burgundy text-white", icon: CheckCircle2 }
+    : readiness.state === "unconfigured"
+      ? { label: isFr ? "Stripe non configuré" : "Stripe not configured", className: "bg-terre text-white", icon: AlertTriangle }
+      : readiness.state === "unavailable"
+        ? { label: isFr ? "Contrôle indisponible" : "Check unavailable", className: "bg-gold/20 text-burgundy", icon: AlertTriangle }
+        : { label: isFr ? "Activation à compléter" : "Activation incomplete", className: "bg-gold/20 text-burgundy", icon: AlertTriangle };
+  const StateIcon = state.icon;
+
+  return (
+    <section className="mt-5 overflow-hidden border-y border-burgundy/14 bg-[linear-gradient(118deg,#FFFFFF_0%,#FFF8F4_55%,#FFF9ED_100%)]" aria-labelledby="payment-readiness-title" data-testid="payment-readiness">
+      <div className="px-4 py-4 sm:px-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-burgundy text-white shadow-[0_12px_26px_-18px_rgba(138,48,66,0.85)]"><WalletCards className="h-4.5 w-4.5" /></span>
+            <div className="min-w-0"><p className="jma-eyebrow">{isFr ? "Encaissement international" : "International payments"}</p><h2 id="payment-readiness-title" className="mt-0.5 text-sm font-black text-charcoal">{isFr ? "Couverture de paiement européenne" : "European payment coverage"}</h2><p className="mt-1 max-w-2xl text-[10px] leading-4 text-muted-foreground">{isFr ? "Lecture en temps réel de la configuration Stripe active. L’éligibilité finale reste calculée pour chaque pays, appareil et montant." : "Live reading of the active Stripe configuration. Final eligibility is still calculated for each country, device and amount."}</p></div>
+          </div>
+          <span className={`inline-flex min-h-7 items-center gap-1.5 rounded-md px-2 text-[8px] font-black uppercase ${state.className}`}><StateIcon className="h-3 w-3" />{state.label}</span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 divide-x divide-burgundy/10 border-y border-burgundy/10 bg-white/70 text-center">
+          <PaymentReadinessFact label={isFr ? "Mode" : "Mode"} value={readiness.liveMode === true ? "LIVE" : readiness.liveMode === false ? "TEST" : isFr ? "Non vérifié" : "Unchecked"} />
+          <PaymentReadinessFact label={isFr ? "Express" : "Express"} value={String(expressMethods.length)} />
+          <PaymentReadinessFact label={isFr ? "Banques locales" : "Local banks"} value={String(localMethods.length)} />
+        </div>
+
+        <div className="mt-4 grid gap-px overflow-hidden rounded-md border border-burgundy/10 bg-burgundy/10 sm:grid-cols-2">
+          <PaymentMethodReadiness method={readiness.methods.find((method) => method.method === "card")} locale={locale} />
+          <PaymentMethodReadiness method={readiness.methods.find((method) => method.method === "paypal")} locale={locale} />
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-1.5" aria-label={isFr ? "Autres moyens activés" : "Other enabled methods"}>
+          {availableMethods.filter((method) => method.role !== "essential").map((method) => <span key={method.method} className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-burgundy/10 bg-white px-2 text-[8px] font-black text-charcoal"><PaymentMethodIcon method={method} className="h-3 w-3 text-terre" />{paymentMethodLabel(method.method, locale)}</span>)}
+          {!availableMethods.some((method) => method.role !== "essential") ? <p className="text-[9px] leading-4 text-muted-foreground">{isFr ? "Aucun wallet ou moyen local supplémentaire n’est actuellement activé dans cette configuration." : "No additional wallet or local method is currently enabled in this configuration."}</p> : null}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-burgundy/10 pt-3 text-[8px] font-bold text-muted-foreground"><span className="truncate">{readiness.configurationName || (isFr ? "Configuration non identifiée" : "Unidentified configuration")}{readiness.isDefault ? (isFr ? " · configuration par défaut" : " · default configuration") : ""}</span><span className="shrink-0 tabular-nums">{isFr ? "Contrôlé" : "Checked"} {formatDateTime(readiness.checkedAt, locale)}</span></div>
+      </div>
+    </section>
+  );
+}
+
+function PaymentReadinessFact({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0 px-2 py-3"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className="mt-1 truncate text-xs font-black text-charcoal">{value}</p></div>;
+}
+
+function PaymentMethodReadiness({ method, locale }: { method?: PaymentReadinessMethod; locale: "fr" | "en" }) {
+  if (!method) return null;
+  const isFr = locale === "fr";
+  return <div className="flex min-w-0 items-center gap-3 bg-white px-3 py-3"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${method.available ? "bg-burgundy/[0.08] text-burgundy" : "bg-terre/[0.08] text-terre"}`}><PaymentMethodIcon method={method} className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-[10px] font-black text-charcoal">{paymentMethodLabel(method.method, locale)}</p><p className="mt-0.5 truncate text-[8px] text-muted-foreground">{method.markets.map((market) => paymentMarketLabel(market, locale)).join(" · ")}</p></div><span className={`shrink-0 text-[8px] font-black uppercase ${method.available ? "text-burgundy" : "text-terre"}`}>{method.available ? (isFr ? "Actif" : "Active") : (isFr ? "À activer" : "Enable")}</span></div>;
+}
+
+function PaymentMethodIcon({ method, className }: { method: PaymentReadinessMethod; className?: string }) {
+  const Icon = method.family === "card" ? CreditCard : method.family === "bank" ? Landmark : method.family === "wallet" ? Smartphone : WalletCards;
+  return <Icon className={className} />;
+}
+
+function paymentMarketLabel(market: string, locale: "fr" | "en") {
+  if (market === "EU") return locale === "fr" ? "Europe" : "Europe";
+  if (market === "DEVICE") return locale === "fr" ? "Appareil compatible" : "Compatible device";
+  if (market === "ELIGIBLE") return locale === "fr" ? "Marchés éligibles" : "Eligible markets";
+  return market;
+}
+
 function IntegrationStatus({ integration, locale }: { integration: Integration; locale: "fr" | "en" }) {
   const isFr = locale === "fr";
   const presentation = INTEGRATION_PRESENTATION[integration.id];
@@ -275,7 +353,7 @@ function ProductionReadiness({ readiness, locale }: { readiness: PlatformReadine
 function capabilityLabel(integrationId: Integration["id"], capability: string, locale: "fr" | "en") {
   const labels: Record<Integration["id"], Record<string, [string, string]>> = {
     database: { connection: ["Connexion", "Connection"], persistence: ["Persistance", "Persistence"], production: ["Base de production", "Production database"] },
-    payments: { connection: ["Encaissement", "Payment collection"], webhook: ["Confirmation serveur", "Server confirmation"] },
+    payments: { connection: ["Encaissement", "Payment collection"], webhook: ["Confirmation serveur", "Server confirmation"], configuration: ["Configuration Stripe", "Stripe configuration"], card: ["Carte bancaire", "Payment card"], paypal: ["PayPal", "PayPal"] },
     identity: { connection: ["API publique", "Public API"], serverAccess: ["Accès serveur", "Server access"] },
     cache: { connection: ["Protection active", "Protection active"] },
     push: { connection: ["Diffusion active", "Delivery active"] },

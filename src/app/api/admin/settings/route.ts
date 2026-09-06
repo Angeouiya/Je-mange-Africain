@@ -7,6 +7,7 @@ import {
   platformIntegrationStatus,
   readPlatformConfiguration,
 } from "@/lib/platform-configuration";
+import { readPaymentReadiness, type PaymentProviderReadiness } from "@/lib/payment-readiness";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +15,12 @@ export async function GET(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request, { module: "settings", action: "read" });
   if (!authorization.ok) return authorization.response;
 
-  const current = await readPlatformConfiguration();
+  const [current, paymentReadiness] = await Promise.all([readPlatformConfiguration(), readPaymentReadiness()]);
   return NextResponse.json({
     configuration: current.configuration,
     metadata: { persisted: current.persisted, updatedBy: current.updatedBy, updatedAt: current.updatedAt },
-    integrations: platformIntegrationStatus(current.databaseAvailable),
+    integrations: applyPaymentReadiness(platformIntegrationStatus(current.databaseAvailable), paymentReadiness),
+    paymentReadiness,
   });
 }
 
@@ -64,4 +66,13 @@ export async function PATCH(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "La configuration n'a pas pu être enregistrée." }, { status: 503 });
   }
+}
+
+function applyPaymentReadiness(integrations: ReturnType<typeof platformIntegrationStatus>, readiness: PaymentProviderReadiness) {
+  return integrations.map((integration) => {
+    if (integration.id !== "payments") return integration;
+    const capabilities = { ...integration.capabilities, configuration: readiness.reachable, card: readiness.card, paypal: readiness.paypal };
+    const state = integration.state === "attention" ? "attention" : Object.values(capabilities).every(Boolean) ? "ready" : "partial";
+    return { ...integration, state, capabilities };
+  });
 }

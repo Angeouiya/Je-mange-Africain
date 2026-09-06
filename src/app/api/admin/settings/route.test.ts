@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   upsert: vi.fn(),
   audit: vi.fn(),
   transaction: vi.fn(),
+  paymentReadiness: vi.fn(),
 }));
 
 vi.mock("@/lib/admin-auth", () => ({ authorizeAdminRequest: mocks.authorize }));
@@ -21,9 +22,13 @@ vi.mock("@/lib/platform-configuration", async (importOriginal) => {
   return {
     ...actual,
     readPlatformConfiguration: mocks.read,
-    platformIntegrationStatus: (databaseAvailable: boolean) => [{ id: "database", state: databaseAvailable ? "ready" : "attention", provider: "PostgreSQL", capabilities: { connection: databaseAvailable } }],
+    platformIntegrationStatus: (databaseAvailable: boolean) => [
+      { id: "database", state: databaseAvailable ? "ready" : "attention", provider: "PostgreSQL", capabilities: { connection: databaseAvailable } },
+      { id: "payments", state: "ready", provider: "Stripe", capabilities: { connection: true, webhook: true } },
+    ],
   };
 });
+vi.mock("@/lib/payment-readiness", () => ({ readPaymentReadiness: mocks.paymentReadiness }));
 
 import { GET, PATCH } from "./route";
 
@@ -53,6 +58,7 @@ describe("admin platform settings route", () => {
     mocks.upsert.mockResolvedValue({ id: "primary", ...configuration, updatedBy: "direction@je-mange-africain.com", updatedAt: new Date("2026-09-05T07:05:00.000Z") });
     mocks.audit.mockResolvedValue({ id: "audit-settings" });
     mocks.transaction.mockImplementation(async (callback: (transaction: unknown) => unknown) => callback({ platformConfiguration: { upsert: mocks.upsert }, auditLog: { create: mocks.audit } }));
+    mocks.paymentReadiness.mockResolvedValue({ provider: "Stripe", state: "ready", reachable: true, liveMode: true, configurationName: "Default", isDefault: true, checkedAt: "2026-09-06T12:00:00.000Z", card: true, paypal: true, methods: [] });
   });
 
   it("requires the settings read permission and returns readiness without credentials", async () => {
@@ -63,7 +69,18 @@ describe("admin platform settings route", () => {
     expect(mocks.authorize).toHaveBeenCalledWith(expect.any(NextRequest), { module: "settings", action: "read" });
     expect(payload.configuration.supportEmail).toBe(configuration.supportEmail);
     expect(payload.integrations[0]).toEqual(expect.objectContaining({ id: "database", state: "ready" }));
+    expect(payload.integrations[1]).toEqual(expect.objectContaining({ id: "payments", state: "ready", capabilities: expect.objectContaining({ configuration: true, card: true, paypal: true }) }));
+    expect(payload.paymentReadiness).toEqual(expect.objectContaining({ state: "ready", card: true, paypal: true }));
     expect(JSON.stringify(payload)).not.toContain("secret");
+  });
+
+  it("marks the payment integration partial when PayPal is not active", async () => {
+    mocks.paymentReadiness.mockResolvedValueOnce({ provider: "Stripe", state: "attention", reachable: true, liveMode: true, configurationName: "Default", isDefault: true, checkedAt: "2026-09-06T12:00:00.000Z", card: true, paypal: false, methods: [] });
+
+    const response = await GET(request("GET"));
+    const payload = await response.json();
+
+    expect(payload.integrations.find((integration: { id: string }) => integration.id === "payments")).toEqual(expect.objectContaining({ state: "partial", capabilities: expect.objectContaining({ card: true, paypal: false }) }));
   });
 
   it("publishes a valid configuration and records the previous state", async () => {

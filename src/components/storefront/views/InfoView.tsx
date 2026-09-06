@@ -115,9 +115,9 @@ const SUPPORT_FAQS: SupportFaq[] = [
     topic: "order",
     questionFr: "Quels moyens de paiement acceptez-vous ?",
     questionEn: "Which payment methods do you accept?",
-    answerFr: "Le paiement par carte est sécurisé par Stripe. Les moyens accélérés compatibles avec votre appareil et votre pays apparaissent directement à l'étape de paiement lorsqu'ils sont disponibles.",
-    answerEn: "Card payments are secured by Stripe. Accelerated methods supported by your device and country appear at checkout whenever they are available.",
-    keywords: "carte stripe paiement sécurisé card payment secure checkout",
+    answerFr: "Le paiement par carte est sécurisé par Stripe. PayPal, Apple Pay, Google Pay et les moyens bancaires locaux activés apparaissent directement à l'étape de paiement lorsqu'ils sont éligibles pour votre pays, votre appareil et le montant de la commande.",
+    answerEn: "Card payments are secured by Stripe. Enabled PayPal, Apple Pay, Google Pay and local banking methods appear directly at checkout when eligible for your country, device and order amount.",
+    keywords: "carte paypal apple pay google pay banque locale stripe paiement sécurisé card payment bank secure checkout",
   },
   {
     id: "change-order",
