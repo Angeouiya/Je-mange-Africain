@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { AnimatePresence, motion } from "framer-motion";
-import { useStore, type ViewId, type ViewParams } from "@/lib/store";
+import { hydrateStore, useStore, type ViewId, type ViewParams } from "@/lib/store";
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
@@ -52,40 +51,58 @@ export default function Page() {
           : view;
 
   useEffect(() => {
-    void useStore.persist.rehydrate();
-    const sessionSubject = useStore.getState().customer?.id || null;
+    let cancelled = false;
     const applyLocation = () => {
       const destination = storefrontDestination(new URLSearchParams(window.location.search));
       navigate(destination.view, destination.params);
     };
-    applyLocation();
-    setMounted(true);
-    window.addEventListener("popstate", applyLocation);
-    fetch("/api/auth/customer/session", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Session HTTP ${response.status}`);
-        return response.json();
-      })
-      .then((payload) => {
-        const state = useStore.getState();
-        const currentSubject = state.customer?.id || null;
-        const responseSubject = payload?.customer?.id || null;
-        if (currentSubject !== sessionSubject && currentSubject !== responseSubject) return;
-        if (!payload?.customer) {
-          if (state.customer) state.logout();
-          else {
-            state.setCustomer(null);
-            state.setAddresses([]);
+    const applyHydratedLocation = () => {
+      void hydrateStore().then(() => {
+        if (!cancelled) applyLocation();
+      });
+    };
+    const initialize = async () => {
+      try {
+        await hydrateStore();
+      } catch {
+        // The public shell remains usable with its safe defaults.
+      }
+      if (cancelled) return;
+      const sessionSubject = useStore.getState().customer?.id || null;
+      applyLocation();
+      setMounted(true);
+      fetch("/api/auth/customer/session", { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`Session HTTP ${response.status}`);
+          return response.json();
+        })
+        .then((payload) => {
+          if (cancelled) return;
+          const state = useStore.getState();
+          const currentSubject = state.customer?.id || null;
+          const responseSubject = payload?.customer?.id || null;
+          if (currentSubject !== sessionSubject && currentSubject !== responseSubject) return;
+          if (!payload?.customer) {
+            if (state.customer) state.logout();
+            else {
+              state.setCustomer(null);
+              state.setAddresses([]);
+            }
+            return;
           }
-          return;
-        }
-        if (sessionSubject && sessionSubject !== responseSubject) state.logout();
-        state.setCustomer(payload.customer);
-        if (Array.isArray(payload.addresses)) state.setAddresses(payload.addresses);
-        state.mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
-      })
-      .catch(() => undefined);
-    return () => window.removeEventListener("popstate", applyLocation);
+          if (sessionSubject && sessionSubject !== responseSubject) state.logout();
+          state.setCustomer(payload.customer);
+          if (Array.isArray(payload.addresses)) state.setAddresses(payload.addresses);
+          state.mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
+        })
+        .catch(() => undefined);
+    };
+    void initialize();
+    window.addEventListener("popstate", applyHydratedLocation);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("popstate", applyHydratedLocation);
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -140,17 +157,7 @@ export default function Page() {
       <div className={`flex min-h-screen flex-col ${isPublicAuthGate ? "" : "md:pl-64"}`}>
       {isPublicAuthGate ? null : <Header />}
       <main id="main-content" tabIndex={-1} className={isPublicAuthGate ? "flex-1" : "flex-1 pb-20 md:pb-0"}>
-        <AnimatePresence initial={false} mode="sync">
-          <motion.div
-            key={viewIdentity}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-          >
-            {renderView(view)}
-          </motion.div>
-        </AnimatePresence>
+        <div key={viewIdentity}>{renderView(view)}</div>
       </main>
       </div>
     </div>

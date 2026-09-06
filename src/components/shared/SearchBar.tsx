@@ -78,6 +78,7 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
   const [debounced, setDebounced] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
 
   useEffect(() => {
@@ -91,6 +92,17 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
     };
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
+  }, []);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const earlyValue = input.value.trim();
+    if (earlyValue) {
+      setQuery(input.value);
+      setDebounced(earlyValue);
+    }
+    if (document.activeElement === input) setOpen(true);
   }, []);
 
   useEffect(() => setActiveIndex(-1), [debounced]);
@@ -163,6 +175,7 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
       <div className={cn("flex items-center gap-2 rounded-lg border border-border bg-white shadow-sm transition focus-within:border-terre focus-within:ring-2 focus-within:ring-terre/20", compact ? "px-3 py-2" : "px-4 py-2.5")}>
         {loading && debounced ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-terre" aria-hidden="true" /> : <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
         <input
+          ref={inputRef}
           autoFocus={autoFocus}
           value={query}
           onChange={(event) => { setQuery(event.target.value); setActiveIndex(-1); setOpen(true); }}

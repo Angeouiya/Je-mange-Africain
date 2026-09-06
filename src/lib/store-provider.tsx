@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore } from "./store";
+import { hydrateStore, useStore } from "./store";
 import type { Locale } from "./i18n";
 
 const viewTitles = {
@@ -57,17 +57,15 @@ function titleForLocation(locale: Locale, view: keyof (typeof viewTitles)["fr"])
   return viewTitles[locale][view];
 }
 
-/**
- * Ensures the persisted store is hydrated before rendering children,
- * preventing hydration mismatches between server and client.
- * Hydration is handled by Zustand persist's onRehydrateStorage; this
- * provider just warms the store reference so SSR + client stay in sync.
- */
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const locale = useStore((state) => state.locale);
   const view = useStore((state) => state.view);
   const [documentLocale, setDocumentLocale] = useState<Locale>("fr");
   const [documentTitle, setDocumentTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    void hydrateStore();
+  }, []);
 
   useEffect(() => {
     if (window.location.pathname.startsWith("/admin")) return;

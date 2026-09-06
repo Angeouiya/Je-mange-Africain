@@ -388,6 +388,16 @@ export const useStore = create<AppState>()(
   )
 );
 
+let storeHydrationPromise: Promise<void> | null = null;
+
+export function hydrateStore() {
+  if (useStore.persist.hasHydrated()) return Promise.resolve();
+  if (!storeHydrationPromise) {
+    storeHydrationPromise = Promise.resolve(useStore.persist.rehydrate());
+  }
+  return storeHydrationPromise;
+}
+
 /* ------------------------------------------------------------------ */
 /* Selectors / helpers                                                 */
 /* ------------------------------------------------------------------ */
