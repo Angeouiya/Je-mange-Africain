@@ -9,10 +9,12 @@ import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
+import { clientPrimaryNavigationTarget, clientSidebarUtilityTarget } from "@/lib/client-navigation";
 
 export function MobileNav() {
   const locale = useStore((s) => s.locale);
   const view = useStore((s) => s.view);
+  const params = useStore((s) => s.params);
   const navigate = useStore((s) => s.navigate);
   const cart = useStore((s) => s.cart);
   const customer = useStore((s) => s.customer);
@@ -47,14 +49,12 @@ export function MobileNav() {
       ],
     },
   ];
-
-  const isActive = (id: ViewId) => view === id
-    || (id === "catalog" && (view === "product" || view === "wholesale"))
-    || (id === "recipes" && view === "recipe-config")
-    || (id === "orders" && view === "order-tracking");
+  const mobileActiveTarget = clientPrimaryNavigationTarget(view, "mobile", Boolean(customer));
+  const desktopActiveTarget = clientPrimaryNavigationTarget(view, "desktop", Boolean(customer));
+  const utilityActiveTarget = clientSidebarUtilityTarget(view, params);
 
   const renderMobileItem = (it: (typeof mobileItems)[number]) => {
-    const active = isActive(it.id);
+    const active = mobileActiveTarget === it.id;
     const Icon = it.icon;
     return (
       <button
@@ -105,7 +105,7 @@ export function MobileNav() {
             <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-burgundy">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-terre">{group.intent}</span></div>
             <div className="space-y-1">{group.items.map((item) => {
               const Icon = item.icon;
-              const active = isActive(item.id);
+              const active = desktopActiveTarget === item.id;
               return (
                 <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-[3.25rem] w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
                   {active ? <motion.span layoutId="client-desktop-nav-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
@@ -121,14 +121,48 @@ export function MobileNav() {
 
         <div className="border-t border-burgundy/10 bg-white/70 p-2.5">
           {customer ? (
-            <button type="button" onClick={() => navigate("account", { accountSection: "profile" })} className="mb-1 flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition hover:bg-burgundy/5">
+            <button
+              type="button"
+              onClick={() => navigate("account", { accountSection: "profile" })}
+              aria-current={utilityActiveTarget === "account" ? "page" : undefined}
+              data-active={utilityActiveTarget === "account" ? "true" : "false"}
+              className={`mb-1 flex w-full items-center gap-3 rounded-md border px-2 py-2 text-left transition ${utilityActiveTarget === "account" ? "border-burgundy/10 bg-burgundy/[0.06] shadow-[0_10px_24px_-22px_rgba(90,38,50,0.75)]" : "border-transparent hover:bg-burgundy/5"}`}
+            >
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-terre text-xs font-extrabold text-white">{customer.firstName[0]}{customer.lastName[0] || ""}</span>
               <span className="min-w-0"><span className="block truncate text-xs font-bold text-charcoal">{customer.firstName} {customer.lastName}</span><span className="block truncate text-[10px] text-muted-foreground">{customer.email}</span></span>
             </button>
           ) : null}
-          {customer ? <button onClick={() => navigate("account", { accountSection: "settings" })} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><Settings className="h-4 w-4" /> {locale === "fr" ? "Paramètres" : "Settings"}</button> : <button onClick={() => navigate("account")} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><LogIn className="h-4 w-4" /> {t.nav.login}</button>}
-          <button onClick={() => navigate("info", { infoPage: "help" })} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><LifeBuoy className="h-4 w-4" /> {t.nav.help}</button>
-          <button type="button" onClick={requestPrivacyPreferences} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><SlidersHorizontal className="h-4 w-4" /> {locale === "fr" ? "Confidentialité" : "Privacy"}</button>
+          {customer ? (
+            <button
+              type="button"
+              onClick={() => navigate("account", { accountSection: "settings" })}
+              aria-current={utilityActiveTarget === "settings" ? "page" : undefined}
+              data-active={utilityActiveTarget === "settings" ? "true" : "false"}
+              className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition ${utilityActiveTarget === "settings" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
+            >
+              <Settings className="h-4 w-4" /> {locale === "fr" ? "Paramètres" : "Settings"}
+            </button>
+          ) : (
+            <button type="button" onClick={() => navigate("account")} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><LogIn className="h-4 w-4" /> {t.nav.login}</button>
+          )}
+          <button
+            type="button"
+            onClick={() => navigate("info", { infoPage: "help" })}
+            aria-current={utilityActiveTarget === "help" ? "page" : undefined}
+            data-active={utilityActiveTarget === "help" ? "true" : "false"}
+            className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition ${utilityActiveTarget === "help" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
+          >
+            <LifeBuoy className="h-4 w-4" /> {t.nav.help}
+          </button>
+          <button
+            type="button"
+            onClick={requestPrivacyPreferences}
+            aria-current={utilityActiveTarget === "privacy" ? "page" : undefined}
+            data-active={utilityActiveTarget === "privacy" ? "true" : "false"}
+            className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition ${utilityActiveTarget === "privacy" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
+          >
+            <SlidersHorizontal className="h-4 w-4" /> {locale === "fr" ? "Confidentialité" : "Privacy"}
+          </button>
           {customer ? (
             <LogoutConfirmDialog>
               <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-terre transition hover:bg-terre/5"><LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>

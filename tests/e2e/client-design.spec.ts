@@ -32,6 +32,14 @@ async function expectLoadedProductImages(images: Locator, maximum = 4) {
   }
 }
 
+async function expectClientNavigationTarget(page: Page, isMobile: boolean, label: RegExp) {
+  const navigation = page.getByTestId(isMobile ? "mobile-navigation" : "client-sidebar");
+  const activeDestination = navigation.locator('button[aria-current="page"]');
+  await expect(activeDestination).toHaveCount(1);
+  await expect(activeDestination).toContainText(label);
+  await expect(activeDestination).toHaveAttribute("data-active", "true");
+}
+
 async function expectBrandSafeUiColors(page: Page) {
   const forbiddenStyles = await page.locator("body").evaluate((body) => {
     const ignoredTags = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS"]);
@@ -445,6 +453,7 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   const grid = page.getByTestId("wholesale-product-grid");
   await expect(grid).toBeVisible();
   const isMobile = (page.viewportSize()?.width || 0) < 768;
+  await expectClientNavigationTarget(page, isMobile, isMobile ? /catégories|categories/i : /marché de gros|wholesale market/i);
   const columns = await grid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(columns).toBe(isMobile ? 2 : 4);
   const wholesaleImage = grid.getByRole("img", { name: "Attiéké professionnel" });
@@ -1233,6 +1242,8 @@ test("account settings synchronize language and protect session actions", async 
 
   await page.goto("/?view=account&accountSection=settings", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Réglages du compte" })).toBeVisible();
+  const isMobile = (page.viewportSize()?.width || 0) < 768;
+  await expectClientNavigationTarget(page, isMobile, isMobile ? /compte|account/i : /paramètres|settings/i);
   const accountNavigation = page.getByTestId("account-section-navigation");
   await expect(accountNavigation.getByRole("button", { name: "Réglages" })).toHaveAttribute("aria-current", "page");
   await expect(accountNavigation).toHaveCSS("position", "sticky");
@@ -1286,6 +1297,9 @@ test("the help center leads to a contextual and usable contact request", async (
 
   await page.goto("/?view=info&infoPage=help", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /comment pouvons-nous vous aider|how can we help/i })).toBeVisible();
+  if ((page.viewportSize()?.width || 0) >= 768) {
+    await expectClientNavigationTarget(page, false, /aide|help/i);
+  }
   const informationNavigation = page.getByRole("navigation", { name: /information et assistance|information and support/i });
   await expect(informationNavigation).toBeVisible();
   await informationNavigation.getByRole("button", { name: /la maison|our company/i }).click();
@@ -1517,6 +1531,7 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await page.getByRole("button", { name: /passer la commande|place order/i }).click();
 
   await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
+  await expectClientNavigationTarget(page, isMobile, isMobile ? /panier|cart/i : /finaliser le panier|complete basket/i);
   const checkoutCampaign = page.getByTestId("advertisement-checkout");
   await expect(checkoutCampaign).toContainText("Votre avantage livraison");
   await expectLoadedProductImages(checkoutCampaign.getByRole("img"), 1);
@@ -1704,6 +1719,7 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   await expect(page).toHaveURL(/view=order-confirmation&orderId=order-confirmed/);
   await expect(page.getByRole("heading", { name: /merci awa, c'est confirmé|thank you awa, it is confirmed/i })).toBeVisible();
+  await expectClientNavigationTarget(page, isMobile, isMobile ? /compte|account/i : /suivre mes commandes|track my orders/i);
   await expect(page.getByTestId("confirmation-command-center")).toContainText("JMA-260904-0218");
   const confirmationProgress = page.getByTestId("confirmation-progress");
   await expect(confirmationProgress.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "33");
@@ -1746,6 +1762,7 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
   await actions.getByRole("button", { name: /suivre|track/i }).click();
   await expect(page).toHaveURL(/view=order-tracking&orderId=order-confirmed/);
   await expect(page.getByRole("heading", { name: "JMA-260904-0218" })).toBeVisible();
+  await expectClientNavigationTarget(page, isMobile, isMobile ? /compte|account/i : /suivre mes commandes|track my orders/i);
   if (isMobile) await page.getByRole("button", { name: /ma commande|my order/i }).click();
   const trackingPayment = page.getByTestId("tracking-payment");
   await expect(trackingPayment).toContainText("iDEAL");
