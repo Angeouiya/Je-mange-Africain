@@ -2,23 +2,22 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import {
-  ChefHat,
-  Boxes,
-  Building2,
-  CircleHelp,
-  ClipboardList,
-  Info,
-  LogIn,
-  LogOut,
-  Menu,
-  MessageCircle,
-  ScrollText,
-  ShieldCheck,
-  SlidersHorizontal,
-  Store,
-  UserRound,
-} from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { Box } from "reicon/icons/Box";
+import { Building2 } from "reicon/icons/Building2";
+import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
+import { ClipboardList } from "reicon/icons/ClipboardList";
+import { HelpCircle } from "reicon/icons/HelpCircle";
+import { InfoCircle } from "reicon/icons/InfoCircle";
+import { Login } from "reicon/icons/Login";
+import { Logout } from "reicon/icons/Logout";
+import { Menu } from "reicon/icons/Menu";
+import { MessageCircle } from "reicon/icons/MessageCircle";
+import { Scroll } from "reicon/icons/Scroll";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
+import { Sliders } from "reicon/icons/Sliders";
+import { Store } from "reicon/icons/Store";
+import { UserCircle } from "reicon/icons/UserCircle";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { useStore } from "@/lib/store";
@@ -29,6 +28,7 @@ import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 import { COMPANY_PROFILE } from "@/lib/company-profile";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 const NotificationCenter = dynamic(
   () => import("@/components/storefront/NotificationCenter").then((module) => module.NotificationCenter),
@@ -45,15 +45,15 @@ export function Header() {
   const searchContext = view === "catalog"
     ? { icon: Store, label: locale === "fr" ? "Catalogue" : "Catalogue", detail: locale === "fr" ? "Produits et ingrédients" : "Products and ingredients" }
     : view === "wholesale"
-      ? { icon: Boxes, label: locale === "fr" ? "Marché de gros" : "Wholesale market", detail: locale === "fr" ? "Cartons, lots et volumes" : "Cases, lots and volume" }
+      ? { icon: Box, label: locale === "fr" ? "Marché de gros" : "Wholesale market", detail: locale === "fr" ? "Cartons, lots et volumes" : "Cases, lots and volume" }
     : view === "recipes"
-      ? { icon: ChefHat, label: locale === "fr" ? "Cuisine" : "Cooking", detail: locale === "fr" ? "Recettes et bibliothèque" : "Recipes and dish library" }
+      ? { icon: ChefHatHeart, label: locale === "fr" ? "Cuisine" : "Cooking", detail: locale === "fr" ? "Recettes et bibliothèque" : "Recipes and dish library" }
       : null;
 
-  const utilityLinks = [
+  const utilityLinks: Array<{ key: string; view: string; params?: Record<string, string>; label: string; icon: IconFunction }> = [
     ...(customer ? [{ key: "orders", view: "orders", params: undefined, label: t.nav.tracking, icon: ClipboardList }] : []),
-    { key: "about", view: "info", params: { infoPage: "about" }, label: t.nav.about, icon: Info },
-    { key: "help", view: "info", params: { infoPage: "help" }, label: t.nav.help, icon: CircleHelp },
+    { key: "about", view: "info", params: { infoPage: "about" }, label: t.nav.about, icon: InfoCircle },
+    { key: "help", view: "info", params: { infoPage: "help" }, label: t.nav.help, icon: HelpCircle },
     { key: "contact", view: "info", params: { infoPage: "contact" }, label: t.nav.contact, icon: MessageCircle },
   ];
 
@@ -73,7 +73,7 @@ export function Header() {
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-md text-charcoal hover:bg-terre/[0.07] hover:text-terre md:hidden" aria-label="Menu">
-              <Menu className="h-[1.15rem] w-[1.15rem]" />
+              <ReiconGlyph icon={Menu} className="h-[1.15rem] w-[1.15rem]" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[min(22rem,calc(100vw-1rem))] bg-white p-0">
@@ -91,7 +91,7 @@ export function Header() {
                 aria-label={customer ? (locale === "fr" ? "Ouvrir mon espace" : "Open my account") : t.nav.login}
               >
                   <span className="grid h-9 w-9 place-items-center rounded-md bg-terre text-white">
-                  {customer ? <UserRound className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                  <ReiconGlyph icon={customer ? UserCircle : Login} weight="Filled" className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate">{customer ? (locale === "fr" ? "Mon espace" : "My account") : t.nav.login}</span>
@@ -105,7 +105,7 @@ export function Header() {
               {customer ? (
                 <LogoutConfirmDialog>
                   <button type="button" className="flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-destructive hover:bg-destructive/[0.06]">
-                    <LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}
+                    <ReiconGlyph icon={Logout} className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}
                   </button>
                 </LogoutConfirmDialog>
               ) : null}
@@ -113,22 +113,22 @@ export function Header() {
               <p className="px-3 pb-2 text-[10px] font-extrabold uppercase text-muted-foreground">{locale === "fr" ? "À votre service" : "At your service"}</p>
               {utilityLinks.map((link) => (
                 <button key={link.key} onClick={() => go(link.view, link.params)} aria-label={link.label} className="flex min-h-12 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-charcoal hover:bg-muted">
-                  <span className="grid h-8 w-8 place-items-center rounded-md border border-charcoal/8 bg-white text-terre"><link.icon className="h-4 w-4" /></span>
+                  <span className="grid h-8 w-8 place-items-center rounded-md border border-charcoal/8 bg-white text-terre"><ReiconGlyph icon={link.icon} className="h-4 w-4" /></span>
                   {link.label}
                 </button>
               ))}
               <div className="mt-3 border-t border-border pt-3">
                 <p className="px-3 pb-2 text-[10px] font-extrabold uppercase text-muted-foreground">{locale === "fr" ? "Cadre de confiance" : "Trust centre"}</p>
                 <button onClick={() => go("info", { infoPage: "privacy" })} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-muted-foreground hover:bg-muted hover:text-charcoal">
-                  <ShieldCheck className="h-4 w-4" />
+                  <ReiconGlyph icon={ShieldCheck} className="h-4 w-4" />
                   {locale === "fr" ? "Politique de confidentialité" : "Privacy policy"}
                 </button>
                 <button onClick={() => go("info", { infoPage: "cgv" })} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-muted-foreground hover:bg-muted hover:text-charcoal">
-                  <ScrollText className="h-4 w-4" />
+                  <ReiconGlyph icon={Scroll} className="h-4 w-4" />
                   {locale === "fr" ? "Conditions générales" : "Terms and conditions"}
                 </button>
                 <button type="button" onClick={openPrivacy} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-burgundy hover:bg-burgundy/[0.05] hover:text-terre">
-                  <SlidersHorizontal className="h-4 w-4" />
+                  <ReiconGlyph icon={Sliders} className="h-4 w-4" />
                   {locale === "fr" ? "Gérer mes choix" : "Manage my choices"}
                 </button>
               </div>
@@ -136,7 +136,7 @@ export function Header() {
                 <LanguageSwitch />
               </div>
               <p className="mt-4 flex items-center gap-2 border-t border-border px-3 pt-3 text-[10px] font-bold text-muted-foreground">
-                <Building2 className="h-3.5 w-3.5 shrink-0 text-burgundy" />
+                <ReiconGlyph icon={Building2} className="h-3.5 w-3.5 shrink-0 text-burgundy" />
                 {locale === "fr" ? "Créée par" : "Created by"} {COMPANY_PROFILE.legalName}
               </p>
             </nav>
@@ -151,7 +151,7 @@ export function Header() {
         <div className="hidden min-w-0 flex-1 md:block">
           {searchContext ? (
             <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-md border border-terre/10 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre"><searchContext.icon className="h-4 w-4" /></span>
+              <span className="grid h-9 w-9 place-items-center rounded-md border border-terre/10 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre"><ReiconGlyph icon={searchContext.icon} weight="Filled" className="h-4 w-4" /></span>
               <div className="min-w-0"><p className="text-xs font-black text-charcoal">{searchContext.label}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{searchContext.detail}</p></div>
             </div>
           ) : <div className="max-w-2xl"><SearchBar /></div>}

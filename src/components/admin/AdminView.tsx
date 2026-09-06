@@ -4,32 +4,33 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3,
-  BadgeDollarSign,
-  BellRing,
-  Boxes,
-  ChefHat,
   ChevronRight,
-  ClipboardList,
-  Fingerprint,
-  Handshake,
   LogOut,
   Menu,
-  Megaphone,
-  PackageSearch,
-  TicketPercent,
-  Route,
   ShieldCheck,
-  Settings2,
   Store,
-  UserRoundCog,
-  UsersRound,
   X,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { BadgeDollar } from "reicon/icons/BadgeDollar";
+import { BellRing } from "reicon/icons/BellRing";
+import { Box } from "reicon/icons/Box";
+import { BoxSearch } from "reicon/icons/BoxSearch";
+import { Bullhorn } from "reicon/icons/Bullhorn";
+import { ChartPie } from "reicon/icons/ChartPie";
+import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
+import { ClipboardList } from "reicon/icons/ClipboardList";
+import { Fingerprint } from "reicon/icons/Fingerprint";
+import { Handshake } from "reicon/icons/Handshake";
+import { Settings2 } from "reicon/icons/Settings2";
+import { ShieldUser } from "reicon/icons/ShieldUser";
+import { TicketPercent } from "reicon/icons/TicketPercent";
+import { TruckFast } from "reicon/icons/TruckFast";
+import { Users2 } from "reicon/icons/Users2";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BrandLockup } from "@/components/shared/BrandLockup";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -134,7 +135,7 @@ function scheduleAdminPreload(callback: () => void, timeout: number) {
 
 type NavItem = {
   id: AdminSectionId;
-  icon: LucideIcon;
+  icon: IconFunction;
   labelFr: string;
   labelEn: string;
   mobileFr: string;
@@ -153,7 +154,7 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Décider",
     verbEn: "Decide",
     items: [
-      { id: "overview", module: "dashboard", icon: BarChart3, marker: "01", accent: BRAND_COLORS.terracotta, labelFr: "Décider aujourd'hui", labelEn: "Decide today", mobileFr: "Cockpit", mobileEn: "Cockpit", purposeFr: "Alertes, arbitrages et prochaines actions", purposeEn: "Alerts, decisions and next actions" },
+      { id: "overview", module: "dashboard", icon: ChartPie, marker: "01", accent: BRAND_COLORS.terracotta, labelFr: "Décider aujourd'hui", labelEn: "Decide today", mobileFr: "Cockpit", mobileEn: "Cockpit", purposeFr: "Alertes, arbitrages et prochaines actions", purposeEn: "Alerts, decisions and next actions" },
     ],
   },
   {
@@ -162,8 +163,8 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Construire",
     verbEn: "Build",
     items: [
-      { id: "catalog", module: "catalog", icon: PackageSearch, marker: "02", accent: BRAND_COLORS.burgundy, labelFr: "Produits vendus", labelEn: "Products for sale", mobileFr: "Produits", mobileEn: "Products", purposeFr: "Images, prix public, marge et statut", purposeEn: "Images, public price, margin and status" },
-      { id: "recipes", module: "recipes", icon: ChefHat, marker: "03", accent: BRAND_COLORS.gold, labelFr: "Recettes achetables", labelEn: "Shoppable recipes", mobileFr: "Recettes", mobileEn: "Recipes", purposeFr: "Composition, substitutions et préparation", purposeEn: "Composition, substitutions and method" },
+      { id: "catalog", module: "catalog", icon: BoxSearch, marker: "02", accent: BRAND_COLORS.burgundy, labelFr: "Produits vendus", labelEn: "Products for sale", mobileFr: "Produits", mobileEn: "Products", purposeFr: "Images, prix public, marge et statut", purposeEn: "Images, public price, margin and status" },
+      { id: "recipes", module: "recipes", icon: ChefHatHeart, marker: "03", accent: BRAND_COLORS.gold, labelFr: "Recettes achetables", labelEn: "Shoppable recipes", mobileFr: "Recettes", mobileEn: "Recipes", purposeFr: "Composition, substitutions et préparation", purposeEn: "Composition, substitutions and method" },
       { id: "wholesaleQuotes", module: "orders", icon: Handshake, marker: "04", accent: BRAND_COLORS.terracotta, labelFr: "Qualifier les devis de gros", labelEn: "Qualify wholesale quotes", mobileFr: "Devis pro", mobileEn: "Pro quotes", purposeFr: "Sélections, volumes et accords commerciaux", purposeEn: "Selections, volumes and commercial agreements" },
     ],
   },
@@ -174,8 +175,8 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbEn: "Operate",
     items: [
       { id: "orders", module: "orders", icon: ClipboardList, marker: "05", accent: BRAND_COLORS.earth, labelFr: "Orchestrer les commandes", labelEn: "Orchestrate orders", mobileFr: "Commandes", mobileEn: "Orders", purposeFr: "Valider, préparer et remettre au transporteur", purposeEn: "Validate, pack and hand over to carrier" },
-      { id: "inventory", module: "stock", icon: Boxes, marker: "06", accent: BRAND_COLORS.chilli, labelFr: "Tracer les lots", labelEn: "Trace batches", mobileFr: "Lots", mobileEn: "Batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
-      { id: "logistics", module: "logistics", icon: Route, marker: "07", accent: BRAND_COLORS.gold, labelFr: "Piloter la livraison", labelEn: "Control delivery", mobileFr: "Livraison", mobileEn: "Delivery", purposeFr: "Transporteurs, zones, prix et délais européens", purposeEn: "European carriers, zones, prices and timing" },
+      { id: "inventory", module: "stock", icon: Box, marker: "06", accent: BRAND_COLORS.chilli, labelFr: "Tracer les lots", labelEn: "Trace batches", mobileFr: "Lots", mobileEn: "Batches", purposeFr: "Disponibilité, FEFO et péremption", purposeEn: "Availability, FEFO and expiry" },
+      { id: "logistics", module: "logistics", icon: TruckFast, marker: "07", accent: BRAND_COLORS.gold, labelFr: "Piloter la livraison", labelEn: "Control delivery", mobileFr: "Livraison", mobileEn: "Delivery", purposeFr: "Transporteurs, zones, prix et délais européens", purposeEn: "European carriers, zones, prices and timing" },
     ],
   },
   {
@@ -184,10 +185,10 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Engager",
     verbEn: "Engage",
     items: [
-      { id: "customers", module: "customers", icon: UsersRound, marker: "08", accent: BRAND_COLORS.warmCoral, labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
+      { id: "customers", module: "customers", icon: Users2, marker: "08", accent: BRAND_COLORS.warmCoral, labelFr: "Développer la relation", labelEn: "Grow relationships", mobileFr: "Clients", mobileEn: "Customers", purposeFr: "Historique, fidélité et valeur client", purposeEn: "History, loyalty and customer value" },
       { id: "promotions", module: "marketing", icon: TicketPercent, marker: "09", accent: BRAND_COLORS.burgundy, labelFr: "Piloter les promotions", labelEn: "Control promotions", mobileFr: "Promos", mobileEn: "Promos", purposeFr: "Codes, ciblages, quotas et calendrier", purposeEn: "Codes, targeting, limits and schedule" },
       { id: "campaigns", module: "marketing", icon: BellRing, marker: "10", accent: BRAND_COLORS.gold, labelFr: "Diffuser sur mobile", labelEn: "Broadcast to mobile", mobileFr: "Push", mobileEn: "Push", purposeFr: "Messages ciblés et résultats de diffusion", purposeEn: "Targeted messages and delivery results" },
-      { id: "advertising", module: "marketing", icon: Megaphone, marker: "11", accent: BRAND_COLORS.terracotta, labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
+      { id: "advertising", module: "marketing", icon: Bullhorn, marker: "11", accent: BRAND_COLORS.terracotta, labelFr: "Piloter les emplacements", labelEn: "Manage placements", mobileFr: "Publicités", mobileEn: "Ads", purposeFr: "Affiches, calendrier et destination", purposeEn: "Artwork, schedule and destination" },
     ],
   },
   {
@@ -196,9 +197,9 @@ const NAV_GROUPS: Array<{ labelFr: string; labelEn: string; verbFr: string; verb
     verbFr: "Contrôler",
     verbEn: "Control",
     items: [
-      { id: "finance", module: "finance", icon: BadgeDollarSign, marker: "12", accent: BRAND_COLORS.burgundy, labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
+      { id: "finance", module: "finance", icon: BadgeDollar, marker: "12", accent: BRAND_COLORS.burgundy, labelFr: "Mesurer la rentabilité", labelEn: "Measure profitability", mobileFr: "Finance", mobileEn: "Finance", purposeFr: "Coûts bruts, marges et ventes par famille", purposeEn: "Gross costs, margins and sales by family" },
       { id: "governance", module: "audit", icon: Fingerprint, marker: "13", accent: BRAND_COLORS.deepEarth, labelFr: "Auditer l'exploitation", labelEn: "Audit operations", mobileFr: "Audit", mobileEn: "Audit", purposeFr: "Journal, conformité et référentiels", purposeEn: "Activity log, compliance and reference data" },
-      { id: "team", module: "team", icon: UserRoundCog, marker: "14", accent: BRAND_COLORS.chilli, labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
+      { id: "team", module: "team", icon: ShieldUser, marker: "14", accent: BRAND_COLORS.chilli, labelFr: "Administrer les habilitations", labelEn: "Administer access", mobileFr: "Équipe", mobileEn: "Team", purposeFr: "Inviter, limiter, suspendre ou retirer", purposeEn: "Invite, limit, suspend or remove" },
       { id: "settings", module: "settings", icon: Settings2, marker: "15", accent: BRAND_COLORS.gold, labelFr: "Configurer la plateforme", labelEn: "Configure platform", mobileFr: "Paramètres", mobileEn: "Settings", purposeFr: "Coordonnées publiques et état des services", purposeEn: "Public details and service readiness" },
     ],
   },
@@ -360,7 +361,7 @@ export function AdminView({
                       {active ? <motion.span layoutId="admin-sidebar-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
                       {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : getReadableBrandAccent(item.accent) }}>
-                        <item.icon className="h-[18px] w-[18px]" />
+                        <ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[18px] w-[18px]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
@@ -411,7 +412,7 @@ export function AdminView({
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
         <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/[0.97] px-4 shadow-[0_12px_28px_-28px_rgba(90,38,50,0.55)] backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
           <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.09),rgba(242,169,0,0.05))] text-charcoal transition hover:text-terre md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><Menu className="h-[1.15rem] w-[1.15rem]" /></button>
-          <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><current.icon className="h-[18px] w-[18px]" /></span>
+          <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><ReiconGlyph icon={current.icon} weight="Filled" className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0 flex-1">
             <p className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{current.marker} · {isFr ? currentGroup?.labelFr : currentGroup?.labelEn}</p>
             <h1 ref={sectionTitleRef} tabIndex={-1} className="truncate text-sm font-black text-charcoal outline-none">{isFr ? current.labelFr : current.labelEn}</h1>
@@ -450,7 +451,7 @@ export function AdminView({
           return (
             <button key={item.id} type="button" onClick={() => selectSection(item.id)} onPointerEnter={() => preloadAdminSectionBundle(item.id)} onFocus={() => preloadAdminSectionBundle(item.id)} onTouchStart={() => preloadAdminSectionBundle(item.id)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-terre" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
               {active ? <motion.span layoutId="admin-mobile-nav-active" className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-terre/15 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.07))] shadow-[0_8px_22px_-18px_rgba(185,71,43,0.85)]" transition={{ type: "spring", stiffness: 460, damping: 38 }} /> : null}
-              <span className="relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95" style={{ color: active ? item.accent : undefined }}><item.icon className={`h-[1.18rem] w-[1.18rem] ${active ? "stroke-[2.5]" : "stroke-[1.9]"}`} />{count > 0 ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">{count > 99 ? "99+" : count}</span> : null}</span>
+              <span className="relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95" style={{ color: active ? item.accent : undefined }}><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" />{count > 0 ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">{count > 99 ? "99+" : count}</span> : null}</span>
               <span className="block max-w-full leading-[1.05]">{isFr ? item.mobileFr : item.mobileEn}</span>
               {active ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-gold" aria-hidden="true" /> : null}
             </button>

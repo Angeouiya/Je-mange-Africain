@@ -8,6 +8,7 @@ describe("platform production readiness", () => {
       NODE_ENV: "production",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
     });
     const database = integrations.find((integration) => integration.id === "database");
 
@@ -41,6 +42,7 @@ describe("platform production readiness", () => {
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
       CLOUDFLARE_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
       STRIPE_SECRET_KEY: "sk_live_example",
       STRIPE_WEBHOOK_SECRET: "whsec_example",
@@ -65,6 +67,7 @@ describe("platform production readiness", () => {
       NODE_ENV: "production",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ailevucikakmgsxfptwv.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
@@ -91,6 +94,7 @@ describe("platform production readiness", () => {
       DATABASE_URL: "file:../db/custom.db",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: "push_public",
@@ -117,6 +121,7 @@ describe("platform production readiness", () => {
       DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",

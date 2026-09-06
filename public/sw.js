@@ -39,6 +39,7 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
+  if (isLocalDevelopmentHost(url) && url.pathname.startsWith("/api/")) return;
 
   if (isPublicApiRequest(url)) {
     event.respondWith(publicApiResponse(event));
@@ -74,6 +75,10 @@ self.addEventListener("fetch", (event) => {
 
 function isPublicApiRequest(url) {
   return PUBLIC_API_ROUTES.some((pattern) => pattern.test(url.pathname));
+}
+
+function isLocalDevelopmentHost(url) {
+  return url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
 }
 
 async function publicApiResponse(event) {

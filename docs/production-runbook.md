@@ -20,6 +20,7 @@ The production autopilot prints only key names and readiness states. It never pr
 
 ```bash
 npm run production:audit
+npm run production:check-supabase
 npm run production:open-dashboards
 ```
 
@@ -55,10 +56,13 @@ The repository already contains Supabase migrations in `supabase/migrations`. Us
 Do not apply both initial migrations to the same populated database. For an existing Supabase database, compare the live schema first and mark the Prisma baseline as applied only after confirming equivalence.
 
 ```bash
-npx supabase link --project-ref ahigidhuhqcmxzjxetnw
-npx supabase db push
+npm run production:check-supabase
+npm run production:link-supabase
+npm run production:push-supabase
 npm run db:generate:postgres
 ```
+
+`production:link-supabase` needs `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` in the local deployment environment. `production:push-supabase` can also use `DIRECT_URL` or a PostgreSQL `DATABASE_URL` directly.
 
 For the Prisma-managed production release path:
 

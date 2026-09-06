@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpDown, BadgePercent, CheckCircle2, ChevronDown, PackageSearch, Search as SearchIcon, SlidersHorizontal, Sparkles, Star, Trophy, X } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { ArrowSwapHorizontal } from "reicon/icons/ArrowSwapHorizontal";
+import { BadgePercent } from "reicon/icons/BadgePercent";
+import { BoxSearch } from "reicon/icons/BoxSearch";
+import { CheckCircle } from "reicon/icons/CheckCircle";
+import { ChevronDown } from "reicon/icons/ChevronDown";
+import { CupTrophy } from "reicon/icons/CupTrophy";
+import { Search as SearchIcon } from "reicon/icons/Search";
+import { Sliders } from "reicon/icons/Sliders";
+import { Sparkle } from "reicon/icons/Sparkle";
+import { Star } from "reicon/icons/Star";
+import { X } from "reicon/icons/X";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +28,7 @@ import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdver
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 const THERMALS = ["AMBIANT", "REFRIGERATED", "FROZEN"];
 type CatalogHighlight = "all" | "available" | "sale" | "new" | "recommended" | "popular";
@@ -86,12 +98,12 @@ export function CatalogView() {
     popular: locale === "fr" ? "Populaires" : "Popular",
   };
   const quickSelections = [
-    { id: "all" as const, label: highlightLabels.all, icon: Sparkles },
-    { id: "available" as const, label: highlightLabels.available, icon: CheckCircle2 },
+    { id: "all" as const, label: highlightLabels.all, icon: Sparkle },
+    { id: "available" as const, label: highlightLabels.available, icon: CheckCircle },
     { id: "sale" as const, label: highlightLabels.sale, icon: BadgePercent },
     { id: "new" as const, label: highlightLabels.new, icon: Star },
-    { id: "recommended" as const, label: highlightLabels.recommended, icon: Sparkles },
-    { id: "popular" as const, label: highlightLabels.popular, icon: Trophy },
+    { id: "recommended" as const, label: highlightLabels.recommended, icon: Sparkle },
+    { id: "popular" as const, label: highlightLabels.popular, icon: CupTrophy },
   ];
   const activeFilters = [
     highlight !== "all" ? { key: "highlight", label: highlightLabels[highlight], onClear: () => setHighlight("all") } : null,
@@ -158,7 +170,7 @@ export function CatalogView() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="jma-eyebrow">{locale === "fr" ? "Catalogue vivant" : "Live catalogue"}</p><h1 className="jma-section-title mt-1">{t.catalog.title}</h1></div><MarketChannelSwitch channel="retail" /></div>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
           <div className="relative col-span-2 flex-1 sm:col-span-1">
-            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <ReiconGlyph icon={SearchIcon} className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -166,10 +178,10 @@ export function CatalogView() {
               aria-label={locale === "fr" ? "Rechercher dans le catalogue" : "Search the catalogue"}
               className="h-11 border-charcoal/12 bg-white pl-9 pr-10"
             />
-            {search ? <button type="button" onClick={() => setSearch("")} aria-label={locale === "fr" ? "Effacer la recherche" : "Clear search"} className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-terre"><X className="h-4 w-4" /></button> : null}
+            {search ? <button type="button" onClick={() => setSearch("")} aria-label={locale === "fr" ? "Effacer la recherche" : "Clear search"} className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-terre"><ReiconGlyph icon={X} className="h-4 w-4" /></button> : null}
           </div>
           <div className="relative min-w-0 flex-1 sm:flex-none">
-            <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" />
+            <ReiconGlyph icon={ArrowSwapHorizontal} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" />
             <select value={sort} onChange={(e) => setSort(e.target.value as NonNullable<typeof params.sort>)} aria-label={locale === "fr" ? "Trier les produits" : "Sort products"} className="h-11 w-full min-w-0 appearance-none rounded-md border border-charcoal/12 bg-white pl-9 pr-8 text-sm font-semibold text-charcoal sm:w-48">
               <option value="popular">{t.catalog.sortPopular}</option>
               <option value="priceAsc">{t.catalog.sortPriceAsc}</option>
@@ -177,12 +189,12 @@ export function CatalogView() {
               <option value="new">{t.catalog.sortNew}</option>
               <option value="available">{t.catalog.sortAvailable}</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <ReiconGlyph icon={ChevronDown} className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
           <Sheet open={filtersOpenMobile} onOpenChange={setFiltersOpenMobile}>
             <SheetTrigger asChild>
               <Button variant="outline" className="relative h-11 w-11 border-charcoal/12 bg-white p-0 text-charcoal lg:hidden" aria-label={`${t.catalog.filters}${activeFilterCount ? `, ${activeFilterCount}` : ""}`}>
-                <SlidersHorizontal className="h-4 w-4" />
+                <ReiconGlyph icon={Sliders} className="h-4 w-4" />
                 {activeFilterCount ? <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-burgundy px-1 text-[9px] font-black text-white">{activeFilterCount}</span> : null}
               </Button>
             </SheetTrigger>
@@ -243,7 +255,7 @@ export function CatalogView() {
             <StorefrontUnavailableState surface="catalog" locale={locale} onRetry={refetch} />
           ) : data?.products?.length === 0 ? (
             <section className="flex min-h-80 flex-col items-center justify-center border-y border-charcoal/10 px-4 py-14 text-center">
-              <span className="grid h-16 w-16 place-items-center rounded-lg border border-terre/12 bg-terre/[0.055] text-terre"><PackageSearch className="h-7 w-7" strokeWidth={1.7} /></span>
+              <span className="grid h-16 w-16 place-items-center rounded-lg border border-terre/12 bg-terre/[0.055] text-terre"><ReiconGlyph icon={BoxSearch} weight="Filled" className="h-7 w-7" /></span>
               <h2 className="mt-5 font-display text-2xl font-semibold text-charcoal">{locale === "fr" ? "Aucune référence trouvée" : "No matching product"}</h2>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{t.catalog.noResults}</p>
               <Button onClick={clearAll} variant="outline" className="mt-5 border-terre/25 text-terre hover:bg-terre/5 hover:text-terre">{t.catalog.clearFilters}</Button>
@@ -291,7 +303,7 @@ function FilterChip({ active, onClick, children }: { active?: boolean; onClick: 
   );
 }
 
-function QuickSelectionButton({ active, icon: Icon, onClick, children }: { active: boolean; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; onClick: () => void; children: React.ReactNode }) {
+function QuickSelectionButton({ active, icon, onClick, children }: { active: boolean; icon: IconFunction; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
@@ -301,7 +313,7 @@ function QuickSelectionButton({ active, icon: Icon, onClick, children }: { activ
         active ? "border-burgundy bg-burgundy text-white shadow-sm" : "border-charcoal/10 bg-white text-charcoal hover:border-terre/30 hover:bg-terre/[0.035]"
       }`}
     >
-      <Icon className="h-4 w-4" strokeWidth={1.8} />
+      <ReiconGlyph icon={icon} weight={active ? "Filled" : "Outline"} className="h-4 w-4" />
       <span>{children}</span>
     </button>
   );
@@ -311,7 +323,7 @@ function ActiveFilter({ onClear, ariaLabel, children }: { onClear: () => void; a
   return (
     <Badge variant="outline" className="gap-1 border-terre/40 bg-terre/5 text-terre">
       {children}
-      <button type="button" onClick={onClear} aria-label={ariaLabel}><X className="h-3 w-3" /></button>
+      <button type="button" onClick={onClear} aria-label={ariaLabel}><ReiconGlyph icon={X} className="h-3 w-3" /></button>
     </Badge>
   );
 }

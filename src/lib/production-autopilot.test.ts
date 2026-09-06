@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   printProductionReadiness,
   productionReadiness,
+  PRODUCTION_SITE_URL,
   PRODUCTION_SUPABASE_PROJECT_REF,
   PRODUCTION_SUPABASE_URL,
+  supabaseCliReadiness,
 } from "../../scripts/production-autopilot.mjs";
 
 function environment(values: Record<string, string>) {
@@ -28,6 +30,7 @@ describe("production autopilot", () => {
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: "push_public",
     VAPID_PRIVATE_KEY: "push_private",
     VAPID_SUBJECT: "mailto:contact@je-mange-africain.com",
+    NEXT_PUBLIC_SITE_URL: PRODUCTION_SITE_URL,
     CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
     CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
   };
@@ -38,6 +41,7 @@ describe("production autopilot", () => {
     expect(report.ready).toBe(true);
     expect(report.target.supabaseRef).toBe(PRODUCTION_SUPABASE_PROJECT_REF);
     expect(report.target.supabaseUrl).toBe(PRODUCTION_SUPABASE_URL);
+    expect(report.target.siteUrl).toBe(PRODUCTION_SITE_URL);
     expect(report.blockers).toEqual([]);
   });
 
@@ -67,5 +71,36 @@ describe("production autopilot", () => {
     expect(output).not.toContain(readyValues.STRIPE_SECRET_KEY);
     expect(output).not.toContain(readyValues.SUPABASE_SERVICE_ROLE_KEY);
     expect(output).not.toContain(readyValues.UPSTASH_REDIS_REST_TOKEN);
+  });
+
+  it("tracks Supabase CLI credentials separately from the public runtime", () => {
+    const report = supabaseCliReadiness(environment({
+      NEXT_PUBLIC_SUPABASE_URL: PRODUCTION_SUPABASE_URL,
+      SUPABASE_ACCESS_TOKEN: "sbp_example",
+      SUPABASE_DB_PASSWORD: "remote_password",
+    }));
+
+    expect(report).toMatchObject({
+      targetRef: PRODUCTION_SUPABASE_PROJECT_REF,
+      hasAccessToken: true,
+      hasDbPassword: true,
+      hasDirectDatabaseUrl: false,
+      readyForLink: true,
+      readyForDbPush: true,
+    });
+  });
+
+  it("allows Supabase migration push with a direct PostgreSQL URL", () => {
+    const report = supabaseCliReadiness(environment({
+      DIRECT_URL: "postgresql://app:secret@db.example.test:5432/app",
+    }));
+
+    expect(report).toMatchObject({
+      hasAccessToken: false,
+      hasDbPassword: false,
+      hasDirectDatabaseUrl: true,
+      readyForLink: false,
+      readyForDbPush: true,
+    });
   });
 });

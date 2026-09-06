@@ -1,16 +1,24 @@
-import { Beef, CircleDot, CookingPot, Fish, GlassWater, Leaf, Sprout, Wheat } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { Bottle } from "reicon/icons/Bottle";
+import { ChefHat } from "reicon/icons/ChefHat";
+import { FoodTray } from "reicon/icons/FoodTray";
+import { ForkKnife } from "reicon/icons/ForkKnife";
+import { Leaf } from "reicon/icons/Leaf";
+import { Package } from "reicon/icons/Package";
+import { Plate } from "reicon/icons/Plate";
 import { cn } from "@/lib/utils";
 import { getBrandAccentColor } from "@/lib/market-media";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
-const categoryIcons = {
-  manioc: Sprout,
-  farines: Wheat,
-  viandes: Beef,
-  poissons: Fish,
+const categoryIcons: Record<string, IconFunction> = {
+  manioc: Leaf,
+  farines: Package,
+  viandes: FoodTray,
+  poissons: ForkKnife,
   legumes: Leaf,
-  sauces: CookingPot,
-  legumineuses: CircleDot,
-  boissons: GlassWater,
+  sauces: ChefHat,
+  legumineuses: Plate,
+  boissons: Bottle,
 };
 
 const categoryColors: Record<string, string> = {
@@ -25,7 +33,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export function CategoryIcon({ slug, color, className }: { slug?: string; color?: string | null; className?: string }) {
-  const Icon = categoryIcons[slug as keyof typeof categoryIcons] || CookingPot;
+  const Icon = categoryIcons[slug || ""] || ChefHat;
   const resolvedColor = getBrandAccentColor(categoryColors[slug || ""] || color || "#D65A32");
   return (
     <span
@@ -38,7 +46,7 @@ export function CategoryIcon({ slug, color, className }: { slug?: string; color?
       aria-hidden="true"
     >
       <span className="absolute inset-x-0 top-0 h-[2px] bg-current opacity-75" />
-      <Icon className="relative h-[19px] w-[19px]" strokeWidth={2} />
+      <ReiconGlyph icon={Icon} weight="Filled" className="relative h-[19px] w-[19px]" />
       <span className="absolute bottom-1.5 right-1.5 h-1 w-1 rounded-full bg-current opacity-35" />
     </span>
   );

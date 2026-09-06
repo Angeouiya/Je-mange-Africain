@@ -1,8 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, LayoutGrid, Boxes, ChefHat, ShoppingBag, User, Settings, LifeBuoy, LogIn, LogOut, ClipboardList, SlidersHorizontal, Building2 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { BasketShopping } from "reicon/icons/BasketShopping";
+import { Box } from "reicon/icons/Box";
+import { BoxSearch } from "reicon/icons/BoxSearch";
+import { Building2 } from "reicon/icons/Building2";
+import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
+import { ClipboardList } from "reicon/icons/ClipboardList";
+import { Home } from "reicon/icons/Home";
+import { Lifebuoy } from "reicon/icons/Lifebuoy";
+import { Login } from "reicon/icons/Login";
+import { Logout } from "reicon/icons/Logout";
+import { Settings2 } from "reicon/icons/Settings2";
+import { Sliders } from "reicon/icons/Sliders";
+import { UserCircle } from "reicon/icons/UserCircle";
 import { useStore, ViewId, cartCount } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { BrandLockup } from "@/components/shared/BrandLockup";
@@ -12,6 +24,7 @@ import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 import { clientPrimaryNavigationTarget, clientSidebarUtilityTarget } from "@/lib/client-navigation";
 import { COMPANY_PROFILE } from "@/lib/company-profile";
 import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 export function MobileNav() {
   const locale = useStore((s) => s.locale);
@@ -23,20 +36,20 @@ export function MobileNav() {
   const t = dict[locale];
   const count = cartCount(cart);
 
-  type ClientNavItem = { id: ViewId; label: string; desktopLabel: string; purpose: string; icon: LucideIcon; accent: string };
+  type ClientNavItem = { id: ViewId; label: string; desktopLabel: string; purpose: string; icon: IconFunction; accent: string };
   const publicItems: ClientNavItem[] = [
     { id: "home", label: t.mobileNav.home, desktopLabel: locale === "fr" ? "Découvrir" : "Discover", purpose: locale === "fr" ? "Sélections et nouveautés" : "Selections and new arrivals", icon: Home, accent: BRAND_COLORS.earth },
-    { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: LayoutGrid, accent: BRAND_COLORS.burgundy },
-    { id: "wholesale", label: locale === "fr" ? "Gros" : "Wholesale", desktopLabel: locale === "fr" ? "Marché de gros" : "Wholesale market", purpose: locale === "fr" ? "Cartons, lots et prix dégressifs" : "Cases, lots and tiered prices", icon: Boxes, accent: BRAND_COLORS.terracotta },
-    { id: "recipes", label: t.mobileNav.recipes, desktopLabel: locale === "fr" ? "Cuisiner une recette" : "Cook a recipe", purpose: locale === "fr" ? "Personnaliser puis composer le panier" : "Customise and build the basket", icon: ChefHat, accent: BRAND_COLORS.gold },
-    { id: "cart", label: t.mobileNav.cart, desktopLabel: locale === "fr" ? "Finaliser le panier" : "Complete basket", purpose: locale === "fr" ? "Quantités, livraison et total" : "Quantities, delivery and total", icon: ShoppingBag, accent: BRAND_COLORS.chilli },
+    { id: "catalog", label: t.mobileNav.categories, desktopLabel: locale === "fr" ? "Acheter les produits" : "Shop products", purpose: locale === "fr" ? "Rayons, origine et disponibilité" : "Categories, origin and availability", icon: BoxSearch, accent: BRAND_COLORS.burgundy },
+    { id: "wholesale", label: locale === "fr" ? "Gros" : "Wholesale", desktopLabel: locale === "fr" ? "Marché de gros" : "Wholesale market", purpose: locale === "fr" ? "Cartons, lots et prix dégressifs" : "Cases, lots and tiered prices", icon: Box, accent: BRAND_COLORS.terracotta },
+    { id: "recipes", label: t.mobileNav.recipes, desktopLabel: locale === "fr" ? "Cuisiner une recette" : "Cook a recipe", purpose: locale === "fr" ? "Personnaliser puis composer le panier" : "Customise and build the basket", icon: ChefHatHeart, accent: BRAND_COLORS.gold },
+    { id: "cart", label: t.mobileNav.cart, desktopLabel: locale === "fr" ? "Finaliser le panier" : "Complete basket", purpose: locale === "fr" ? "Quantités, livraison et total" : "Quantities, delivery and total", icon: BasketShopping, accent: BRAND_COLORS.chilli },
   ];
   const accountItem = {
     id: "account" as ViewId,
     label: customer ? t.mobileNav.account : t.nav.login,
     desktopLabel: customer ? (locale === "fr" ? "Mon espace" : "My account") : t.nav.login,
     purpose: customer ? (locale === "fr" ? "Profil et préférences" : "Profile and preferences") : (locale === "fr" ? "Accéder à vos services" : "Access your services"),
-    icon: customer ? User : LogIn,
+    icon: customer ? UserCircle : Login,
     accent: BRAND_COLORS.warmCoral,
   };
   const mobileItems = [...publicItems.filter((item) => item.id !== "wholesale"), accountItem];
@@ -58,7 +71,6 @@ export function MobileNav() {
 
   const renderMobileItem = (it: (typeof mobileItems)[number]) => {
     const active = mobileActiveTarget === it.id;
-    const Icon = it.icon;
     return (
       <button
         key={it.id}
@@ -81,7 +93,7 @@ export function MobileNav() {
           />
         ) : null}
         <span className={`relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95 ${active ? "text-terre" : "text-muted-foreground group-hover:text-charcoal"}`}>
-          <Icon className={`h-[1.18rem] w-[1.18rem] ${active ? "stroke-[2.5]" : "stroke-[1.9]"}`} />
+          <ReiconGlyph icon={it.icon} weight={active ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" />
           {it.id === "cart" && count > 0 ? (
             <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">
               {count > 99 ? "99+" : count}
@@ -110,13 +122,12 @@ export function MobileNav() {
           {desktopGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? "mt-3" : ""}>
             <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-burgundy">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-terre">{group.intent}</span></div>
             <div className="space-y-1">{group.items.map((item) => {
-              const Icon = item.icon;
               const active = desktopActiveTarget === item.id;
               return (
                 <button key={item.id} onClick={() => navigate(item.id)} onPointerEnter={() => warmDestination(item.id)} onFocus={() => warmDestination(item.id)} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-12 w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
                   {active ? <motion.span layoutId="client-desktop-nav-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
                   {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><Icon className={`h-[1.05rem] w-[1.05rem] ${active ? "stroke-[2.4]" : "stroke-2"}`} /></span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.05rem] w-[1.05rem]" /></span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold">{item.desktopLabel}</span><span className="mt-0.5 block truncate text-[9px] leading-4 text-muted-foreground">{item.purpose}</span></span>
                   {item.id === "cart" && count > 0 ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-extrabold text-charcoal">{count}</span> : null}
                 </button>
@@ -146,10 +157,10 @@ export function MobileNav() {
               data-active={utilityActiveTarget === "settings" ? "true" : "false"}
               className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition ${utilityActiveTarget === "settings" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
             >
-              <Settings className="h-4 w-4" /> {locale === "fr" ? "Paramètres" : "Settings"}
+              <ReiconGlyph icon={Settings2} className="h-4 w-4" /> {locale === "fr" ? "Paramètres" : "Settings"}
             </button>
           ) : (
-            <button type="button" onClick={() => navigate("account")} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><LogIn className="h-4 w-4" /> {t.nav.login}</button>
+            <button type="button" onClick={() => navigate("account")} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><ReiconGlyph icon={Login} className="h-4 w-4" /> {t.nav.login}</button>
           )}
           <button
             type="button"
@@ -158,7 +169,7 @@ export function MobileNav() {
             data-active={utilityActiveTarget === "help" ? "true" : "false"}
             className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition ${utilityActiveTarget === "help" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
           >
-            <LifeBuoy className="h-4 w-4" /> {t.nav.help}
+            <ReiconGlyph icon={Lifebuoy} className="h-4 w-4" /> {t.nav.help}
           </button>
           <button
             type="button"
@@ -167,15 +178,15 @@ export function MobileNav() {
             data-active={utilityActiveTarget === "privacy" ? "true" : "false"}
             className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition ${utilityActiveTarget === "privacy" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
           >
-            <SlidersHorizontal className="h-4 w-4" /> {locale === "fr" ? "Confidentialité" : "Privacy"}
+            <ReiconGlyph icon={Sliders} className="h-4 w-4" /> {locale === "fr" ? "Confidentialité" : "Privacy"}
           </button>
           {customer ? (
             <LogoutConfirmDialog>
-              <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-terre transition hover:bg-terre/5"><LogOut className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
+              <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-terre transition hover:bg-terre/5"><ReiconGlyph icon={Logout} className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
             </LogoutConfirmDialog>
           ) : null}
           <p className="mt-2 flex items-center gap-2 border-t border-burgundy/8 px-3 pt-2 text-[9px] font-bold leading-4 text-muted-foreground">
-            <Building2 className="h-3.5 w-3.5 shrink-0 text-burgundy" />
+            <ReiconGlyph icon={Building2} className="h-3.5 w-3.5 shrink-0 text-burgundy" />
             <span>{locale === "fr" ? "Créée par" : "Created by"} {COMPANY_PROFILE.legalName}</span>
           </p>
         </div>

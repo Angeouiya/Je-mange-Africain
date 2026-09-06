@@ -85,6 +85,7 @@ type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
   | "CLOUDFLARE_ACCOUNT_ID"
   | "CLOUDFLARE_DEPLOYMENT_TARGET"
   | "CLOUDFLARE_ENV"
+  | "NEXT_PUBLIC_SITE_URL"
   | "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
   | "STRIPE_SECRET_KEY"
   | "STRIPE_WEBHOOK_SECRET"
@@ -102,6 +103,7 @@ type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
 
 export const PRODUCTION_SUPABASE_PROJECT_REF = "ahigidhuhqcmxzjxetnw";
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
+export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
 
 export type DeploymentRequirementGroup = "database" | "identity" | "payments" | "cache" | "push" | "hosting";
 
@@ -142,16 +144,19 @@ export const CLOUDFLARE_PRODUCTION_ENV_KEYS = [
   "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
   "VAPID_PRIVATE_KEY",
   "VAPID_SUBJECT",
+  "NEXT_PUBLIC_SITE_URL",
 ] as const;
 
 export function platformIntegrationStatus(databaseAvailable: boolean, environment: PlatformEnvironment = process.env) {
   const databaseUrl = environment.DATABASE_URL || "";
   const supabaseUrl = (environment.NEXT_PUBLIC_SUPABASE_URL || environment.SUPABASE_URL || "").replace(/\/+$/, "");
+  const siteUrl = (environment.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
   const postgres = /^postgres(?:ql)?:/i.test(databaseUrl);
   const deployed = environment.NODE_ENV === "production";
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
-  const cloudflareHosting = Boolean(environment.CLOUDFLARE_ACCOUNT_ID && cloudflareWorkers);
-  const cloudflareRuntime = cloudflareHosting || Boolean(environment.CLOUDFLARE_ENV || environment.CF_PAGES);
+  const productionDomain = siteUrl === PRODUCTION_SITE_URL;
+  const cloudflareRuntime = cloudflareWorkers || Boolean(environment.CLOUDFLARE_ENV || environment.CF_PAGES);
+  const cloudflareHosting = Boolean(environment.CLOUDFLARE_ACCOUNT_ID && cloudflareRuntime && productionDomain);
   const persistentDatabase = databaseAvailable && (postgres || !deployed);
   const productionDatabase = databaseAvailable && postgres;
   const stripeCore = Boolean(environment.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && environment.STRIPE_SECRET_KEY);
@@ -169,13 +174,14 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
     { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
     { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
-    { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime } },
+    { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime, domain: productionDomain } },
   ] as const;
 }
 
 export function cloudflareDeploymentReadiness(databaseAvailable: boolean, environment: PlatformEnvironment = process.env, checkedAt = new Date().toISOString()): CloudflareDeploymentReadiness {
   const databaseUrl = environment.DATABASE_URL || "";
   const supabaseUrl = (environment.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+  const siteUrl = (environment.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
   const postgres = /^postgres(?:ql)?:\/\//i.test(databaseUrl);
   const has = (key: keyof PlatformEnvironment) => Boolean(environment[key]);
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
@@ -332,6 +338,17 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
       detailEn: "Deployment must target the Cloudflare Workers runtime.",
       envKeys: ["CLOUDFLARE_DEPLOYMENT_TARGET"],
       satisfied: cloudflareWorkers,
+      severity: "blocking",
+    },
+    {
+      id: "cloudflare-domain",
+      group: "hosting",
+      labelFr: "Domaine public",
+      labelEn: "Public domain",
+      detailFr: "Le Worker doit publier l'expérience client sur je-mange-africain.com.",
+      detailEn: "The Worker must publish the customer experience on je-mange-africain.com.",
+      envKeys: ["NEXT_PUBLIC_SITE_URL"],
+      satisfied: siteUrl === PRODUCTION_SITE_URL,
       severity: "blocking",
     },
   ];

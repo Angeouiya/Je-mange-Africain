@@ -457,7 +457,7 @@ function capabilityLabel(integrationId: Integration["id"], capability: string, l
     identity: { connection: ["API publique", "Public API"], project: ["Projet cible", "Target project"], serverAccess: ["Accès serveur", "Server access"] },
     cache: { connection: ["Protection active", "Protection active"] },
     push: { connection: ["Diffusion active", "Delivery active"] },
-    hosting: { account: ["Compte Cloudflare", "Cloudflare account"], workers: ["Cible Workers", "Workers target"], runtime: ["Runtime edge", "Edge runtime"] },
+    hosting: { account: ["Compte Cloudflare", "Cloudflare account"], workers: ["Cible Workers", "Workers target"], runtime: ["Runtime edge", "Edge runtime"], domain: ["Domaine public", "Public domain"] },
   };
   return labels[integrationId][capability]?.[locale === "fr" ? 0 : 1] || capability;
 }

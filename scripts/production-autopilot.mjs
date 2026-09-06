@@ -9,6 +9,8 @@ export const PRODUCTION_SUPABASE_PROJECT_REF = "ahigidhuhqcmxzjxetnw";
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
 export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12bc";
 export const PRODUCTION_WORKER_NAME = "je-mange-africain";
+export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
+export const SUPABASE_OPERATIONAL_KEYS = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "DIRECT_URL"];
 
 const DOTENV_FILES = [".env", ".env.local", ".env.production.local"];
 const REQUIRED_ENV = [
@@ -24,6 +26,7 @@ const REQUIRED_ENV = [
   ["NEXT_PUBLIC_VAPID_PUBLIC_KEY", "Web Push public VAPID key"],
   ["VAPID_PRIVATE_KEY", "Web Push private VAPID key"],
   ["VAPID_SUBJECT", "Web Push contact subject"],
+  ["NEXT_PUBLIC_SITE_URL", "Production storefront domain"],
   ["CLOUDFLARE_ACCOUNT_ID", "Cloudflare account"],
   ["CLOUDFLARE_DEPLOYMENT_TARGET", "Cloudflare Workers target"],
 ];
@@ -111,6 +114,14 @@ function isPlaceholder(key, value) {
     || lower === `${key.toLowerCase()}_value`;
 }
 
+function isPostgresUrl(value) {
+  return /^postgres(?:ql)?:\/\//i.test(value || "");
+}
+
+function hasUsableValue(key, value) {
+  return Boolean(value && !isPlaceholder(key, value));
+}
+
 function normalizedUrl(value) {
   return value.replace(/\/+$/, "");
 }
@@ -120,12 +131,15 @@ function evaluateRequirement(key, label, values, sources) {
   const source = sources[key] || "missing";
   if (!value) return { key, label, ok: false, source, problem: "missing" };
   if (isPlaceholder(key, value)) return { key, label, ok: false, source, problem: "placeholder value" };
-  if (key === "DATABASE_URL" && !/^postgres(?:ql)?:\/\//i.test(value)) {
+  if (key === "DATABASE_URL" && !isPostgresUrl(value)) {
     return { key, label, ok: false, source, problem: "must be PostgreSQL, not SQLite/local file" };
   }
   if (key === "NEXT_PUBLIC_SUPABASE_URL" && normalizedUrl(value) !== PRODUCTION_SUPABASE_URL) {
     const currentRef = (value.match(/https:\/\/([^.]+)/) || [])[1] || "unknown";
     return { key, label, ok: false, source, problem: `points to ${currentRef}, expected ${PRODUCTION_SUPABASE_PROJECT_REF}` };
+  }
+  if (key === "NEXT_PUBLIC_SITE_URL" && normalizedUrl(value) !== PRODUCTION_SITE_URL) {
+    return { key, label, ok: false, source, problem: `must be ${PRODUCTION_SITE_URL}` };
   }
   if (key === "CLOUDFLARE_ACCOUNT_ID" && value !== PRODUCTION_CLOUDFLARE_ACCOUNT_ID) {
     return { key, label, ok: false, source, problem: `must target ${PRODUCTION_CLOUDFLARE_ACCOUNT_ID}` };
@@ -148,18 +162,45 @@ export function productionReadiness(environment = loadProductionEnvironment()) {
       supabaseUrl: PRODUCTION_SUPABASE_URL,
       cloudflareAccountId: PRODUCTION_CLOUDFLARE_ACCOUNT_ID,
       workerName: PRODUCTION_WORKER_NAME,
+      siteUrl: PRODUCTION_SITE_URL,
     },
   };
 }
 
+export function supabaseCliReadiness(environment = loadProductionEnvironment()) {
+  const values = environment.values;
+  const directUrl = hasUsableValue("DIRECT_URL", values.DIRECT_URL) && isPostgresUrl(values.DIRECT_URL)
+    ? values.DIRECT_URL
+    : hasUsableValue("DATABASE_URL", values.DATABASE_URL) && isPostgresUrl(values.DATABASE_URL)
+      ? values.DATABASE_URL
+      : "";
+  return {
+    targetRef: PRODUCTION_SUPABASE_PROJECT_REF,
+    hasAccessToken: hasUsableValue("SUPABASE_ACCESS_TOKEN", values.SUPABASE_ACCESS_TOKEN),
+    hasDbPassword: hasUsableValue("SUPABASE_DB_PASSWORD", values.SUPABASE_DB_PASSWORD),
+    hasDirectDatabaseUrl: Boolean(directUrl),
+    readyForLink: hasUsableValue("SUPABASE_ACCESS_TOKEN", values.SUPABASE_ACCESS_TOKEN) && hasUsableValue("SUPABASE_DB_PASSWORD", values.SUPABASE_DB_PASSWORD),
+    readyForDbPush: Boolean(directUrl) || (hasUsableValue("SUPABASE_ACCESS_TOKEN", values.SUPABASE_ACCESS_TOKEN) && hasUsableValue("SUPABASE_DB_PASSWORD", values.SUPABASE_DB_PASSWORD)),
+  };
+}
+
 export function printProductionReadiness(report, writer = console.log) {
-  writer(`Production target: Supabase ${report.target.supabaseRef} -> Cloudflare Worker ${report.target.workerName}`);
+  writer(`Production target: Supabase ${report.target.supabaseRef} -> Cloudflare Worker ${report.target.workerName} -> ${report.target.siteUrl}`);
   for (const item of report.requirements) {
     const state = item.ok ? "OK" : "BLOCKED";
     const suffix = item.problem ? ` - ${item.problem}` : "";
     writer(`${state} ${item.key} (${item.source})${suffix}`);
   }
   writer(report.ready ? "Production environment is ready to deploy." : `${report.blockers.length} production blocker(s) remain.`);
+}
+
+export function printSupabaseCliReadiness(report, writer = console.log) {
+  writer(`Supabase CLI target: ${report.targetRef}`);
+  writer(`${report.hasAccessToken ? "OK" : "BLOCKED"} SUPABASE_ACCESS_TOKEN`);
+  writer(`${report.hasDbPassword ? "OK" : "BLOCKED"} SUPABASE_DB_PASSWORD`);
+  writer(`${report.hasDirectDatabaseUrl ? "OK" : "BLOCKED"} DIRECT_URL or PostgreSQL DATABASE_URL`);
+  writer(`${report.readyForLink ? "OK" : "BLOCKED"} Supabase project link`);
+  writer(`${report.readyForDbPush ? "OK" : "BLOCKED"} Supabase migration push`);
 }
 
 function ensureReady(report) {
@@ -179,6 +220,22 @@ function run(command, args, env) {
     stdio: "inherit",
   });
   if (result.status !== 0) process.exit(result.status || 1);
+}
+
+function ensureSupabaseCanLink(values) {
+  const report = supabaseCliReadiness({ values, sources: {}, cwd: process.cwd() });
+  if (report.readyForLink) return;
+  printSupabaseCliReadiness(report, (line) => console.error(line));
+  console.error("Supabase link needs SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD in the local environment.");
+  process.exit(1);
+}
+
+function ensureSupabaseCanPush(values) {
+  const report = supabaseCliReadiness({ values, sources: {}, cwd: process.cwd() });
+  if (report.readyForDbPush) return;
+  printSupabaseCliReadiness(report, (line) => console.error(line));
+  console.error("Supabase db push needs DIRECT_URL/PostgreSQL DATABASE_URL, or SUPABASE_ACCESS_TOKEN plus SUPABASE_DB_PASSWORD.");
+  process.exit(1);
 }
 
 function cloudflareSecrets(values) {
@@ -213,6 +270,35 @@ function migrateDatabase(values) {
   if (values.DIRECT_URL) migrationEnv.DATABASE_URL = values.DIRECT_URL;
   run("npm", ["run", "db:generate:postgres"], migrationEnv);
   run("npx", ["prisma", "migrate", "deploy", "--schema", "prisma/postgresql/schema.prisma"], migrationEnv);
+}
+
+function linkSupabaseProject(values) {
+  ensureSupabaseCanLink(values);
+  run("npx", [
+    "supabase",
+    "link",
+    "--project-ref",
+    PRODUCTION_SUPABASE_PROJECT_REF,
+    "--password",
+    values.SUPABASE_DB_PASSWORD,
+    "--yes",
+  ], values);
+}
+
+function pushSupabaseMigrations(values) {
+  ensureSupabaseCanPush(values);
+  const directUrl = hasUsableValue("DIRECT_URL", values.DIRECT_URL) && isPostgresUrl(values.DIRECT_URL)
+    ? values.DIRECT_URL
+    : hasUsableValue("DATABASE_URL", values.DATABASE_URL) && isPostgresUrl(values.DATABASE_URL)
+      ? values.DATABASE_URL
+      : "";
+  const args = ["supabase", "db", "push", "--skip-vault", "--yes"];
+  if (directUrl) {
+    args.push("--db-url", directUrl);
+  } else {
+    args.push("--project-ref", PRODUCTION_SUPABASE_PROJECT_REF, "--password", values.SUPABASE_DB_PASSWORD);
+  }
+  run("npx", args, values);
 }
 
 function deployCloudflare(values) {
@@ -260,7 +346,10 @@ function printHelp() {
 Options:
   --check              Print redacted production readiness.
   --assert             Fail unless every production prerequisite is ready.
+  --check-supabase     Print redacted Supabase CLI readiness.
   --open-dashboards    Open the exact provider pages needed to retrieve missing keys.
+  --link-supabase      Link the local repo to the production Supabase project.
+  --push-supabase      Push Supabase SQL migrations to the production project.
   --sync-cloudflare    Upload current env values to Cloudflare secrets for an existing Worker.
   --migrate            Run PostgreSQL migrations against Supabase using DATABASE_URL or DIRECT_URL.
   --deploy             Build and deploy the Cloudflare Worker with a temporary secrets file.
@@ -278,8 +367,11 @@ function main() {
   const environment = loadProductionEnvironment();
   const report = productionReadiness(environment);
   if (args.has("--check")) printProductionReadiness(report);
+  if (args.has("--check-supabase")) printSupabaseCliReadiness(supabaseCliReadiness(environment));
   if (args.has("--open-dashboards")) openDashboards();
   if (args.has("--assert") || args.has("--sync-cloudflare") || args.has("--migrate") || args.has("--deploy")) ensureReady(report);
+  if (args.has("--link-supabase")) linkSupabaseProject(environment.values);
+  if (args.has("--push-supabase")) pushSupabaseMigrations(environment.values);
   if (args.has("--sync-cloudflare")) syncCloudflareSecrets(environment.values);
   if (args.has("--migrate")) migrateDatabase(environment.values);
   if (args.has("--deploy")) deployCloudflare(environment.values);
