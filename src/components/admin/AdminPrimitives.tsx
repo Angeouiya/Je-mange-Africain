@@ -1,10 +1,30 @@
 "use client";
 
-import { useId, type KeyboardEvent, type ReactNode } from "react";
-import { AlertCircle, CloudOff, LoaderCircle, RefreshCw, Search, X, type LucideIcon } from "lucide-react";
+import { useId, type ComponentType, type KeyboardEvent, type ReactNode } from "react";
+import type { IconFunction, IconWeight } from "reicon/createIcon";
+import { AlertCircle } from "reicon/icons/AlertCircle";
+import { CloudX } from "reicon/icons/CloudX";
+import { Loader } from "reicon/icons/Loader";
+import { Refresh } from "reicon/icons/Refresh";
+import { Search } from "reicon/icons/Search";
+import { X } from "reicon/icons/X";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
+
+type ReactIcon = ComponentType<{ className?: string }>;
+type AdminTabIcon = IconFunction | ReactIcon;
+
+function isReiconIcon(icon: AdminTabIcon): icon is IconFunction {
+  return typeof (icon as IconFunction).toSvg === "function";
+}
+
+function AdminIcon({ icon, className, weight = "Outline" }: { icon: AdminTabIcon; className?: string; weight?: IconWeight }) {
+  if (isReiconIcon(icon)) return <ReiconGlyph icon={icon} weight={weight} className={className} />;
+  const Icon = icon;
+  return <Icon className={className} />;
+}
 
 export function AdminPageHeader({
   eyebrow,
@@ -28,7 +48,7 @@ export function AdminPageHeader({
 
   if (variant === "command") {
     return (
-      <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 border-y border-white/8 bg-charcoal px-4 py-4 text-white sm:-mx-6 sm:px-6 sm:py-6 lg:-mx-8 lg:px-8">
+      <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 border-y border-burgundy/10 bg-[linear-gradient(118deg,#8A3042_0%,#B9472B_58%,#D65A32_100%)] px-4 py-4 text-white shadow-[0_24px_60px_-44px_rgba(138,48,66,0.9)] sm:-mx-6 sm:px-6 sm:py-6 lg:-mx-8 lg:px-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
           <div className="flex max-w-3xl items-start gap-3 sm:gap-4">
             {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md sm:h-11 sm:w-11" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
@@ -83,7 +103,7 @@ export function AdminSectionLoading({ label = "Chargement de l'espace" }: { labe
   return (
     <div className="grid min-h-[45vh] place-items-center" role="status">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-        <LoaderCircle className="h-4 w-4 animate-spin text-terre" />
+        <ReiconGlyph icon={Loader} className="h-4 w-4 animate-spin text-terre" />
         {label}
       </div>
     </div>
@@ -105,13 +125,13 @@ export function AdminErrorState({ message, onRetry, locale = "fr", title, compac
   return (
     <section data-testid="admin-data-unavailable" className={`mx-auto grid max-w-xl place-items-center px-4 text-center ${compact ? "min-h-56" : "min-h-[45vh]"}`} role="alert">
       <div className={`w-full border-y border-burgundy/15 bg-[#FFFCFA] px-5 sm:px-8 ${compact ? "py-6" : "py-9"}`}>
-        <span className="mx-auto grid h-12 w-12 place-items-center rounded-lg border border-destructive/15 bg-destructive/[0.06] text-destructive">
-          <AlertCircle className="h-5 w-5" />
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-lg border border-destructive/15 bg-destructive/[0.06] text-destructive shadow-[0_18px_32px_-28px_rgba(201,42,62,0.86)]">
+          <ReiconGlyph icon={AlertCircle} weight="Filled" className="h-5 w-5" />
         </span>
         <p className="mt-4 text-[9px] font-black uppercase text-terre">{isFr ? "Synchronisation professionnelle interrompue" : "Professional synchronisation interrupted"}</p>
         <h3 className="mt-1 font-display text-xl font-semibold text-charcoal">{title || (isFr ? "Cet espace ne peut pas être actualisé" : "This workspace cannot be refreshed")}</h3>
         <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-muted-foreground sm:text-sm sm:leading-6">{readableAdminError(message, locale)}</p>
-        {onRetry ? <Button type="button" variant="outline" size="sm" onClick={onRetry} className="mt-5 border-terre/25 bg-white text-terre hover:bg-terre/[0.05] hover:text-terre"><RefreshCw className="mr-2 h-4 w-4" />{isFr ? "Relancer la synchronisation" : "Retry synchronisation"}</Button> : null}
+        {onRetry ? <Button type="button" variant="outline" size="sm" onClick={onRetry} className="mt-5 border-terre/25 bg-white text-terre hover:bg-terre/[0.05] hover:text-terre"><ReiconGlyph icon={Refresh} className="mr-2 h-4 w-4" />{isFr ? "Relancer la synchronisation" : "Retry synchronisation"}</Button> : null}
       </div>
     </section>
   );
@@ -122,10 +142,10 @@ export function AdminRefreshNotice({ message, onRetry, locale }: { message?: str
   return (
     <section data-testid="admin-refresh-notice" role="alert" className="flex flex-col gap-3 border-y border-gold/35 bg-gold/[0.065] px-4 py-3 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-start gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-terre"><CloudOff className="h-4 w-4" /></span>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-terre shadow-[0_14px_26px_-22px_rgba(185,71,43,0.72)]"><ReiconGlyph icon={CloudX} weight="Filled" className="h-4 w-4" /></span>
         <div className="min-w-0"><p className="text-xs font-black text-charcoal">{isFr ? "Dernière vue fiable conservée" : "Last reliable view preserved"}</p><p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">{readableAdminError(message, locale)} {isFr ? "Les filtres et données affichés restent en place pendant la reprise." : "Displayed filters and data remain in place while you retry."}</p></div>
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={onRetry} className="h-9 shrink-0 border-terre/25 bg-white text-terre hover:bg-terre/[0.05] hover:text-terre"><RefreshCw className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Actualiser" : "Refresh"}</Button>
+      <Button type="button" variant="outline" size="sm" onClick={onRetry} className="h-9 shrink-0 border-terre/25 bg-white text-terre hover:bg-terre/[0.05] hover:text-terre"><ReiconGlyph icon={Refresh} className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Actualiser" : "Refresh"}</Button>
     </section>
   );
 }
@@ -173,7 +193,7 @@ export function AdminSearchField({
     <div className={`min-w-0 ${className}`} data-testid="admin-search-field">
       <div className="relative">
         <label htmlFor={inputId} className="sr-only">{label}</label>
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <ReiconGlyph icon={Search} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           id={inputId}
           type="search"
@@ -191,7 +211,7 @@ export function AdminSearchField({
             aria-label={locale === "fr" ? "Effacer la recherche" : "Clear search"}
             title={locale === "fr" ? "Effacer" : "Clear"}
           >
-            <X className="h-3.5 w-3.5" />
+            <ReiconGlyph icon={X} className="h-3.5 w-3.5" />
           </button>
         ) : null}
       </div>
@@ -211,7 +231,7 @@ export function SectionTabs<T extends string>({
 }: {
   value: T;
   onChange: (value: T) => void;
-  items: Array<{ value: T; label: string; count?: number; description?: string; icon?: LucideIcon; accent?: string }>;
+  items: Array<{ value: T; label: string; count?: number; description?: string; icon?: AdminTabIcon; accent?: string }>;
   label: string;
   variant?: "filter" | "workspace";
 }) {
@@ -242,7 +262,6 @@ export function SectionTabs<T extends string>({
       >
         {items.map((item, index) => {
           const active = value === item.value;
-          const Icon = item.icon;
           const accent = item.accent || "#8A3042";
           return (
             <button
@@ -257,7 +276,7 @@ export function SectionTabs<T extends string>({
             >
               {active ? <span className="absolute inset-x-3 top-0 h-[3px] rounded-b-full" style={{ backgroundColor: accent }} aria-hidden="true" /> : null}
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? accent : `${accent}0D`, borderColor: active ? accent : `${accent}20`, color: active ? getBrandAccentForeground(accent) : getReadableBrandAccent(accent) }}>
-                {Icon ? <Icon className="h-[1.05rem] w-[1.05rem]" /> : <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />}
+                {item.icon ? <AdminIcon icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.05rem] w-[1.05rem]" /> : <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />}
               </span>
               <span className={`min-w-0 ${denseWorkspace ? "w-full sm:flex-1" : "flex-1"}`}>
                 <span className={`flex min-w-0 items-start gap-1.5 ${denseWorkspace ? "justify-center sm:justify-start" : ""}`}>

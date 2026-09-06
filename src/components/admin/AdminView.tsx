@@ -3,15 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChevronRight,
-  LogOut,
-  Menu,
-  ShieldCheck,
-  Store,
-  X,
-} from "lucide-react";
 import type { IconFunction } from "reicon/createIcon";
+import { AngleRight } from "reicon/icons/AngleRight";
 import { BadgeDollar } from "reicon/icons/BadgeDollar";
 import { BellRing } from "reicon/icons/BellRing";
 import { Box } from "reicon/icons/Box";
@@ -22,11 +15,16 @@ import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
 import { ClipboardList } from "reicon/icons/ClipboardList";
 import { Fingerprint } from "reicon/icons/Fingerprint";
 import { Handshake } from "reicon/icons/Handshake";
+import { Logout as LogOut } from "reicon/icons/Logout";
+import { Menu } from "reicon/icons/Menu";
 import { Settings2 } from "reicon/icons/Settings2";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
 import { ShieldUser } from "reicon/icons/ShieldUser";
+import { Store } from "reicon/icons/Store";
 import { TicketPercent } from "reicon/icons/TicketPercent";
 import { TruckFast } from "reicon/icons/TruckFast";
 import { Users2 } from "reicon/icons/Users2";
+import { X } from "reicon/icons/X";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BrandLockup } from "@/components/shared/BrandLockup";
@@ -330,7 +328,7 @@ export function AdminView({
         <div className="flex items-center justify-between px-5 py-5">
           <BrandLockup context="admin" compact locale={locale} />
           <button type="button" onClick={() => setSidebarOpen(false)} className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy md:hidden" aria-label={isFr ? "Fermer la navigation" : "Close navigation"}>
-            <X className="h-5 w-5" />
+            <ReiconGlyph icon={X} className="h-5 w-5" />
           </button>
         </div>
 
@@ -367,7 +365,7 @@ export function AdminView({
                         <span className="block text-[13px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
                         <span className="mt-0.5 block line-clamp-2 text-[9px] leading-4 text-muted-foreground">{isFr ? item.purposeFr : item.purposeEn}</span>
                       </span>
-                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: getReadableBrandAccent(item.accent) }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: getReadableBrandAccent(item.accent) }}>{item.marker}</span> : <ChevronRight className="h-4 w-4 text-charcoal/20" />}
+                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: getReadableBrandAccent(item.accent) }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: getReadableBrandAccent(item.accent) }}>{item.marker}</span> : <ReiconGlyph icon={AngleRight} className="h-4 w-4 text-charcoal/20" />}
                     </button>
                   );
                 })}
@@ -389,11 +387,11 @@ export function AdminView({
           </div>
           <div className="mt-1 grid grid-cols-2 gap-1">
             <Button type="button" variant="ghost" onClick={() => window.location.assign("https://je-mange-africain.com")} className="h-9 justify-start px-2 text-[10px] text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy">
-              <Store className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Boutique" : "Store"}
+              <ReiconGlyph icon={Store} weight="Filled" className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Boutique" : "Store"}
             </Button>
             {onLogout ? (
               <AlertDialog>
-                <AlertDialogTrigger asChild><Button type="button" variant="ghost" className="h-9 justify-start px-2 text-[10px] text-terre hover:bg-terre/5"><LogOut className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Quitter" : "Sign out"}</Button></AlertDialogTrigger>
+                <AlertDialogTrigger asChild><Button type="button" variant="ghost" className="h-9 justify-start px-2 text-[10px] text-terre hover:bg-terre/5"><ReiconGlyph icon={LogOut} className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Quitter" : "Sign out"}</Button></AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>{isFr ? "Fermer la session professionnelle ?" : "Close the professional session?"}</AlertDialogTitle>
@@ -411,14 +409,14 @@ export function AdminView({
 
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
         <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/[0.97] px-4 shadow-[0_12px_28px_-28px_rgba(90,38,50,0.55)] backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
-          <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.09),rgba(242,169,0,0.05))] text-charcoal transition hover:text-terre md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><Menu className="h-[1.15rem] w-[1.15rem]" /></button>
+          <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.09),rgba(242,169,0,0.05))] text-charcoal transition hover:text-terre md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><ReiconGlyph icon={Menu} className="h-[1.15rem] w-[1.15rem]" /></button>
           <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><ReiconGlyph icon={current.icon} weight="Filled" className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0 flex-1">
             <p className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{current.marker} · {isFr ? currentGroup?.labelFr : currentGroup?.labelEn}</p>
             <h1 ref={sectionTitleRef} tabIndex={-1} className="truncate text-sm font-black text-charcoal outline-none">{isFr ? current.labelFr : current.labelEn}</h1>
             <p className="hidden truncate text-[9px] text-muted-foreground lg:block">{isFr ? current.purposeFr : current.purposeEn}</p>
           </div>
-          <Badge variant="outline" className="ml-3 h-8 shrink-0 border-burgundy/25 bg-white/70 px-2 text-[9px] font-bold text-burgundy sm:px-3"><ShieldCheck className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>
+          <Badge variant="outline" className="ml-3 h-8 shrink-0 border-burgundy/25 bg-white/70 px-2 text-[9px] font-bold text-burgundy sm:px-3"><ReiconGlyph icon={ShieldCheck} weight="Filled" className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>
         </header>
 
         <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[100rem] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
@@ -459,7 +457,7 @@ export function AdminView({
         })}
         <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} aria-expanded={sidebarOpen} data-testid="admin-mobile-more" data-active={moreActive ? "true" : "false"} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${moreActive ? "text-burgundy" : "text-muted-foreground hover:text-charcoal"}`}>
           {moreActive ? <span className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-burgundy/15 bg-[linear-gradient(145deg,rgba(138,48,66,0.11),rgba(242,169,0,0.06))]" /> : null}
-          <span className="grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95"><Menu className={`h-[1.18rem] w-[1.18rem] ${moreActive ? "stroke-[2.5]" : "stroke-[1.9]"}`} /></span>
+          <span className="grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95"><ReiconGlyph icon={Menu} weight={moreActive ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" /></span>
           <span>{isFr ? "Plus" : "More"}</span>
           {moreActive ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-gold" aria-hidden="true" /> : null}
         </button>
