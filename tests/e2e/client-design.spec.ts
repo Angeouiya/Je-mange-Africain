@@ -192,6 +192,8 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expectLoadedProductImages(catalogueGrid.getByRole("img"));
   const catalogueColumns = await catalogueGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(catalogueColumns).toBe(isMobile ? 2 : 4);
+  const firstCatalogueCardBox = await catalogueGrid.locator(":scope > div").first().boundingBox();
+  if (isMobile) expect(firstCatalogueCardBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(270);
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);

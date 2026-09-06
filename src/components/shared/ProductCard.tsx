@@ -55,7 +55,15 @@ type ProductCardSurfaceProps = {
 };
 
 const productCardFrame = (compact: boolean, interactive: boolean) =>
-  `group relative flex min-w-0 flex-col overflow-hidden bg-white transition-all ${interactive ? "cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-offset-2" : ""} ${compact ? "rounded-md border border-transparent hover:border-charcoal/10 hover:shadow-sm" : "rounded-lg border border-charcoal/10 hover:border-charcoal/20 hover:shadow-[0_22px_50px_-34px_rgba(63,41,48,0.55)]"}`;
+  `group relative flex min-w-0 flex-col overflow-hidden bg-white transition-all ${interactive ? "cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-offset-2" : ""} ${compact ? "rounded-md border border-charcoal/8 shadow-[0_10px_24px_-24px_rgba(90,38,50,0.5)] hover:border-charcoal/14 hover:shadow-[0_18px_36px_-30px_rgba(90,38,50,0.58)]" : "rounded-lg border border-charcoal/10 hover:border-charcoal/20 hover:shadow-[0_22px_50px_-34px_rgba(63,41,48,0.55)]"}`;
+
+const comparableText = (value?: string | null) =>
+  (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 
 export function ProductCard({ product, index = 0, compact = false }: { product: ProductListItem; index?: number; compact?: boolean }) {
   const locale = useStore((s) => s.locale);
@@ -133,6 +141,8 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
   const lowStock = product.stockQty > 0 && product.stockQty <= (product.alertThreshold || 5);
   const outOfStock = product.stockQty <= 0;
   const editorialHighlight = productEditorialHighlight(product);
+  const traditionalName = comparableText(product.traditionalName) === comparableText(product.name) ? "" : product.traditionalName;
+  const metaLine = traditionalName || product.country || product.category?.name || "";
   const editorialLabel = editorialHighlight === "bestseller"
     ? t.bestseller
     : editorialHighlight === "recommended"
@@ -145,7 +155,7 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
   return (
     <>
       <div className="relative">
-        <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-square rounded-md" : "aspect-[4/3]"}`}>
+        <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-[4/3] rounded-md" : "aspect-[4/3]"}`}>
           <ProductImage
             src={photoUrl}
             fallbackSrc={fallbackPhotoUrl}
@@ -194,7 +204,7 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
         </div>
         <div>
           <h3 className={`line-clamp-2 break-words font-extrabold leading-tight text-charcoal ${compact ? "min-h-7 text-[11px]" : "text-sm"}`}>{product.name}</h3>
-          <p className={`${compact ? "text-[9px]" : "text-[11px]"} mt-0.5 line-clamp-1 font-medium text-muted-foreground`}>{product.traditionalName}</p>
+          {metaLine ? <p className={`${compact ? "text-[9px]" : "text-[11px]"} mt-0.5 line-clamp-1 font-medium text-muted-foreground`}>{metaLine}</p> : null}
         </div>
         <p className={`${compact ? "line-clamp-1 min-h-4 text-[9px] leading-4" : "line-clamp-2 min-h-[2.2rem] text-[11px] leading-relaxed"} text-muted-foreground`}>
           {compact ? (product.description || commercialLine) : commercialLine}
