@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, BookOpen, ChefHat, CircleHelp, Clock, CookingPot, Eye, Flame, Hourglass, LifeBuoy, Lightbulb, MapPin, Search, ShieldAlert, Thermometer, Timer, Users } from "lucide-react";
+import { AlertTriangle, BookOpen, ChefHat, CircleHelp, Clock, CookingPot, Eye, Flame, Hourglass, LifeBuoy, Lightbulb, ListChecks, MapPin, Search, ShieldAlert, Thermometer, Timer, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -147,6 +147,12 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
                           <span className="inline-flex shrink-0 flex-wrap items-center gap-2 text-[9px] font-bold text-muted-foreground"><span className="inline-flex items-center gap-1"><Timer className="h-3 w-3 text-terre" />{guide.durationLabel}</span>{guide.restLabel ? <span className="inline-flex items-center gap-1"><Hourglass className="h-3 w-3 text-gold" />{guide.restLabel}</span> : null}<span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-gold" />{guide.heatLabel}</span>{guide.temperatureLabel ? <span className="inline-flex items-center gap-1"><Thermometer className="h-3 w-3 text-terre" />{guide.temperatureLabel}</span> : null}</span>
                         </div>
                         <p className="mt-1 text-xs leading-5 text-charcoal/80 sm:text-sm sm:leading-6">{guide.instruction}</p>
+                        <div className="mt-2 border-l border-gold/40 pl-2.5" data-testid="dish-precise-actions">
+                          <p className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase text-charcoal/75"><ListChecks className="h-3.5 w-3.5 text-burgundy" />{locale === "fr" ? "Déroulé précis" : "Precise sequence"}</p>
+                          <ol className="mt-1.5 space-y-1">
+                            {guide.actions.map((action, actionIndex) => <li key={`${actionIndex}-${action}`} className="flex items-start gap-2 text-[10px] leading-4 text-muted-foreground"><span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-burgundy/[0.09] text-[8px] font-black text-burgundy" aria-hidden="true">{actionIndex + 1}</span><span>{action}</span></li>)}
+                          </ol>
+                        </div>
                         {preparationIngredientGroups[index]?.length ? <p className="mt-1.5 text-[10px] font-semibold leading-4 text-terre"><strong className="text-charcoal/75">{locale === "fr" ? "À mesurer :" : "Measure:"}</strong> {preparationIngredientGroups[index].map((ingredient) => `${ingredient.quantity} ${ingredient.name}`).join(" · ")}</p> : null}
                         <p className="mt-1.5 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><Eye className="mt-0.5 h-3 w-3 shrink-0 text-burgundy" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Résultat :" : "Result:"}</strong> {guide.cue}</span></p>
                         <p className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-muted-foreground"><CookingPot className="mt-0.5 h-3 w-3 shrink-0 text-terre" /><span><strong className="text-charcoal/75">{locale === "fr" ? "Matériel :" : "Equipment:"}</strong> {guide.equipment}</span></p>

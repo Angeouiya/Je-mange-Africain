@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRecipeStepGuide, buildRecipeStepGuides, recipeStepDetailScore } from "./recipe-step-guide";
+import { buildRecipeStepGuide, buildRecipeStepGuides, recipeStepActions, recipeStepDetailScore } from "./recipe-step-guide";
 
 describe("recipe preparation guide", () => {
   it("extracts a duration range, side instruction and high heat", () => {
@@ -29,6 +29,9 @@ describe("recipe preparation guide", () => {
     expect(guide.recovery).toContain("Recoupez");
     expect(guide.equipment).toContain("couteau");
     expect(guide.phaseLabel).toBe("Mise en place");
+    expect(guide.actions).toHaveLength(3);
+    expect(guide.actions[0]).toContain("ingrédients mesurés");
+    expect(guide.actions[2]).toContain("Avant de poursuivre");
   });
 
   it("localises labels and emits an oil safety warning", () => {
@@ -63,6 +66,17 @@ describe("recipe preparation guide", () => {
     expect(buildRecipeStepGuides(["Cut the onion.", "Simmer for 20 minutes until glossy."], "en")).toHaveLength(2);
     expect(recipeStepDetailScore("Cut onion.")).toBeLessThan(2);
     expect(recipeStepDetailScore("Cook over low heat for 20 minutes until the sauce is glossy.")).toBe(4);
+  });
+
+  it("turns a dense instruction into an ordered sequence of kitchen actions", () => {
+    const actions = recipeStepActions("Éponger le poisson, puis le saler. Le saisir 4 minutes par face; enfin le laisser reposer.", "fr");
+
+    expect(actions).toEqual([
+      "Éponger le poisson.",
+      "Le saler.",
+      "Le saisir 4 minutes par face.",
+      "Le laisser reposer.",
+    ]);
   });
 
   it("does not confuse French remaining ingredients with an English rest instruction", () => {

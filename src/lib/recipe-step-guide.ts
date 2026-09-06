@@ -5,6 +5,7 @@ export type RecipeStepGuide = {
   raw: string;
   title: string;
   instruction: string;
+  actions: string[];
   durationMinutes: number;
   durationLabel: string;
   durationEstimated: boolean;
@@ -186,6 +187,53 @@ const cleanIds = (values: string[] | null | undefined) => Array.from(new Set(
   (values || []).map((value) => value.trim()).filter(Boolean),
 ));
 
+function sentenceCase(value: string) {
+  const clean = value.trim().replace(/^[,;:\s]+|[,;:\s]+$/g, "");
+  if (!clean) return "";
+  const capitalized = clean.charAt(0).toLocaleUpperCase() + clean.slice(1);
+  return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
+}
+
+export function recipeStepActions(raw: string, locale: Locale) {
+  const instruction = raw.trim().replace(/\s+/g, " ");
+  if (!instruction) return [];
+
+  const sequencingWords = locale === "fr"
+    ? /(?:[,;.]\s*(?:puis|ensuite|enfin)\s+|[.;]\s+|\s+(?:puis|ensuite|enfin)\s+)/i
+    : /(?:[,;.]\s*(?:then|next|finally)\s+|[.;]\s+|\s+(?:then|next|finally)\s+)/i;
+  const actions = instruction
+    .split(sequencingWords)
+    .map(sentenceCase)
+    .filter(Boolean);
+
+  return actions.length > 0 ? actions : [sentenceCase(instruction)];
+}
+
+function detailedStepActions(raw: string, locale: Locale, heat: RecipeStepHeat, restMinutes: number) {
+  const selectedHeat = heatLabel(heat, locale).toLocaleLowerCase();
+  const setup = locale === "fr"
+    ? heat === "none"
+      ? "Rassembler les ingrédients mesurés et installer le matériel nécessaire avant de commencer."
+      : heat === "oven"
+        ? "Préchauffer le four, préparer le plat de cuisson et garder les ingrédients mesurés à portée de main."
+        : `Placer les ingrédients mesurés à portée de main, puis stabiliser le récipient sur ${selectedHeat} avant la cuisson.`
+    : heat === "none"
+      ? "Gather the measured ingredients and set out the required equipment before starting."
+      : heat === "oven"
+        ? "Preheat the oven, prepare the cooking dish and keep the measured ingredients within reach."
+        : `Keep the measured ingredients within reach, then stabilise the pan over ${selectedHeat} before cooking.`;
+  const rest = restMinutes > 0
+    ? (locale === "fr"
+      ? `Respecter ensuite ${restMinutes} minutes de repos sans manipuler inutilement la préparation.`
+      : `Then allow the full ${restMinutes}-minute rest without handling the food unnecessarily.`)
+    : null;
+  const checkpoint = locale === "fr"
+    ? "Avant de poursuivre, comparer la texture, la couleur et la cuisson au repère de réussite détaillé ci-dessous."
+    : "Before moving on, compare the texture, colour and doneness with the detailed success cue below.";
+
+  return [setup, ...recipeStepActions(raw, locale), rest, checkpoint].filter((action): action is string => Boolean(action));
+}
+
 function actionTitle(raw: string, index: number, locale: Locale) {
   const value = normalize(raw);
   const action = (() => {
@@ -326,10 +374,12 @@ export function buildRecipeStepGuide(
   const heat = details?.heat || heatFromText(instruction);
   const temperatureC = positiveInteger(details?.temperatureC);
   const phase = phaseFromText(instruction, heat);
+  const cue = cleanText(details?.cue) || expectedCue(instruction, locale);
   return {
     raw,
     title: cleanText(details?.title) || actionTitle(instruction, index, locale),
     instruction,
+    actions: detailedStepActions(instruction, locale, heat, restMinutes),
     durationMinutes,
     durationLabel: storedDuration ? `${durationMinutes} min` : inferredRestMinutes > 0 ? `≈ ${durationMinutes} min` : explicitDuration?.label ?? `≈ ${durationMinutes} min`,
     durationEstimated: !storedDuration && (!explicitDuration || inferredRestMinutes > 0),
@@ -340,7 +390,7 @@ export function buildRecipeStepGuide(
     temperatureC,
     temperatureLabel: temperatureC ? `${temperatureC} °C` : null,
     equipment: cleanText(details?.equipment) || equipmentFromText(instruction, locale),
-    cue: cleanText(details?.cue) || expectedCue(instruction, locale),
+    cue,
     tip: cleanText(details?.tip) || practicalTip(instruction, locale),
     warning: details?.warning === "" ? null : cleanText(details?.warning) || safetyWarning(instruction, locale),
     why: cleanText(details?.why) || whyThisStep(instruction, locale),

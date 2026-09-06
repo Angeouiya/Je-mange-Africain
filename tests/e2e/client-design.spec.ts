@@ -257,6 +257,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(dishDialog.getByTestId("dish-mise-en-place")).toContainText(/mise en place|before you start/i);
   await expect(dishDialog.getByTestId("dish-detailed-steps")).toContainText(/matériel|equipment/i);
   await expect(dishDialog.getByTestId("dish-detailed-steps")).toContainText(/conseil|tip/i);
+  await expect(dishDialog.getByTestId("dish-precise-actions").first()).toContainText(/déroulé précis|precise sequence/i);
   await expectLoadedProductImages(dishDialog.getByRole("img"), 1);
   await expectNoHorizontalOverflow(page, dishDialog);
   await expectBrandSafeUiColors(page);
@@ -1867,7 +1868,7 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
     await page.getByTestId("recipe-live-summary").getByRole("button", { name: /préparation|preparation/i }).click();
     await expect(preparationStage).toHaveAttribute("aria-pressed", "true");
   }
-  const preparationList = page.locator("#recipe-preparation ol");
+  const preparationList = page.getByTestId("recipe-detailed-steps");
   await expect(preparationList).toContainText(/Égousi|Egusi/i);
   await expect(preparationList).not.toContainText(/Pâte d'arachide|Peanut paste/i);
   await expect(page.locator("#recipe-preparation")).toContainText(/adaptée|adapted/i);
@@ -1885,8 +1886,13 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(cookingFocus).toContainText(/conseil cuisine|kitchen tip/i);
   await expect(cookingFocus).toContainText(/pourquoi ce geste|why this matters/i);
   await expect(cookingFocus).toContainText(/si le résultat n’est pas atteint|if the result is not there/i);
+  await expect(cookingFocus.getByTestId("recipe-precise-actions")).toContainText(/déroulé précis|precise sequence/i);
+  await expect(cookingFocus).toContainText(/chronologie estimée|estimated timeline/i);
   const kitchenTimer = cookingFocus.getByTestId("recipe-kitchen-timer");
   await expect(kitchenTimer.getByRole("timer")).toHaveText("12:00");
+  await kitchenTimer.getByRole("button", { name: /repos.*5 min|rest.*5 min/i }).click();
+  await expect(kitchenTimer.getByRole("timer")).toHaveText("5:00");
+  await kitchenTimer.getByRole("button", { name: /action.*12 min|active.*12 min/i }).click();
   await kitchenTimer.getByRole("button", { name: /lancer le chronomètre|start timer/i }).click();
   await expect(kitchenTimer.getByRole("button", { name: /mettre le chronomètre en pause|pause timer/i })).toBeVisible();
   await expect.poll(() => kitchenTimer.getByRole("timer").textContent()).toBe("11:59");
