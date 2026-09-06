@@ -100,6 +100,9 @@ type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
   | "VAPID_SUBJECT"
 >>;
 
+export const PRODUCTION_SUPABASE_PROJECT_REF = "ahigidhuhqcmxzjxetnw";
+export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
+
 export type DeploymentRequirementGroup = "database" | "identity" | "payments" | "cache" | "push" | "hosting";
 
 export type CloudflareDeploymentRequirement = {
@@ -143,6 +146,7 @@ export const CLOUDFLARE_PRODUCTION_ENV_KEYS = [
 
 export function platformIntegrationStatus(databaseAvailable: boolean, environment: PlatformEnvironment = process.env) {
   const databaseUrl = environment.DATABASE_URL || "";
+  const supabaseUrl = (environment.NEXT_PUBLIC_SUPABASE_URL || environment.SUPABASE_URL || "").replace(/\/+$/, "");
   const postgres = /^postgres(?:ql)?:/i.test(databaseUrl);
   const deployed = environment.NODE_ENV === "production";
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
@@ -151,7 +155,8 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
   const persistentDatabase = databaseAvailable && (postgres || !deployed);
   const productionDatabase = databaseAvailable && postgres;
   const stripeCore = Boolean(environment.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && environment.STRIPE_SECRET_KEY);
-  const supabaseCore = Boolean((environment.NEXT_PUBLIC_SUPABASE_URL || environment.SUPABASE_URL) && (environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || environment.SUPABASE_PUBLISHABLE_KEY));
+  const supabaseProject = supabaseUrl === PRODUCTION_SUPABASE_URL;
+  const supabaseCore = Boolean(supabaseProject && (environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || environment.SUPABASE_PUBLISHABLE_KEY));
 
   return [
     {
@@ -161,7 +166,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
       capabilities: { connection: databaseAvailable, persistence: persistentDatabase, production: productionDatabase },
     },
     { id: "payments", state: stripeCore && environment.STRIPE_WEBHOOK_SECRET ? "ready" : stripeCore ? "partial" : "attention", provider: "Stripe", capabilities: { connection: stripeCore, webhook: Boolean(environment.STRIPE_WEBHOOK_SECRET) } },
-    { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
+    { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
     { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
     { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime } },
@@ -170,6 +175,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
 
 export function cloudflareDeploymentReadiness(databaseAvailable: boolean, environment: PlatformEnvironment = process.env, checkedAt = new Date().toISOString()): CloudflareDeploymentReadiness {
   const databaseUrl = environment.DATABASE_URL || "";
+  const supabaseUrl = (environment.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
   const postgres = /^postgres(?:ql)?:\/\//i.test(databaseUrl);
   const has = (key: keyof PlatformEnvironment) => Boolean(environment[key]);
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
@@ -190,10 +196,10 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
       group: "identity",
       labelFr: "URL publique Supabase",
       labelEn: "Public Supabase URL",
-      detailFr: "Projet Supabase exposé au client pour l'inscription, la session et les médias.",
-      detailEn: "Supabase project exposed to the client for registration, session and media.",
+      detailFr: `Projet Supabase ${PRODUCTION_SUPABASE_PROJECT_REF} exposé au client pour l'inscription, la session et les médias.`,
+      detailEn: `Supabase project ${PRODUCTION_SUPABASE_PROJECT_REF} exposed to the client for registration, session and media.`,
       envKeys: ["NEXT_PUBLIC_SUPABASE_URL"],
-      satisfied: has("NEXT_PUBLIC_SUPABASE_URL"),
+      satisfied: supabaseUrl === PRODUCTION_SUPABASE_URL,
       severity: "blocking",
     },
     {

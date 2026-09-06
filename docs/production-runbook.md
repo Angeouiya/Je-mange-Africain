@@ -14,17 +14,33 @@
 Configure the variables documented in `.env.example` in the production host. Never expose `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` or `UPSTASH_REDIS_REST_TOKEN` to the browser.
 
 Use the pooled Supabase PostgreSQL connection for the application runtime. Keep a direct database URL available for operational migrations when the provider requires it.
+Production is pinned to Supabase project `ahigidhuhqcmxzjxetnw` and Cloudflare account `82164eca9557f63e18984230deac12bc`. The release guard refuses another Supabase URL, including previous staging projects.
+
+The production autopilot prints only key names and readiness states. It never prints secret values.
+
+```bash
+npm run production:audit
+npm run production:open-dashboards
+```
 
 ## Frontend deployment
 
 The production frontend is Cloudflare Workers, not Vercel. Keep the root `wrangler.jsonc` committed as the source of truth for account, Worker name, assets and observability.
-The deploy command refuses to publish when production secrets are incomplete or when `DATABASE_URL` still points to a local SQLite database.
+The deploy command refuses to publish when production secrets are incomplete, when `DATABASE_URL` still points to a local SQLite database, or when Supabase points to a project other than `ahigidhuhqcmxzjxetnw`.
 
 ```bash
 npm run cloudflare:check
 npm run cloudflare:build
 npm run cloudflare:deploy
 ```
+
+For an existing Worker, refresh secrets without deploying code:
+
+```bash
+npm run production:sync-cloudflare
+```
+
+For a first production Worker, `npm run cloudflare:deploy` uses a temporary secrets file with `wrangler deploy --secrets-file`, so the Worker can be created and configured in the same release.
 
 For a local Workers-runtime preview after a successful vinext build:
 
@@ -34,20 +50,26 @@ npm run cloudflare:preview
 
 ## Database deployment
 
-The repository already contains Supabase migrations in `supabase/migrations`. Use those for the linked Supabase project. The Prisma PostgreSQL migration under `prisma/postgresql/migrations` is the baseline for a new, empty standalone PostgreSQL database.
+The repository already contains Supabase migrations in `supabase/migrations`. Use those for the linked Supabase project. The Prisma PostgreSQL migration under `prisma/postgresql/migrations` is the baseline for the application runtime schema.
 
 Do not apply both initial migrations to the same populated database. For an existing Supabase database, compare the live schema first and mark the Prisma baseline as applied only after confirming equivalence.
 
 ```bash
-supabase link --project-ref ahigidhuhqcmxzjxetnw
-supabase db push
+npx supabase link --project-ref ahigidhuhqcmxzjxetnw
+npx supabase db push
 npm run db:generate:postgres
 ```
 
-For a new empty PostgreSQL database outside the existing Supabase migration history:
+For the Prisma-managed production release path:
 
 ```bash
-npm run db:migrate:postgres
+npm run production:migrate-supabase
+```
+
+For a full release once every key is present:
+
+```bash
+npm run production:release
 ```
 
 ## Stripe

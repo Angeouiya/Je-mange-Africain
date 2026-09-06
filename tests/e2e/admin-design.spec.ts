@@ -722,7 +722,7 @@ async function mockAdminApi(page: Page) {
       integrations: [
         { id: "database", state: "ready", provider: "PostgreSQL", capabilities: { connection: true, persistence: true, production: true } },
         { id: "payments", state: "partial", provider: "Stripe", capabilities: { connection: true, webhook: false, configuration: true, card: true, paypal: true } },
-        { id: "identity", state: "ready", provider: "Supabase", capabilities: { connection: true, serverAccess: true } },
+        { id: "identity", state: "ready", provider: "Supabase", capabilities: { connection: true, project: true, serverAccess: true } },
         { id: "cache", state: "attention", provider: "Upstash Redis", capabilities: { connection: false } },
         { id: "push", state: "ready", provider: "Web Push", capabilities: { connection: true } },
       ],
@@ -1257,7 +1257,7 @@ test("platform settings publish durable customer-facing contact details", async 
 
   await expect(page.getByRole("heading", { name: "Configuration de la plateforme" })).toBeVisible();
   await expect(page.getByTestId("production-readiness")).toContainText("Mise en production à finaliser");
-  await expect(page.getByTestId("production-readiness")).toContainText("83 %");
+  await expect(page.getByTestId("production-readiness")).toContainText("85 %");
   await expect(page.getByTestId("integration-database")).toContainText("Base de production");
   await expect(page.getByTestId("integration-payments")).toContainText("Confirmation serveur");
   const launchReadiness = page.getByTestId("cloudflare-deployment-readiness");

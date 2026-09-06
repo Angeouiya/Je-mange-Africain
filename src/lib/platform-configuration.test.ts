@@ -44,7 +44,7 @@ describe("platform production readiness", () => {
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
       STRIPE_SECRET_KEY: "sk_live_example",
       STRIPE_WEBHOOK_SECRET: "whsec_example",
-      NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+      NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
       UPSTASH_REDIS_REST_URL: "https://cache.example.test",
@@ -55,7 +55,35 @@ describe("platform production readiness", () => {
 
     expect(integrations.every((integration) => integration.state === "ready")).toBe(true);
     expect(integrations.find((integration) => integration.id === "database")).toMatchObject({ provider: "PostgreSQL", capabilities: { production: true } });
+    expect(integrations.find((integration) => integration.id === "identity")).toMatchObject({ provider: "Supabase", capabilities: { project: true } });
     expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ provider: "Cloudflare Workers", capabilities: { runtime: true } });
+  });
+
+  it("refuses to treat another Supabase project as the production identity target", () => {
+    const environment = {
+      DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
+      NODE_ENV: "production",
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SUPABASE_URL: "https://ailevucikakmgsxfptwv.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
+      STRIPE_SECRET_KEY: "sk_live_example",
+      STRIPE_WEBHOOK_SECRET: "whsec_example",
+      UPSTASH_REDIS_REST_URL: "https://cache.example.test",
+      UPSTASH_REDIS_REST_TOKEN: "redis_token",
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: "push_public",
+      VAPID_PRIVATE_KEY: "push_private",
+      VAPID_SUBJECT: "mailto:contact@je-mange-africain.com",
+    } as const;
+
+    const integrations = platformIntegrationStatus(true, environment);
+    const readiness = cloudflareDeploymentReadiness(true, environment);
+
+    expect(integrations.find((integration) => integration.id === "identity")).toMatchObject({ state: "attention", capabilities: { project: false } });
+    expect(readiness.ready).toBe(false);
+    expect(readiness.requirements.find((requirement) => requirement.id === "supabase-url")).toMatchObject({ satisfied: false, envKeys: ["NEXT_PUBLIC_SUPABASE_URL"] });
   });
 
   it("turns the current deployment blockers into an explicit Cloudflare checklist", () => {

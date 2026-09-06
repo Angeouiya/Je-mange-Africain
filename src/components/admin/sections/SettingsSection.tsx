@@ -454,7 +454,7 @@ function capabilityLabel(integrationId: Integration["id"], capability: string, l
   const labels: Record<Integration["id"], Record<string, [string, string]>> = {
     database: { connection: ["Connexion", "Connection"], persistence: ["Persistance", "Persistence"], production: ["Base de production", "Production database"] },
     payments: { connection: ["Encaissement", "Payment collection"], webhook: ["Confirmation serveur", "Server confirmation"], configuration: ["Configuration Stripe", "Stripe configuration"], card: ["Carte bancaire", "Payment card"], paypal: ["PayPal", "PayPal"] },
-    identity: { connection: ["API publique", "Public API"], serverAccess: ["Accès serveur", "Server access"] },
+    identity: { connection: ["API publique", "Public API"], project: ["Projet cible", "Target project"], serverAccess: ["Accès serveur", "Server access"] },
     cache: { connection: ["Protection active", "Protection active"] },
     push: { connection: ["Diffusion active", "Delivery active"] },
     hosting: { account: ["Compte Cloudflare", "Cloudflare account"], workers: ["Cible Workers", "Workers target"], runtime: ["Runtime edge", "Edge runtime"] },
