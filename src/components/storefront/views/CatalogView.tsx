@@ -118,10 +118,13 @@ export function CatalogView() {
     <div className="space-y-5">
       <FilterGroup label={t.catalog.category}>
         <div className="space-y-1">
-          <FilterChip active={!cat} onClick={() => setCat(null)}>{locale === "fr" ? "Toutes" : "All"}</FilterChip>
+          <FilterChip active={!cat} onClick={() => setCat(null)}>
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/65 bg-white/85 text-burgundy"><ReiconGlyph icon={BoxSearch} weight="Filled" className="h-3.5 w-3.5" /></span>
+            <span className="min-w-0 truncate">{locale === "fr" ? "Toutes" : "All"}</span>
+          </FilterChip>
           {filters?.categories?.map((c) => (
             <FilterChip key={c.id} active={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)}>
-              <CategoryIcon slug={c.slug} color={c.color} className="h-7 w-7 border-0 shadow-none" />
+              <CategoryIcon slug={c.slug} label={c.name} color={c.color} active={cat === c.id} className="h-7 w-7 shadow-none" />
               <span className="min-w-0 truncate">{c.name}</span>
             </FilterChip>
           ))}
@@ -130,7 +133,7 @@ export function CatalogView() {
       <FilterGroup label={t.catalog.thermalClass}>
         <div className="flex flex-wrap gap-1.5">
           {THERMALS.map((th) => (
-            <FilterChip key={th} active={thermal === th} onClick={() => setThermal(thermal === th ? null : th)}>
+            <FilterChip key={th} active={thermal === th} onClick={() => setThermal(thermal === th ? null : th)} layout="pill">
               {th === "AMBIANT" ? (locale === "fr" ? "Ambiant" : "Ambient") : th === "REFRIGERATED" ? (locale === "fr" ? "Réfrigéré" : "Chilled") : (locale === "fr" ? "Surgelé" : "Frozen")}
             </FilterChip>
           ))}
@@ -146,16 +149,16 @@ export function CatalogView() {
       </FilterGroup>
       <FilterGroup label={t.catalog.country}>
         <div className="flex flex-wrap gap-1.5">
-          <FilterChip active={!country} onClick={() => setCountry(null)}>{locale === "fr" ? "Tous" : "All"}</FilterChip>
+          <FilterChip active={!country} onClick={() => setCountry(null)} layout="pill">{locale === "fr" ? "Tous" : "All"}</FilterChip>
           {filters?.countries?.map((c: string) => (
-            <FilterChip key={c} active={country === c} onClick={() => setCountry(country === c ? null : c)}>{c}</FilterChip>
+            <FilterChip key={c} active={country === c} onClick={() => setCountry(country === c ? null : c)} layout="pill">{c}</FilterChip>
           ))}
         </div>
       </FilterGroup>
       <FilterGroup label={`${t.catalog.priceRange} (€)`}>
         <div className="flex flex-wrap gap-1.5">
           {[null, 5, 10, 15, 25].map((p) => (
-            <FilterChip key={String(p)} active={maxPrice === p} onClick={() => setMaxPrice(p)}>
+            <FilterChip key={String(p)} active={maxPrice === p} onClick={() => setMaxPrice(p)} layout="pill">
               {p === null ? (locale === "fr" ? "Tous" : "All") : `≤ ${p} €`}
             </FilterChip>
           ))}
@@ -288,14 +291,16 @@ function FilterGroup({ label, children }: { label: string; children: React.React
     </div>
   );
 }
-function FilterChip({ active, onClick, children }: { active?: boolean; onClick: () => void; children: React.ReactNode }) {
+function FilterChip({ active, onClick, children, layout = "full" }: { active?: boolean; onClick: () => void; children: React.ReactNode; layout?: "full" | "pill" }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex min-h-9 w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs font-semibold transition ${
-        active ? "bg-burgundy text-white shadow-sm" : "text-charcoal hover:bg-burgundy/[0.045]"
+      className={`flex min-h-9 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs font-semibold transition ${
+        layout === "full" ? "w-full justify-start" : "w-auto shrink-0 justify-center"
+      } ${
+        active ? "border-burgundy bg-[linear-gradient(135deg,#8A3042,#B9472B)] text-white shadow-[0_12px_24px_-20px_rgba(90,38,50,0.82)]" : "border-charcoal/10 bg-white text-charcoal hover:border-terre/25 hover:bg-terre/[0.035]"
       }`}
     >
       {children}

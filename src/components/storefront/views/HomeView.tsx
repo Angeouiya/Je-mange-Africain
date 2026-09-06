@@ -348,7 +348,7 @@ function CategoryShelf({ categories }: { categories: HomeCategory[] }) {
           <span className="relative block aspect-square overflow-hidden rounded-md bg-muted">
             <ProductImage src={getCategoryPhoto(category)} alt="" emoji="" color={category.color || "#8A3042"} size="md" className="h-full w-full transition duration-300 group-hover:scale-[1.04]" rounded="rounded-none" />
             <span className="absolute inset-0 bg-gradient-to-t from-burgundy/38 via-transparent to-transparent" />
-            <CategoryIcon slug={category.slug} color={category.color} className="absolute bottom-1.5 right-1.5 h-7 w-7 border border-white/65 shadow-sm" />
+            <CategoryIcon slug={category.slug} label={category.name} color={category.color} className="absolute bottom-1.5 right-1.5 h-7 w-7 border border-white/65 shadow-sm" />
           </span>
           <span className="mt-1.5 block line-clamp-2 min-h-7 text-center text-[9px] font-extrabold leading-3.5 text-charcoal md:text-[10px]">{category.name}</span>
         </motion.button>

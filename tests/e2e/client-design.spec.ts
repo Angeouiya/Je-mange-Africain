@@ -136,6 +136,9 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(favouritesRail.locator(".line-through").first()).toBeVisible();
   const categoryHeading = page.getByRole("heading", { name: /explorer les rayons|explore departments/i });
   await expect(categoryHeading).toBeVisible();
+  const homeCategoryIcons = page.getByTestId("home-category-rail").getByTestId("category-icon");
+  await expect(homeCategoryIcons.first()).toBeVisible();
+  expect(await homeCategoryIcons.count()).toBeGreaterThan(0);
   const categoryBox = await categoryHeading.boundingBox();
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   const deliveryContext = page.getByTestId(isMobile ? "home-delivery-mobile" : "home-delivery-desktop");
@@ -210,11 +213,14 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   if (isMobile) {
     await page.getByRole("button", { name: /filtres/i }).click();
     const filtersDialog = page.getByRole("dialog");
+    await expect(filtersDialog.getByTestId("category-icon").first()).toBeVisible();
     await filtersDialog.getByRole("button", { name: /manioc & dérivés|cassava & derivatives/i }).click();
     await filtersDialog.getByRole("button", { name: /voir \d+ produits|view \d+ products/i }).click();
     await expect(page.getByRole("button", { name: /filtres, 1|filters, 1/i })).toBeVisible();
   } else {
-    await page.getByTestId("catalog-filter-sidebar").getByRole("button", { name: /manioc & dérivés|cassava & derivatives/i }).click();
+    const catalogSidebar = page.getByTestId("catalog-filter-sidebar");
+    await expect(catalogSidebar.getByTestId("category-icon").first()).toBeVisible();
+    await catalogSidebar.getByRole("button", { name: /manioc & dérivés|cassava & derivatives/i }).click();
   }
   const clearCategoryFilter = page.getByRole("button", { name: /retirer le filtre manioc & dérivés|remove cassava & derivatives filter/i });
   await expect(clearCategoryFilter).toBeVisible();
@@ -458,7 +464,7 @@ test("the wholesale market applies volume pricing and preserves case quantities 
     wholesaleAvailablePacks: 12,
     wholesaleDiscountPercent: 11,
     wholesaleTiers: [{ minPacks: 1, price: 32 }, { minPacks: 5, price: 30 }, { minPacks: 10, price: 28 }],
-    category: { id: "staples", name: "Féculents" },
+    category: { id: "staples", slug: "feculents", name: "Féculents", color: "#D65A32" },
   };
   await page.route("**/api/catalog?*", async (route) => {
     if (!route.request().url().includes("channel=wholesale")) return route.continue();
@@ -475,6 +481,8 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   await page.goto("/?view=wholesale", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { level: 1, name: /marché de gros|wholesale market/i })).toBeVisible();
   await expect(page.getByText(/semoule de manioc fraîche|fresh cassava semolina/i)).toBeVisible();
+  const wholesaleFilters = page.getByRole("group", { name: /filtrer par rayon|filter by category/i });
+  await expect(wholesaleFilters.getByTestId("category-icon").first()).toBeVisible();
   const grid = page.getByTestId("wholesale-product-grid");
   await expect(grid).toBeVisible();
   const isMobile = (page.viewportSize()?.width || 0) < 768;

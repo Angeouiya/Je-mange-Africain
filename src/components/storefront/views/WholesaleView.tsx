@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { PostalCodeField } from "@/components/shared/PostalCodeField";
+import { CategoryIcon } from "@/components/shared/CategoryIcon";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
@@ -60,7 +61,7 @@ type WholesaleProduct = {
 type WholesaleResponse = {
   products: WholesaleProduct[];
   total: number;
-  filters: { categories: Array<{ id: string; name: string }> };
+  filters: { categories: Array<{ id: string; slug?: string | null; name: string; color?: string | null }> };
 };
 
 type WholesaleQuoteLine = {
@@ -123,8 +124,16 @@ export function WholesaleView() {
         <div className="mt-2 flex min-w-0 items-center gap-2">
           {data?.filters.categories?.length ? (
             <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={isFr ? "Filtrer par rayon" : "Filter by category"}>
-              <FilterButton active={!category} onClick={() => setCategory("")}>{isFr ? "Tous" : "All"}</FilterButton>
-              {data.filters.categories.map((item) => <FilterButton key={item.id} active={category === item.id} onClick={() => setCategory(item.id)}>{item.name}</FilterButton>)}
+              <FilterButton active={!category} onClick={() => setCategory("")}>
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/65 bg-white/85 text-burgundy"><ReiconGlyph icon={Box} weight="Filled" className="h-3.5 w-3.5" /></span>
+                <span>{isFr ? "Tous" : "All"}</span>
+              </FilterButton>
+              {data.filters.categories.map((item) => (
+                <FilterButton key={item.id} active={category === item.id} onClick={() => setCategory(item.id)}>
+                  <CategoryIcon slug={item.slug || item.id} label={item.name} color={item.color} active={category === item.id} className="h-7 w-7 shadow-none" />
+                  <span className="max-w-[8.5rem] truncate">{item.name}</span>
+                </FilterButton>
+              ))}
             </div>
           ) : <div className="flex-1" />}
           <p className="shrink-0 text-[10px] font-bold text-muted-foreground"><span className="sm:hidden">{data ? `${data.total} ${isFr ? "offre(s) pro" : "pro offer(s)"}` : ""}</span><span className="hidden sm:inline">{data ? `${data.total} ${isFr ? "offre(s) professionnelle(s)" : "professional offer(s)"}` : ""}</span></p>
@@ -236,7 +245,7 @@ function WholesalePromise({ icon, title, detail }: { icon: IconFunction; title: 
 }
 
 function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-md border px-3 py-2 text-[10px] font-bold ${active ? "border-burgundy bg-burgundy text-white" : "border-border bg-white text-charcoal"}`}>{children}</button>;
+  return <button type="button" onClick={onClick} aria-pressed={active} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-bold transition ${active ? "border-burgundy bg-[linear-gradient(135deg,#8A3042,#B9472B)] text-white shadow-[0_12px_24px_-20px_rgba(90,38,50,0.82)]" : "border-charcoal/10 bg-white text-charcoal hover:border-terre/25 hover:bg-terre/[0.035]"}`}>{children}</button>;
 }
 
 function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { open: boolean; onOpenChange: (open: boolean) => void; lines: WholesaleQuoteLine[]; onLinesChange: (lines: WholesaleQuoteLine[]) => void }) {
