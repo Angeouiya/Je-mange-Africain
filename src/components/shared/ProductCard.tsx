@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Heart, Plus } from "lucide-react";
+import { Heart } from "reicon/icons/Heart";
+import { Plus } from "reicon/icons/Plus";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductImage } from "./ProductImage";
@@ -12,6 +13,7 @@ import { getProductCommercialLine, getProductPhoto } from "@/lib/market-media";
 import { productEditorialHighlight } from "@/lib/editorial-flags";
 import { resolveProductPricing } from "@/lib/product-pricing";
 import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 export interface ProductListItem {
   id: string;
@@ -56,7 +58,7 @@ type ProductCardSurfaceProps = {
 };
 
 const productCardFrame = (compact: boolean, interactive: boolean) =>
-  `group relative flex min-w-0 flex-col overflow-hidden bg-white transition-all ${interactive ? "cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-offset-2" : ""} ${compact ? "rounded-md border border-charcoal/8 shadow-[0_10px_24px_-24px_rgba(90,38,50,0.5)] hover:border-charcoal/14 hover:shadow-[0_18px_36px_-30px_rgba(90,38,50,0.58)]" : "rounded-lg border border-charcoal/10 hover:border-charcoal/20 hover:shadow-[0_22px_50px_-34px_rgba(63,41,48,0.55)]"}`;
+  `group relative flex min-w-0 flex-col overflow-hidden bg-white transition-all ${interactive ? "cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-offset-2" : ""} ${compact ? "rounded-md border border-charcoal/8 shadow-[0_12px_28px_-26px_rgba(90,38,50,0.56)] hover:border-burgundy/20 hover:shadow-[0_22px_42px_-34px_rgba(90,38,50,0.62)]" : "rounded-lg border border-charcoal/10 hover:border-burgundy/25 hover:shadow-[0_24px_56px_-38px_rgba(63,41,48,0.62)]"}`;
 
 const comparableText = (value?: string | null) =>
   (value || "")
@@ -160,7 +162,7 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
   return (
     <>
       <div className="relative">
-        <div className={`flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-[4/3] rounded-md" : "aspect-[4/3]"}`}>
+        <div className={`relative flex w-full items-center justify-center bg-muted/40 ${compact ? "aspect-[4/3] rounded-md" : "aspect-[4/3]"}`}>
           <ProductImage
             src={photoUrl}
             fallbackSrc={fallbackPhotoUrl}
@@ -172,10 +174,11 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
             className="h-full w-full"
             rounded="rounded-none"
           />
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-[linear-gradient(180deg,transparent,rgba(63,41,48,0.28))]" aria-hidden="true" />
         </div>
         <div className="absolute left-2 top-2 flex max-w-[74%] flex-col gap-1">
           {discountPercent > 0 && (
-            <span className="w-fit rounded-md bg-destructive px-2 py-1 text-[10px] font-extrabold leading-none text-white shadow-sm">
+            <span className="w-fit rounded-md bg-burgundy px-2 py-1 text-[10px] font-extrabold leading-none text-white shadow-[0_8px_18px_-12px_rgba(90,38,50,0.8)]">
               -{discountPercent}%
             </span>
           )}
@@ -190,12 +193,12 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
             aria-label={isFav
               ? (locale === "fr" ? `Retirer ${product.name} des favoris` : `Remove ${product.name} from favourites`)
               : (locale === "fr" ? `Ajouter ${product.name} aux favoris` : `Add ${product.name} to favourites`)}
-            className={`absolute right-2 top-2 grid place-items-center border border-charcoal/10 bg-white/90 shadow-sm backdrop-blur transition hover:bg-white ${compact ? "h-7 w-7 rounded-md" : "h-8 w-8 rounded-full"}`}
+            className={`absolute right-2 top-2 grid place-items-center border border-charcoal/10 bg-white/95 text-burgundy shadow-sm backdrop-blur transition hover:border-terre/30 hover:bg-white hover:text-terre ${compact ? "h-7 w-7 rounded-md" : "h-8 w-8 rounded-full"}`}
           >
-            <Heart className={`h-4 w-4 ${isFav ? "fill-terre text-terre" : "text-charcoal"}`} />
+            <ReiconGlyph icon={Heart} weight={isFav ? "Filled" : "Outline"} className="h-4 w-4" />
           </button>
         ) : (
-          <span aria-hidden="true" className={`absolute right-2 top-2 grid place-items-center border border-charcoal/10 bg-white/90 text-charcoal shadow-sm backdrop-blur ${compact ? "h-7 w-7 rounded-md" : "h-8 w-8 rounded-full"}`}><Heart className="h-4 w-4" /></span>
+          <span aria-hidden="true" className={`absolute right-2 top-2 grid place-items-center border border-charcoal/10 bg-white/95 text-burgundy shadow-sm backdrop-blur ${compact ? "h-7 w-7 rounded-md" : "h-8 w-8 rounded-full"}`}><ReiconGlyph icon={Heart} className="h-4 w-4" /></span>
         )}
       </div>
 
@@ -237,10 +240,10 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
               className={`${compact ? "h-8 w-8 rounded-md" : "h-9 w-9 rounded-full"} bg-terre p-0 text-white shadow-sm hover:bg-terre-dark`}
               aria-label={t.product.addToCart}
             >
-              <Plus className="h-4 w-4" />
+              <ReiconGlyph icon={Plus} weight="Filled" className="h-4 w-4" />
             </Button>
           ) : (
-            <span aria-hidden="true" className={`${compact ? "h-8 w-8 rounded-md" : "h-9 w-9 rounded-full"} grid place-items-center bg-terre text-white shadow-sm ${outOfStock ? "opacity-50" : ""}`}><Plus className="h-4 w-4" /></span>
+            <span aria-hidden="true" className={`${compact ? "h-8 w-8 rounded-md" : "h-9 w-9 rounded-full"} grid place-items-center bg-terre text-white shadow-sm ${outOfStock ? "opacity-50" : ""}`}><ReiconGlyph icon={Plus} weight="Filled" className="h-4 w-4" /></span>
           )}
         </div>
       </div>

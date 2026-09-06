@@ -3,24 +3,23 @@
 import { useMemo } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  Bookmark,
-  ChefHat,
-  ChevronRight,
-  Clock,
-  CreditCard,
-  Globe2,
-  Headphones,
-  Heart,
-  MapPinned,
-  PackageSearch,
-  ShieldCheck,
-  Snowflake,
-  Sparkles,
-  Truck,
-  Users,
-} from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { AngleRight } from "reicon/icons/AngleRight";
+import { ArrowRight } from "reicon/icons/ArrowRight";
+import { Bookmark } from "reicon/icons/Bookmark";
+import { BoxSearch } from "reicon/icons/BoxSearch";
+import { ChefHat } from "reicon/icons/ChefHat";
+import { Clock } from "reicon/icons/Clock";
+import { CreditCard } from "reicon/icons/CreditCard";
+import { Globe2 } from "reicon/icons/Globe2";
+import { Headphones } from "reicon/icons/Headphones";
+import { Heart } from "reicon/icons/Heart";
+import { MapPoint } from "reicon/icons/MapPoint";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
+import { Snowflake } from "reicon/icons/Snowflake";
+import { Sparkles } from "reicon/icons/Sparkles";
+import { Truck } from "reicon/icons/Truck";
+import { Users } from "reicon/icons/Users";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +37,7 @@ import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdver
 import { DeliveryDestinationDialog } from "@/components/storefront/DeliveryDestinationDialog";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 import { EUROPEAN_COUNTRIES, europeanCountryLabel } from "@/lib/european-countries";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 type HomeCategory = {
   id: string;
@@ -107,13 +107,13 @@ export function HomeView() {
         signalRecipeValue: "adjusted basket",
       };
 
-  const commitments = [
+  const commitments: Array<{ icon: IconFunction; title: string; desc: string; color: string }> = [
     { icon: ShieldCheck, title: t.home.commitment1Title, desc: t.home.commitment1Desc, color: "#8A3042" },
     { icon: Snowflake, title: t.home.commitment2Title, desc: t.home.commitment2Desc, color: "#8A3042" },
     { icon: Truck, title: t.home.commitment3Title, desc: t.home.commitment3Desc, color: "#D65A32" },
     { icon: Headphones, title: t.home.commitment4Title, desc: t.home.commitment4Desc, color: "#F2A900" },
   ];
-  const heroSignals = [
+  const heroSignals: Array<{ icon: IconFunction; label: string; value: string }> = [
     { icon: Globe2, label: copy.signalEurope, value: copy.signalEuropeValue },
     { icon: CreditCard, label: copy.signalPayment, value: copy.signalPaymentValue },
     { icon: ChefHat, label: copy.signalRecipe, value: copy.signalRecipeValue },
@@ -141,7 +141,7 @@ export function HomeView() {
         <div className="relative mx-auto flex min-h-[15rem] max-w-7xl flex-col justify-end gap-2 px-4 py-4 md:min-h-[22rem] md:justify-center md:gap-4 md:px-12 md:py-10">
           <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
             <Badge className="border-0 bg-transparent p-0 text-[9px] font-extrabold uppercase text-gold shadow-none md:text-[10px]">
-              <Sparkles className="mr-1 h-3 w-3" /> {t.home.heroBadge}
+              <ReiconGlyph icon={Sparkles} weight="Filled" className="mr-1 h-3 w-3" /> {t.home.heroBadge}
             </Badge>
             <HomeDeliveryContext variant="desktop" />
           </motion.div>
@@ -166,10 +166,9 @@ export function HomeView() {
           </motion.p>
           <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="grid max-w-lg grid-cols-3 gap-1.5 md:gap-2">
             {heroSignals.map((signal) => {
-              const Icon = signal.icon;
               return (
                 <span key={signal.label} className="flex min-h-10 items-center gap-1.5 rounded-md border border-white/22 bg-white/14 px-2 text-white shadow-[0_14px_30px_-26px_rgba(255,255,255,0.75)] backdrop-blur-md">
-                  <Icon className="h-3.5 w-3.5 shrink-0 text-gold md:h-4 md:w-4" />
+                  <ReiconGlyph icon={signal.icon} weight="Filled" className="h-3.5 w-3.5 shrink-0 text-gold md:h-4 md:w-4" />
                   <span className="min-w-0">
                     <span className="block truncate text-[7px] font-bold uppercase text-white/70 md:text-[8px]">{signal.label}</span>
                     <span className="block truncate text-[8.5px] font-black leading-3 text-white md:text-[10px]">{signal.value}</span>
@@ -184,7 +183,7 @@ export function HomeView() {
             className="flex gap-2"
           >
             <Button onClick={() => navigate("catalog")} className="h-9 bg-terre px-3 text-[11px] text-white shadow-lg hover:bg-terre-dark md:h-11 md:px-5 md:text-sm">
-              {t.home.heroCtaCatalog} <ArrowRight className="ml-1 h-3.5 w-3.5 md:h-4 md:w-4" />
+              {t.home.heroCtaCatalog} <ReiconGlyph icon={ArrowRight} className="ml-1 h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
             <Button onClick={() => navigate("recipes")} className="h-9 border border-white/50 bg-white px-3 text-[11px] text-burgundy shadow-lg hover:bg-cream md:h-11 md:px-5 md:text-sm">
               {t.home.heroCtaRecipes}
@@ -241,11 +240,10 @@ export function HomeView() {
         <section className="border-y border-charcoal/10 bg-[#FFFCFA]" aria-label={t.home.commitmentsTitle}>
           <div tabIndex={0} aria-label={locale === "fr" ? "Engagements Je mange Africain, défilement horizontal" : "Je mange Africain commitments, horizontal scroll"} className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-inset [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0">
             {commitments.map((commitment) => {
-              const Icon = commitment.icon;
               return (
                 <div key={commitment.title} className="flex w-[78vw] max-w-[18rem] shrink-0 snap-start items-center gap-3 px-3 py-4 md:w-auto md:border-r md:border-charcoal/10 md:px-5 md:last:border-r-0">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: `${commitment.color}14` }}>
-                    <Icon className="h-5 w-5" style={{ color: commitment.color }} />
+                    <ReiconGlyph icon={commitment.icon} weight="Filled" className="h-5 w-5" style={{ color: commitment.color }} />
                   </span>
                   <span className="min-w-0">
                     <strong className="block text-xs text-charcoal">{commitment.title}</strong>
@@ -268,7 +266,7 @@ function Section({ title, actionLabel, onAction, children, compact = false }: { 
         <h2 className={`${compact ? "text-xl md:text-2xl" : "text-lg md:text-3xl"} min-w-0 font-black leading-tight text-charcoal md:font-display md:font-semibold`}>{title}</h2>
         {actionLabel && onAction ? (
           <button type="button" onClick={onAction} className="inline-flex min-h-9 shrink-0 items-center gap-1 text-[11px] font-extrabold text-terre hover:underline md:text-xs">
-            {actionLabel} <ArrowRight className="h-3.5 w-3.5" />
+            {actionLabel} <ReiconGlyph icon={ArrowRight} className="h-3.5 w-3.5" />
           </button>
         ) : null}
       </div>
@@ -297,7 +295,7 @@ function FavouriteShelf({ products }: { products: ProductListItem[] }) {
           <span className="relative block aspect-[4/3] overflow-hidden rounded-md bg-muted">
             <ProductImage src={getProductPhoto(product)} alt="" emoji={product.imageEmoji} color={product.imageColor} size="md" className="h-full w-full transition duration-300 group-hover:scale-[1.035]" rounded="rounded-none" />
             {product.promoPrice !== null && product.promoPrice < product.price ? <span className="absolute left-1.5 top-1.5 rounded bg-burgundy px-1.5 py-0.5 text-[8px] font-black text-white">-{Math.round(((product.price - product.promoPrice) / product.price) * 100)} %</span> : null}
-            <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-md bg-white/94 text-terre shadow-sm"><Heart className="h-3.5 w-3.5 fill-current" /></span>
+            <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-md bg-white/94 text-terre shadow-sm"><ReiconGlyph icon={Heart} weight="Filled" className="h-3.5 w-3.5" /></span>
           </span>
           <span className="mt-1.5 block line-clamp-2 min-h-7 text-[10px] font-extrabold leading-3.5 text-charcoal md:text-[11px]">{product.name}</span>
           <span className="mt-0.5 flex min-h-4 items-baseline gap-1.5"><span className="text-[10px] font-black text-terre">{formatPrice(product.promoPrice ?? product.price, locale)}</span>{product.promoPrice !== null && product.promoPrice < product.price ? <span className="text-[8px] font-semibold text-muted-foreground line-through">{formatPrice(product.price, locale)}</span> : null}</span>
@@ -316,17 +314,17 @@ function HomeDeliveryContext({ variant }: { variant: "mobile" | "desktop" }) {
   return (
     <DeliveryDestinationDialog weightGrams={0} thermalClasses={[]}>
       <button type="button" data-testid={`home-delivery-${variant}`} aria-label={locale === "fr" ? `Modifier la destination de livraison : ${label}, ${postalCode}` : `Change delivery destination: ${label}, ${postalCode}`} className={`${isMobile ? "flex md:hidden" : "hidden md:flex"} min-w-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition ${isMobile ? "max-w-[11.5rem] border-burgundy/15 bg-[#FFFCFA] text-charcoal hover:border-terre/30" : "border-white/30 bg-white/12 text-white backdrop-blur-sm hover:bg-white/18"}`}>
-        <MapPinned className={`h-4 w-4 shrink-0 ${isMobile ? "text-terre" : "text-gold"}`} />
+        <ReiconGlyph icon={MapPoint} weight="Filled" className={`h-4 w-4 shrink-0 ${isMobile ? "text-terre" : "text-gold"}`} />
         <span className="min-w-0"><span className={`block text-[8px] font-bold uppercase ${isMobile ? "text-muted-foreground" : "text-white/70"}`}>{locale === "fr" ? "Livrer à" : "Deliver to"}</span><span className="block max-w-[7.5rem] truncate text-[10px] font-black">{label}{postalCode ? ` · ${postalCode}` : ""}</span></span>
         {!isMobile ? <span className="hidden text-[8px] font-bold text-white/75 lg:block">{EUROPEAN_COUNTRIES.length} {locale === "fr" ? "pays" : "countries"}</span> : null}
-        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+        <ReiconGlyph icon={AngleRight} className="h-3.5 w-3.5 shrink-0" />
       </button>
     </DeliveryDestinationDialog>
   );
 }
 
 function HomeCollectionEmpty({ locale }: { locale: "fr" | "en" }) {
-  return <div className="flex min-h-28 items-center gap-3 border-y border-charcoal/10 px-3 py-4"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-terre/[0.07] text-terre"><PackageSearch className="h-5 w-5" /></span><span><strong className="block text-xs text-charcoal">{locale === "fr" ? "La sélection arrive bientôt" : "The selection is coming soon"}</strong><span className="mt-1 block text-[10px] text-muted-foreground">{locale === "fr" ? "Les prochaines références publiées apparaîtront ici." : "The next published products will appear here."}</span></span></div>;
+  return <div className="flex min-h-28 items-center gap-3 border-y border-charcoal/10 px-3 py-4"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-terre/[0.07] text-terre"><ReiconGlyph icon={BoxSearch} weight="Filled" className="h-5 w-5" /></span><span><strong className="block text-xs text-charcoal">{locale === "fr" ? "La sélection arrive bientôt" : "The selection is coming soon"}</strong><span className="mt-1 block text-[10px] text-muted-foreground">{locale === "fr" ? "Les prochaines références publiées apparaîtront ici." : "The next published products will appear here."}</span></span></div>;
 }
 
 function CategoryShelf({ categories }: { categories: HomeCategory[] }) {
@@ -386,13 +384,13 @@ function RecipeShelf({ recipes }: { recipes: RecipeListItem[] }) {
               <span className="relative block aspect-[4/3] overflow-hidden bg-muted">
                 <ProductImage src={getRecipePhoto(recipe)} fallbackSrc="/hero-feast-v2.webp" alt="" emoji={recipe.imageEmoji} color={recipe.imageColor} size="md" className="h-full w-full transition duration-300 group-hover:scale-[1.035]" rounded="rounded-none" />
                 <span className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-burgundy/65 to-transparent" />
-                <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 text-[9px] font-bold text-white"><Clock className="h-3 w-3" />{recipe.timeMinutes} min</span>
+                <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 text-[9px] font-bold text-white"><ReiconGlyph icon={Clock} className="h-3 w-3" />{recipe.timeMinutes} min</span>
               </span>
               <span className="block p-2.5">
                 <strong className="block line-clamp-2 min-h-8 text-[11px] leading-4 text-charcoal">{recipe.title}</strong>
                 <span className="mt-1.5 flex items-center justify-between gap-2 text-[9px] text-muted-foreground">
                   <span className="truncate">{recipe.country}</span>
-                  <span className="inline-flex shrink-0 items-center gap-1"><Users className="h-3 w-3" />{recipe.baseServings}</span>
+                  <span className="inline-flex shrink-0 items-center gap-1"><ReiconGlyph icon={Users} className="h-3 w-3" />{recipe.baseServings}</span>
                 </span>
               </span>
             </button>
@@ -403,7 +401,7 @@ function RecipeShelf({ recipes }: { recipes: RecipeListItem[] }) {
               aria-label={saved ? (locale === "fr" ? `Retirer ${recipe.title} des recettes sauvegardées` : `Remove ${recipe.title} from saved recipes`) : (locale === "fr" ? `Sauvegarder ${recipe.title}` : `Save ${recipe.title}`)}
               className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md border border-charcoal/10 bg-white/94 text-charcoal shadow-sm hover:text-terre"
             >
-              <Bookmark className={`h-4 w-4 ${saved ? "fill-terre text-terre" : ""}`} />
+              <ReiconGlyph icon={Bookmark} weight={saved ? "Filled" : "Outline"} className="h-4 w-4" />
             </button>
           </motion.article>
         );

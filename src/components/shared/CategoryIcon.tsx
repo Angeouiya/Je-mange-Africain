@@ -37,17 +37,18 @@ export function CategoryIcon({ slug, color, className }: { slug?: string; color?
   const resolvedColor = getBrandAccentColor(categoryColors[slug || ""] || color || "#D65A32");
   return (
     <span
-      className={cn("relative isolate grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md border shadow-[0_8px_20px_-15px_rgba(63,41,48,0.8)]", className)}
+      className={cn("relative isolate grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md border bg-white shadow-[0_10px_24px_-17px_rgba(63,41,48,0.82)]", className)}
       style={{
         color: resolvedColor,
-        borderColor: `color-mix(in srgb, ${resolvedColor} 18%, white)`,
-        backgroundColor: `color-mix(in srgb, ${resolvedColor} 9%, white)`,
+        borderColor: `color-mix(in srgb, ${resolvedColor} 24%, white)`,
+        background: `linear-gradient(145deg, color-mix(in srgb, ${resolvedColor} 14%, white), #fff 52%, color-mix(in srgb, ${resolvedColor} 8%, white))`,
       }}
       aria-hidden="true"
     >
-      <span className="absolute inset-x-0 top-0 h-[2px] bg-current opacity-75" />
-      <ReiconGlyph icon={Icon} weight="Filled" className="relative h-[19px] w-[19px]" />
-      <span className="absolute bottom-1.5 right-1.5 h-1 w-1 rounded-full bg-current opacity-35" />
+      <span className="absolute inset-0 bg-[radial-gradient(circle_at_32%_22%,rgba(255,255,255,0.94),transparent_43%)]" />
+      <span className="absolute inset-x-1 top-1 h-px rounded-full bg-current opacity-55" />
+      <span className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full bg-current opacity-25" />
+      <ReiconGlyph icon={Icon} weight="Filled" className="relative h-[20px] w-[20px]" />
     </span>
   );
 }

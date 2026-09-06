@@ -1,7 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bookmark, Clock, Users, Flame, ChevronRight, Sparkles, Star } from "lucide-react";
+import { AngleRight } from "reicon/icons/AngleRight";
+import { Bookmark } from "reicon/icons/Bookmark";
+import { Clock } from "reicon/icons/Clock";
+import { Fire } from "reicon/icons/Fire";
+import { Sparkles } from "reicon/icons/Sparkles";
+import { Star } from "reicon/icons/Star";
+import { Users } from "reicon/icons/Users";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductImage } from "./ProductImage";
@@ -10,6 +16,7 @@ import { dict } from "@/lib/i18n";
 import { getRecipePhoto } from "@/lib/market-media";
 import { recipeEditorialHighlight } from "@/lib/editorial-flags";
 import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 export interface RecipeListItem {
   id: string;
@@ -41,7 +48,7 @@ type RecipeCardSurfaceProps = {
 };
 
 const recipeCardFrame = (compact: boolean) =>
-  `group flex flex-col overflow-hidden border border-charcoal/10 bg-white transition-all hover:-translate-y-0.5 hover:border-burgundy/30 hover:shadow-[0_22px_50px_-34px_rgba(63,41,48,0.55)] ${compact ? "rounded-md [contain-intrinsic-size:390px] [content-visibility:auto]" : "rounded-lg"}`;
+  `group flex flex-col overflow-hidden border border-charcoal/10 bg-white transition-all hover:-translate-y-0.5 hover:border-burgundy/24 hover:shadow-[0_24px_54px_-38px_rgba(63,41,48,0.62)] ${compact ? "rounded-md [contain-intrinsic-size:390px] [content-visibility:auto]" : "rounded-lg"}`;
 
 export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: RecipeListItem; index?: number; compact?: boolean }) {
   const locale = useStore((s) => s.locale);
@@ -102,9 +109,11 @@ function RecipeCardSurface({ recipe, locale, compact, index = 0, isSaved = false
           rounded="rounded-none"
           priority={index < 2}
         />
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-[linear-gradient(180deg,transparent,rgba(90,38,50,0.42))]" aria-hidden="true" />
         {editorialHighlight ? (
           <Badge className={`absolute border-0 shadow-sm ${editorialHighlight === "new" ? "bg-gold text-charcoal" : editorialHighlight === "recommended" ? "bg-burgundy text-white" : "bg-terre text-cream"} ${compact ? "left-2 top-2 px-1.5 py-0.5 text-[8px]" : "left-3 top-3"}`}>
-            {editorialHighlight === "popular" ? <Star className={`${compact ? "mr-0.5 h-2.5 w-2.5" : "mr-1 h-3 w-3"} fill-current`} /> : <Sparkles className={`${compact ? "mr-0.5 h-2.5 w-2.5" : "mr-1 h-3 w-3"}`} />}{editorialLabel}
+            {editorialHighlight === "popular" ? <ReiconGlyph icon={Star} weight="Filled" className={`${compact ? "mr-0.5 h-2.5 w-2.5" : "mr-1 h-3 w-3"}`} /> : <ReiconGlyph icon={Sparkles} weight="Filled" className={`${compact ? "mr-0.5 h-2.5 w-2.5" : "mr-1 h-3 w-3"}`} />}
+            <span>{editorialLabel}</span>
           </Badge>
         ) : null}
         <Badge variant="outline" className={`absolute max-w-[calc(100%-4.5rem)] truncate bg-white/90 backdrop-blur ${compact ? "bottom-2 left-2 px-1.5 py-0.5 text-[8px]" : "bottom-3 left-3"}`}>{recipe.country}</Badge>
@@ -117,21 +126,21 @@ function RecipeCardSurface({ recipe, locale, compact, index = 0, isSaved = false
               ? (locale === "fr" ? `Retirer ${recipe.title} des recettes sauvegardées` : `Remove ${recipe.title} from saved recipes`)
               : (locale === "fr" ? `Sauvegarder la recette ${recipe.title}` : `Save the ${recipe.title} recipe`)}
             title={isSaved ? (locale === "fr" ? "Retirer" : "Remove") : (locale === "fr" ? "Sauvegarder" : "Save")}
-            className={`absolute grid place-items-center rounded-md border border-charcoal/10 bg-white/95 text-charcoal shadow-sm backdrop-blur transition hover:border-terre/35 hover:text-terre ${compact ? "right-2 top-2 h-7 w-7" : "right-3 top-3 h-9 w-9"}`}
+            className={`absolute grid place-items-center rounded-md border border-charcoal/10 bg-white/95 text-burgundy shadow-sm backdrop-blur transition hover:border-terre/35 hover:text-terre ${compact ? "right-2 top-2 h-7 w-7" : "right-3 top-3 h-9 w-9"}`}
           >
-            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-terre text-terre" : ""}`} />
+            <ReiconGlyph icon={Bookmark} weight={isSaved ? "Filled" : "Outline"} className="h-4 w-4" />
           </button>
         ) : (
-          <span aria-hidden="true" className={`absolute grid place-items-center rounded-md border border-charcoal/10 bg-white/95 text-charcoal shadow-sm backdrop-blur ${compact ? "right-2 top-2 h-7 w-7" : "right-3 top-3 h-9 w-9"}`}><Bookmark className="h-4 w-4" /></span>
+          <span aria-hidden="true" className={`absolute grid place-items-center rounded-md border border-charcoal/10 bg-white/95 text-burgundy shadow-sm backdrop-blur ${compact ? "right-2 top-2 h-7 w-7" : "right-3 top-3 h-9 w-9"}`}><ReiconGlyph icon={Bookmark} className="h-4 w-4" /></span>
         )}
       </div>
       <div className={`flex flex-1 flex-col ${compact ? "gap-1 p-2.5" : "gap-2 p-4"}`}>
         <h3 className={`font-display font-semibold leading-tight text-charcoal ${compact ? "line-clamp-2 min-h-7 text-[12px]" : "text-lg"}`}>{recipe.title}</h3>
         {recipe.description ? <p className={`${compact ? "line-clamp-2 min-h-8 text-[10px] leading-4" : "line-clamp-2 text-xs leading-5"} text-muted-foreground`}>{recipe.description}</p> : null}
         <div className={`${compact ? "gap-x-2 text-[10px]" : "mt-1 gap-x-3 text-[11px]"} flex flex-wrap items-center gap-y-1 text-muted-foreground`}>
-          <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {recipe.timeMinutes} min</span>
-          <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> {recipe.baseServings} {t.config.peopleUnit}</span>
-          <span className={`${compact ? "hidden sm:inline-flex" : "inline-flex"} items-center gap-1`}><Flame className="h-3 w-3" /> {diff}</span>
+          <span className="inline-flex items-center gap-1"><ReiconGlyph icon={Clock} className="h-3 w-3" /> {recipe.timeMinutes} min</span>
+          <span className="inline-flex items-center gap-1"><ReiconGlyph icon={Users} className="h-3 w-3" /> {recipe.baseServings} {t.config.peopleUnit}</span>
+          <span className={`${compact ? "hidden sm:inline-flex" : "inline-flex"} items-center gap-1`}><ReiconGlyph icon={Fire} className="h-3 w-3" /> {diff}</span>
         </div>
         {interactive ? (
           <Button
@@ -139,10 +148,10 @@ function RecipeCardSurface({ recipe, locale, compact, index = 0, isSaved = false
             className={`${compact ? "mt-1 h-8 px-2 text-[10px]" : "mt-3 h-10"} w-full bg-burgundy text-white hover:bg-burgundy-dark`}
           >
             {t.recipes.configure}
-            <ChevronRight className="ml-1 h-4 w-4" />
+            <ReiconGlyph icon={AngleRight} className="ml-1 h-4 w-4" />
           </Button>
         ) : (
-          <span aria-hidden="true" className={`${compact ? "mt-1 h-8 px-2 text-[10px]" : "mt-3 h-10"} flex w-full items-center justify-center rounded-md bg-burgundy font-semibold text-white`}>{t.recipes.configure}<ChevronRight className="ml-1 h-4 w-4" /></span>
+          <span aria-hidden="true" className={`${compact ? "mt-1 h-8 px-2 text-[10px]" : "mt-3 h-10"} flex w-full items-center justify-center rounded-md bg-burgundy font-semibold text-white`}>{t.recipes.configure}<ReiconGlyph icon={AngleRight} className="ml-1 h-4 w-4" /></span>
         )}
       </div>
     </>

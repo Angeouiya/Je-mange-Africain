@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import type { CSSProperties, HTMLAttributes } from "react";
 import type { IconFunction, IconWeight } from "reicon/createIcon";
 import { cn } from "@/lib/utils";
 
@@ -9,14 +9,17 @@ type ReiconGlyphProps = Omit<HTMLAttributes<HTMLSpanElement>, "children" | "dang
   title?: string;
 };
 
-export function ReiconGlyph({ icon, size = 22, weight = "Outline", title, className, ...props }: ReiconGlyphProps) {
+type ReiconGlyphStyle = CSSProperties & { "--reicon-size"?: string };
+
+export function ReiconGlyph({ icon, size = 22, weight = "Outline", title, className, style, ...props }: ReiconGlyphProps) {
+  const resolvedSize = typeof size === "number" ? `${size}px` : size;
   const markup = icon.toSvg({
-    size,
+    size: "100%",
     weight,
-    className: "h-full w-full",
     attrs: {
       "aria-hidden": "true",
       focusable: "false",
+      style: "display:block;width:100%;height:100%;",
     },
   });
 
@@ -26,7 +29,8 @@ export function ReiconGlyph({ icon, size = 22, weight = "Outline", title, classN
       aria-hidden={title ? undefined : true}
       aria-label={title}
       role={title ? "img" : undefined}
-      className={cn("inline-grid shrink-0 place-items-center text-current [&>svg]:block", className)}
+      style={{ "--reicon-size": resolvedSize, ...style } as ReiconGlyphStyle}
+      className={cn("inline-grid h-[var(--reicon-size)] w-[var(--reicon-size)] shrink-0 place-items-center text-current [&>svg]:block", className)}
       dangerouslySetInnerHTML={{ __html: markup }}
     />
   );
