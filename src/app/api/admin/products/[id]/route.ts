@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
-import { productAdminInput, roundMoney, wholesaleProductData, type ProductAdminInput } from "@/lib/admin-product-schema";
+import { productAdminInput, productImageReference, roundMoney, wholesaleProductData, type ProductAdminInput } from "@/lib/admin-product-schema";
 
 export const dynamic = "force-dynamic";
 
 const ProductEditorialInput = z.object({
-  imageUrl: z.string().url().max(1000),
-  galleryUrls: z.array(z.string().url().max(1000)).max(8).default([]),
+  imageUrl: productImageReference,
+  galleryUrls: z.array(productImageReference).max(8).default([]),
   status: z.enum(["draft", "published", "archived"]),
   isNew: z.boolean(),
   isRecommended: z.boolean(),

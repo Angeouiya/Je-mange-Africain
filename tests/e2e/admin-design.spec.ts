@@ -2059,6 +2059,9 @@ test("the recipe register stays compact and exposes operational readiness", asyn
 
   await row.getByRole("button", { name: "Gérer Attiéké poisson braisé" }).click();
   const editorialDialog = page.getByRole("dialog", { name: "Piloter la publication" });
+  await expect(editorialDialog.getByRole("button", { name: "Désactiver maintenant" })).toBeVisible();
+  await expect(editorialDialog.getByRole("button", { name: "Remettre en brouillon" })).toBeVisible();
+  await expect(editorialDialog).toContainText("La rupture d'une recette est calculée automatiquement avec les stocks de ses ingrédients");
   await editorialDialog.getByLabel("Visibilité").selectOption("archived");
   await editorialDialog.getByLabel("Marquer comme nouveauté").check();
   await editorialDialog.getByRole("button", { name: "Annuler" }).click();

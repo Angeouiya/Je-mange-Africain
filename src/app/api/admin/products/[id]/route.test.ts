@@ -88,4 +88,44 @@ describe("PATCH /api/admin/products/:id", () => {
     expect(mocks.productUpdate).not.toHaveBeenCalled();
     expect(mocks.auditCreate).not.toHaveBeenCalled();
   });
+
+  it("accepts a platform image path when disabling a product editorially", async () => {
+    mocks.productFindUnique.mockResolvedValue({
+      imageUrl: "/products/attieke.webp",
+      galleryUrls: "[]",
+      status: "published",
+      isNew: false,
+      isRecommended: true,
+      isBestseller: true,
+    });
+    mocks.productUpdate.mockResolvedValue({
+      id: "product-1",
+      imageUrl: "/products/attieke.webp",
+      status: "archived",
+      isNew: false,
+      isRecommended: true,
+      isBestseller: true,
+    });
+    mocks.auditCreate.mockResolvedValue({ id: "audit-1" });
+
+    const response = await PATCH(request({
+      imageUrl: "/products/attieke.webp",
+      galleryUrls: ["/products/attieke-detail.webp"],
+      status: "archived",
+      isNew: false,
+      isRecommended: true,
+      isBestseller: true,
+    }), { params: Promise.resolve({ id: "product-1" }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.product).toMatchObject({ id: "product-1", status: "archived" });
+    expect(mocks.productUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ imageUrl: "/products/attieke.webp", galleryUrls: '["/products/attieke-detail.webp"]', status: "archived" }),
+    }));
+    expect(mocks.auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({
+      action: "product_editorial_update",
+      entityId: "product-1",
+    }) });
+  });
 });

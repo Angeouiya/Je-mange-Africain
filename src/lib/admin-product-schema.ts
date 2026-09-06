@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const productImageReference = z.string().trim().max(1000).refine((value) => (
+  z.string().url().safeParse(value).success
+  || /^\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:avif|webp|png|jpe?g)$/i.test(value)
+), "La photo doit être une URL publique ou une ressource image de la plateforme.");
+
 export const productAdminInput = z.object({
   nameFr: z.string().trim().min(2).max(120),
   nameEn: z.string().trim().min(2).max(120),
@@ -27,7 +32,7 @@ export const productAdminInput = z.object({
   thermalClass: z.enum(["AMBIANT", "REFRIGERATED", "FROZEN"]),
   storageType: z.enum(["SEC", "FRAIS", "REFRIGERE", "SURGELE", "FUME", "SECHE", "CONSERVE"]),
   aliases: z.array(z.string().trim().min(2).max(80)).max(12).default([]),
-  imageUrl: z.string().url().max(1000),
+  imageUrl: productImageReference,
   status: z.enum(["draft", "published", "archived"]).default("published"),
   isNew: z.boolean().default(false),
   isRecommended: z.boolean().default(false),

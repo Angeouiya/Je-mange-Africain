@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 const RecipeEditorialInput = z.object({
   imageUrl: recipeImageReference,
-  galleryUrls: z.array(z.string().url().max(1000)).max(8).default([]),
+  galleryUrls: z.array(recipeImageReference).max(8).default([]),
   status: z.enum(["draft", "published", "archived"]),
   isNew: z.boolean(),
   isRecommended: z.boolean(),

@@ -141,6 +141,25 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
     }
   };
 
+  const requestArchiveNow = () => {
+    if (!draft.imageUrl) {
+      setError(isFr ? "Une photo principale est obligatoire avant de modifier la publication." : "A main photo is required before changing publishing.");
+      return;
+    }
+    setDraft((current) => ({ ...current, status: "archived" }));
+    setConfirmArchive(true);
+  };
+
+  const preparePublication = () => {
+    setError("");
+    setDraft((current) => ({ ...current, status: "published" }));
+  };
+
+  const prepareDraft = () => {
+    setError("");
+    setDraft((current) => ({ ...current, status: "draft" }));
+  };
+
   const requestSave = () => {
     if (draft.status === "archived" && initialDraft.status !== "archived") {
       setConfirmArchive(true);
@@ -165,7 +184,14 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
                 <Flag checked={kind === "product" ? draft.isBestseller : draft.isPopular} onChange={(checked) => setDraft((current) => kind === "product" ? { ...current, isBestseller: checked } : { ...current, isPopular: checked })} label={isFr ? "Marquer comme populaire" : "Mark as popular"} />
               </div>
               <div className="border-l-2 border-gold bg-gold/[0.09] px-3 py-2 text-[10px] leading-5 text-charcoal"><Archive className="mr-1 inline h-3.5 w-3.5 text-terre" />{isFr ? "Désactiver retire le contenu de la boutique tout en conservant son historique." : "Disabling removes the content from the store while preserving its history."}</div>
+              <div className="grid gap-2">
+                {draft.status === "archived"
+                  ? <Button type="button" variant="outline" onClick={preparePublication} className="w-full justify-start border-burgundy/25 text-charcoal hover:bg-burgundy/[0.04]"><Save className="mr-2 h-4 w-4 text-burgundy" />{isFr ? "Préparer la republication" : "Prepare republication"}</Button>
+                  : <Button type="button" variant="outline" onClick={requestArchiveNow} disabled={saving} className="w-full justify-start border-gold/35 text-charcoal hover:bg-gold/[0.08]"><Archive className="mr-2 h-4 w-4 text-terre" />{isFr ? "Désactiver maintenant" : "Disable now"}</Button>}
+                {draft.status !== "draft" ? <Button type="button" variant="outline" onClick={prepareDraft} className="w-full justify-start border-charcoal/10 text-charcoal hover:bg-charcoal/[0.025]"><Archive className="mr-2 h-4 w-4 text-muted-foreground" />{isFr ? "Remettre en brouillon" : "Move to draft"}</Button> : null}
+              </div>
               {kind === "product" ? <Button type="button" variant="outline" onClick={() => setConfirmStockOut(true)} disabled={availableQty <= 0 || stockingOut} className="w-full justify-start border-gold/35 text-charcoal hover:bg-gold/[0.08] disabled:opacity-55"><PackageX className="mr-2 h-4 w-4 text-terre" />{availableQty <= 0 ? (isFr ? "Stock déjà épuisé" : "Already out of stock") : (isFr ? "Marquer stock épuisé" : "Mark out of stock")}</Button> : null}
+              {kind === "recipe" ? <div className="border-l-2 border-burgundy/40 bg-burgundy/[0.04] px-3 py-2 text-[10px] leading-5 text-charcoal"><PackageX className="mr-1 inline h-3.5 w-3.5 text-burgundy" />{isFr ? "La rupture d'une recette est calculée automatiquement avec les stocks de ses ingrédients. Pour la retirer totalement, désactivez-la." : "Recipe availability is calculated automatically from ingredient stock. To remove it completely, disable it."}</div> : null}
               <Button type="button" variant="ghost" onClick={() => setConfirmDelete(true)} className="w-full justify-start text-destructive hover:bg-destructive/[0.06] hover:text-destructive"><Trash2 className="mr-2 h-4 w-4" />{isFr ? "Supprimer définitivement" : "Delete permanently"}</Button>
             </div>
           </div>

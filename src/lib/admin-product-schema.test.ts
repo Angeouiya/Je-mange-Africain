@@ -36,14 +36,19 @@ describe("admin product pricing contract", () => {
     expect(roundMoney(product.costPrice + product.profitMargin)).toBe(5);
   });
 
-  it("requires complete bilingual content and a real image URL", () => {
+  it("requires complete bilingual content and a supported image reference", () => {
     const result = productAdminInput.safeParse({ ...validProduct, nameEn: "", imageUrl: "/products/attieke.webp" });
 
     expect(result.success).toBe(false);
     if (result.success) return;
     const fields = result.error.flatten().fieldErrors;
     expect(fields.nameEn).toBeDefined();
-    expect(fields.imageUrl).toBeDefined();
+    expect(fields.imageUrl).toBeUndefined();
+  });
+
+  it("accepts platform product images and rejects non-image internal routes", () => {
+    expect(productAdminInput.safeParse({ ...validProduct, imageUrl: "/products/attieke.webp" }).success).toBe(true);
+    expect(productAdminInput.safeParse({ ...validProduct, imageUrl: "/api/admin/products" }).success).toBe(false);
   });
 
   it("rounds floating point totals to accounting cents", () => {
