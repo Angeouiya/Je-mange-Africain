@@ -38,15 +38,13 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Abonnement push invalide." }, { status: 400 });
 
   const { subscription, deviceId, locale, preferences } = parsed.data;
-  const customer = await authorizeCustomerRequest(request);
-  const directoryUser = customer
-    ? await db.user.findUnique({ where: { email: customer.email.toLowerCase() }, select: { id: true } })
-    : null;
+  const authorization = await authorizePushDirectoryUser(request);
+  if (!authorization.ok) return authorization.response;
   const saved = await db.pushSubscription.upsert({
     where: { endpoint: subscription.endpoint },
     create: {
       endpoint: subscription.endpoint,
-      userId: directoryUser?.id || null,
+      userId: authorization.userId,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
       deviceId,
@@ -55,7 +53,7 @@ export async function POST(request: NextRequest) {
       ...pushPreferenceData(preferences),
     },
     update: {
-      userId: directoryUser?.id || null,
+      userId: authorization.userId,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
       deviceId,
@@ -75,9 +73,11 @@ export async function PATCH(request: NextRequest) {
   const parsed = PreferencesUpdateBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Préférences push invalides." }, { status: 400 });
 
+  const authorization = await authorizePushDirectoryUser(request);
+  if (!authorization.ok) return authorization.response;
   const { endpoint, deviceId, preferences } = parsed.data;
   const updated = await db.pushSubscription.updateMany({
-    where: { endpoint, deviceId, enabled: true },
+    where: { endpoint, deviceId, userId: authorization.userId, enabled: true },
     data: { ...pushPreferenceData(preferences), lastSeenAt: new Date() },
   });
   if (!updated.count) return NextResponse.json({ error: "Abonnement push introuvable." }, { status: 404 });
@@ -87,6 +87,16 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const parsed = DeleteBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Abonnement push invalide." }, { status: 400 });
-  await db.pushSubscription.deleteMany({ where: { endpoint: parsed.data.endpoint } });
+  const authorization = await authorizePushDirectoryUser(request);
+  if (!authorization.ok) return authorization.response;
+  await db.pushSubscription.deleteMany({ where: { endpoint: parsed.data.endpoint, userId: authorization.userId } });
   return NextResponse.json({ active: false });
+}
+
+async function authorizePushDirectoryUser(request: NextRequest) {
+  const customer = await authorizeCustomerRequest(request);
+  if (!customer) return { ok: false as const, response: NextResponse.json({ error: "Authentification client requise." }, { status: 401 }) };
+  const directoryUser = await db.user.findUnique({ where: { email: customer.email.toLowerCase() }, select: { id: true } });
+  if (!directoryUser) return { ok: false as const, response: NextResponse.json({ error: "Compte client introuvable." }, { status: 403 }) };
+  return { ok: true as const, userId: directoryUser.id };
 }

@@ -28,7 +28,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const session = await authorizeCustomerRequest(request);
-    const customerIdentity = session ? await loadCustomerIdentity(session).catch(() => null) : null;
+    if (!session) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+    const customerIdentity = await loadCustomerIdentity(session).catch(() => null);
+    if (!customerIdentity) return NextResponse.json({ error: isFr ? "Votre espace client est introuvable ou inactif." : "Your customer account is missing or inactive." }, { status: 403 });
     const products = input.items.length
       ? await db.product.findMany({
           where: { id: { in: input.items.map((item) => item.productId) }, status: "published", isWholesale: true, wholesalePrice: { not: null } },
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest) {
     const quote = await db.$transaction(async (transaction) => {
       const created = await transaction.wholesaleQuote.create({
         data: {
-          customerId: customerIdentity?.customerId || null,
+          customerId: customerIdentity.customerId,
           reference,
           status: "new",
           locale: input.locale,
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
           action: "wholesale_quote_create",
           entityType: "WholesaleQuote",
           entityId: created.id,
-          after: JSON.stringify({ reference, customerId: customerIdentity?.customerId || null, company: input.company, country, totalPacks, itemCount: items.length, estimatedSubtotal }),
+          after: JSON.stringify({ reference, customerId: customerIdentity.customerId, company: input.company, country, totalPacks, itemCount: items.length, estimatedSubtotal }),
           reason: "Demande créée depuis le marché de gros",
           ip: clientIp(request),
         },
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
         totalPacks: quote.totalPacks,
         currency: quote.currency,
         createdAt: quote.createdAt,
-        tracked: Boolean(customerIdentity),
+        tracked: true,
       },
     }, { status: 201 });
   } catch (error) {

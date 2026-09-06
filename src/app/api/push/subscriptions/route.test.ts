@@ -17,13 +17,13 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-import { PATCH, POST } from "./route";
+import { DELETE, PATCH, POST } from "./route";
 
 const endpoint = "https://push.example.test/subscriptions/device-1";
 const subscription = { endpoint, keys: { p256dh: "p".repeat(40), auth: "a".repeat(20) } };
 const preferences = { order: true, system: false, recipe: true, promotion: false };
 
-function request(method: "POST" | "PATCH", body: Record<string, unknown>) {
+function request(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/push/subscriptions", {
     method,
     headers: { "Content-Type": "application/json", "user-agent": "JMA mobile test" },
@@ -34,9 +34,22 @@ function request(method: "POST" | "PATCH", body: Record<string, unknown>) {
 describe("push subscription preferences", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.authorize.mockResolvedValue(null);
+    mocks.authorize.mockResolvedValue({ id: "customer-auth-1", email: "awa@example.fr", role: "customer" });
+    mocks.findUser.mockResolvedValue({ id: "user-1" });
     mocks.upsert.mockResolvedValue({ id: "subscription-1" });
     mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.deleteMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("requires customer authentication before saving a device", async () => {
+    mocks.authorize.mockResolvedValue(null);
+
+    const response = await POST(request("POST", { subscription, deviceId: "device-1234", locale: "fr" }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(payload.error).toBe("Authentification client requise.");
+    expect(mocks.upsert).not.toHaveBeenCalled();
   });
 
   it("starts with operational messages enabled and optional content disabled", async () => {
@@ -46,8 +59,8 @@ describe("push subscription preferences", () => {
     expect(response.status).toBe(200);
     expect(payload.preferences).toEqual({ order: true, system: true, recipe: false, promotion: false });
     expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      create: expect.objectContaining({ orderAlerts: true, systemAlerts: true, recipeAlerts: false, promotionAlerts: false }),
-      update: expect.objectContaining({ orderAlerts: true, systemAlerts: true, recipeAlerts: false, promotionAlerts: false }),
+      create: expect.objectContaining({ userId: "user-1", orderAlerts: true, systemAlerts: true, recipeAlerts: false, promotionAlerts: false }),
+      update: expect.objectContaining({ userId: "user-1", orderAlerts: true, systemAlerts: true, recipeAlerts: false, promotionAlerts: false }),
     }));
   });
 
@@ -56,9 +69,16 @@ describe("push subscription preferences", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: { endpoint, deviceId: "device-1234", enabled: true },
+      where: { endpoint, deviceId: "device-1234", userId: "user-1", enabled: true },
       data: expect.objectContaining({ orderAlerts: true, systemAlerts: false, recipeAlerts: true, promotionAlerts: false }),
     });
+  });
+
+  it("deletes only the connected customer device subscription", async () => {
+    const response = await DELETE(request("DELETE", { endpoint }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.deleteMany).toHaveBeenCalledWith({ where: { endpoint, userId: "user-1" } });
   });
 
   it("rejects incomplete preference updates", async () => {

@@ -66,6 +66,11 @@ export interface ViewParams {
   contactReason?: ContactReason;
 }
 
+export interface AuthReturnTarget {
+  view: ViewId;
+  params: ViewParams;
+}
+
 export interface Address {
   id: string;
   label: string;
@@ -108,6 +113,9 @@ interface AppState {
   navigationHistory: { view: ViewId; params: ViewParams }[];
   navigate: (view: ViewId, params?: ViewParams) => void;
   goBack: (fallbackView?: ViewId, fallbackParams?: ViewParams) => void;
+  authReturnTarget: AuthReturnTarget | null;
+  requestCustomerAuth: (target?: AuthReturnTarget) => boolean;
+  consumeAuthReturnTarget: () => AuthReturnTarget | null;
 
   // delivery context
   country: string;
@@ -116,21 +124,21 @@ interface AppState {
 
   // cart
   cart: CartItem[];
-  addToCart: (item: Omit<CartItem, "id" | "qty"> & { qty?: number }) => void;
-  addManyToCart: (items: (Omit<CartItem, "id" | "qty"> & { qty?: number })[]) => void;
-  updateQty: (lineId: string, qty: number) => void;
-  removeLine: (lineId: string) => void;
-  clearCart: () => void;
+  addToCart: (item: Omit<CartItem, "id" | "qty"> & { qty?: number }) => boolean;
+  addManyToCart: (items: (Omit<CartItem, "id" | "qty"> & { qty?: number })[]) => boolean;
+  updateQty: (lineId: string, qty: number) => boolean;
+  removeLine: (lineId: string) => boolean;
+  clearCart: () => boolean;
   coupon: string | null;
-  setCoupon: (c: string | null) => void;
+  setCoupon: (c: string | null) => boolean;
 
   // favorites
   favorites: string[];
-  toggleFavorite: (productId: string) => void;
+  toggleFavorite: (productId: string) => boolean;
 
   // saved recipes
   savedRecipes: string[];
-  toggleSavedRecipe: (recipeId: string) => void;
+  toggleSavedRecipe: (recipeId: string) => boolean;
   savedSyncStatus: SavedSyncStatus;
   savedOwnerId: string | null;
   mergeSavedItems: (productIds: string[], recipeIds: string[]) => void;
@@ -158,6 +166,31 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 let savedSyncTimer: ReturnType<typeof setTimeout> | null = null;
 let savedStateRevision = 0;
 
+const CUSTOMER_PROTECTED_VIEWS = new Set<ViewId>(["cart", "checkout", "order-confirmation", "orders", "order-tracking", "recipe-config"]);
+
+export function customerProtectedView(view: ViewId) {
+  return CUSTOMER_PROTECTED_VIEWS.has(view);
+}
+
+function sanitizedAuthReturnTarget(view: ViewId, params: ViewParams = {}): AuthReturnTarget {
+  if (view === "account") return { view: "home", params: {} };
+  return { view, params };
+}
+
+export function publicFallbackForAuthTarget(target: AuthReturnTarget | null | undefined): AuthReturnTarget {
+  if (!target || target.view === "account") return { view: "home", params: {} };
+  if (!customerProtectedView(target.view)) return target;
+  if (target.view === "recipe-config") return { view: "recipes", params: {} };
+  if (target.view === "cart" || target.view === "checkout") return { view: "catalog", params: {} };
+  return { view: "home", params: {} };
+}
+
+function scrollToTopInstantly() {
+  if (typeof window !== "undefined") {
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -169,17 +202,21 @@ export const useStore = create<AppState>()(
       navigationHistory: [],
       navigate: (view, params = {}) => {
         set((state) => {
-          const isSameDestination = state.view === view && JSON.stringify(state.params) === JSON.stringify(params);
+          const protectedTarget = !state.customer && customerProtectedView(view);
+          const guardedReturnTarget = protectedTarget ? sanitizedAuthReturnTarget(view, params) : null;
+          const authReturnTarget = guardedReturnTarget || state.authReturnTarget;
+          const nextView = protectedTarget ? "account" : view;
+          const nextParams = guardedReturnTarget ? { returnView: guardedReturnTarget.view } : params;
+          const isSameDestination = state.view === nextView && JSON.stringify(state.params) === JSON.stringify(nextParams);
           if (isSameDestination) return state;
           return {
-            view,
-            params,
+            view: nextView,
+            params: nextParams,
+            authReturnTarget,
             navigationHistory: [...state.navigationHistory, { view: state.view, params: state.params }].slice(-30),
           };
         });
-        if (typeof window !== "undefined") {
-          window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-        }
+        scrollToTopInstantly();
       },
       goBack: (fallbackView = "home", fallbackParams = {}) => {
         const state = get();
@@ -189,9 +226,26 @@ export const useStore = create<AppState>()(
           params: previous?.params || fallbackParams,
           navigationHistory: previous ? state.navigationHistory.slice(0, -1) : [],
         });
-        if (typeof window !== "undefined") {
-          window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-        }
+        scrollToTopInstantly();
+      },
+      authReturnTarget: null,
+      requestCustomerAuth: (target) => {
+        const state = get();
+        if (state.customer) return true;
+        const authReturnTarget = target || sanitizedAuthReturnTarget(state.view, state.params);
+        set({
+          view: "account",
+          params: { returnView: authReturnTarget.view },
+          authReturnTarget,
+          navigationHistory: [...state.navigationHistory, { view: state.view, params: state.params }].slice(-30),
+        });
+        scrollToTopInstantly();
+        return false;
+      },
+      consumeAuthReturnTarget: () => {
+        const target = get().authReturnTarget;
+        set({ authReturnTarget: null });
+        return target;
       },
 
       country: "France",
@@ -199,7 +253,8 @@ export const useStore = create<AppState>()(
       setDeliveryContext: (country, postalCode) => set({ country, postalCode }),
 
       cart: [],
-      addToCart: (item) =>
+      addToCart: (item) => {
+        if (!get().requestCustomerAuth()) return false;
         set((s) => {
           const qty = item.qty ?? 1;
           // merge if same product + same recipe group
@@ -220,8 +275,11 @@ export const useStore = create<AppState>()(
             return { cart: next };
           }
           return { cart: [...s.cart, { ...item, id: uid(), qty }] };
-        }),
-      addManyToCart: (items) =>
+        });
+        return true;
+      },
+      addManyToCart: (items) => {
+        if (!get().requestCustomerAuth()) return false;
         set((s) => {
           let cart = [...s.cart];
           for (const it of items) {
@@ -244,8 +302,11 @@ export const useStore = create<AppState>()(
             }
           }
           return { cart };
-        }),
-      updateQty: (lineId, qty) =>
+        });
+        return true;
+      },
+      updateQty: (lineId, qty) => {
+        if (!get().requestCustomerAuth({ view: "cart", params: {} })) return false;
         set((s) => ({
           cart: s.cart
             .map((c) => {
@@ -257,14 +318,29 @@ export const useStore = create<AppState>()(
               return { ...c, qty: nextQty, unitPrice };
             })
             .filter((c) => c.qty > 0),
-        })),
-      removeLine: (lineId) => set((s) => ({ cart: s.cart.filter((c) => c.id !== lineId) })),
-      clearCart: () => set({ cart: [], coupon: null }),
+        }));
+        return true;
+      },
+      removeLine: (lineId) => {
+        if (!get().requestCustomerAuth({ view: "cart", params: {} })) return false;
+        set((s) => ({ cart: s.cart.filter((c) => c.id !== lineId) }));
+        return true;
+      },
+      clearCart: () => {
+        if (!get().requestCustomerAuth({ view: "cart", params: {} })) return false;
+        set({ cart: [], coupon: null });
+        return true;
+      },
       coupon: null,
-      setCoupon: (c) => set({ coupon: c }),
+      setCoupon: (c) => {
+        if (!get().requestCustomerAuth({ view: "cart", params: {} })) return false;
+        set({ coupon: c });
+        return true;
+      },
 
       favorites: [],
       toggleFavorite: (productId) => {
+        if (!get().requestCustomerAuth()) return false;
         savedStateRevision += 1;
         set((s) => ({
           favorites: s.favorites.includes(productId)
@@ -273,10 +349,12 @@ export const useStore = create<AppState>()(
           savedSyncStatus: s.customer ? "syncing" : "idle",
         }));
         scheduleSavedSync(() => get().syncSavedItems(), Boolean(get().customer));
+        return true;
       },
 
       savedRecipes: [],
       toggleSavedRecipe: (recipeId) => {
+        if (!get().requestCustomerAuth()) return false;
         savedStateRevision += 1;
         set((s) => ({
           savedRecipes: s.savedRecipes.includes(recipeId)
@@ -285,6 +363,7 @@ export const useStore = create<AppState>()(
           savedSyncStatus: s.customer ? "syncing" : "idle",
         }));
         scheduleSavedSync(() => get().syncSavedItems(), Boolean(get().customer));
+        return true;
       },
       savedSyncStatus: "idle",
       savedOwnerId: null,
@@ -344,18 +423,29 @@ export const useStore = create<AppState>()(
       },
 
       recentlyViewed: [],
-      pushRecentlyViewed: (productId) =>
+      pushRecentlyViewed: (productId) => {
+        if (!get().customer) return;
         set((s) => ({
           recentlyViewed: [productId, ...s.recentlyViewed.filter((p) => p !== productId)].slice(0, 12),
-        })),
+        }));
+      },
 
       customer: null,
-      setCustomer: (customer) => set({ customer }),
+      setCustomer: (customer) => {
+        if (customer) {
+          set({ customer });
+          return;
+        }
+        if (savedSyncTimer) clearTimeout(savedSyncTimer);
+        savedSyncTimer = null;
+        savedStateRevision += 1;
+        set({ customer: null, addresses: [], cart: [], coupon: null, favorites: [], savedRecipes: [], recentlyViewed: [], savedOwnerId: null, savedSyncStatus: "idle" });
+      },
       logout: () => {
         if (savedSyncTimer) clearTimeout(savedSyncTimer);
         savedSyncTimer = null;
         savedStateRevision += 1;
-        set({ customer: null, addresses: [], favorites: [], savedRecipes: [], savedOwnerId: null, savedSyncStatus: "idle" });
+        set({ customer: null, addresses: [], cart: [], coupon: null, favorites: [], savedRecipes: [], recentlyViewed: [], savedOwnerId: null, savedSyncStatus: "idle", authReturnTarget: null });
       },
 
       addresses: [],

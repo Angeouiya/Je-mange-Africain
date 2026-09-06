@@ -5,6 +5,7 @@ import { AngleRight } from "reicon/icons/AngleRight";
 import { Bookmark } from "reicon/icons/Bookmark";
 import { Clock } from "reicon/icons/Clock";
 import { Fire } from "reicon/icons/Fire";
+import { Login } from "reicon/icons/Login";
 import { Sparkles } from "reicon/icons/Sparkles";
 import { Star } from "reicon/icons/Star";
 import { Users } from "reicon/icons/Users";
@@ -45,6 +46,7 @@ type RecipeCardSurfaceProps = {
   isSaved?: boolean;
   onConfigure?: () => void;
   onSave?: () => void;
+  isAuthenticated?: boolean;
 };
 
 const recipeCardFrame = (compact: boolean) =>
@@ -55,6 +57,7 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
   const navigate = useStore((s) => s.navigate);
   const savedRecipes = useStore((s) => s.savedRecipes);
   const toggleSavedRecipe = useStore((s) => s.toggleSavedRecipe);
+  const customer = useStore((s) => s.customer);
   const isSaved = savedRecipes.includes(recipe.id);
   const warmRecipe = () => { void prefetchStorefrontData("recipe-config", { recipeId: recipe.id }, locale); };
 
@@ -68,7 +71,7 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
       onTouchStart={warmRecipe}
       className={recipeCardFrame(compact)}
     >
-      <RecipeCardSurface recipe={recipe} locale={locale} compact={compact} index={index} isSaved={isSaved} onSave={() => toggleSavedRecipe(recipe.id)} onConfigure={() => navigate("recipe-config", { recipeId: recipe.id })} />
+      <RecipeCardSurface recipe={recipe} locale={locale} compact={compact} index={index} isSaved={isSaved} isAuthenticated={Boolean(customer)} onSave={() => toggleSavedRecipe(recipe.id)} onConfigure={() => navigate("recipe-config", { recipeId: recipe.id })} />
     </motion.div>
   );
 }
@@ -81,7 +84,7 @@ export function RecipeCardPreview({ recipe, locale, compact = true }: { recipe: 
   );
 }
 
-function RecipeCardSurface({ recipe, locale, compact, index = 0, isSaved = false, onConfigure, onSave }: RecipeCardSurfaceProps) {
+function RecipeCardSurface({ recipe, locale, compact, index = 0, isSaved = false, isAuthenticated = false, onConfigure, onSave }: RecipeCardSurfaceProps) {
   const t = dict[locale];
   const diff = recipe.difficulty === "easy" ? t.recipes.easy : recipe.difficulty === "hard" ? t.recipes.hard : t.recipes.medium;
   const photoUrl = recipe.imageUrl || getRecipePhoto(recipe);
@@ -122,7 +125,9 @@ function RecipeCardSurface({ recipe, locale, compact, index = 0, isSaved = false
             type="button"
             onClick={onSave}
             aria-pressed={isSaved}
-            aria-label={isSaved
+            aria-label={!isAuthenticated
+              ? (locale === "fr" ? `Connectez-vous pour sauvegarder ${recipe.title}` : `Sign in to save ${recipe.title}`)
+              : isSaved
               ? (locale === "fr" ? `Retirer ${recipe.title} des recettes sauvegardées` : `Remove ${recipe.title} from saved recipes`)
               : (locale === "fr" ? `Sauvegarder la recette ${recipe.title}` : `Save the ${recipe.title} recipe`)}
             title={isSaved ? (locale === "fr" ? "Retirer" : "Remove") : (locale === "fr" ? "Sauvegarder" : "Save")}
@@ -147,8 +152,8 @@ function RecipeCardSurface({ recipe, locale, compact, index = 0, isSaved = false
             onClick={onConfigure}
             className={`${compact ? "mt-1 h-8 px-2 text-[10px]" : "mt-3 h-10"} w-full bg-burgundy text-white hover:bg-burgundy-dark`}
           >
-            {t.recipes.configure}
-            <ReiconGlyph icon={AngleRight} className="ml-1 h-4 w-4" />
+            {isAuthenticated ? t.recipes.configure : (locale === "fr" ? "Se connecter" : "Sign in")}
+            <ReiconGlyph icon={isAuthenticated ? AngleRight : Login} className="ml-1 h-4 w-4" />
           </Button>
         ) : (
           <span aria-hidden="true" className={`${compact ? "mt-1 h-8 px-2 text-[10px]" : "mt-3 h-10"} flex w-full items-center justify-center rounded-md bg-burgundy font-semibold text-white`}>{t.recipes.configure}<ReiconGlyph icon={AngleRight} className="ml-1 h-4 w-4" /></span>

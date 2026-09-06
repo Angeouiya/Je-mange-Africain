@@ -103,8 +103,9 @@ export function NotificationCenter() {
   const locale = useStore((state) => state.locale);
   const customer = useStore((state) => state.customer);
   const navigate = useStore((state) => state.navigate);
+  const requestCustomerAuth = useStore((state) => state.requestCustomerAuth);
   const isMobile = useIsMobile();
-  const { data, loading, error, refetch } = useFetch<{ notifications: WebNotification[] }>(`/api/notifications?locale=${locale}`, [customer?.id, locale]);
+  const { data, loading, error, refetch } = useFetch<{ notifications: WebNotification[] }>(customer ? `/api/notifications?locale=${locale}` : null, [customer?.id, locale]);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [pushState, setPushState] = useState<PushState>("checking");
   const [publicKey, setPublicKey] = useState("");
@@ -143,6 +144,10 @@ export function NotificationCenter() {
 
   useEffect(() => {
     if (!preferencesReady) return;
+    if (!customer) {
+      setPushState("inactive");
+      return;
+    }
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       setPushState("unsupported");
       return;
@@ -172,7 +177,7 @@ export function NotificationCenter() {
     return () => {
       active = false;
     };
-  }, [customer?.id, locale, preferencesReady]);
+  }, [customer, customer?.id, locale, preferencesReady]);
 
   const unread = useMemo(
     () => notifications.filter((notification) => !readIds.includes(notification.id)).length,
@@ -296,6 +301,21 @@ export function NotificationCenter() {
       {unread > 0 ? <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white shadow-sm">{unread > 9 ? "9+" : unread}</span> : null}
     </Button>
   );
+  if (!customer) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => requestCustomerAuth()}
+        className="relative h-10 w-10 rounded-md border border-transparent text-charcoal hover:border-terre/10 hover:bg-terre/[0.07] hover:text-terre"
+        aria-label={locale === "fr" ? "Connectez-vous pour voir vos notifications" : "Sign in to view notifications"}
+        title={locale === "fr" ? "Connexion requise" : "Sign-in required"}
+      >
+        <ReiconGlyph icon={Bell} className="h-[1.15rem] w-[1.15rem]" />
+      </Button>
+    );
+  }
   const panel = (
     <NotificationPanel
       locale={locale}

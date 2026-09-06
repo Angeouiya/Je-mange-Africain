@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Heart } from "reicon/icons/Heart";
+import { Login } from "reicon/icons/Login";
 import { Plus } from "reicon/icons/Plus";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ type ProductCardSurfaceProps = {
   isFav?: boolean;
   onAdd?: (event: React.MouseEvent) => void;
   onFavorite?: (event: React.MouseEvent) => void;
+  isAuthenticated?: boolean;
 };
 
 const productCardFrame = (compact: boolean, interactive: boolean) =>
@@ -74,6 +76,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
   const addToCart = useStore((s) => s.addToCart);
   const favorites = useStore((s) => s.favorites);
   const toggleFavorite = useStore((s) => s.toggleFavorite);
+  const customer = useStore((s) => s.customer);
   const isFav = favorites.includes(product.id);
   const photoUrl = product.imageUrl || product.photoUrl || getProductPhoto(product);
   const outOfStock = product.stockQty <= 0;
@@ -122,7 +125,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
       aria-label={locale === "fr" ? `Voir ${product.name}` : `View ${product.name}`}
       className={productCardFrame(compact, true)}
     >
-      <ProductCardSurface product={product} locale={locale} compact={compact} index={index} isFav={isFav} onAdd={handleAdd} onFavorite={handleFav} />
+      <ProductCardSurface product={product} locale={locale} compact={compact} index={index} isFav={isFav} isAuthenticated={Boolean(customer)} onAdd={handleAdd} onFavorite={handleFav} />
     </motion.div>
   );
 }
@@ -135,7 +138,7 @@ export function ProductCardPreview({ product, locale, compact = true }: { produc
   );
 }
 
-function ProductCardSurface({ product, locale, compact, index = 0, isFav = false, onAdd, onFavorite }: ProductCardSurfaceProps) {
+function ProductCardSurface({ product, locale, compact, index = 0, isFav = false, isAuthenticated = false, onAdd, onFavorite }: ProductCardSurfaceProps) {
   const t = dict[locale];
   const defaultVariant = product.variants?.find((variant) => variant.isDefault) || product.variants?.[0];
   const { listPrice, price, discountPercent, saving } = resolveProductPricing(product, defaultVariant?.price);
@@ -190,7 +193,9 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
             type="button"
             onClick={onFavorite}
             aria-pressed={isFav}
-            aria-label={isFav
+            aria-label={!isAuthenticated
+              ? (locale === "fr" ? `Connectez-vous pour enregistrer ${product.name}` : `Sign in to save ${product.name}`)
+              : isFav
               ? (locale === "fr" ? `Retirer ${product.name} des favoris` : `Remove ${product.name} from favourites`)
               : (locale === "fr" ? `Ajouter ${product.name} aux favoris` : `Add ${product.name} to favourites`)}
             className={`absolute right-2 top-2 grid place-items-center border border-charcoal/10 bg-white/95 text-burgundy shadow-sm backdrop-blur transition hover:border-terre/30 hover:bg-white hover:text-terre ${compact ? "h-7 w-7 rounded-md" : "h-8 w-8 rounded-full"}`}
@@ -238,9 +243,9 @@ function ProductCardSurface({ product, locale, compact, index = 0, isFav = false
               onClick={onAdd}
               disabled={outOfStock}
               className={`${compact ? "h-8 w-8 rounded-md" : "h-9 w-9 rounded-full"} bg-terre p-0 text-white shadow-sm hover:bg-terre-dark`}
-              aria-label={t.product.addToCart}
+              aria-label={isAuthenticated ? t.product.addToCart : (locale === "fr" ? "Connectez-vous pour ajouter au panier" : "Sign in to add to basket")}
             >
-              <ReiconGlyph icon={Plus} weight="Filled" className="h-4 w-4" />
+              <ReiconGlyph icon={isAuthenticated ? Plus : Login} weight="Filled" className="h-4 w-4" />
             </Button>
           ) : (
             <span aria-hidden="true" className={`${compact ? "h-8 w-8 rounded-md" : "h-9 w-9 rounded-full"} grid place-items-center bg-terre text-white shadow-sm ${outOfStock ? "opacity-50" : ""}`}><ReiconGlyph icon={Plus} weight="Filled" className="h-4 w-4" /></span>

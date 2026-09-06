@@ -27,7 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useStore } from "@/lib/store";
+import { publicFallbackForAuthTarget, useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { LEGAL_PATHS } from "@/lib/legal";
 import { BrandLockup } from "@/components/shared/BrandLockup";
@@ -67,6 +67,8 @@ export function AccountView() {
   const setAddresses = useStore((state) => state.setAddresses);
   const mergeSavedItems = useStore((state) => state.mergeSavedItems);
   const navigate = useStore((state) => state.navigate);
+  const authReturnTarget = useStore((state) => state.authReturnTarget);
+  const consumeAuthReturnTarget = useStore((state) => state.consumeAuthReturnTarget);
   const params = useStore((state) => state.params);
   const t = dict[locale];
   const isFr = locale === "fr";
@@ -88,7 +90,11 @@ export function AccountView() {
   const completedRegistrationSteps = registrationSteps.filter(Boolean).length;
   const registrationReady = completedRegistrationSteps === registrationSteps.length;
 
-  const closeAuth = () => navigate(params.returnView === "checkout" ? "cart" : "home");
+  const closeAuth = () => {
+    const target = consumeAuthReturnTarget();
+    const fallback = publicFallbackForAuthTarget(target || (params.returnView ? { view: params.returnView, params: {} } : null));
+    navigate(fallback.view, fallback.params);
+  };
 
   const clearFeedback = () => {
     if (authStatus === "idle") return;
@@ -136,7 +142,9 @@ export function AccountView() {
     setAddresses(payload.addresses || []);
     mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
     setAuthStatus("idle");
-    if (params.returnView) navigate(params.returnView);
+    const target = consumeAuthReturnTarget();
+    if (target) navigate(target.view, target.params);
+    else if (params.returnView) navigate(params.returnView);
   };
 
   const submitRegistration = async (event: FormEvent) => {
@@ -164,7 +172,9 @@ export function AccountView() {
       setAddresses(payload.addresses || []);
       mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
       setAuthStatus("idle");
-      if (params.returnView) navigate(params.returnView);
+      const target = consumeAuthReturnTarget();
+      if (target) navigate(target.view, target.params);
+      else if (params.returnView) navigate(params.returnView);
       return;
     }
     setAuthStatus("success");
@@ -235,10 +245,10 @@ export function AccountView() {
                   </div>
                 </div>
 
-                {params.returnView === "checkout" ? (
+                {params.returnView === "checkout" || authReturnTarget ? (
                   <div className="mt-5 flex items-start gap-3 rounded-md border border-gold/35 bg-gold/[0.08] p-3 text-charcoal" data-testid="auth-return-context">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-terre"><ShoppingBag className="h-4 w-4" /></span>
-                    <div><p className="text-xs font-black">{isFr ? "Votre panier vous attend" : "Your basket is waiting"}</p><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{isFr ? "Connectez-vous pour reprendre directement la livraison et le paiement." : "Sign in to continue directly with delivery and payment."}</p></div>
+                    <div><p className="text-xs font-black">{isFr ? "Connexion requise" : "Sign-in required"}</p><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{isFr ? "Connectez-vous pour continuer cette action dans votre espace sécurisé." : "Sign in to continue this action in your secure space."}</p></div>
                   </div>
                 ) : null}
 

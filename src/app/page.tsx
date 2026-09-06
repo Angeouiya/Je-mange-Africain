@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { hydrateStore, useStore, type ViewId, type ViewParams } from "@/lib/store";
+import { customerProtectedView, hydrateStore, useStore, type ViewId, type ViewParams } from "@/lib/store";
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
@@ -39,6 +39,7 @@ export default function Page() {
   const view = useStore((s) => s.view);
   const params = useStore((s) => s.params);
   const navigate = useStore((s) => s.navigate);
+  const requestCustomerAuth = useStore((s) => s.requestCustomerAuth);
   const customer = useStore((s) => s.customer);
   const locale = useStore((s) => s.locale);
   const [mounted, setMounted] = useState(false);
@@ -70,6 +71,8 @@ export default function Page() {
         // The public shell remains usable with its safe defaults.
       }
       if (cancelled) return;
+      const hydratedState = useStore.getState();
+      if (!hydratedState.customer) hydratedState.setCustomer(null);
       const sessionSubject = useStore.getState().customer?.id || null;
       applyLocation();
       setMounted(true);
@@ -106,6 +109,11 @@ export default function Page() {
       window.removeEventListener("popstate", applyHydratedLocation);
     };
   }, [navigate]);
+
+  useEffect(() => {
+    if (!mounted || customer || !customerProtectedView(view)) return;
+    requestCustomerAuth({ view, params });
+  }, [customer, mounted, params, requestCustomerAuth, view]);
 
   useEffect(() => {
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;

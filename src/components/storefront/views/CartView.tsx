@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X, ChefHat, Plus, ShieldCheck, PencilLine } from "lucide-react";
+import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X, ChefHat, Plus, ShieldCheck, PencilLine, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ export function CartView() {
   const country = useStore((s) => s.country);
   const postalCode = useStore((s) => s.postalCode);
   const navigate = useStore((s) => s.navigate);
+  const customer = useStore((s) => s.customer);
   const t = dict[locale];
 
   const [couponInput, setCouponInput] = useState(coupon || "");
@@ -136,6 +137,19 @@ export function CartView() {
   };
 
   const proceed = () => navigate("checkout");
+
+  if (!customer) {
+    return (
+      <div className="mx-auto grid min-h-[55vh] max-w-md place-items-center px-4 text-center">
+        <div>
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-lg bg-terre/10 text-terre"><LogIn className="h-5 w-5" /></span>
+          <h1 className="mt-4 font-display text-2xl font-semibold text-charcoal">{locale === "fr" ? "Connexion nécessaire" : "Sign-in required"}</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "fr" ? "Le panier, les quantités et le paiement sont liés à votre espace client sécurisé." : "Basket, quantities and checkout are linked to your secure customer space."}</p>
+          <Button onClick={() => navigate("account", { returnView: "cart" })} className="mt-5 bg-terre text-white hover:bg-terre-dark">{t.nav.login}</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (

@@ -305,11 +305,15 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(dishDialog).toBeHidden();
 
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
-  await expect(page.getByText(/votre panier est vide|your cart is empty/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: /choisir une recette|choose a recipe/i })).toBeVisible();
-  await expect(page.getByText(/stock vérifié|verified stock/i)).toBeVisible();
+  const authDialog = page.getByRole("dialog");
+  await expect(authDialog.getByTestId("customer-auth-workspace")).toBeVisible();
+  await expect(authDialog.getByTestId("auth-return-context")).toContainText(/connexion requise|sign-in required/i);
+  const storedState = await page.evaluate(() => JSON.parse(localStorage.getItem("jma-store") || "{}").state || {});
+  expect(storedState.cart || []).toEqual([]);
+  await authDialog.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
+  await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
   if (process.env.CLIENT_SCREENSHOTS) {
-    await page.screenshot({ path: `output/playwright/audit/cart-empty-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+    await page.screenshot({ path: `output/playwright/audit/cart-auth-gate-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
   await expectNoHorizontalOverflow(page);
 });
@@ -423,6 +427,13 @@ test("the adaptive client navigation keeps every destination clear and touch fri
 
 test("the wholesale market applies volume pricing and preserves case quantities in the basket", async ({ page }) => {
   let quotePayload: { company?: string; contactName?: string; country?: string; postalCode?: string; deliveryRequirements?: string; items?: Array<{ productId: string; packs: number }> } | null = null;
+  const customer = { id: "customer-wholesale-flow", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 120, walletCredit: 0 };
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: { locale: "fr", cart: [], favorites: [], savedRecipes: [], savedOwnerId: persistedCustomer.id, recentlyViewed: [], customer: persistedCustomer, addresses: [], country: "France", postalCode: "75011", coupon: null },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
   const wholesaleProduct = {
     id: "wholesale-attieke",
     sku: "JMA-WHO-ATT",
@@ -455,9 +466,10 @@ test("the wholesale market applies volume pricing and preserves case quantities 
     const localizedProduct = { ...wholesaleProduct, name: english ? wholesaleProduct.nameEn : wholesaleProduct.nameFr, description: english ? "Fresh cassava semolina for restaurants and caterers." : wholesaleProduct.description };
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [localizedProduct], total: 1, page: 1, pageSize: 48, pages: 1, filters: { categories: [wholesaleProduct.category], brands: [], countries: ["Côte d'Ivoire"] } }) });
   });
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) }));
   await page.route("**/api/wholesale/quotes", async (route) => {
     quotePayload = route.request().postDataJSON();
-    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ quote: { id: "quote-2042", reference: "JMA-GROS-260905-2042AB", status: "new", estimatedSubtotal: 128, totalPacks: 4, currency: "EUR", createdAt: "2026-09-05T12:00:00.000Z" } }) });
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ quote: { id: "quote-2042", reference: "JMA-GROS-260905-2042AB", status: "new", estimatedSubtotal: 128, totalPacks: 4, currency: "EUR", createdAt: "2026-09-05T12:00:00.000Z", tracked: true } }) });
   });
 
   await page.goto("/?view=wholesale", { waitUntil: "domcontentloaded" });
@@ -536,9 +548,18 @@ test("the wholesale market applies volume pricing and preserves case quantities 
 test("global search and notifications navigate to useful client destinations", async ({ page }) => {
   const narrowMobile = (page.viewportSize()?.width || 0) < 768;
   if (narrowMobile) await page.setViewportSize({ width: 320, height: 700 });
+  const customer = { id: "customer-notifications", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 120, walletCredit: 0 };
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: { locale: "fr", cart: [], favorites: [], savedRecipes: [], savedOwnerId: persistedCustomer.id, recentlyViewed: [], customer: persistedCustomer, addresses: [], country: "France", postalCode: "75011", coupon: null },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
   const current = new Date();
   const todayAtNoon = new Date(current.getFullYear(), current.getMonth(), current.getDate(), 12).toISOString();
   const yesterdayAtNoon = new Date(current.getFullYear(), current.getMonth(), current.getDate() - 1, 12).toISOString();
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) }));
+  await page.route("**/api/orders?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ orders: [] }) }));
   await page.route("**/api/push/config", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: false, publicKey: null }) }));
   await page.route("**/api/notifications?*", (route) => route.fulfill({
     status: 200,
@@ -610,7 +631,8 @@ test("global search and notifications navigate to useful client destinations", a
     await page.screenshot({ path: `output/playwright/audit/notifications-center-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`, scale: "css" });
   }
   await page.getByRole("button", { name: /votre commande avance/i }).click();
-  await expect(page.getByRole("heading", { name: /connectez-vous pour voir vos commandes|sign in to view your orders/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /mes commandes|my orders/i })).toBeVisible();
+  await expect(page).toHaveURL(/view=orders/);
   await expect(page.getByRole("button", { name: /notifications, 1 (non lues|unread)/i })).toBeVisible();
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -647,6 +669,15 @@ test("global search and notifications navigate to useful client destinations", a
 });
 
 test("product details stay bounded and preserve real visual identification in the basket", async ({ page }) => {
+  const customer = { id: "customer-product-flow", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 120, walletCredit: 0 };
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: { locale: "fr", cart: [], favorites: [], savedRecipes: [], savedOwnerId: persistedCustomer.id, recentlyViewed: [], customer: persistedCustomer, addresses: [], country: "France", postalCode: "75011", coupon: null },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) }));
+
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first().click();
   await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
@@ -719,13 +750,7 @@ test("product details stay bounded and preserve real visual identification in th
   await expect(page.getByText("Pot 800 g", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: productName })).toBeVisible();
   await page.getByRole("button", { name: /passer la commande|checkout/i }).click();
-  await expect(page.getByRole("heading", { name: /connectez-vous avant de finaliser|sign in before checkout/i })).toBeVisible();
-  await page.locator("#main-content").getByRole("button", { name: /connexion|sign in/i }).click();
-  const checkoutAuth = page.getByRole("dialog");
-  await expect(checkoutAuth.getByText(/votre panier vous attend|your basket is waiting/i)).toBeVisible();
-  await checkoutAuth.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
-  await expect(page.getByRole("heading", { name: /mon panier|my cart/i })).toBeVisible();
-  await expect(page.getByText(productName, { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 

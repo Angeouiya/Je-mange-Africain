@@ -71,6 +71,8 @@ type WholesaleQuoteLine = {
 export function WholesaleView() {
   const locale = useStore((state) => state.locale);
   const navigate = useStore((state) => state.navigate);
+  const customer = useStore((state) => state.customer);
+  const requestCustomerAuth = useStore((state) => state.requestCustomerAuth);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [quoteOpen, setQuoteOpen] = useState(false);
@@ -80,8 +82,10 @@ export function WholesaleView() {
   const { data, loading, error, refetch } = useFetch<WholesaleResponse>(url, [locale, deferredQuery, category], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
   const isFr = locale === "fr";
   const quotePackCount = quoteLines.reduce((total, line) => total + line.packs, 0);
+  const ensureWholesaleAuth = () => requestCustomerAuth({ view: "wholesale", params: {} });
 
   const addToQuote = (product: WholesaleProduct, packs: number) => {
+    if (!ensureWholesaleAuth()) return;
     setQuoteLines((current) => {
       const existing = current.some((line) => line.product.id === product.id);
       return existing
@@ -100,7 +104,7 @@ export function WholesaleView() {
             <h1 className="jma-section-title mt-1">{isFr ? "Marché de gros" : "Wholesale market"}</h1>
             <p className="mt-1.5 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-5">{isFr ? "Commandez par carton ou par lot, profitez de prix dégressifs et conservez la traçabilité de la chaîne du froid." : "Order by case or lot, access tiered pricing and preserve cold-chain traceability."}</p>
           </div>
-          <Button type="button" variant="outline" onClick={() => setQuoteOpen(true)} className="h-10 shrink-0 px-3 sm:px-4" aria-label={quoteLines.length ? (isFr ? `Ouvrir le devis, ${quoteLines.length} produit(s) et ${quotePackCount} colis` : `Open quote, ${quoteLines.length} product(s) and ${quotePackCount} cases`) : (isFr ? "Demander un devis" : "Request a quote")}><ReiconGlyph icon={Box} className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{isFr ? "Devis" : "Quote"}</span><span className="hidden sm:inline">{isFr ? "Demander un devis" : "Request a quote"}</span>{quoteLines.length ? <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded bg-burgundy px-1 text-[9px] font-black text-white" aria-hidden="true">{quoteLines.length}</span> : null}</Button>
+          <Button type="button" variant="outline" onClick={() => { if (ensureWholesaleAuth()) setQuoteOpen(true); }} className="h-10 shrink-0 px-3 sm:px-4" aria-label={!customer ? (isFr ? "Connectez-vous pour demander un devis" : "Sign in to request a quote") : quoteLines.length ? (isFr ? `Ouvrir le devis, ${quoteLines.length} produit(s) et ${quotePackCount} colis` : `Open quote, ${quoteLines.length} product(s) and ${quotePackCount} cases`) : (isFr ? "Demander un devis" : "Request a quote")}><ReiconGlyph icon={Box} className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{customer ? (isFr ? "Devis" : "Quote") : (isFr ? "Connexion" : "Sign in")}</span><span className="hidden sm:inline">{customer ? (isFr ? "Demander un devis" : "Request a quote") : (isFr ? "Se connecter pour un devis" : "Sign in for quote")}</span>{quoteLines.length ? <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded bg-burgundy px-1 text-[9px] font-black text-white" aria-hidden="true">{quoteLines.length}</span> : null}</Button>
         </div>
         <div className="mt-3 sm:mt-4"><MarketChannelSwitch channel="wholesale" /></div>
       </header>
@@ -131,7 +135,7 @@ export function WholesaleView() {
         {!loading && error ? <div className="mt-5 border-y border-destructive/20 py-10 text-center"><p className="text-sm font-bold text-destructive">{error}</p><Button type="button" variant="outline" onClick={refetch} className="mt-3">{isFr ? "Réessayer" : "Try again"}</Button></div> : null}
         {!loading && !error && data?.products.length ? (
           <div className="mt-3 grid grid-cols-2 gap-2.5 sm:mt-5 md:grid-cols-3 md:gap-3 lg:grid-cols-4" data-testid="wholesale-product-grid">
-            {data.products.map((product, index) => <WholesaleProductCard key={product.id} product={product} index={index} selectedPacks={quoteLines.find((line) => line.product.id === product.id)?.packs || 0} onQuote={addToQuote} />)}
+            {data.products.map((product, index) => <WholesaleProductCard key={product.id} product={product} index={index} selectedPacks={quoteLines.find((line) => line.product.id === product.id)?.packs || 0} onQuote={addToQuote} isAuthenticated={Boolean(customer)} />)}
           </div>
         ) : null}
         {!loading && !error && data && !data.products.length ? (
@@ -143,7 +147,7 @@ export function WholesaleView() {
   );
 }
 
-function WholesaleProductCard({ product, index, selectedPacks, onQuote }: { product: WholesaleProduct; index: number; selectedPacks: number; onQuote: (product: WholesaleProduct, packs: number) => void }) {
+function WholesaleProductCard({ product, index, selectedPacks, onQuote, isAuthenticated }: { product: WholesaleProduct; index: number; selectedPacks: number; onQuote: (product: WholesaleProduct, packs: number) => void; isAuthenticated: boolean }) {
   const locale = useStore((state) => state.locale);
   const addToCart = useStore((state) => state.addToCart);
   const [quantity, setQuantity] = useState(Math.max(1, product.wholesaleMinPacks));
@@ -162,7 +166,7 @@ function WholesaleProductCard({ product, index, selectedPacks, onQuote }: { prod
   const changeQuantity = (next: number) => setQuantity(Math.max(product.wholesaleMinPacks, Math.min(maxPacks || product.wholesaleMinPacks, next)));
   const add = () => {
     if (outOfStock) return;
-    addToCart({
+    const addedToCart = addToCart({
       productId: product.id,
       variantId: "wholesale",
       name: product.name,
@@ -182,6 +186,7 @@ function WholesaleProductCard({ product, index, selectedPacks, onQuote }: { prod
       unitsPerPack: product.wholesaleUnitsPerPack,
       wholesaleTiers: tiers,
     });
+    if (!addedToCart) return;
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };
@@ -218,8 +223,8 @@ function WholesaleProductCard({ product, index, selectedPacks, onQuote }: { prod
           <button type="button" onClick={() => changeQuantity(quantity + 1)} disabled={quantity >= maxPacks || outOfStock} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter les colis de ${product.name}` : `Increase cases of ${product.name}`}><ReiconGlyph icon={Plus} className="h-3.5 w-3.5" /></button>
         </div>
         <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-1.5">
-          <Button type="button" variant="outline" size="icon" onClick={() => onQuote(product, quantity)} disabled={outOfStock} className={`h-9 w-10 ${selectedPacks ? "border-burgundy/30 bg-burgundy/5 text-burgundy" : "text-terre"}`} aria-label={selectedPacks ? (isFr ? `Mettre à jour ${product.name} dans le devis avec ${quantity} colis` : `Update ${product.name} in the quote with ${quantity} cases`) : (isFr ? `Ajouter ${product.name} au devis` : `Add ${product.name} to quote`)} title={isFr ? "Ajouter au devis" : "Add to quote"}>{selectedPacks ? <ReiconGlyph icon={Check} className="h-3.5 w-3.5" /> : <ReiconGlyph icon={FilePlus} className="h-3.5 w-3.5" />}</Button>
-          <Button type="button" size="sm" onClick={add} disabled={outOfStock} className={`h-9 w-full px-2 text-[10px] ${added ? "bg-burgundy text-white hover:bg-burgundy" : "bg-terre text-white hover:bg-terre-dark"}`}>{added ? <ReiconGlyph icon={Check} className="mr-1 h-3.5 w-3.5" /> : <ReiconGlyph icon={ShoppingBag} className="mr-1 h-3.5 w-3.5" />}{outOfStock ? (isFr ? "Indisponible" : "Unavailable") : added ? (isFr ? "Ajouté" : "Added") : <>{isFr ? "Ajouter" : "Add"}<span aria-hidden="true"> · {formatPrice(economics.lineTotal, locale)}</span></>}</Button>
+          <Button type="button" variant="outline" size="icon" onClick={() => onQuote(product, quantity)} disabled={outOfStock} className={`h-9 w-10 ${selectedPacks ? "border-burgundy/30 bg-burgundy/5 text-burgundy" : "text-terre"}`} aria-label={!isAuthenticated ? (isFr ? `Connectez-vous pour ajouter ${product.name} au devis` : `Sign in to add ${product.name} to quote`) : selectedPacks ? (isFr ? `Mettre à jour ${product.name} dans le devis avec ${quantity} colis` : `Update ${product.name} in the quote with ${quantity} cases`) : (isFr ? `Ajouter ${product.name} au devis` : `Add ${product.name} to quote`)} title={isAuthenticated ? (isFr ? "Ajouter au devis" : "Add to quote") : (isFr ? "Connexion requise" : "Sign-in required")}>{selectedPacks ? <ReiconGlyph icon={Check} className="h-3.5 w-3.5" /> : <ReiconGlyph icon={FilePlus} className="h-3.5 w-3.5" />}</Button>
+          <Button type="button" size="sm" onClick={add} disabled={outOfStock} className={`h-9 w-full px-2 text-[10px] ${added ? "bg-burgundy text-white hover:bg-burgundy" : "bg-terre text-white hover:bg-terre-dark"}`}>{added ? <ReiconGlyph icon={Check} className="mr-1 h-3.5 w-3.5" /> : <ReiconGlyph icon={ShoppingBag} className="mr-1 h-3.5 w-3.5" />}{outOfStock ? (isFr ? "Indisponible" : "Unavailable") : !isAuthenticated ? (isFr ? "Connexion" : "Sign in") : added ? (isFr ? "Ajouté" : "Added") : <>{isFr ? "Ajouter" : "Add"}<span aria-hidden="true"> · {formatPrice(economics.lineTotal, locale)}</span></>}</Button>
         </div>
       </div>
     </article>
@@ -238,6 +243,7 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
   const locale = useStore((state) => state.locale);
   const customer = useStore((state) => state.customer);
   const navigate = useStore((state) => state.navigate);
+  const requestCustomerAuth = useStore((state) => state.requestCustomerAuth);
   const deliveryCountry = useStore((state) => state.country);
   const deliveryPostalCode = useStore((state) => state.postalCode);
   const [form, setForm] = useState({ company: "", contactName: customer ? `${customer.firstName} ${customer.lastName}` : "", email: customer?.email || "", phone: customer?.phone || "", country: europeanCountryValue(deliveryCountry) || "France", postalCode: deliveryPostalCode, additionalNeeds: "", deliveryRequirements: "" });
@@ -252,6 +258,10 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
 
   const handleOpenChange = (next: boolean) => {
     if (status === "busy") return;
+    if (next && !customer) {
+      requestCustomerAuth({ view: "wholesale", params: {} });
+      return;
+    }
     if (!next) {
       setStatus("idle");
       setReference("");
@@ -270,6 +280,10 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!customer) {
+      requestCustomerAuth({ view: "wholesale", params: {} });
+      return;
+    }
     if (!postalValidation.valid) return;
     setStatus("busy");
     setErrorMessage("");

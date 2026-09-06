@@ -8,6 +8,7 @@ import { ChefHat } from "reicon/icons/ChefHat";
 import { FileText } from "reicon/icons/FileText";
 import { Fridge } from "reicon/icons/Fridge";
 import { Heart } from "reicon/icons/Heart";
+import { Login } from "reicon/icons/Login";
 import { Minus } from "reicon/icons/Minus";
 import { Plus } from "reicon/icons/Plus";
 import { ShieldCheck } from "reicon/icons/ShieldCheck";
@@ -41,6 +42,7 @@ export function ProductDetailView() {
   const favorites = useStore((s) => s.favorites);
   const toggleFavorite = useStore((s) => s.toggleFavorite);
   const pushRecentlyViewed = useStore((s) => s.pushRecentlyViewed);
+  const customer = useStore((s) => s.customer);
   const t = dict[locale];
 
   const productId = params.productId;
@@ -259,6 +261,7 @@ export function ProductDetailView() {
             lineTotal={lineTotal}
             isFavourite={isFav}
             onToggleFavourite={() => toggleFavorite(product.id)}
+            isAuthenticated={Boolean(customer)}
             locale={locale}
           />
           <PurchaseControls
@@ -273,6 +276,7 @@ export function ProductDetailView() {
             lineTotal={lineTotal}
             isFavourite={isFav}
             onToggleFavourite={() => toggleFavorite(product.id)}
+            isAuthenticated={Boolean(customer)}
             locale={locale}
           />
 
@@ -361,7 +365,7 @@ export function ProductDetailView() {
   );
 }
 
-function PurchaseControls({ productName, qty, maxQty, onQtyChange, onAdd, outOfStock, addLabel, lineTotal, isFavourite, onToggleFavourite, locale, mobile = false }: {
+function PurchaseControls({ productName, qty, maxQty, onQtyChange, onAdd, outOfStock, addLabel, lineTotal, isFavourite, onToggleFavourite, isAuthenticated, locale, mobile = false }: {
   productName: string;
   qty: number;
   maxQty: number;
@@ -372,21 +376,26 @@ function PurchaseControls({ productName, qty, maxQty, onQtyChange, onAdd, outOfS
   lineTotal: number;
   isFavourite: boolean;
   onToggleFavourite: () => void;
+  isAuthenticated: boolean;
   locale: Locale;
   mobile?: boolean;
 }) {
+  const protectedAddLabel = isAuthenticated ? addLabel : (locale === "fr" ? "Se connecter" : "Sign in");
+  const protectedAddAria = isAuthenticated
+    ? `${addLabel}, ${formatPrice(lineTotal, locale)}`
+    : (locale === "fr" ? `Connectez-vous pour ajouter ${productName} au panier` : `Sign in to add ${productName} to the basket`);
   const controls = (
     <div className={`flex min-w-0 items-center gap-2 ${mobile ? "mx-auto max-w-xl" : "w-full"}`}>
       <div className="inline-flex shrink-0 items-center rounded-md border border-charcoal/12 bg-white">
-        <button type="button" onClick={() => onQtyChange(Math.max(1, qty - 1))} disabled={qty <= 1} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Diminuer la quantité de ${productName}` : `Decrease ${productName} quantity`}><ReiconGlyph icon={Minus} className="h-4 w-4" /></button>
+        <button type="button" onClick={() => onQtyChange(Math.max(1, qty - 1))} disabled={!isAuthenticated || qty <= 1} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Diminuer la quantité de ${productName}` : `Decrease ${productName} quantity`}><ReiconGlyph icon={Minus} className="h-4 w-4" /></button>
         <span className={`${mobile ? "min-w-7" : "min-w-10"} text-center text-sm font-black tabular-nums text-charcoal`}>{qty}</span>
-        <button type="button" onClick={() => onQtyChange(Math.min(Math.max(1, maxQty), qty + 1))} disabled={outOfStock || qty >= maxQty} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Augmenter la quantité de ${productName}` : `Increase ${productName} quantity`}><ReiconGlyph icon={Plus} className="h-4 w-4" /></button>
+        <button type="button" onClick={() => onQtyChange(Math.min(Math.max(1, maxQty), qty + 1))} disabled={!isAuthenticated || outOfStock || qty >= maxQty} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Augmenter la quantité de ${productName}` : `Increase ${productName} quantity`}><ReiconGlyph icon={Plus} className="h-4 w-4" /></button>
       </div>
-      <Button onClick={onAdd} disabled={outOfStock} size="lg" aria-label={`${addLabel}, ${formatPrice(lineTotal, locale)}`} className={`${mobile ? "h-11 px-3 text-xs" : "h-11 px-4 text-sm"} min-w-0 flex-1 justify-between gap-2 whitespace-normal bg-terre text-center leading-tight text-cream shadow-md hover:bg-terre-dark`}>
-        <span className="inline-flex min-w-0 items-center"><ReiconGlyph icon={CartAdd} className="mr-1 h-4 w-4 shrink-0" />{mobile ? (locale === "fr" ? "Ajouter" : "Add") : addLabel}</span>
-        <span className="shrink-0 border-l border-white/25 pl-2 font-black tabular-nums">{formatPrice(lineTotal, locale)}</span>
+      <Button onClick={onAdd} disabled={outOfStock} size="lg" aria-label={protectedAddAria} className={`${mobile ? "h-11 px-3 text-xs" : "h-11 px-4 text-sm"} min-w-0 flex-1 justify-between gap-2 whitespace-normal bg-terre text-center leading-tight text-cream shadow-md hover:bg-terre-dark`}>
+        <span className="inline-flex min-w-0 items-center"><ReiconGlyph icon={isAuthenticated ? CartAdd : Login} className="mr-1 h-4 w-4 shrink-0" />{mobile && isAuthenticated ? (locale === "fr" ? "Ajouter" : "Add") : protectedAddLabel}</span>
+        {isAuthenticated ? <span className="shrink-0 border-l border-white/25 pl-2 font-black tabular-nums">{formatPrice(lineTotal, locale)}</span> : null}
       </Button>
-      <Button variant="outline" size="icon" onClick={onToggleFavourite} aria-pressed={isFavourite} aria-label={isFavourite ? (locale === "fr" ? `Retirer ${productName} des favoris` : `Remove ${productName} from favourites`) : (locale === "fr" ? `Ajouter ${productName} aux favoris` : `Add ${productName} to favourites`)} className={`${mobile ? "h-10 w-10" : "h-11 w-11"} shrink-0 border-charcoal/12 bg-white`}>
+      <Button variant="outline" size="icon" onClick={onToggleFavourite} aria-pressed={isFavourite} aria-label={!isAuthenticated ? (locale === "fr" ? `Connectez-vous pour enregistrer ${productName}` : `Sign in to save ${productName}`) : isFavourite ? (locale === "fr" ? `Retirer ${productName} des favoris` : `Remove ${productName} from favourites`) : (locale === "fr" ? `Ajouter ${productName} aux favoris` : `Add ${productName} to favourites`)} className={`${mobile ? "h-10 w-10" : "h-11 w-11"} shrink-0 border-charcoal/12 bg-white`}>
         <ReiconGlyph icon={Heart} weight={isFavourite ? "Filled" : "Outline"} className={`h-5 w-5 ${isFavourite ? "text-terre" : "text-charcoal"}`} />
       </Button>
     </div>

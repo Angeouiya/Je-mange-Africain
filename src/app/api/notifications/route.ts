@@ -30,9 +30,8 @@ const FALLBACK_NOTIFICATIONS = [
 export async function GET(req: NextRequest) {
   const locale = new URL(req.url).searchParams.get("locale") === "en" ? "en" : "fr";
   const customer = await authorizeCustomerRequest(req);
-  const directoryUser = customer
-    ? await db.user.findUnique({ where: { email: customer.email.toLowerCase() }, select: { id: true } })
-    : null;
+  if (!customer) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+  const directoryUser = await db.user.findUnique({ where: { email: customer.email.toLowerCase() }, select: { id: true } });
   const stored = await db.notification.findMany({
     where: {
       channel: { in: ["web", "push"] },

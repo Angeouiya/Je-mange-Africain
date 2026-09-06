@@ -61,12 +61,24 @@ describe("POST /api/wholesale/quotes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.rateLimit.mockResolvedValue(null);
-    mocks.authorize.mockResolvedValue(null);
-    mocks.loadIdentity.mockResolvedValue(null);
+    mocks.authorize.mockResolvedValue({ id: "supabase-user", email: "awa@maison.example", role: "customer" });
+    mocks.loadIdentity.mockResolvedValue({ userId: "user-1", customerId: "customer-1" });
     mocks.productFindMany.mockResolvedValue([product]);
     mocks.quoteCreate.mockImplementation(({ data }: { data: Record<string, unknown> }) => ({ id: "quote-1", ...data, currency: "EUR", createdAt: new Date("2026-09-05T12:00:00.000Z") }));
     mocks.auditCreate.mockResolvedValue({ id: "audit-1" });
     mocks.transaction.mockImplementation(async (callback: (transaction: unknown) => unknown) => callback({ wholesaleQuote: { create: mocks.quoteCreate }, auditLog: { create: mocks.auditCreate } }));
+  });
+
+  it("requires a connected customer before recording a quote", async () => {
+    mocks.authorize.mockResolvedValue(null);
+
+    const response = await POST(request(validBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(payload.error).toBe("Authentification client requise.");
+    expect(mocks.productFindMany).not.toHaveBeenCalled();
+    expect(mocks.transaction).not.toHaveBeenCalled();
   });
 
   it("recalculates the active tier and records immutable product snapshots", async () => {
@@ -75,17 +87,14 @@ describe("POST /api/wholesale/quotes", () => {
 
     expect(response.status).toBe(201);
     expect(payload.quote).toMatchObject({ id: "quote-1", status: "new", estimatedSubtotal: 150, totalPacks: 5, currency: "EUR" });
-    expect(payload.quote.tracked).toBe(false);
+    expect(payload.quote.tracked).toBe(true);
     expect(payload.quote.reference).toMatch(/^JMA-GROS-\d{6}-[A-F0-9]{6}$/);
     expect(mocks.productFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ status: "published", isWholesale: true }) }));
-    expect(mocks.quoteCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ email: "awa@maison.example", country: "France", estimatedSubtotal: 150, totalPacks: 5, items: { create: [expect.objectContaining({ productId: product.id, productNameFr: "Attiéké professionnel", productNameEn: "Professional attieke", packs: 5, unitPrice: 30, lineTotal: 150 })] } }), include: { items: true } });
+    expect(mocks.quoteCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ customerId: "customer-1", email: "awa@maison.example", country: "France", estimatedSubtotal: 150, totalPacks: 5, items: { create: [expect.objectContaining({ productId: product.id, productNameFr: "Attiéké professionnel", productNameEn: "Professional attieke", packs: 5, unitPrice: 30, lineTotal: 150 })] } }), include: { items: true } });
     expect(mocks.auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ action: "wholesale_quote_create", entityType: "WholesaleQuote", ip: "203.0.113.42" }) });
   });
 
   it("links the file only to the customer resolved from an authenticated session", async () => {
-    mocks.authorize.mockResolvedValue({ id: "supabase-user", email: "awa@maison.example", role: "customer" });
-    mocks.loadIdentity.mockResolvedValue({ userId: "user-1", customerId: "customer-1" });
-
     const response = await POST(request(validBody));
     const payload = await response.json();
 
