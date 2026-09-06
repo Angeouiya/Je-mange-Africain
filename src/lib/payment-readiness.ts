@@ -13,6 +13,9 @@ const AUDITED_PAYMENT_METHODS = [
   "bancontact",
   "eps",
   "p24",
+  "mobilepay",
+  "swish",
+  "twint",
   "revolut_pay",
 ] as const;
 
@@ -53,6 +56,9 @@ const METHOD_ROLE: Record<AuditedPaymentMethod, PaymentReadinessMethod["role"]> 
   bancontact: "local",
   eps: "local",
   p24: "local",
+  mobilepay: "local",
+  swish: "local",
+  twint: "local",
   revolut_pay: "express",
 };
 
@@ -67,6 +73,9 @@ const METHOD_MARKETS: Record<AuditedPaymentMethod, string[]> = {
   bancontact: ["BE"],
   eps: ["AT"],
   p24: ["PL"],
+  mobilepay: ["DK", "FI"],
+  swish: ["SE"],
+  twint: ["CH"],
   revolut_pay: ["EU"],
 };
 

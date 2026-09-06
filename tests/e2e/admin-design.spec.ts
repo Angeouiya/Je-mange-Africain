@@ -718,6 +718,9 @@ async function mockAdminApi(page: Page) {
           { method: "bancontact", family: "bank", available: true, role: "local", markets: ["BE"] },
           { method: "eps", family: "bank", available: false, role: "local", markets: ["AT"] },
           { method: "p24", family: "bank", available: false, role: "local", markets: ["PL"] },
+          { method: "mobilepay", family: "wallet", available: true, role: "local", markets: ["DK", "FI"] },
+          { method: "swish", family: "wallet", available: false, role: "local", markets: ["SE"] },
+          { method: "twint", family: "wallet", available: false, role: "local", markets: ["CH"] },
           { method: "revolut_pay", family: "wallet", available: false, role: "express", markets: ["EU"] },
         ],
       },
@@ -1240,6 +1243,8 @@ test("platform settings publish durable customer-facing contact details", async 
   await expect(paymentReadiness).toContainText("LIVE");
   await expect(paymentReadiness).toContainText("Apple Pay");
   await expect(paymentReadiness).toContainText("iDEAL");
+  await expect(paymentReadiness.getByTestId("payment-client-baseline")).toContainText("Bancontact");
+  await expect(paymentReadiness.getByTestId("payment-client-baseline")).toContainText("TWINT");
   await expect(paymentReadiness).not.toContainText(/secret|sk_live/i);
   const paymentConfiguration = paymentReadiness.getByText(/European storefront/);
   await paymentConfiguration.scrollIntoViewIfNeeded();

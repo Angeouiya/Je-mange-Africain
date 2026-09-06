@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodHint, paymentMethodKey, paymentMethodLabel, paymentStatusLabel, summarizePaymentMethods, uniquePaymentMethods } from "./payment-methods";
+import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodHint, paymentMethodKey, paymentMethodLabel, paymentStatusLabel, recommendedEuropeanPaymentMethods, summarizePaymentMethods, uniquePaymentMethods } from "./payment-methods";
 
 describe("payment method presentation", () => {
   it("keeps European payment methods readable in both languages", () => {
@@ -24,6 +24,13 @@ describe("payment method presentation", () => {
     expect(checkoutPaymentMethodSummary(undefined, "fr")).toBe("Moyens adaptés à votre pays");
     expect(checkoutPaymentMethodSummary(["card", "paypal", "ideal"], "fr")).toBe("Carte bancaire, PayPal, iDEAL");
     expect(checkoutPaymentMethodSummary(["card", "paypal", "ideal", "bancontact"], "en")).toBe("Payment card, PayPal, iDEAL +1");
+  });
+
+  it("previews a country-aware European payment baseline before Stripe ranks methods", () => {
+    expect(recommendedEuropeanPaymentMethods("Belgique")).toEqual(["card", "paypal", "bancontact"]);
+    expect(recommendedEuropeanPaymentMethods("Netherlands")).toEqual(["card", "paypal", "ideal"]);
+    expect(recommendedEuropeanPaymentMethods("France")).toEqual(["card", "paypal", "link"]);
+    expect(recommendedEuropeanPaymentMethods("Pays inconnu")).toEqual(["card", "paypal"]);
   });
 
   it("translates provider statuses without leaking their technical codes", () => {

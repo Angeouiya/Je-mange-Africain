@@ -29,8 +29,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFetch } from "@/lib/use-fetch";
 import { BRAND_COLORS } from "@/lib/brand-colors";
+import { EUROPEAN_COUNTRIES } from "@/lib/european-countries";
 import { formatDateTime } from "@/lib/format";
-import { paymentMethodLabel } from "@/lib/payment-methods";
+import { paymentMethodLabel, recommendedEuropeanPaymentMethods, uniquePaymentMethods } from "@/lib/payment-methods";
 import type { PaymentProviderReadiness, PaymentReadinessMethod } from "@/lib/payment-readiness";
 
 type Configuration = {
@@ -235,6 +236,9 @@ function EuropeanPaymentReadiness({ readiness, locale }: { readiness?: PaymentPr
   const availableMethods = readiness.methods.filter((method) => method.available);
   const localMethods = availableMethods.filter((method) => method.role === "local");
   const expressMethods = availableMethods.filter((method) => method.role === "express");
+  const baselineMethods = uniquePaymentMethods(EUROPEAN_COUNTRIES.flatMap((country) => recommendedEuropeanPaymentMethods(country.code)));
+  const availableMethodSet = new Set<string>(availableMethods.map((method) => method.method));
+  const readyBaselineMethods = baselineMethods.filter((method) => availableMethodSet.has(method));
   const state = readiness.state === "ready"
     ? { label: isFr ? "Carte + PayPal actifs" : "Card + PayPal active", className: "bg-burgundy text-white", icon: CheckCircle2 }
     : readiness.state === "unconfigured"
@@ -255,8 +259,9 @@ function EuropeanPaymentReadiness({ readiness, locale }: { readiness?: PaymentPr
           <span className={`inline-flex min-h-7 items-center gap-1.5 rounded-md px-2 text-[8px] font-black uppercase ${state.className}`}><StateIcon className="h-3 w-3" />{state.label}</span>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 divide-x divide-burgundy/10 border-y border-burgundy/10 bg-white/70 text-center">
+        <div className="mt-4 grid grid-cols-2 divide-x divide-y divide-burgundy/10 border-y border-burgundy/10 bg-white/70 text-center sm:grid-cols-4 sm:divide-y-0">
           <PaymentReadinessFact label={isFr ? "Mode" : "Mode"} value={readiness.liveMode === true ? "LIVE" : readiness.liveMode === false ? "TEST" : isFr ? "Non vérifié" : "Unchecked"} />
+          <PaymentReadinessFact label={isFr ? "Socle client" : "Client baseline"} value={`${readyBaselineMethods.length}/${baselineMethods.length}`} />
           <PaymentReadinessFact label={isFr ? "Express" : "Express"} value={String(expressMethods.length)} />
           <PaymentReadinessFact label={isFr ? "Banques locales" : "Local banks"} value={String(localMethods.length)} />
         </div>
@@ -269,6 +274,12 @@ function EuropeanPaymentReadiness({ readiness, locale }: { readiness?: PaymentPr
         <div className="mt-4 flex flex-wrap gap-1.5" aria-label={isFr ? "Autres moyens activés" : "Other enabled methods"}>
           {availableMethods.filter((method) => method.role !== "essential").map((method) => <span key={method.method} className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-burgundy/10 bg-white px-2 text-[8px] font-black text-charcoal"><PaymentMethodIcon method={method} className="h-3 w-3 text-terre" />{paymentMethodLabel(method.method, locale)}</span>)}
           {!availableMethods.some((method) => method.role !== "essential") ? <p className="text-[9px] leading-4 text-muted-foreground">{isFr ? "Aucun wallet ou moyen local supplémentaire n’est actuellement activé dans cette configuration." : "No additional wallet or local method is currently enabled in this configuration."}</p> : null}
+        </div>
+        <div className="mt-3 border-t border-burgundy/10 pt-3" data-testid="payment-client-baseline">
+          <p className="mb-2 text-[8px] font-black uppercase text-muted-foreground">{isFr ? "Méthodes attendues dans le checkout Europe" : "Expected methods in European checkout"}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {baselineMethods.map((method) => <span key={method} className={`inline-flex min-h-7 items-center gap-1.5 rounded-md border px-2 text-[8px] font-black ${availableMethodSet.has(method) ? "border-burgundy/15 bg-burgundy/[0.055] text-burgundy" : "border-charcoal/10 bg-white text-muted-foreground"}`}><span className={`h-1.5 w-1.5 rounded-full ${availableMethodSet.has(method) ? "bg-burgundy" : "bg-terre/45"}`} />{paymentMethodLabel(method, locale)}</span>)}
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-burgundy/10 pt-3 text-[8px] font-bold text-muted-foreground"><span className="truncate">{readiness.configurationName || (isFr ? "Configuration non identifiée" : "Unidentified configuration")}{readiness.isDefault ? (isFr ? " · configuration par défaut" : " · default configuration") : ""}</span><span className="shrink-0 tabular-nums">{isFr ? "Contrôlé" : "Checked"} {formatDateTime(readiness.checkedAt, locale)}</span></div>

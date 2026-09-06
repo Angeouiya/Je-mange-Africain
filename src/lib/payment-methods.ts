@@ -1,3 +1,5 @@
+import { europeanCountryCode } from "@/lib/european-countries";
+
 export type PaymentMethodFamily = "card" | "wallet" | "bank" | "deferred" | "credit" | "other";
 
 export type ExpressPaymentAvailability = Partial<Record<"amazonPay" | "applePay" | "googlePay" | "link" | "paypal" | "klarna", boolean>>;
@@ -43,6 +45,19 @@ const PAYMENT_METHODS: Record<string, PaymentMethodDefinition> = {
   unknown: { label: ["Moyen enregistré avec la commande", "Method recorded with the order"], family: "other", hint: ["Moyen à confirmer dans le registre", "Method to confirm in the ledger"] },
 };
 
+const EUROPEAN_LOCAL_METHODS: Record<string, string[]> = {
+  AT: ["eps"],
+  BE: ["bancontact"],
+  CH: ["twint"],
+  DK: ["mobilepay"],
+  FI: ["mobilepay"],
+  FR: ["link"],
+  GB: ["link"],
+  NL: ["ideal"],
+  PL: ["p24"],
+  SE: ["swish"],
+};
+
 export function paymentMethodKey(value: unknown) {
   return String(value || "unknown").trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
@@ -86,6 +101,11 @@ export function checkoutPaymentMethodSummary(values: readonly string[] | null | 
   const visible = methods.slice(0, Math.max(1, limit)).map((method) => paymentMethodLabel(method, locale));
   const remaining = methods.length - visible.length;
   return remaining > 0 ? `${visible.join(", ")} +${remaining}` : visible.join(", ");
+}
+
+export function recommendedEuropeanPaymentMethods(country: unknown) {
+  const code = europeanCountryCode(country);
+  return uniquePaymentMethods(["card", "paypal", ...(code ? EUROPEAN_LOCAL_METHODS[code] || [] : [])]);
 }
 
 export function availableExpressPaymentMethods(availability: ExpressPaymentAvailability | null | undefined) {

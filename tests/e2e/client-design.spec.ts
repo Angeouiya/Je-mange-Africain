@@ -1584,6 +1584,11 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expect(checkoutProgress).toContainText(/adresse et transport|address and carrier/i);
   await expect(checkoutProgress).toContainText(/moyens adaptés à votre pays|methods tailored to your country|carte bancaire|payment card/i);
   await expect(checkoutProgress).toContainText(/contrôle final|final check/i);
+  const paymentPreview = page.getByTestId("checkout-payment-preview");
+  await expect(paymentPreview).toContainText("France");
+  await expect(paymentPreview).toContainText("Carte bancaire");
+  await expect(paymentPreview).toContainText("PayPal");
+  await expect(paymentPreview).toContainText("Link");
   const checkoutDock = page.getByTestId("checkout-action-dock");
   if (isMobile) {
     await expect(checkoutDock).toBeVisible();
@@ -1652,6 +1657,8 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expect(page.getByText("Format attendu pour Belgique : 1000.")).toBeVisible();
   await page.getByLabel(/code postal|postcode/i).fill("1000");
   await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Belgique");
+  await expect(paymentPreview).toContainText("Belgique");
+  await expect(paymentPreview).toContainText("Bancontact");
   await expect(page.locator("body")).not.toContainText(/doit être configuré avant l'ouverture|must be configured before orders/i);
   if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
     await expect(page.getByText(/paiement momentanément indisponible|payment temporarily unavailable/i)).toBeVisible();

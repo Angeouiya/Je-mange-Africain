@@ -24,7 +24,7 @@ import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStor
 import { ApiError, postJSON } from "@/lib/use-fetch";
 import { clearPendingCheckout, readPendingCheckout, rememberPendingCheckout, type PendingCheckoutPayload } from "@/lib/checkout-return";
 import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue, validateEuropeanPostalCode } from "@/lib/european-countries";
-import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMethodFamily, paymentMethodHint, paymentMethodLabel, uniquePaymentMethods } from "@/lib/payment-methods";
+import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMethodFamily, paymentMethodHint, paymentMethodLabel, recommendedEuropeanPaymentMethods, uniquePaymentMethods } from "@/lib/payment-methods";
 import { clearPaymentRecovery, readPaymentRecovery, rememberPaymentRecovery, type PaymentRecovery } from "@/lib/payment-recovery-storage";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -152,6 +152,7 @@ export function CheckoutView() {
         : baseEstimate;
   const shipFee = promotion?.freeShipping ? 0 : quotedFee;
   const displayTotal = intent?.amount ?? Math.max(0, subtotal - promoDiscount) + shipFee;
+  const anticipatedPaymentMethods = recommendedEuropeanPaymentMethods(form.country);
   const postalValidation = validateEuropeanPostalCode(form.country, form.postalCode);
   const normalizedAddress = {
     ...form,
@@ -355,7 +356,7 @@ export function CheckoutView() {
 
   const checkoutStages: JourneyStage[] = [
     { id: "delivery", label: t.checkout.delivery, detail: locale === "fr" ? "Adresse et transport" : "Address and carrier", icon: Truck },
-    { id: "payment", label: t.checkout.payment, detail: checkoutPaymentMethodSummary(intent?.paymentMethodTypes, locale), icon: CreditCard },
+    { id: "payment", label: t.checkout.payment, detail: checkoutPaymentMethodSummary(intent?.paymentMethodTypes || anticipatedPaymentMethods, locale), icon: CreditCard },
     { id: "review", label: t.checkout.review, detail: locale === "fr" ? "Contrôle final" : "Final check", icon: ShieldCheck },
   ];
   const review = (
@@ -483,6 +484,7 @@ export function CheckoutView() {
               </RadioGroup>
               {selectedShipping?.available ? <DeliveryPromise quote={selectedShipping} locale={locale} thermal={thermal} /> : null}
             </section>
+            <PaymentPreviewPanel country={form.country} methods={anticipatedPaymentMethods} locale={locale} />
             {paymentRecovery ? <PaymentRecoveryNotice recovery={paymentRecovery} locale={locale} onRetry={paymentRecovery.status === "finalization_pending" ? resumePaymentFinalization : undefined} retrying={processing} /> : null}
             {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
             <Button onClick={preparePayment} disabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise} aria-describedby={!stripePromise ? "checkout-payment-unavailable" : undefined} className="hidden w-full bg-terre text-cream hover:bg-terre-dark lg:flex">
@@ -790,6 +792,30 @@ function PaymentCapabilityPanel({ locale, methodTypes }: { locale: "fr" | "en"; 
         {methods.map((method) => <PaymentCapability key={method} method={method} locale={locale} />)}
       </div>
       {methods.includes("card") ? <p className="border-t border-burgundy/10 px-3.5 py-2 text-[9px] leading-4 text-muted-foreground">{locale === "fr" ? "Apple Pay et Google Pay apparaissent avec l'option carte lorsque l'appareil et la carte sont compatibles." : "Apple Pay and Google Pay appear with the card option when the device and card are compatible."}</p> : null}
+    </section>
+  );
+}
+
+function PaymentPreviewPanel({ country, methods, locale }: { country: string; methods: string[]; locale: "fr" | "en" }) {
+  const visibleMethods = methods.slice(0, 4);
+  const extraCount = Math.max(0, methods.length - visibleMethods.length);
+
+  return (
+    <section className="border-t border-border pt-5" aria-labelledby="checkout-payment-preview-title" data-testid="checkout-payment-preview">
+      <CheckoutSectionHeading id="checkout-payment-preview-title" icon={CreditCard} eyebrow={locale === "fr" ? "Paiement Europe" : "European payment"} title={locale === "fr" ? "Moyens attendus pour votre pays" : "Expected methods for your country"} />
+      <div className="mt-3 overflow-hidden border-y border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_62%,#FFF5E6_100%)]">
+        <div className="flex items-start justify-between gap-3 px-3.5 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-black text-charcoal">{europeanCountryLabel(country, locale)}</p>
+            <p className="mt-0.5 text-[9px] leading-4 text-muted-foreground">{locale === "fr" ? "Carte et PayPal restent prioritaires. Les options locales apparaissent selon votre pays, votre appareil et la configuration du prestataire." : "Card and PayPal remain primary. Local options appear based on your country, device and provider configuration."}</p>
+          </div>
+          <span className="shrink-0 rounded-md bg-gold/15 px-2 py-1 text-[9px] font-black text-charcoal">{methods.length} {locale === "fr" ? "option(s)" : "option(s)"}</span>
+        </div>
+        <div className="grid grid-cols-2 border-t border-burgundy/10 sm:grid-cols-4">
+          {visibleMethods.map((method) => <PaymentCapability key={method} method={method} locale={locale} />)}
+          {extraCount ? <div className="flex min-h-[3.9rem] items-center justify-center border-b border-r border-burgundy/10 px-3 py-3 text-[10px] font-black text-terre">+{extraCount}</div> : null}
+        </div>
+      </div>
     </section>
   );
 }

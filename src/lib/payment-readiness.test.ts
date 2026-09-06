@@ -28,9 +28,12 @@ describe("payment provider readiness", () => {
       paypal: { available: true },
       apple_pay: { available: true },
       google_pay: { available: true },
+      mobilepay: { available: true },
     }, "2026-09-06T12:00:00.000Z");
 
     expect(readiness).toMatchObject({ state: "ready", liveMode: false, card: true, paypal: true, configurationName: "Test configuration" });
+    expect(readiness.methods.find((method) => method.method === "mobilepay")).toMatchObject({ available: true, role: "local", markets: ["DK", "FI"] });
+    expect(readiness.methods.find((method) => method.method === "twint")).toMatchObject({ available: false, role: "local", markets: ["CH"] });
     expect(JSON.stringify(readiness)).not.toMatch(/secret|api[_-]?key|sk_/i);
   });
 });
