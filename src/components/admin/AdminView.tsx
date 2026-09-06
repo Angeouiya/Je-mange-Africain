@@ -47,20 +47,90 @@ import { useFetch } from "@/lib/use-fetch";
 import { hasAdminPermission, type AdminModule } from "@/lib/admin-permissions";
 import { BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
 
-const OverviewSection = dynamic(() => import("@/components/admin/sections/OverviewSection"), { loading: () => <AdminSectionLoading /> });
-const OfferSection = dynamic(() => import("@/components/admin/sections/OfferSection"), { loading: () => <AdminSectionLoading /> });
-const OrdersSection = dynamic(() => import("@/components/admin/sections/OrdersSection"), { loading: () => <AdminSectionLoading /> });
-const WholesaleQuotesSection = dynamic(() => import("@/components/admin/sections/WholesaleQuotesSection"), { loading: () => <AdminSectionLoading /> });
-const InventorySection = dynamic(() => import("@/components/admin/sections/InventorySection"), { loading: () => <AdminSectionLoading /> });
-const LogisticsSection = dynamic(() => import("@/components/admin/sections/LogisticsSection"), { loading: () => <AdminSectionLoading /> });
-const CustomersSection = dynamic(() => import("@/components/admin/sections/CustomersSection"), { loading: () => <AdminSectionLoading /> });
-const PromotionsSection = dynamic(() => import("@/components/admin/sections/PromotionsSection"), { loading: () => <AdminSectionLoading /> });
-const PushCampaignAdmin = dynamic(() => import("@/components/admin/PushCampaignAdmin").then((module) => module.PushCampaignAdmin), { loading: () => <AdminSectionLoading /> });
-const AdvertisingSection = dynamic(() => import("@/components/admin/sections/AdvertisingSection"), { loading: () => <AdminSectionLoading /> });
-const FinanceSection = dynamic(() => import("@/components/admin/sections/FinanceSection"), { loading: () => <AdminSectionLoading /> });
-const GovernanceSection = dynamic(() => import("@/components/admin/sections/GovernanceSection"), { loading: () => <AdminSectionLoading /> });
-const TeamSection = dynamic(() => import("@/components/admin/sections/TeamSection"), { loading: () => <AdminSectionLoading /> });
-const SettingsSection = dynamic(() => import("@/components/admin/sections/SettingsSection"), { loading: () => <AdminSectionLoading /> });
+type IdleWindow = Window & typeof globalThis & {
+  requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+type NetworkAwareNavigator = Navigator & {
+  connection?: {
+    effectiveType?: string;
+    saveData?: boolean;
+  };
+};
+
+const loadOverviewSection = () => import("@/components/admin/sections/OverviewSection");
+const loadOfferSection = () => import("@/components/admin/sections/OfferSection");
+const loadOrdersSection = () => import("@/components/admin/sections/OrdersSection");
+const loadWholesaleQuotesSection = () => import("@/components/admin/sections/WholesaleQuotesSection");
+const loadInventorySection = () => import("@/components/admin/sections/InventorySection");
+const loadLogisticsSection = () => import("@/components/admin/sections/LogisticsSection");
+const loadCustomersSection = () => import("@/components/admin/sections/CustomersSection");
+const loadPromotionsSection = () => import("@/components/admin/sections/PromotionsSection");
+const loadPushCampaignAdmin = () => import("@/components/admin/PushCampaignAdmin").then((module) => module.PushCampaignAdmin);
+const loadAdvertisingSection = () => import("@/components/admin/sections/AdvertisingSection");
+const loadFinanceSection = () => import("@/components/admin/sections/FinanceSection");
+const loadGovernanceSection = () => import("@/components/admin/sections/GovernanceSection");
+const loadTeamSection = () => import("@/components/admin/sections/TeamSection");
+const loadSettingsSection = () => import("@/components/admin/sections/SettingsSection");
+
+const OverviewSection = dynamic(loadOverviewSection, { loading: () => <AdminSectionLoading /> });
+const OfferSection = dynamic(loadOfferSection, { loading: () => <AdminSectionLoading /> });
+const OrdersSection = dynamic(loadOrdersSection, { loading: () => <AdminSectionLoading /> });
+const WholesaleQuotesSection = dynamic(loadWholesaleQuotesSection, { loading: () => <AdminSectionLoading /> });
+const InventorySection = dynamic(loadInventorySection, { loading: () => <AdminSectionLoading /> });
+const LogisticsSection = dynamic(loadLogisticsSection, { loading: () => <AdminSectionLoading /> });
+const CustomersSection = dynamic(loadCustomersSection, { loading: () => <AdminSectionLoading /> });
+const PromotionsSection = dynamic(loadPromotionsSection, { loading: () => <AdminSectionLoading /> });
+const PushCampaignAdmin = dynamic(loadPushCampaignAdmin, { loading: () => <AdminSectionLoading /> });
+const AdvertisingSection = dynamic(loadAdvertisingSection, { loading: () => <AdminSectionLoading /> });
+const FinanceSection = dynamic(loadFinanceSection, { loading: () => <AdminSectionLoading /> });
+const GovernanceSection = dynamic(loadGovernanceSection, { loading: () => <AdminSectionLoading /> });
+const TeamSection = dynamic(loadTeamSection, { loading: () => <AdminSectionLoading /> });
+const SettingsSection = dynamic(loadSettingsSection, { loading: () => <AdminSectionLoading /> });
+
+const ADMIN_SECTION_PRELOADERS: Record<AdminSectionId, () => Promise<unknown>> = {
+  overview: loadOverviewSection,
+  catalog: loadOfferSection,
+  recipes: loadOfferSection,
+  wholesaleQuotes: loadWholesaleQuotesSection,
+  orders: loadOrdersSection,
+  inventory: loadInventorySection,
+  logistics: loadLogisticsSection,
+  customers: loadCustomersSection,
+  promotions: loadPromotionsSection,
+  campaigns: loadPushCampaignAdmin,
+  advertising: loadAdvertisingSection,
+  finance: loadFinanceSection,
+  governance: loadGovernanceSection,
+  team: loadTeamSection,
+  settings: loadSettingsSection,
+};
+
+const preloadedAdminSections = new Set<AdminSectionId>();
+
+function preloadAdminSectionBundle(section: AdminSectionId) {
+  if (preloadedAdminSections.has(section)) return;
+  const loader = ADMIN_SECTION_PRELOADERS[section];
+  preloadedAdminSections.add(section);
+  void loader().catch(() => preloadedAdminSections.delete(section));
+}
+
+function shouldSkipAdminPreload() {
+  if (typeof navigator === "undefined") return true;
+  const connection = (navigator as NetworkAwareNavigator).connection;
+  return Boolean(connection?.saveData || connection?.effectiveType?.includes("2g"));
+}
+
+function scheduleAdminPreload(callback: () => void, timeout: number) {
+  const browserWindow = window as IdleWindow;
+  if (browserWindow.requestIdleCallback) {
+    const handle = browserWindow.requestIdleCallback(callback, { timeout });
+    return () => browserWindow.cancelIdleCallback?.(handle);
+  }
+  const handle = browserWindow.setTimeout(callback, Math.min(timeout, 900));
+  return () => browserWindow.clearTimeout(handle);
+}
 
 type NavItem = {
   id: AdminSectionId;
@@ -208,12 +278,28 @@ export function AdminView({
     return () => media.removeEventListener("change", syncViewport);
   }, []);
 
+  useEffect(() => {
+    if (!availableItems.length || shouldSkipAdminPreload()) return;
+
+    const prioritySectionIds = Array.from(new Set<AdminSectionId>([section, ...quickItems.map((item) => item.id)]));
+    const restSectionIds = availableItems.map((item) => item.id).filter((id) => !prioritySectionIds.includes(id));
+    const cancelPriority = scheduleAdminPreload(() => prioritySectionIds.forEach(preloadAdminSectionBundle), 500);
+    const cancelRest = scheduleAdminPreload(() => restSectionIds.forEach(preloadAdminSectionBundle), 1800);
+
+    return () => {
+      cancelPriority();
+      cancelRest();
+    };
+  }, [availableItems, quickItems, section]);
+
   const current = useMemo(() => availableItems.find((item) => item.id === section) || availableItems[0] || ALL_ITEMS[0], [availableItems, section]);
   const currentGroup = useMemo(() => availableGroups.find((group) => group.items.some((item) => item.id === current.id)) || availableGroups[0], [availableGroups, current.id]);
   const moreActive = !quickItems.some((item) => item.id === section);
   const isFr = locale === "fr";
+  const preloadAvailableSections = () => availableItems.forEach((item) => preloadAdminSectionBundle(item.id));
 
   const selectSection = (next: AdminSectionId) => {
+    preloadAdminSectionBundle(next);
     focusSectionTitleRef.current = next !== section;
     setSection(next);
     setSidebarOpen(false);
@@ -264,6 +350,9 @@ export function AdminView({
                       key={item.id}
                       type="button"
                       onClick={() => selectSection(item.id)}
+                      onPointerEnter={() => preloadAdminSectionBundle(item.id)}
+                      onFocus={() => preloadAdminSectionBundle(item.id)}
+                      onTouchStart={() => preloadAdminSectionBundle(item.id)}
                       aria-current={active ? "page" : undefined}
                       data-active={active ? "true" : "false"}
                       className={`group relative isolate flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2.5 text-left transition-all ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.72)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}
@@ -321,7 +410,7 @@ export function AdminView({
 
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
         <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/[0.97] px-4 shadow-[0_12px_28px_-28px_rgba(90,38,50,0.55)] backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
-          <button type="button" onClick={() => setSidebarOpen(true)} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.09),rgba(242,169,0,0.05))] text-charcoal transition hover:text-terre md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><Menu className="h-[1.15rem] w-[1.15rem]" /></button>
+          <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.09),rgba(242,169,0,0.05))] text-charcoal transition hover:text-terre md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><Menu className="h-[1.15rem] w-[1.15rem]" /></button>
           <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><current.icon className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0 flex-1">
             <p className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{current.marker} · {isFr ? currentGroup?.labelFr : currentGroup?.labelEn}</p>
@@ -359,7 +448,7 @@ export function AdminView({
           const active = section === item.id;
           const count = badgeFor(item.id);
           return (
-            <button key={item.id} type="button" onClick={() => selectSection(item.id)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-terre" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
+            <button key={item.id} type="button" onClick={() => selectSection(item.id)} onPointerEnter={() => preloadAdminSectionBundle(item.id)} onFocus={() => preloadAdminSectionBundle(item.id)} onTouchStart={() => preloadAdminSectionBundle(item.id)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-terre" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
               {active ? <motion.span layoutId="admin-mobile-nav-active" className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-terre/15 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.07))] shadow-[0_8px_22px_-18px_rgba(185,71,43,0.85)]" transition={{ type: "spring", stiffness: 460, damping: 38 }} /> : null}
               <span className="relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95" style={{ color: active ? item.accent : undefined }}><item.icon className={`h-[1.18rem] w-[1.18rem] ${active ? "stroke-[2.5]" : "stroke-[1.9]"}`} />{count > 0 ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">{count > 99 ? "99+" : count}</span> : null}</span>
               <span className="block max-w-full leading-[1.05]">{isFr ? item.mobileFr : item.mobileEn}</span>
@@ -367,7 +456,7 @@ export function AdminView({
             </button>
           );
         })}
-        <button type="button" onClick={() => setSidebarOpen(true)} aria-expanded={sidebarOpen} data-testid="admin-mobile-more" data-active={moreActive ? "true" : "false"} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${moreActive ? "text-burgundy" : "text-muted-foreground hover:text-charcoal"}`}>
+        <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} aria-expanded={sidebarOpen} data-testid="admin-mobile-more" data-active={moreActive ? "true" : "false"} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${moreActive ? "text-burgundy" : "text-muted-foreground hover:text-charcoal"}`}>
           {moreActive ? <span className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-burgundy/15 bg-[linear-gradient(145deg,rgba(138,48,66,0.11),rgba(242,169,0,0.06))]" /> : null}
           <span className="grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95"><Menu className={`h-[1.18rem] w-[1.18rem] ${moreActive ? "stroke-[2.5]" : "stroke-[1.9]"}`} /></span>
           <span>{isFr ? "Plus" : "More"}</span>
