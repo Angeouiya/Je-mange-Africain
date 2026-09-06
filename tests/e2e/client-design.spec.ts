@@ -72,7 +72,9 @@ async function expectBrandSafeUiColors(page: Page) {
 
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
   const deliveryRequests: Array<Record<string, unknown>> = [];
+  const catalogRequests: string[] = [];
   await page.route("**/api/catalog?*", async (route) => {
+    catalogRequests.push(route.request().url());
     const response = await route.fetch({ timeout: 45_000 });
     const payload = await response.json();
     if (Array.isArray(payload.products) && payload.products[0]) {
@@ -182,6 +184,12 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
   await expect(page.getByLabel(/rechercher dans le catalogue|search the catalogue/i)).toBeVisible();
   await expect(page.getByLabel(/trier les produits|sort products/i)).toBeVisible();
+  const quickSelections = page.getByRole("group", { name: /sélections rapides du catalogue|catalog quick selections/i });
+  await expect(quickSelections.getByRole("button", { name: /^(tout|all)$/i })).toHaveAttribute("aria-pressed", "true");
+  await quickSelections.getByRole("button", { name: /recommandés|recommended/i }).click();
+  await expect.poll(() => catalogRequests.some((url) => new URL(url).searchParams.get("highlight") === "recommended")).toBe(true);
+  await expect(quickSelections.getByRole("button", { name: /recommandés|recommended/i })).toHaveAttribute("aria-pressed", "true");
+  await quickSelections.getByRole("button", { name: /^(tout|all)$/i }).click();
   const catalogCampaign = page.getByTestId("advertisement-catalog");
   await expect(catalogCampaign).toContainText("Du marché à votre prochaine recette");
   await expectLoadedProductImages(catalogCampaign.getByRole("img"), 1);

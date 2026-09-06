@@ -2044,6 +2044,7 @@ test("the recipe register stays compact and exposes operational readiness", asyn
   expect(rowBox?.height || Number.POSITIVE_INFINITY).toBeLessThanOrEqual(mobile ? 180 : 100);
 
   const filters = page.getByRole("group", { name: "Filtrer le registre des recettes" });
+  await expect(filters.getByRole("button", { name: "Désactivées · 0" })).toBeVisible();
   await filters.getByRole("button", { name: /à vérifier/i }).click();
   await expect(row).toBeVisible();
   await filters.getByRole("button", { name: /brouillons/i }).click();

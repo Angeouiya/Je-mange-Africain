@@ -7,6 +7,12 @@ import { retailAvailableUnits } from "@/lib/inventory";
 import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
 
 export const dynamic = "force-dynamic";
+type CatalogHighlight = "all" | "available" | "sale" | "new" | "recommended" | "popular";
+const CATALOG_HIGHLIGHTS = new Set<CatalogHighlight>(["all", "available", "sale", "new", "recommended", "popular"]);
+
+function catalogHighlight(value: string | null): CatalogHighlight {
+  return CATALOG_HIGHLIGHTS.has(value as CatalogHighlight) ? (value as CatalogHighlight) : "all";
+}
 
 /** Localized product projection for storefront. */
 function project(p: any, locale: string) {
@@ -90,6 +96,7 @@ export async function GET(req: NextRequest) {
   const thermal = searchParams.get("thermal");
   const q = searchParams.get("q");
   const sort = searchParams.get("sort") || "popular";
+  const highlight = catalogHighlight(searchParams.get("highlight"));
   const maxPrice = searchParams.get("maxPrice");
   const page = parseInt(searchParams.get("page") || "1", 10);
   const pageSize = parseInt(searchParams.get("pageSize") || "12", 10);
@@ -125,14 +132,20 @@ export async function GET(req: NextRequest) {
 
   // list with filters
   const where: any = { status: "published", ...(channel === "wholesale" ? { isWholesale: true, wholesalePrice: { not: null } } : {}) };
+  const andFilters: any[] = [];
   if (category) where.categoryId = category;
   if (brand) where.brandId = brand;
   if (country) where.country = country;
   if (thermal) where.thermalClass = thermal;
   if (maxPrice) where[channel === "wholesale" ? "wholesalePrice" : "price"] = { lte: parseFloat(maxPrice) };
+  if (highlight === "available") andFilters.push({ stockQty: { gt: db.product.fields.reservedQty } });
+  if (highlight === "sale") where.isOnSale = true;
+  if (highlight === "new") where.isNew = true;
+  if (highlight === "recommended") where.isRecommended = true;
+  if (highlight === "popular") where.isBestseller = true;
   if (q) {
     const norm = normalize(q);
-    where.OR = [
+    andFilters.push({ OR: [
       { traditionalName: { contains: q } },
       { sku: { contains: q } },
       { country: { contains: q } },
@@ -140,8 +153,9 @@ export async function GET(req: NextRequest) {
       { category: { OR: [{ nameFr: { contains: q } }, { nameEn: { contains: q } }] } },
       { brand: { OR: [{ nameFr: { contains: q } }, { nameEn: { contains: q } }] } },
       { translations: { some: { OR: [{ name: { contains: q } }, { description: { contains: q } }, { ingredients: { contains: q } }] } } },
-    ];
+    ] });
   }
+  if (andFilters.length) where.AND = andFilters;
 
   let orderBy: any = [{ createdAt: "desc" }];
   if (sort === "popular") orderBy = [{ isBestseller: "desc" }, { stockQty: "desc" }];

@@ -19,13 +19,14 @@ type Product = { id: string; name: string; nameFr: string; nameEn: string; descr
 type Recipe = { id: string; title: string; description?: string; country: string; category: string; difficulty: string; timeMinutes: number; baseServings: number; imageColor: string; imageEmoji: string; imageUrl?: string | null; galleryUrls?: string[]; isPopular: boolean; isNew?: boolean; isRecommended?: boolean; status?: string; ingredientCount: number; requiredIngredientCount?: number; availableIngredientCount?: number; unpublishedIngredientCount?: number; stockCoverageRate?: number; needsAttention?: boolean; stepCount?: number; updatedAt?: string };
 type RecipeDetails = Recipe & { steps: string[]; ingredients: Array<{ recipeIngredientId: string; quantityPerBase: number; unit: string; optional: boolean; product: { id: string; traditionalName: string; emoji: string; imageUrl?: string | null; color?: string; nameFr: string; nameEn: string; stockQty: number; reservedQty?: number; availableQty?: number; status?: "draft" | "published" | "archived" } }> };
 type ProductFilter = "all" | "published" | "depleted" | "draft" | "archived" | "wholesale";
+type RecipeFilter = "all" | "published" | "draft" | "archived" | "attention";
 
 export default function OfferSection({ locale, workspace }: { locale: "fr" | "en"; workspace: "products" | "recipes" }) {
   const isFr = locale === "fr";
   const [query, setQuery] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [productFilter, setProductFilter] = useState<ProductFilter>("all");
-  const [recipeFilter, setRecipeFilter] = useState<"all" | "published" | "draft" | "attention">("all");
+  const [recipeFilter, setRecipeFilter] = useState<RecipeFilter>("all");
   const productsRequest = useFetch<{ products: Product[]; total: number }>(workspace === "products" ? `/api/admin/products?locale=${locale}` : null, [locale, workspace]);
   const recipesRequest = useFetch<{ recipes: Recipe[] }>(workspace === "recipes" ? `/api/admin/recipes?locale=${locale}` : null, [locale, workspace]);
   const recipeDetailsRequest = useFetch<RecipeDetails>(selectedRecipe ? `/api/admin/recipes/${selectedRecipe.id}?locale=${locale}` : null, [selectedRecipe?.id, locale]);
@@ -49,6 +50,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
   const recipeStats = useMemo(() => ({
     published: recipes.filter((recipe) => recipe.status === "published").length,
     draft: recipes.filter((recipe) => recipe.status === "draft").length,
+    archived: recipes.filter((recipe) => recipe.status === "archived").length,
     ready: recipes.filter((recipe) => !(recipe.needsAttention ?? ((recipe.stockCoverageRate ?? 100) < 100))).length,
     attention: recipes.filter((recipe) => recipe.needsAttention ?? ((recipe.stockCoverageRate ?? 100) < 100)).length,
   }), [recipes]);
@@ -78,7 +80,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
       {activeRequest.error && activeRequest.data ? <AdminRefreshNotice locale={locale} message={activeRequest.error} onRetry={activeRequest.refetch} /> : null}
 
       <div className="flex flex-col gap-3 border-y border-charcoal/8 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-        {workspace === "products" ? <div className="grid grid-cols-4 divide-x divide-charcoal/8"><RegisterMetric label={isFr ? "Publiés" : "Published"} value={productStats.published} /><RegisterMetric label={isFr ? "Rupture" : "Out"} value={productStats.depleted} attention={productStats.depleted > 0} /><RegisterMetric label={isFr ? "Brouillons" : "Drafts"} value={productStats.draft} /><RegisterMetric label={isFr ? "Désactivés" : "Disabled"} value={productStats.archived} /></div> : <div className="grid grid-cols-3 divide-x divide-charcoal/8"><RegisterMetric label={isFr ? "Publiées" : "Published"} value={recipeStats.published} /><RegisterMetric label={isFr ? "Prêtes" : "Ready"} value={recipeStats.ready} /><RegisterMetric label={isFr ? "À vérifier" : "Review"} value={recipeStats.attention} attention={recipeStats.attention > 0} /></div>}
+        {workspace === "products" ? <div className="grid grid-cols-4 divide-x divide-charcoal/8"><RegisterMetric label={isFr ? "Publiés" : "Published"} value={productStats.published} /><RegisterMetric label={isFr ? "Rupture" : "Out"} value={productStats.depleted} attention={productStats.depleted > 0} /><RegisterMetric label={isFr ? "Brouillons" : "Drafts"} value={productStats.draft} /><RegisterMetric label={isFr ? "Désactivés" : "Disabled"} value={productStats.archived} /></div> : <div className="grid grid-cols-4 divide-x divide-charcoal/8"><RegisterMetric label={isFr ? "Publiées" : "Published"} value={recipeStats.published} /><RegisterMetric label={isFr ? "Prêtes" : "Ready"} value={recipeStats.ready} /><RegisterMetric label={isFr ? "À vérifier" : "Review"} value={recipeStats.attention} attention={recipeStats.attention > 0} /><RegisterMetric label={isFr ? "Désactivées" : "Disabled"} value={recipeStats.archived} /></div>}
         <AdminSearchField
           value={query}
           onChange={setQuery}
@@ -105,6 +107,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         <RegisterFilterButton active={recipeFilter === "all"} onClick={() => setRecipeFilter("all")}>{isFr ? "Toutes" : "All"} · {recipes.length}</RegisterFilterButton>
         <RegisterFilterButton active={recipeFilter === "published"} onClick={() => setRecipeFilter("published")}>{isFr ? "Publiées" : "Published"} · {recipeStats.published}</RegisterFilterButton>
         <RegisterFilterButton active={recipeFilter === "draft"} onClick={() => setRecipeFilter("draft")}>{isFr ? "Brouillons" : "Drafts"} · {recipeStats.draft}</RegisterFilterButton>
+        <RegisterFilterButton active={recipeFilter === "archived"} onClick={() => setRecipeFilter("archived")}>{isFr ? "Désactivées" : "Disabled"} · {recipeStats.archived}</RegisterFilterButton>
         <RegisterFilterButton active={recipeFilter === "attention"} onClick={() => setRecipeFilter("attention")}>{isFr ? "À vérifier" : "Review"} · {recipeStats.attention}</RegisterFilterButton>
       </div> : null}
 
@@ -192,7 +195,7 @@ function RegisterFilterButton({ active, onClick, children }: { active: boolean; 
 
 function RecipeStatusBadge({ recipe, locale, compact = false }: { recipe: Recipe; locale: "fr" | "en"; compact?: boolean }) {
   if (recipe.status === "draft") return <Badge variant="outline" className="border-gold/50 bg-gold/[0.09] text-[9px] text-charcoal">{locale === "fr" ? "Brouillon" : "Draft"}</Badge>;
-  if (recipe.status === "archived") return <Badge variant="outline" className="border-charcoal/15 bg-white text-[9px] text-muted-foreground">{locale === "fr" ? "Archivée" : "Archived"}</Badge>;
+  if (recipe.status === "archived") return <Badge variant="outline" className="border-charcoal/15 bg-white text-[9px] text-muted-foreground">{locale === "fr" ? "Désactivée" : "Disabled"}</Badge>;
   if (compact) {
     const highlights = Number(Boolean(recipe.isNew)) + Number(Boolean(recipe.isRecommended)) + Number(Boolean(recipe.isPopular));
     return <div className="flex flex-col items-start gap-1"><Badge variant="outline" className="border-burgundy/25 bg-burgundy/[0.04] text-[9px] text-burgundy">{locale === "fr" ? "Publiée" : "Published"}</Badge>{highlights > 0 ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-[8px] font-bold text-terre"><Sparkles className="h-3 w-3" />{highlights} {locale === "fr" ? "mise(s) en avant" : "highlight(s)"}</span> : null}</div>;

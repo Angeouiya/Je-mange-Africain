@@ -312,6 +312,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { id } = await params;
   const recipe = await db.recipe.findUnique({ where: { id }, include: { translations: { take: 1 } } });
   if (!recipe) return NextResponse.json({ error: "Recette introuvable." }, { status: 404 });
+  const orderUsage = await db.orderItem.count({ where: { recipeId: id } });
+  if (orderUsage > 0) {
+    return NextResponse.json({ error: "Cette recette est déjà liée à des commandes. Désactivez-la pour la retirer de la boutique sans perdre la traçabilité." }, { status: 409 });
+  }
   await db.$transaction(async (transaction) => {
     await transaction.recipe.delete({ where: { id } });
     await transaction.auditLog.create({ data: { action: "recipe_delete", entityType: "Recipe", entityId: id, before: JSON.stringify({ slug: recipe.slug, title: recipe.translations[0]?.title }), reason: `Suppression définitive par ${authorization.user.email}` } });

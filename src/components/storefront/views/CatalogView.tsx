@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpDown, ChevronDown, PackageSearch, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpDown, BadgePercent, CheckCircle2, ChevronDown, PackageSearch, Search as SearchIcon, SlidersHorizontal, Sparkles, Star, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import { CategoryIcon } from "@/components/shared/CategoryIcon";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 
 const THERMALS = ["AMBIANT", "REFRIGERATED", "FROZEN"];
+type CatalogHighlight = "all" | "available" | "sale" | "new" | "recommended" | "popular";
 
 type CatalogResponse = {
   products: ProductListItem[];
@@ -42,6 +43,7 @@ export function CatalogView() {
   const [country, setCountry] = useState<string | null>(null);
   const [thermal, setThermal] = useState<string | null>(null);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [highlight, setHighlight] = useState<CatalogHighlight>("all");
   const [sort, setSort] = useState(params.sort || "popular");
   const [page, setPage] = useState(1);
   const [filtersOpenMobile, setFiltersOpenMobile] = useState(false);
@@ -56,7 +58,7 @@ export function CatalogView() {
   useEffect(() => { setCat(params.category || null); }, [params.category]);
   useEffect(() => { if (params.query !== undefined) setSearch(params.query); }, [params.query]);
   useEffect(() => { if (params.sort) setSort(params.sort); }, [params.sort]);
-  useEffect(() => { setPage(1); }, [search, cat, brand, country, thermal, maxPrice, sort]);
+  useEffect(() => { setPage(1); }, [search, cat, brand, country, thermal, maxPrice, highlight, sort]);
 
   const qs = new URLSearchParams({ locale, sort, page: String(page), pageSize: "12" });
   if (search) qs.set("q", search);
@@ -65,15 +67,33 @@ export function CatalogView() {
   if (country) qs.set("country", country);
   if (thermal) qs.set("thermal", thermal);
   if (maxPrice) qs.set("maxPrice", String(maxPrice));
+  if (highlight !== "all") qs.set("highlight", highlight);
 
-  const { data, loading, error, refetch } = useFetch<CatalogResponse>(`/api/catalog?${qs.toString()}`, [search, cat, brand, country, thermal, maxPrice, sort, page, locale]);
+  const { data, loading, error, refetch } = useFetch<CatalogResponse>(`/api/catalog?${qs.toString()}`, [search, cat, brand, country, thermal, maxPrice, highlight, sort, page, locale]);
 
   const filters = data?.filters;
-  const clearFilters = () => { setCat(null); setBrand(null); setCountry(null); setThermal(null); setMaxPrice(null); };
+  const clearFilters = () => { setCat(null); setBrand(null); setCountry(null); setThermal(null); setMaxPrice(null); setHighlight("all"); };
   const clearAll = () => { clearFilters(); setSearch(""); };
-  const activeFilterCount = [cat, brand, country, thermal, maxPrice].filter(Boolean).length;
+  const activeFilterCount = [cat, brand, country, thermal, maxPrice, highlight !== "all" ? highlight : null].filter(Boolean).length;
   const totalPages = data?.pages ?? 0;
+  const highlightLabels: Record<CatalogHighlight, string> = {
+    all: locale === "fr" ? "Tout" : "All",
+    available: locale === "fr" ? "Disponible" : "Available",
+    sale: locale === "fr" ? "Promos" : "Deals",
+    new: locale === "fr" ? "Nouveautés" : "New",
+    recommended: locale === "fr" ? "Recommandés" : "Recommended",
+    popular: locale === "fr" ? "Populaires" : "Popular",
+  };
+  const quickSelections = [
+    { id: "all" as const, label: highlightLabels.all, icon: Sparkles },
+    { id: "available" as const, label: highlightLabels.available, icon: CheckCircle2 },
+    { id: "sale" as const, label: highlightLabels.sale, icon: BadgePercent },
+    { id: "new" as const, label: highlightLabels.new, icon: Star },
+    { id: "recommended" as const, label: highlightLabels.recommended, icon: Sparkles },
+    { id: "popular" as const, label: highlightLabels.popular, icon: Trophy },
+  ];
   const activeFilters = [
+    highlight !== "all" ? { key: "highlight", label: highlightLabels[highlight], onClear: () => setHighlight("all") } : null,
     cat ? { key: "category", label: filters?.categories.find((item) => item.id === cat)?.name || t.catalog.category, onClear: () => setCat(null) } : null,
     brand ? { key: "brand", label: filters?.brands.find((item) => item.id === brand)?.name || t.catalog.brand, onClear: () => setBrand(null) } : null,
     country ? { key: "country", label: country, onClear: () => setCountry(null) } : null,
@@ -175,6 +195,18 @@ export function CatalogView() {
             </SheetContent>
           </Sheet>
         </div>
+        <div className="-mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label={locale === "fr" ? "Sélections rapides du catalogue" : "Catalog quick selections"}>
+          {quickSelections.map((selection) => (
+            <QuickSelectionButton
+              key={selection.id}
+              active={highlight === selection.id}
+              icon={selection.icon}
+              onClick={() => setHighlight(selection.id)}
+            >
+              {selection.label}
+            </QuickSelectionButton>
+          ))}
+        </div>
       </div>
 
       <StorefrontAdvertisement placement="catalog" className="mb-5 md:mb-6" />
@@ -257,6 +289,23 @@ function FilterChip({ active, onClick, children }: { active?: boolean; onClick: 
     </button>
   );
 }
+
+function QuickSelectionButton({ active, icon: Icon, onClick, children }: { active: boolean; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-[11px] font-black transition ${
+        active ? "border-burgundy bg-burgundy text-white shadow-sm" : "border-charcoal/10 bg-white text-charcoal hover:border-terre/30 hover:bg-terre/[0.035]"
+      }`}
+    >
+      <Icon className="h-4 w-4" strokeWidth={1.8} />
+      <span>{children}</span>
+    </button>
+  );
+}
+
 function ActiveFilter({ onClear, ariaLabel, children }: { onClear: () => void; ariaLabel: string; children: React.ReactNode }) {
   return (
     <Badge variant="outline" className="gap-1 border-terre/40 bg-terre/5 text-terre">

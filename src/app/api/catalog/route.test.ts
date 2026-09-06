@@ -6,11 +6,12 @@ const mocks = vi.hoisted(() => ({
   productCount: vi.fn(),
   categoryFindMany: vi.fn(),
   brandFindMany: vi.fn(),
+  productReservedQtyField: { _ref: "Product.reservedQty" },
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
-    product: { findMany: mocks.productFindMany, count: mocks.productCount },
+    product: { findMany: mocks.productFindMany, count: mocks.productCount, fields: { reservedQty: mocks.productReservedQtyField } },
     category: { findMany: mocks.categoryFindMany },
     brand: { findMany: mocks.brandFindMany },
   },
@@ -71,5 +72,27 @@ describe("GET /api/catalog", () => {
     expect(response.status).toBe(200);
     expect(payload.products[0]).toMatchObject({ id: "product-1", stockQty: 0 });
     expect(payload.products[0]).not.toHaveProperty("reservedQty");
+  });
+
+  it("applies quick selection filters before projecting storefront products", async () => {
+    const response = await GET(new NextRequest("http://localhost/api/catalog?locale=fr&highlight=available&q=attieke"));
+    const payload = await response.json();
+    const where = mocks.productCount.mock.calls[0]?.[0]?.where;
+
+    expect(response.status).toBe(200);
+    expect(payload.total).toBe(1);
+    expect(where.status).toBe("published");
+    expect(where.AND).toEqual(expect.arrayContaining([
+      { stockQty: { gt: mocks.productReservedQtyField } },
+      expect.objectContaining({ OR: expect.any(Array) }),
+    ]));
+  });
+
+  it("reflects admin recommendation flags in the catalogue query", async () => {
+    const response = await GET(new NextRequest("http://localhost/api/catalog?locale=fr&highlight=recommended"));
+    const where = mocks.productCount.mock.calls[0]?.[0]?.where;
+
+    expect(response.status).toBe(200);
+    expect(where).toMatchObject({ status: "published", isRecommended: true });
   });
 });

@@ -4,11 +4,13 @@ import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
   recipeFindUnique: vi.fn(),
+  recipeDelete: vi.fn(),
   productFindMany: vi.fn(),
   recipeUpdate: vi.fn(),
   translationUpsert: vi.fn(),
   ingredientDeleteMany: vi.fn(),
   ingredientCreateMany: vi.fn(),
+  orderItemCount: vi.fn(),
   auditCreate: vi.fn(),
 }));
 
@@ -20,7 +22,7 @@ vi.mock("@/lib/market-media", () => ({
 }));
 vi.mock("@/lib/db", () => {
   const transaction = {
-    recipe: { update: mocks.recipeUpdate },
+    recipe: { update: mocks.recipeUpdate, delete: mocks.recipeDelete },
     recipeTranslation: { upsert: mocks.translationUpsert },
     recipeIngredient: { deleteMany: mocks.ingredientDeleteMany, createMany: mocks.ingredientCreateMany },
     auditLog: { create: mocks.auditCreate },
@@ -29,13 +31,14 @@ vi.mock("@/lib/db", () => {
     db: {
       recipe: { findUnique: mocks.recipeFindUnique, update: mocks.recipeUpdate },
       product: { findMany: mocks.productFindMany },
+      orderItem: { count: mocks.orderItemCount },
       auditLog: { create: mocks.auditCreate },
       $transaction: vi.fn((operation: (client: typeof transaction) => unknown) => operation(transaction)),
     },
   };
 });
 
-import { PATCH } from "@/app/api/admin/recipes/[id]/route";
+import { DELETE, PATCH } from "@/app/api/admin/recipes/[id]/route";
 import { parseRecipeSteps } from "@/lib/recipe-step-storage";
 
 const validRecipe = {
@@ -120,6 +123,10 @@ const publishReadyTranslations = [
 
 function request(body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/admin/recipes/recipe-1", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+}
+
+function deleteRequest() {
+  return new NextRequest("http://localhost/api/admin/recipes/recipe-1", { method: "DELETE" });
 }
 
 describe("PATCH /api/admin/recipes/:id", () => {
@@ -298,5 +305,37 @@ describe("PATCH /api/admin/recipes/:id", () => {
     expect(mocks.recipeUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: "published" }),
     }));
+  });
+});
+
+describe("DELETE /api/admin/recipes/:id", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.authorize.mockResolvedValue({ ok: true, user: { id: "admin-1", email: "direction@je-mange-africain.com", role: "super_admin" } });
+    mocks.recipeFindUnique.mockResolvedValue({ id: "recipe-1", slug: "attieke-poisson-braise", translations: [{ title: "Attiéké poisson braisé" }] });
+    mocks.orderItemCount.mockResolvedValue(0);
+    mocks.recipeDelete.mockResolvedValue({ id: "recipe-1" });
+    mocks.auditCreate.mockResolvedValue({ id: "audit-1" });
+  });
+
+  it("deletes an unused recipe and records the action", async () => {
+    const response = await DELETE(deleteRequest(), { params: Promise.resolve({ id: "recipe-1" }) });
+
+    expect(response.status).toBe(200);
+    expect(mocks.orderItemCount).toHaveBeenCalledWith({ where: { recipeId: "recipe-1" } });
+    expect(mocks.recipeDelete).toHaveBeenCalledWith({ where: { id: "recipe-1" } });
+    expect(mocks.auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ action: "recipe_delete", entityId: "recipe-1" }) });
+  });
+
+  it("refuses to delete a recipe already attached to customer orders", async () => {
+    mocks.orderItemCount.mockResolvedValue(2);
+
+    const response = await DELETE(deleteRequest(), { params: Promise.resolve({ id: "recipe-1" }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.error).toContain("liée à des commandes");
+    expect(mocks.recipeDelete).not.toHaveBeenCalled();
+    expect(mocks.auditCreate).not.toHaveBeenCalled();
   });
 });
