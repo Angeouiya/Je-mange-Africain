@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cloudflareDeploymentReadiness, platformIntegrationStatus } from "./platform-configuration";
+import { PRODUCTION_WORKERS_DEV_URL, cloudflareDeploymentReadiness, platformIntegrationStatus } from "./platform-configuration";
 
 describe("platform production readiness", () => {
   it("never presents an ephemeral SQLite database as production-ready on Cloudflare", () => {
@@ -59,6 +59,35 @@ describe("platform production readiness", () => {
     expect(integrations.find((integration) => integration.id === "database")).toMatchObject({ provider: "PostgreSQL", capabilities: { production: true } });
     expect(integrations.find((integration) => integration.id === "identity")).toMatchObject({ provider: "Supabase", capabilities: { project: true } });
     expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ provider: "Cloudflare Workers", capabilities: { runtime: true } });
+  });
+
+  it("treats workers.dev publication as deployable while the custom domain is deferred", () => {
+    const environment = {
+      DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
+      NODE_ENV: "production",
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SITE_URL: PRODUCTION_WORKERS_DEV_URL,
+      NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
+      STRIPE_SECRET_KEY: "sk_live_example",
+      STRIPE_WEBHOOK_SECRET: "whsec_example",
+      UPSTASH_REDIS_REST_URL: "https://cache.example.test",
+      UPSTASH_REDIS_REST_TOKEN: "redis_token",
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: "push_public",
+      VAPID_PRIVATE_KEY: "push_private",
+      VAPID_SUBJECT: "mailto:contact@je-mange-africain.com",
+    } as const;
+
+    const integrations = platformIntegrationStatus(true, environment);
+    const readiness = cloudflareDeploymentReadiness(true, environment);
+
+    expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ state: "ready", capabilities: { domainDeferred: true, domain: false } });
+    expect(readiness.ready).toBe(true);
+    expect(readiness.blockers).toEqual([]);
+    expect(readiness.requirements.find((requirement) => requirement.id === "cloudflare-domain")).toMatchObject({ satisfied: false, severity: "recommended" });
   });
 
   it("refuses to treat another Supabase project as the production identity target", () => {

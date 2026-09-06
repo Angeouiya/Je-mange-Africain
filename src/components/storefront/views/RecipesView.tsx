@@ -2,7 +2,14 @@
 
 import { useDeferredValue, useState } from "react";
 import Image from "next/image";
-import { BookOpen, ChefHat, Globe2, MapPin, Search, Sparkles, UtensilsCrossed, X } from "lucide-react";
+import { BookOpen } from "reicon/icons/BookOpen";
+import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
+import { ForkKnife } from "reicon/icons/ForkKnife";
+import { Globe2 } from "reicon/icons/Globe2";
+import { MapPoint } from "reicon/icons/MapPoint";
+import { Search } from "reicon/icons/Search";
+import { Sparkle } from "reicon/icons/Sparkle";
+import { X } from "reicon/icons/X";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/lib/store";
@@ -12,6 +19,7 @@ import { RecipeCard, type RecipeListItem } from "@/components/shared/RecipeCard"
 import { DishDetailsDialog, DishLibraryCard, type DishLibraryItem } from "@/components/shared/DishLibraryCard";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 
 type CategoryOption = { slug: string; name: string };
@@ -71,15 +79,15 @@ export function RecipesView() {
         <Image src="/recipe-library-hero.webp" alt="" fill sizes="(max-width: 767px) 100vw, calc(100vw - 16rem)" className="object-cover object-center" priority />
         <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/55 md:via-white/90 md:to-white/20" />
         <div className="relative flex min-h-[14.5rem] max-w-3xl flex-col justify-center p-4 md:min-h-[16.5rem] md:p-7">
-          <p className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase text-terre"><Sparkles className="h-3.5 w-3.5" />{isFr ? "Cuisine africaine, panier intelligent" : "African cooking, smart basket"}</p>
+          <p className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase text-terre"><ReiconGlyph icon={Sparkle} className="h-3.5 w-3.5" />{isFr ? "Cuisine africaine, panier intelligent" : "African cooking, smart basket"}</p>
           <h1 className="mt-1.5 max-w-xl font-display text-2xl font-semibold leading-tight text-charcoal md:text-4xl">{t.recipes.title}</h1>
           <p className="mt-1.5 line-clamp-2 max-w-xl text-[11px] leading-4 text-charcoal/75 md:text-sm md:leading-5">{t.recipes.subtitle}</p>
           <div className="mt-3 max-w-2xl rounded-md border border-burgundy/15 bg-white p-1 shadow-[0_12px_34px_-24px_rgba(138,48,66,0.45)]">
             <label className="flex h-9 items-center gap-2 px-2.5">
-              <Search className="h-4 w-4 shrink-0 text-terre" />
+              <ReiconGlyph icon={Search} className="h-4 w-4 shrink-0 text-terre" />
               <span className="sr-only">{isFr ? "Rechercher une recette ou un plat" : "Search for a recipe or dish"}</span>
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={isFr ? "Plat, ingrédient ou origine" : "Dish, ingredient or origin"} aria-label={isFr ? "Rechercher une recette ou un plat" : "Search for a recipe or dish"} className="min-w-0 flex-1 bg-transparent text-xs text-charcoal outline-none placeholder:text-muted-foreground md:text-sm" />
-              {search ? <button type="button" onClick={() => setSearch("")} className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy" aria-label={isFr ? "Effacer la recherche" : "Clear search"}><X className="h-3.5 w-3.5" /></button> : null}
+              {search ? <button type="button" onClick={() => setSearch("")} className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy" aria-label={isFr ? "Effacer la recherche" : "Clear search"}><ReiconGlyph icon={X} className="h-3.5 w-3.5" /></button> : null}
             </label>
           </div>
           <div className="mt-2 flex max-w-2xl gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -93,11 +101,11 @@ export function RecipesView() {
       <Tabs value={mode} onValueChange={changeMode} className="gap-3">
         <TabsList className="grid h-auto min-h-[4.75rem] w-full grid-cols-2 overflow-hidden border border-burgundy/12 bg-[#FBF7F5] p-0 sm:w-[36rem]">
           <TabsTrigger value="recipes" className="group relative h-auto min-w-0 justify-start gap-2.5 rounded-none border-0 px-3 py-2.5 text-left shadow-none data-[state=active]:bg-white data-[state=active]:shadow-[0_14px_30px_-26px_rgba(90,38,50,0.75)] sm:px-4">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-terre/15 bg-terre/[0.07] text-terre group-data-[state=active]:border-terre/35 group-data-[state=active]:bg-[#FFF0E9]"><UtensilsCrossed className="h-4 w-4" /></span>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-terre/15 bg-terre/[0.07] text-terre group-data-[state=active]:border-terre/35 group-data-[state=active]:bg-[#FFF0E9]"><ReiconGlyph icon={ForkKnife} className="h-4 w-4" /></span>
             <span className="min-w-0"><span className="block truncate text-[11px] font-black text-charcoal sm:text-xs">{isFr ? "Recettes à cuisiner" : "Recipes to cook"}</span><span className="mt-0.5 block line-clamp-2 whitespace-normal text-[8px] font-semibold leading-3.5 text-muted-foreground sm:text-[9px]">{isFr ? "Personnaliser puis créer le panier" : "Customise then build the basket"}</span></span>
           </TabsTrigger>
           <TabsTrigger value="library" className="group relative h-auto min-w-0 justify-start gap-2.5 rounded-none border-0 border-l border-burgundy/10 px-3 py-2.5 text-left shadow-none data-[state=active]:bg-white data-[state=active]:shadow-[0_14px_30px_-26px_rgba(90,38,50,0.75)] sm:px-4">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-burgundy/15 bg-burgundy/[0.06] text-burgundy group-data-[state=active]:border-burgundy/35 group-data-[state=active]:bg-[#F8EBEE]"><BookOpen className="h-4 w-4" /></span>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-burgundy/15 bg-burgundy/[0.06] text-burgundy group-data-[state=active]:border-burgundy/35 group-data-[state=active]:bg-[#F8EBEE]"><ReiconGlyph icon={BookOpen} className="h-4 w-4" /></span>
             <span className="min-w-0"><span className="block truncate text-[11px] font-black text-charcoal sm:text-xs">{isFr ? "Atlas des plats" : "Dish atlas"}</span><span className="mt-0.5 block line-clamp-2 whitespace-normal text-[8px] font-semibold leading-3.5 text-muted-foreground sm:text-[9px]">{isFr ? "Explorer les cuisines par origine" : "Explore cuisines by origin"}</span></span>
           </TabsTrigger>
         </TabsList>
@@ -108,15 +116,15 @@ export function RecipesView() {
             {categories.map((item) => <FilterButton key={item.slug} active={category === item.slug} onClick={() => setCategory(category === item.slug ? null : item.slug)}>{item.name}</FilterButton>)}
           </div>
           {mode === "library" ? <div className="mt-2 flex items-center gap-1.5 overflow-x-auto border-t border-charcoal/8 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <MapPin className="mr-0.5 h-4 w-4 shrink-0 text-terre" />
-            <FilterButton active={!country} onClick={() => setCountry("")}><Globe2 className="mr-1 inline h-3 w-3" />{isFr ? "Toute l'Afrique" : "All Africa"}</FilterButton>
+            <ReiconGlyph icon={MapPoint} className="mr-0.5 h-4 w-4 shrink-0 text-terre" />
+            <FilterButton active={!country} onClick={() => setCountry("")}><ReiconGlyph icon={Globe2} className="mr-1 inline h-3 w-3" />{isFr ? "Toute l'Afrique" : "All Africa"}</FilterButton>
             {(dishData?.countries || []).map((item) => <FilterButton key={item} active={country === item} onClick={() => setCountry(country === item ? "" : item)}>{item}</FilterButton>)}
           </div> : null}
           <div className="mt-2 flex items-end justify-between gap-3 border-t border-charcoal/8 pt-2">
             <div><p className="text-[9px] font-black uppercase text-terre">{mode === "recipes" ? (isFr ? "Prêts à personnaliser" : "Ready to personalise") : (isFr ? "Patrimoine culinaire" : "Culinary heritage")}</p><h2 className="mt-0.5 text-sm font-black text-charcoal">{mode === "recipes" ? (isFr ? "Choisissez votre prochain repas" : "Choose your next meal") : (isFr ? "Explorez les plats par origine" : "Explore dishes by origin")}</h2></div>
             <div className="shrink-0 text-right" aria-live="polite"><p className="text-sm font-black tabular-nums text-burgundy">{resultCount}</p><p className="text-[8px] text-muted-foreground">{mode === "recipes" ? (isFr ? "recettes" : "recipes") : (isFr ? "fiches" : "records")}</p></div>
           </div>
-          {hasFilters ? <button type="button" onClick={resetFilters} className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-md border border-burgundy/15 bg-white px-2.5 text-[9px] font-bold text-burgundy hover:bg-burgundy/[0.04]"><X className="h-3 w-3" />{isFr ? "Effacer les filtres" : "Clear filters"}</button> : null}
+          {hasFilters ? <button type="button" onClick={resetFilters} className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-md border border-burgundy/15 bg-white px-2.5 text-[9px] font-bold text-burgundy hover:bg-burgundy/[0.04]"><ReiconGlyph icon={X} className="h-3 w-3" />{isFr ? "Effacer les filtres" : "Clear filters"}</button> : null}
         </section>
 
         <TabsContent value="recipes">
@@ -141,5 +149,5 @@ function ResultSkeleton() {
 }
 
 function EmptyResult({ locale, onReset, library }: { locale: "fr" | "en"; onReset: () => void; library: boolean }) {
-  return <div className="col-span-full border-y border-dashed border-charcoal/15 py-12 text-center">{library ? <BookOpen className="mx-auto h-9 w-9 text-terre" /> : <ChefHat className="mx-auto h-9 w-9 text-terre" />}<p className="mt-3 text-sm font-black text-charcoal">{locale === "fr" ? "Aucun plat ne correspond à cette recherche." : "No dish matches this search."}</p><button type="button" onClick={onReset} className="mt-2 text-xs font-bold text-burgundy hover:underline">{locale === "fr" ? "Réinitialiser la bibliothèque" : "Reset the library"}</button></div>;
+  return <div className="col-span-full border-y border-dashed border-charcoal/15 py-12 text-center">{library ? <ReiconGlyph icon={BookOpen} className="mx-auto h-9 w-9 text-terre" /> : <ReiconGlyph icon={ChefHatHeart} className="mx-auto h-9 w-9 text-terre" />}<p className="mt-3 text-sm font-black text-charcoal">{locale === "fr" ? "Aucun plat ne correspond à cette recherche." : "No dish matches this search."}</p><button type="button" onClick={onReset} className="mt-2 text-xs font-bold text-burgundy hover:underline">{locale === "fr" ? "Réinitialiser la bibliothèque" : "Reset the library"}</button></div>;
 }

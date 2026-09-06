@@ -14,7 +14,7 @@
 Configure the variables documented in `.env.example` in the production host. Never expose `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` or `UPSTASH_REDIS_REST_TOKEN` to the browser.
 
 Use the pooled Supabase PostgreSQL connection for the application runtime. Keep a direct database URL available for operational migrations when the provider requires it.
-Production is pinned to Supabase project `ahigidhuhqcmxzjxetnw` and Cloudflare account `82164eca9557f63e18984230deac12bc`. The release guard refuses another Supabase URL, including previous staging projects.
+Production is pinned to Supabase project `JMA` (`ahigidhuhqcmxzjxetnw`) and Cloudflare account `82164eca9557f63e18984230deac12bc`. The release guard refuses another Supabase URL, including previous staging projects.
 
 The production autopilot prints only key names and readiness states. It never prints secret values.
 
@@ -27,7 +27,8 @@ npm run production:open-dashboards
 ## Frontend deployment
 
 The production frontend is Cloudflare Workers, not Vercel. Keep the root `wrangler.jsonc` committed as the source of truth for account, Worker name, assets and observability.
-The deploy command refuses to publish when production secrets are incomplete, when `DATABASE_URL` still points to a local SQLite database, or when Supabase points to a project other than `ahigidhuhqcmxzjxetnw`.
+The first Cloudflare release publishes on `https://je-mange-africain.jobbook-africa.workers.dev`. `je-mange-africain.com` stays a prepared final domain and will be attached later once DNS is ready.
+The deploy command refuses to publish when production secrets are incomplete, when `DATABASE_URL` still points to a local SQLite database, or when Supabase points to a project other than `JMA` (`ahigidhuhqcmxzjxetnw`).
 
 ```bash
 npm run cloudflare:check
@@ -41,7 +42,13 @@ For an existing Worker, refresh secrets without deploying code:
 npm run production:sync-cloudflare
 ```
 
-For a first production Worker, `npm run cloudflare:deploy` uses a temporary secrets file with `wrangler deploy --secrets-file`, so the Worker can be created and configured in the same release.
+To create the Cloudflare Worker before the production secrets are ready, publish the safe bootstrap Worker on `workers.dev`:
+
+```bash
+npm run cloudflare:create
+```
+
+For the first complete application release, `npm run cloudflare:deploy` uses a temporary secrets file with `wrangler deploy --secrets-file`, so the bootstrap Worker is replaced by the real platform and configured in the same release.
 
 For a local Workers-runtime preview after a successful vinext build:
 

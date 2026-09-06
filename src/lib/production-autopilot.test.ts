@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLOUDFLARE_PUBLICATION_MODE,
   printProductionReadiness,
   productionReadiness,
   PRODUCTION_SITE_URL,
+  PRODUCTION_WORKERS_DEV_URL,
+  PRODUCTION_SUPABASE_PROJECT_NAME,
   PRODUCTION_SUPABASE_PROJECT_REF,
   PRODUCTION_SUPABASE_URL,
   supabaseCliReadiness,
@@ -35,13 +38,26 @@ describe("production autopilot", () => {
     CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
   };
 
-  it("accepts only the production Supabase project and Workers target", () => {
+  it("accepts only the JMA Supabase project and Workers target", () => {
     const report = productionReadiness(environment(readyValues));
 
     expect(report.ready).toBe(true);
+    expect(report.target.supabaseName).toBe(PRODUCTION_SUPABASE_PROJECT_NAME);
     expect(report.target.supabaseRef).toBe(PRODUCTION_SUPABASE_PROJECT_REF);
     expect(report.target.supabaseUrl).toBe(PRODUCTION_SUPABASE_URL);
     expect(report.target.siteUrl).toBe(PRODUCTION_SITE_URL);
+    expect(report.target.workersDevUrl).toBe(PRODUCTION_WORKERS_DEV_URL);
+    expect(report.target.publicationMode).toBe(CLOUDFLARE_PUBLICATION_MODE);
+    expect(report.blockers).toEqual([]);
+  });
+
+  it("allows the initial Cloudflare launch to use an HTTPS workers.dev URL", () => {
+    const report = productionReadiness(environment({
+      ...readyValues,
+      NEXT_PUBLIC_SITE_URL: PRODUCTION_WORKERS_DEV_URL,
+    }));
+
+    expect(report.ready).toBe(true);
     expect(report.blockers).toEqual([]);
   });
 

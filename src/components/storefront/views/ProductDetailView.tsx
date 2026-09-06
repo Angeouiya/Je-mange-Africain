@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Heart, Plus, Minus, Truck, ShieldCheck, Snowflake, FileText, Activity, CookingPot, Refrigerator, Barcode } from "lucide-react";
+import { Activity } from "reicon/icons/Activity";
+import { Barcode } from "reicon/icons/Barcode";
+import { CartAdd } from "reicon/icons/CartAdd";
+import { ChefHat } from "reicon/icons/ChefHat";
+import { FileText } from "reicon/icons/FileText";
+import { Fridge } from "reicon/icons/Fridge";
+import { Heart } from "reicon/icons/Heart";
+import { Minus } from "reicon/icons/Minus";
+import { Plus } from "reicon/icons/Plus";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
+import { Snowflake } from "reicon/icons/Snowflake";
+import { Truck } from "reicon/icons/Truck";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +24,7 @@ import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
 import { dict, type Locale } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
@@ -194,7 +206,7 @@ export function ProductDetailView() {
         <div className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium ${thermalColor(product.thermalClass)}`}>
-              <Snowflake className="mr-1 h-3 w-3" /> {thermalLabel(product.thermalClass, locale)}
+              <ReiconGlyph icon={Snowflake} className="mr-1 h-3 w-3" /> {thermalLabel(product.thermalClass, locale)}
             </span>
             {discountPercent > 0 && <Badge className="bg-destructive text-white border-0">-{discountPercent}%</Badge>}
             {editorialHighlight ? <Badge className={`border-0 ${editorialHighlight === "new" ? "bg-gold text-charcoal" : editorialHighlight === "recommended" ? "bg-terre text-white" : "bg-burgundy text-cream"}`}>{editorialLabel}</Badge> : null}
@@ -267,13 +279,13 @@ export function ProductDetailView() {
           {/* trust badges */}
           <div className="grid min-w-0 grid-cols-3 gap-2 border-t border-border pt-4 text-center">
             <div className="flex min-w-0 flex-col items-center gap-1 text-[11px] leading-tight text-muted-foreground">
-              <Truck className="h-4 w-4 text-terre" /> {locale === "fr" ? "Livraison suivie" : "Tracked delivery"}
+              <ReiconGlyph icon={Truck} className="h-4 w-4 text-terre" /> {locale === "fr" ? "Livraison suivie" : "Tracked delivery"}
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1 text-[11px] leading-tight text-muted-foreground">
-              <Snowflake className="h-4 w-4 text-burgundy" /> {locale === "fr" ? "Chaîne du froid" : "Cold chain"}
+              <ReiconGlyph icon={Snowflake} className="h-4 w-4 text-burgundy" /> {locale === "fr" ? "Chaîne du froid" : "Cold chain"}
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1 text-[11px] leading-tight text-muted-foreground">
-              <ShieldCheck className="h-4 w-4 text-gold" /> {locale === "fr" ? "Traçabilité" : "Traceability"}
+              <ReiconGlyph icon={ShieldCheck} className="h-4 w-4 text-gold" /> {locale === "fr" ? "Traçabilité" : "Traceability"}
             </div>
           </div>
 
@@ -285,17 +297,17 @@ export function ProductDetailView() {
               <ProductFact label={locale === "fr" ? "Origine" : "Origin"} value={product.country || "—"} />
               <ProductFact label={locale === "fr" ? "Format" : "Pack"} value={variant?.label || product.packaging || "—"} />
               <ProductFact label={locale === "fr" ? "Conservation" : "Storage"} value={thermalLabel(product.thermalClass, locale)} />
-              <ProductFact label={locale === "fr" ? "Référence" : "Reference"} value={product.sku || "—"} icon={<Barcode className="h-3.5 w-3.5" />} />
+              <ProductFact label={locale === "fr" ? "Référence" : "Reference"} value={product.sku || "—"} icon={<ReiconGlyph icon={Barcode} className="h-3.5 w-3.5" />} />
             </dl>
           </section>
 
           {/* tabs */}
           <Tabs defaultValue="desc" className="mt-2 min-w-0">
             <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-              <TabsTrigger value="desc" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><FileText className="h-3.5 w-3.5" />{t.product.description}</TabsTrigger>
-              <TabsTrigger value="nutri" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><Activity className="h-3.5 w-3.5" />{t.product.nutrition}</TabsTrigger>
-              <TabsTrigger value="prep" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><CookingPot className="h-3.5 w-3.5" />{t.product.preparation}</TabsTrigger>
-              <TabsTrigger value="store" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><Refrigerator className="h-3.5 w-3.5" />{t.product.storage}</TabsTrigger>
+              <TabsTrigger value="desc" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><ReiconGlyph icon={FileText} className="h-3.5 w-3.5" />{t.product.description}</TabsTrigger>
+              <TabsTrigger value="nutri" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><ReiconGlyph icon={Activity} className="h-3.5 w-3.5" />{t.product.nutrition}</TabsTrigger>
+              <TabsTrigger value="prep" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><ReiconGlyph icon={ChefHat} className="h-3.5 w-3.5" />{t.product.preparation}</TabsTrigger>
+              <TabsTrigger value="store" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><ReiconGlyph icon={Fridge} className="h-3.5 w-3.5" />{t.product.storage}</TabsTrigger>
             </TabsList>
             <TabsContent value="desc" className="text-sm leading-relaxed text-charcoal">
               <p>{product.description}</p>
@@ -366,16 +378,16 @@ function PurchaseControls({ productName, qty, maxQty, onQtyChange, onAdd, outOfS
   const controls = (
     <div className={`flex min-w-0 items-center gap-2 ${mobile ? "mx-auto max-w-xl" : "w-full"}`}>
       <div className="inline-flex shrink-0 items-center rounded-md border border-charcoal/12 bg-white">
-        <button type="button" onClick={() => onQtyChange(Math.max(1, qty - 1))} disabled={qty <= 1} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Diminuer la quantité de ${productName}` : `Decrease ${productName} quantity`}><Minus className="h-4 w-4" /></button>
+        <button type="button" onClick={() => onQtyChange(Math.max(1, qty - 1))} disabled={qty <= 1} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Diminuer la quantité de ${productName}` : `Decrease ${productName} quantity`}><ReiconGlyph icon={Minus} className="h-4 w-4" /></button>
         <span className={`${mobile ? "min-w-7" : "min-w-10"} text-center text-sm font-black tabular-nums text-charcoal`}>{qty}</span>
-        <button type="button" onClick={() => onQtyChange(Math.min(Math.max(1, maxQty), qty + 1))} disabled={outOfStock || qty >= maxQty} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Augmenter la quantité de ${productName}` : `Increase ${productName} quantity`}><Plus className="h-4 w-4" /></button>
+        <button type="button" onClick={() => onQtyChange(Math.min(Math.max(1, maxQty), qty + 1))} disabled={outOfStock || qty >= maxQty} className={`${mobile ? "h-10 w-8" : "h-11 w-10"} grid place-items-center rounded-md text-charcoal hover:bg-muted disabled:text-muted-foreground`} aria-label={locale === "fr" ? `Augmenter la quantité de ${productName}` : `Increase ${productName} quantity`}><ReiconGlyph icon={Plus} className="h-4 w-4" /></button>
       </div>
       <Button onClick={onAdd} disabled={outOfStock} size="lg" aria-label={`${addLabel}, ${formatPrice(lineTotal, locale)}`} className={`${mobile ? "h-11 px-3 text-xs" : "h-11 px-4 text-sm"} min-w-0 flex-1 justify-between gap-2 whitespace-normal bg-terre text-center leading-tight text-cream shadow-md hover:bg-terre-dark`}>
-        <span className="inline-flex min-w-0 items-center"><Plus className="mr-1 h-4 w-4 shrink-0" />{mobile ? (locale === "fr" ? "Ajouter" : "Add") : addLabel}</span>
+        <span className="inline-flex min-w-0 items-center"><ReiconGlyph icon={CartAdd} className="mr-1 h-4 w-4 shrink-0" />{mobile ? (locale === "fr" ? "Ajouter" : "Add") : addLabel}</span>
         <span className="shrink-0 border-l border-white/25 pl-2 font-black tabular-nums">{formatPrice(lineTotal, locale)}</span>
       </Button>
       <Button variant="outline" size="icon" onClick={onToggleFavourite} aria-pressed={isFavourite} aria-label={isFavourite ? (locale === "fr" ? `Retirer ${productName} des favoris` : `Remove ${productName} from favourites`) : (locale === "fr" ? `Ajouter ${productName} aux favoris` : `Add ${productName} to favourites`)} className={`${mobile ? "h-10 w-10" : "h-11 w-11"} shrink-0 border-charcoal/12 bg-white`}>
-        <Heart className={`h-5 w-5 ${isFavourite ? "fill-terre text-terre" : "text-charcoal"}`} />
+        <ReiconGlyph icon={Heart} weight={isFavourite ? "Filled" : "Outline"} className={`h-5 w-5 ${isFavourite ? "text-terre" : "text-charcoal"}`} />
       </Button>
     </div>
   );

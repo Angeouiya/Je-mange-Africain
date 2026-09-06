@@ -78,7 +78,7 @@ export async function readPlatformConfiguration() {
   }
 }
 
-type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
+type PlatformEnvironmentKey =
   | "DATABASE_URL"
   | "NODE_ENV"
   | "CF_PAGES"
@@ -98,12 +98,16 @@ type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
   | "UPSTASH_REDIS_REST_TOKEN"
   | "NEXT_PUBLIC_VAPID_PUBLIC_KEY"
   | "VAPID_PRIVATE_KEY"
-  | "VAPID_SUBJECT"
->>;
+  | "VAPID_SUBJECT";
+
+type PlatformEnvironment = Partial<Record<PlatformEnvironmentKey, string>>;
 
 export const PRODUCTION_SUPABASE_PROJECT_REF = "ahigidhuhqcmxzjxetnw";
+export const PRODUCTION_SUPABASE_PROJECT_NAME = "JMA";
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
+export const PRODUCTION_WORKERS_DEV_URL = "https://je-mange-africain.jobbook-africa.workers.dev";
+export const CLOUDFLARE_PUBLICATION_MODE = "workers.dev first, custom domain later";
 
 export type DeploymentRequirementGroup = "database" | "identity" | "payments" | "cache" | "push" | "hosting";
 
@@ -116,7 +120,7 @@ export type CloudflareDeploymentRequirement = {
   detailEn: string;
   envKeys: string[];
   satisfied: boolean;
-  severity: "blocking";
+  severity: "blocking" | "recommended";
 };
 
 export type CloudflareDeploymentReadiness = {
@@ -156,7 +160,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
   const productionDomain = siteUrl === PRODUCTION_SITE_URL;
   const cloudflareRuntime = cloudflareWorkers || Boolean(environment.CLOUDFLARE_ENV || environment.CF_PAGES);
-  const cloudflareHosting = Boolean(environment.CLOUDFLARE_ACCOUNT_ID && cloudflareRuntime && productionDomain);
+  const cloudflareHosting = Boolean(environment.CLOUDFLARE_ACCOUNT_ID && cloudflareRuntime);
   const persistentDatabase = databaseAvailable && (postgres || !deployed);
   const productionDatabase = databaseAvailable && postgres;
   const stripeCore = Boolean(environment.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && environment.STRIPE_SECRET_KEY);
@@ -174,7 +178,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
     { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
     { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
-    { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime, domain: productionDomain } },
+    { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime, domainDeferred: !productionDomain, domain: productionDomain } },
   ] as const;
 }
 
@@ -202,8 +206,8 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
       group: "identity",
       labelFr: "URL publique Supabase",
       labelEn: "Public Supabase URL",
-      detailFr: `Projet Supabase ${PRODUCTION_SUPABASE_PROJECT_REF} exposé au client pour l'inscription, la session et les médias.`,
-      detailEn: `Supabase project ${PRODUCTION_SUPABASE_PROJECT_REF} exposed to the client for registration, session and media.`,
+      detailFr: `Projet Supabase ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF}) exposé au client pour l'inscription, la session et les médias.`,
+      detailEn: `Supabase project ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF}) exposed to the client for registration, session and media.`,
       envKeys: ["NEXT_PUBLIC_SUPABASE_URL"],
       satisfied: supabaseUrl === PRODUCTION_SUPABASE_URL,
       severity: "blocking",
@@ -343,17 +347,17 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
     {
       id: "cloudflare-domain",
       group: "hosting",
-      labelFr: "Domaine public",
-      labelEn: "Public domain",
-      detailFr: "Le Worker doit publier l'expérience client sur je-mange-africain.com.",
-      detailEn: "The Worker must publish the customer experience on je-mange-africain.com.",
+      labelFr: "Domaine public différé",
+      labelEn: "Deferred public domain",
+      detailFr: `Phase actuelle : publication Cloudflare sur ${PRODUCTION_WORKERS_DEV_URL}. ${PRODUCTION_SITE_URL} sera rattaché ensuite.`,
+      detailEn: `Current phase: Cloudflare publication on ${PRODUCTION_WORKERS_DEV_URL}. ${PRODUCTION_SITE_URL} will be attached later.`,
       envKeys: ["NEXT_PUBLIC_SITE_URL"],
       satisfied: siteUrl === PRODUCTION_SITE_URL,
-      severity: "blocking",
+      severity: "recommended",
     },
   ];
   const completed = requirements.filter((requirement) => requirement.satisfied).length;
-  const blockers = requirements.filter((requirement) => !requirement.satisfied).map((requirement) => requirement.id);
+  const blockers = requirements.filter((requirement) => requirement.severity === "blocking" && !requirement.satisfied).map((requirement) => requirement.id);
 
   return {
     target: "Cloudflare Workers",

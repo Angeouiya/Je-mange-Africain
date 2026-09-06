@@ -1,7 +1,20 @@
 "use client";
 
 import { FormEvent, useDeferredValue, useState } from "react";
-import { Boxes, Check, ChevronRight, FilePlus2, Minus, PackageCheck, Plus, Search, ShieldCheck, ShoppingBag, Trash2, TrendingDown, Truck } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { Box } from "reicon/icons/Box";
+import { BoxTick } from "reicon/icons/BoxTick";
+import { ChartTrend } from "reicon/icons/ChartTrend";
+import { Check } from "reicon/icons/Check";
+import { ChevronRight } from "reicon/icons/ChevronRight";
+import { FilePlus } from "reicon/icons/FilePlus";
+import { Minus } from "reicon/icons/Minus";
+import { Plus } from "reicon/icons/Plus";
+import { Search } from "reicon/icons/Search";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
+import { ShoppingBag } from "reicon/icons/ShoppingBag";
+import { Trash } from "reicon/icons/Trash";
+import { Truck } from "reicon/icons/Truck";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,6 +25,7 @@ import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { PostalCodeField } from "@/components/shared/PostalCodeField";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
 import { formatPrice, formatUnitPrice } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
@@ -86,20 +100,20 @@ export function WholesaleView() {
             <h1 className="jma-section-title mt-1">{isFr ? "Marché de gros" : "Wholesale market"}</h1>
             <p className="mt-1.5 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-5">{isFr ? "Commandez par carton ou par lot, profitez de prix dégressifs et conservez la traçabilité de la chaîne du froid." : "Order by case or lot, access tiered pricing and preserve cold-chain traceability."}</p>
           </div>
-          <Button type="button" variant="outline" onClick={() => setQuoteOpen(true)} className="h-10 shrink-0 px-3 sm:px-4" aria-label={quoteLines.length ? (isFr ? `Ouvrir le devis, ${quoteLines.length} produit(s) et ${quotePackCount} colis` : `Open quote, ${quoteLines.length} product(s) and ${quotePackCount} cases`) : (isFr ? "Demander un devis" : "Request a quote")}><Boxes className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{isFr ? "Devis" : "Quote"}</span><span className="hidden sm:inline">{isFr ? "Demander un devis" : "Request a quote"}</span>{quoteLines.length ? <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded bg-burgundy px-1 text-[9px] font-black text-white" aria-hidden="true">{quoteLines.length}</span> : null}</Button>
+          <Button type="button" variant="outline" onClick={() => setQuoteOpen(true)} className="h-10 shrink-0 px-3 sm:px-4" aria-label={quoteLines.length ? (isFr ? `Ouvrir le devis, ${quoteLines.length} produit(s) et ${quotePackCount} colis` : `Open quote, ${quoteLines.length} product(s) and ${quotePackCount} cases`) : (isFr ? "Demander un devis" : "Request a quote")}><ReiconGlyph icon={Box} className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{isFr ? "Devis" : "Quote"}</span><span className="hidden sm:inline">{isFr ? "Demander un devis" : "Request a quote"}</span>{quoteLines.length ? <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded bg-burgundy px-1 text-[9px] font-black text-white" aria-hidden="true">{quoteLines.length}</span> : null}</Button>
         </div>
         <div className="mt-3 sm:mt-4"><MarketChannelSwitch channel="wholesale" /></div>
       </header>
 
       <section className="grid grid-cols-3 divide-x divide-charcoal/10 border-b border-charcoal/10" aria-label={isFr ? "Services du marché de gros" : "Wholesale services"}>
-        <WholesalePromise icon={PackageCheck} title={isFr ? "Prix par volume" : "Volume pricing"} detail={isFr ? "Le meilleur palier s'applique automatiquement." : "The best tier applies automatically."} />
+        <WholesalePromise icon={BoxTick} title={isFr ? "Prix par volume" : "Volume pricing"} detail={isFr ? "Le meilleur palier s'applique automatiquement." : "The best tier applies automatically."} />
         <WholesalePromise icon={ShieldCheck} title={isFr ? "Lots traçables" : "Traceable batches"} detail={isFr ? "Réservation FEFO sur le stock réel." : "FEFO reservation against live stock."} />
         <WholesalePromise icon={Truck} title={isFr ? "Livraison Europe" : "European delivery"} detail={isFr ? "Ambiant, frais et surgelé séparés." : "Ambient, chilled and frozen separated."} />
       </section>
 
       <section className="py-3 sm:py-5" aria-labelledby="wholesale-products-title">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <ReiconGlyph icon={Search} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 bg-white pl-9" placeholder={isFr ? "Rechercher un produit de gros" : "Search wholesale products"} aria-label={isFr ? "Rechercher dans le marché de gros" : "Search the wholesale market"} />
         </div>
         <div className="mt-2 flex min-w-0 items-center gap-2">
@@ -121,7 +135,7 @@ export function WholesaleView() {
           </div>
         ) : null}
         {!loading && !error && data && !data.products.length ? (
-          <div className="mt-5 border-y border-charcoal/10 py-12 text-center"><Boxes className="mx-auto h-8 w-8 text-muted-foreground" /><h2 className="mt-3 text-base font-black text-charcoal">{isFr ? "Aucune offre dans cette sélection" : "No offer in this selection"}</h2><p className="mx-auto mt-1 max-w-md text-xs leading-5 text-muted-foreground">{isFr ? "Modifiez votre recherche ou consultez le marché au détail pendant la préparation des prochains lots." : "Change your search or browse retail while the next batches are being prepared."}</p><Button type="button" variant="outline" onClick={() => navigate("catalog")} className="mt-4">{isFr ? "Voir le marché au détail" : "Browse retail"}<ChevronRight className="ml-1 h-4 w-4" /></Button></div>
+          <div className="mt-5 border-y border-charcoal/10 py-12 text-center"><ReiconGlyph icon={Box} className="mx-auto h-8 w-8 text-muted-foreground" /><h2 className="mt-3 text-base font-black text-charcoal">{isFr ? "Aucune offre dans cette sélection" : "No offer in this selection"}</h2><p className="mx-auto mt-1 max-w-md text-xs leading-5 text-muted-foreground">{isFr ? "Modifiez votre recherche ou consultez le marché au détail pendant la préparation des prochains lots." : "Change your search or browse retail while the next batches are being prepared."}</p><Button type="button" variant="outline" onClick={() => navigate("catalog")} className="mt-4">{isFr ? "Voir le marché au détail" : "Browse retail"}<ReiconGlyph icon={ChevronRight} className="ml-1 h-4 w-4" /></Button></div>
         ) : null}
       </section>
       <WholesaleQuoteDialog open={quoteOpen} onOpenChange={setQuoteOpen} lines={quoteLines} onLinesChange={setQuoteLines} />
@@ -189,31 +203,31 @@ function WholesaleProductCard({ product, index, selectedPacks, onQuote }: { prod
         </div>
         <div className="mt-1 border-y border-burgundy/15 bg-burgundy/[0.035] py-2" data-testid="wholesale-line-economics" aria-live="polite">
           <div className="flex items-baseline justify-between gap-2"><span className="text-[9px] font-extrabold uppercase text-muted-foreground">{isFr ? "Total du lot" : "Lot total"}</span><strong className="shrink-0 text-sm font-black tabular-nums text-charcoal">{formatPrice(economics.lineTotal, locale)}</strong></div>
-          {economics.savings > 0 ? <p className="mt-0.5 flex items-center gap-1 text-[9px] font-bold leading-3 text-burgundy"><TrendingDown className="h-3 w-3 shrink-0" />{isFr ? `Vous économisez ${formatPrice(economics.savings, locale)} (${economics.savingsPercent} %)` : `You save ${formatPrice(economics.savings, locale)} (${economics.savingsPercent}%)`}</p> : null}
+          {economics.savings > 0 ? <p className="mt-0.5 flex items-center gap-1 text-[9px] font-bold leading-3 text-burgundy"><ReiconGlyph icon={ChartTrend} className="h-3 w-3 shrink-0" />{isFr ? `Vous économisez ${formatPrice(economics.savings, locale)} (${economics.savingsPercent} %)` : `You save ${formatPrice(economics.savings, locale)} (${economics.savingsPercent}%)`}</p> : null}
         </div>
         {tiers.length > 1 ? (
           <label className="mt-1 block"><span className="sr-only">{isFr ? `Choisir un palier pour ${product.name}` : `Choose a tier for ${product.name}`}</span><select value={tiers.reduce((selected, tier) => quantity >= tier.minPacks ? tier.minPacks : selected, tiers[0].minPacks)} onChange={(event) => changeQuantity(Number(event.target.value))} className="h-8 w-full rounded-md border border-border bg-white px-2 text-[9px] font-bold text-charcoal">{tiers.map((tier) => <option key={tier.minPacks} value={tier.minPacks}>{tier.minPacks}+ {isFr ? "colis" : "cases"} · {formatPrice(tier.price, locale)}</option>)}</select></label>
         ) : <p className="mt-1 text-[9px] font-semibold text-muted-foreground">{isFr ? "Minimum" : "Minimum"} · {product.wholesaleMinPacks} {isFr ? "colis" : "case(s)"}</p>}
         <div className="min-h-8 border-b border-charcoal/8 pb-1.5">
-          <p className="flex items-center gap-1 text-[9px] font-bold text-burgundy"><PackageCheck className="h-3 w-3 shrink-0" />{maxPacks} {isFr ? "colis disponibles" : "cases available"}</p>
+          <p className="flex items-center gap-1 text-[9px] font-bold text-burgundy"><ReiconGlyph icon={BoxTick} className="h-3 w-3 shrink-0" />{maxPacks} {isFr ? "colis disponibles" : "cases available"}</p>
           {nextTier ? <p className="mt-0.5 line-clamp-1 text-[9px] leading-3 text-muted-foreground">{isFr ? `Encore ${nextTier.remainingPacks} pour ${formatPrice(nextTier.price, locale)} / colis` : `${nextTier.remainingPacks} more for ${formatPrice(nextTier.price, locale)} / case`}</p> : <p className="mt-0.5 text-[9px] font-semibold leading-3 text-muted-foreground">{isFr ? "Meilleur tarif atteint" : "Best price reached"}</p>}
         </div>
         <div className="mt-auto grid grid-cols-[2rem_minmax(0,1fr)_2rem] overflow-hidden rounded-md border border-border">
-          <button type="button" onClick={() => changeQuantity(quantity - 1)} disabled={quantity <= product.wholesaleMinPacks || outOfStock} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Diminuer les colis de ${product.name}` : `Decrease cases of ${product.name}`}><Minus className="h-3.5 w-3.5" /></button>
+          <button type="button" onClick={() => changeQuantity(quantity - 1)} disabled={quantity <= product.wholesaleMinPacks || outOfStock} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Diminuer les colis de ${product.name}` : `Decrease cases of ${product.name}`}><ReiconGlyph icon={Minus} className="h-3.5 w-3.5" /></button>
           <span className="grid h-8 place-items-center border-x border-border text-[11px] font-black tabular-nums">{quantity}</span>
-          <button type="button" onClick={() => changeQuantity(quantity + 1)} disabled={quantity >= maxPacks || outOfStock} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter les colis de ${product.name}` : `Increase cases of ${product.name}`}><Plus className="h-3.5 w-3.5" /></button>
+          <button type="button" onClick={() => changeQuantity(quantity + 1)} disabled={quantity >= maxPacks || outOfStock} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter les colis de ${product.name}` : `Increase cases of ${product.name}`}><ReiconGlyph icon={Plus} className="h-3.5 w-3.5" /></button>
         </div>
         <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-1.5">
-          <Button type="button" variant="outline" size="icon" onClick={() => onQuote(product, quantity)} disabled={outOfStock} className={`h-9 w-10 ${selectedPacks ? "border-burgundy/30 bg-burgundy/5 text-burgundy" : "text-terre"}`} aria-label={selectedPacks ? (isFr ? `Mettre à jour ${product.name} dans le devis avec ${quantity} colis` : `Update ${product.name} in the quote with ${quantity} cases`) : (isFr ? `Ajouter ${product.name} au devis` : `Add ${product.name} to quote`)} title={isFr ? "Ajouter au devis" : "Add to quote"}>{selectedPacks ? <Check className="h-3.5 w-3.5" /> : <FilePlus2 className="h-3.5 w-3.5" />}</Button>
-          <Button type="button" size="sm" onClick={add} disabled={outOfStock} className={`h-9 w-full px-2 text-[10px] ${added ? "bg-burgundy text-white hover:bg-burgundy" : "bg-terre text-white hover:bg-terre-dark"}`}>{added ? <Check className="mr-1 h-3.5 w-3.5" /> : <ShoppingBag className="mr-1 h-3.5 w-3.5" />}{outOfStock ? (isFr ? "Indisponible" : "Unavailable") : added ? (isFr ? "Ajouté" : "Added") : <>{isFr ? "Ajouter" : "Add"}<span aria-hidden="true"> · {formatPrice(economics.lineTotal, locale)}</span></>}</Button>
+          <Button type="button" variant="outline" size="icon" onClick={() => onQuote(product, quantity)} disabled={outOfStock} className={`h-9 w-10 ${selectedPacks ? "border-burgundy/30 bg-burgundy/5 text-burgundy" : "text-terre"}`} aria-label={selectedPacks ? (isFr ? `Mettre à jour ${product.name} dans le devis avec ${quantity} colis` : `Update ${product.name} in the quote with ${quantity} cases`) : (isFr ? `Ajouter ${product.name} au devis` : `Add ${product.name} to quote`)} title={isFr ? "Ajouter au devis" : "Add to quote"}>{selectedPacks ? <ReiconGlyph icon={Check} className="h-3.5 w-3.5" /> : <ReiconGlyph icon={FilePlus} className="h-3.5 w-3.5" />}</Button>
+          <Button type="button" size="sm" onClick={add} disabled={outOfStock} className={`h-9 w-full px-2 text-[10px] ${added ? "bg-burgundy text-white hover:bg-burgundy" : "bg-terre text-white hover:bg-terre-dark"}`}>{added ? <ReiconGlyph icon={Check} className="mr-1 h-3.5 w-3.5" /> : <ReiconGlyph icon={ShoppingBag} className="mr-1 h-3.5 w-3.5" />}{outOfStock ? (isFr ? "Indisponible" : "Unavailable") : added ? (isFr ? "Ajouté" : "Added") : <>{isFr ? "Ajouter" : "Add"}<span aria-hidden="true"> · {formatPrice(economics.lineTotal, locale)}</span></>}</Button>
         </div>
       </div>
     </article>
   );
 }
 
-function WholesalePromise({ icon: Icon, title, detail }: { icon: typeof PackageCheck; title: string; detail: string }) {
-  return <div className="flex min-w-0 flex-col items-center px-1.5 py-2 text-center sm:flex-row sm:items-start sm:gap-3 sm:px-5 sm:py-4 sm:text-left"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-burgundy/10 text-burgundy sm:h-9 sm:w-9"><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></span><div className="min-w-0"><h2 className="mt-1 break-words text-[9px] font-extrabold leading-3 text-charcoal sm:mt-0 sm:text-xs sm:leading-normal">{title}</h2><p className="mt-0.5 hidden text-[10px] leading-4 text-muted-foreground sm:block">{detail}</p></div></div>;
+function WholesalePromise({ icon, title, detail }: { icon: IconFunction; title: string; detail: string }) {
+  return <div className="flex min-w-0 flex-col items-center px-1.5 py-2 text-center sm:flex-row sm:items-start sm:gap-3 sm:px-5 sm:py-4 sm:text-left"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-burgundy/10 text-burgundy sm:h-9 sm:w-9"><ReiconGlyph icon={icon} className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></span><div className="min-w-0"><h2 className="mt-1 break-words text-[9px] font-extrabold leading-3 text-charcoal sm:mt-0 sm:text-xs sm:leading-normal">{title}</h2><p className="mt-0.5 hidden text-[10px] leading-4 text-muted-foreground sm:block">{detail}</p></div></div>;
 }
 
 function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -292,18 +306,18 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto p-5 sm:max-w-xl sm:p-6">
         <DialogHeader>
-          <span className="grid h-11 w-11 place-items-center rounded-md bg-terre/10 text-terre"><Boxes className="h-5 w-5" /></span>
+          <span className="grid h-11 w-11 place-items-center rounded-md bg-terre/10 text-terre"><ReiconGlyph icon={Box} className="h-5 w-5" /></span>
           <DialogTitle>{isFr ? "Demande de devis professionnel" : "Professional quote request"}</DialogTitle>
           <DialogDescription>{isFr ? "Ajustez votre sélection. Le montant est recalculé sur le stock et les paliers actifs au moment de l'envoi." : "Adjust your selection. The estimate is recalculated against live stock and pricing tiers when submitted."}</DialogDescription>
         </DialogHeader>
         {status === "success" ? (
           <div className="border-y border-burgundy/20 py-7 text-center" data-testid="wholesale-quote-receipt">
-            <Check className="mx-auto h-7 w-7 text-burgundy" />
+            <ReiconGlyph icon={Check} className="mx-auto h-7 w-7 text-burgundy" />
             <p className="mt-3 text-sm font-black text-charcoal">{isFr ? "Dossier commercial enregistré" : "Commercial file recorded"}</p>
             <p className="mt-1 text-xs font-bold text-burgundy">{reference}</p>
             <p className="mx-auto mt-3 max-w-sm text-[11px] leading-5 text-muted-foreground">{isFr ? `${receipt.totalPacks} colis · estimation ${formatPrice(receipt.estimatedSubtotal, locale)}. L'équipe vérifiera le transport et vous répondra avec les conditions finales.` : `${receipt.totalPacks} cases · ${formatPrice(receipt.estimatedSubtotal, locale)} estimate. The team will confirm transport and final terms.`}</p>
             {receipt.tracked ? <p className="mx-auto mt-2 max-w-sm text-[10px] font-semibold leading-4 text-burgundy">{isFr ? "Ce dossier est maintenant disponible dans votre compte, rubrique Devis." : "This file is now available in the Quotes section of your account."}</p> : null}
-            <div className="mt-5 flex flex-wrap justify-center gap-2"><Button type="button" variant={receipt.tracked ? "outline" : "default"} onClick={() => handleOpenChange(false)} className={receipt.tracked ? "" : "bg-burgundy text-white hover:bg-burgundy/90"}>{isFr ? "Fermer" : "Close"}</Button>{receipt.tracked ? <Button type="button" onClick={() => { handleOpenChange(false); navigate("account", { accountSection: "quotes" }); }} className="bg-burgundy text-white hover:bg-burgundy/90"><FilePlus2 className="mr-1.5 h-4 w-4" />{isFr ? "Suivre mon devis" : "Track my quote"}</Button> : null}</div>
+            <div className="mt-5 flex flex-wrap justify-center gap-2"><Button type="button" variant={receipt.tracked ? "outline" : "default"} onClick={() => handleOpenChange(false)} className={receipt.tracked ? "" : "bg-burgundy text-white hover:bg-burgundy/90"}>{isFr ? "Fermer" : "Close"}</Button>{receipt.tracked ? <Button type="button" onClick={() => { handleOpenChange(false); navigate("account", { accountSection: "quotes" }); }} className="bg-burgundy text-white hover:bg-burgundy/90"><ReiconGlyph icon={FilePlus} className="mr-1.5 h-4 w-4" />{isFr ? "Suivre mon devis" : "Track my quote"}</Button> : null}</div>
           </div>
         ) : (
           <form onSubmit={submit} className="mt-2 grid gap-3 sm:grid-cols-2">
@@ -337,7 +351,7 @@ function WholesaleQuoteLineEditor({ line, locale, onPacksChange, onRemove }: { l
   const economics = wholesaleLineEconomics(product.price, product.wholesaleUnitsPerPack, product.wholesaleTiers, line.packs);
   const photo = product.imageUrl || getProductPhoto(product);
 
-  return <article className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-2.5 py-3"><ProductImage src={photo} fallbackSrc={getProductPhoto({ ...product, imageUrl: null })} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-12 w-12" rounded="rounded-md" /><div className="min-w-0"><p className="truncate text-[11px] font-black text-charcoal">{product.name}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{product.wholesalePackLabel}</p><p className="mt-1 text-[10px] font-black text-terre">{formatPrice(economics.lineTotal, locale)}</p></div><div className="flex items-center gap-1"><div className="grid grid-cols-[1.75rem_2rem_1.75rem] overflow-hidden rounded-md border border-border"><button type="button" onClick={() => onPacksChange(line.packs - 1)} disabled={line.packs <= product.wholesaleMinPacks} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Diminuer ${product.name}` : `Decrease ${product.name}`}><Minus className="h-3 w-3" /></button><span className="grid h-8 place-items-center border-x border-border text-[10px] font-black tabular-nums">{line.packs}</span><button type="button" onClick={() => onPacksChange(line.packs + 1)} disabled={line.packs >= maximum} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter ${product.name}` : `Increase ${product.name}`}><Plus className="h-3 w-3" /></button></div><button type="button" onClick={onRemove} className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-destructive/[0.05] hover:text-destructive" aria-label={isFr ? `Retirer ${product.name} du devis` : `Remove ${product.name} from quote`} title={isFr ? "Retirer" : "Remove"}><Trash2 className="h-3.5 w-3.5" /></button></div></article>;
+  return <article className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-2.5 py-3"><ProductImage src={photo} fallbackSrc={getProductPhoto({ ...product, imageUrl: null })} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-12 w-12" rounded="rounded-md" /><div className="min-w-0"><p className="truncate text-[11px] font-black text-charcoal">{product.name}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{product.wholesalePackLabel}</p><p className="mt-1 text-[10px] font-black text-terre">{formatPrice(economics.lineTotal, locale)}</p></div><div className="flex items-center gap-1"><div className="grid grid-cols-[1.75rem_2rem_1.75rem] overflow-hidden rounded-md border border-border"><button type="button" onClick={() => onPacksChange(line.packs - 1)} disabled={line.packs <= product.wholesaleMinPacks} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Diminuer ${product.name}` : `Decrease ${product.name}`}><ReiconGlyph icon={Minus} className="h-3 w-3" /></button><span className="grid h-8 place-items-center border-x border-border text-[10px] font-black tabular-nums">{line.packs}</span><button type="button" onClick={() => onPacksChange(line.packs + 1)} disabled={line.packs >= maximum} className="grid h-8 place-items-center disabled:opacity-35" aria-label={isFr ? `Augmenter ${product.name}` : `Increase ${product.name}`}><ReiconGlyph icon={Plus} className="h-3 w-3" /></button></div><button type="button" onClick={onRemove} className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-destructive/[0.05] hover:text-destructive" aria-label={isFr ? `Retirer ${product.name} du devis` : `Remove ${product.name} from quote`} title={isFr ? "Retirer" : "Remove"}><ReiconGlyph icon={Trash} className="h-3.5 w-3.5" /></button></div></article>;
 }
 
 function QuoteField({ id, label, value, onChange, type = "text", autoComplete, required = false }: { id: string; label: string; value: string; onChange: (value: string) => void; type?: string; autoComplete?: string; required?: boolean }) {

@@ -6,16 +6,19 @@ import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
 
 export const PRODUCTION_SUPABASE_PROJECT_REF = "ahigidhuhqcmxzjxetnw";
+export const PRODUCTION_SUPABASE_PROJECT_NAME = "JMA";
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
 export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12bc";
 export const PRODUCTION_WORKER_NAME = "je-mange-africain";
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
+export const PRODUCTION_WORKERS_DEV_URL = "https://je-mange-africain.jobbook-africa.workers.dev";
+export const CLOUDFLARE_PUBLICATION_MODE = "workers.dev first, custom domain later";
 export const SUPABASE_OPERATIONAL_KEYS = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "DIRECT_URL"];
 
 const DOTENV_FILES = [".env", ".env.local", ".env.production.local"];
 const REQUIRED_ENV = [
   ["DATABASE_URL", "PostgreSQL runtime connection"],
-  ["NEXT_PUBLIC_SUPABASE_URL", `Supabase URL must target ${PRODUCTION_SUPABASE_PROJECT_REF}`],
+  ["NEXT_PUBLIC_SUPABASE_URL", `Supabase URL must target ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF})`],
   ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "Supabase publishable key"],
   ["SUPABASE_SERVICE_ROLE_KEY", "Supabase server service role"],
   ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "Stripe publishable key"],
@@ -26,7 +29,7 @@ const REQUIRED_ENV = [
   ["NEXT_PUBLIC_VAPID_PUBLIC_KEY", "Web Push public VAPID key"],
   ["VAPID_PRIVATE_KEY", "Web Push private VAPID key"],
   ["VAPID_SUBJECT", "Web Push contact subject"],
-  ["NEXT_PUBLIC_SITE_URL", "Production storefront domain"],
+  ["NEXT_PUBLIC_SITE_URL", "Public storefront URL"],
   ["CLOUDFLARE_ACCOUNT_ID", "Cloudflare account"],
   ["CLOUDFLARE_DEPLOYMENT_TARGET", "Cloudflare Workers target"],
 ];
@@ -138,8 +141,8 @@ function evaluateRequirement(key, label, values, sources) {
     const currentRef = (value.match(/https:\/\/([^.]+)/) || [])[1] || "unknown";
     return { key, label, ok: false, source, problem: `points to ${currentRef}, expected ${PRODUCTION_SUPABASE_PROJECT_REF}` };
   }
-  if (key === "NEXT_PUBLIC_SITE_URL" && normalizedUrl(value) !== PRODUCTION_SITE_URL) {
-    return { key, label, ok: false, source, problem: `must be ${PRODUCTION_SITE_URL}` };
+  if (key === "NEXT_PUBLIC_SITE_URL" && !/^https:\/\//i.test(normalizedUrl(value))) {
+    return { key, label, ok: false, source, problem: "must be an HTTPS URL" };
   }
   if (key === "CLOUDFLARE_ACCOUNT_ID" && value !== PRODUCTION_CLOUDFLARE_ACCOUNT_ID) {
     return { key, label, ok: false, source, problem: `must target ${PRODUCTION_CLOUDFLARE_ACCOUNT_ID}` };
@@ -159,10 +162,13 @@ export function productionReadiness(environment = loadProductionEnvironment()) {
     blockers,
     target: {
       supabaseRef: PRODUCTION_SUPABASE_PROJECT_REF,
+      supabaseName: PRODUCTION_SUPABASE_PROJECT_NAME,
       supabaseUrl: PRODUCTION_SUPABASE_URL,
       cloudflareAccountId: PRODUCTION_CLOUDFLARE_ACCOUNT_ID,
       workerName: PRODUCTION_WORKER_NAME,
       siteUrl: PRODUCTION_SITE_URL,
+      workersDevUrl: PRODUCTION_WORKERS_DEV_URL,
+      publicationMode: CLOUDFLARE_PUBLICATION_MODE,
     },
   };
 }
@@ -185,7 +191,7 @@ export function supabaseCliReadiness(environment = loadProductionEnvironment()) 
 }
 
 export function printProductionReadiness(report, writer = console.log) {
-  writer(`Production target: Supabase ${report.target.supabaseRef} -> Cloudflare Worker ${report.target.workerName} -> ${report.target.siteUrl}`);
+  writer(`Production target: Supabase ${report.target.supabaseName} (${report.target.supabaseRef}) -> Cloudflare Worker ${report.target.workerName} -> ${report.target.workersDevUrl} (${report.target.publicationMode})`);
   for (const item of report.requirements) {
     const state = item.ok ? "OK" : "BLOCKED";
     const suffix = item.problem ? ` - ${item.problem}` : "";
@@ -195,7 +201,7 @@ export function printProductionReadiness(report, writer = console.log) {
 }
 
 export function printSupabaseCliReadiness(report, writer = console.log) {
-  writer(`Supabase CLI target: ${report.targetRef}`);
+  writer(`Supabase CLI target: ${PRODUCTION_SUPABASE_PROJECT_NAME} (${report.targetRef})`);
   writer(`${report.hasAccessToken ? "OK" : "BLOCKED"} SUPABASE_ACCESS_TOKEN`);
   writer(`${report.hasDbPassword ? "OK" : "BLOCKED"} SUPABASE_DB_PASSWORD`);
   writer(`${report.hasDirectDatabaseUrl ? "OK" : "BLOCKED"} DIRECT_URL or PostgreSQL DATABASE_URL`);

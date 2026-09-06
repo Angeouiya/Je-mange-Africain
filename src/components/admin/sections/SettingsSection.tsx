@@ -246,7 +246,7 @@ function SettingsField({ id, label, icon: Icon, hint, children }: { id: string; 
 function CloudflareLaunchReadiness({ readiness, locale }: { readiness?: CloudflareDeploymentReadiness; locale: "fr" | "en" }) {
   if (!readiness) return null;
   const isFr = locale === "fr";
-  const missing = readiness.requirements.filter((requirement) => !requirement.satisfied);
+  const missing = readiness.requirements.filter((requirement) => requirement.severity === "blocking" && !requirement.satisfied);
   const Icon = readiness.ready ? ShieldCheck : AlertTriangle;
 
   return (
@@ -258,7 +258,7 @@ function CloudflareLaunchReadiness({ readiness, locale }: { readiness?: Cloudfla
             <div className="min-w-0">
               <p className="jma-eyebrow">{isFr ? "Mise en ligne Cloudflare" : "Cloudflare launch"}</p>
               <h2 id="cloudflare-launch-title" className="mt-0.5 text-sm font-black text-charcoal">{readiness.ready ? (isFr ? "Déploiement production autorisé" : "Production deployment cleared") : (isFr ? "Déploiement production bloqué" : "Production deployment blocked")}</h2>
-              <p className="mt-1 max-w-2xl text-[10px] leading-4 text-muted-foreground">{readiness.ready ? (isFr ? "Tous les prérequis serveur exigés par le déploiement Cloudflare sont disponibles." : "Every server prerequisite required by the Cloudflare deployment is available.") : (isFr ? `${missing.length} prérequis bloquant(s) restent à compléter avant de relancer la production.` : `${missing.length} blocking prerequisite(s) remain before production can be retried.`)}</p>
+              <p className="mt-1 max-w-2xl text-[10px] leading-4 text-muted-foreground">{readiness.ready ? (isFr ? "Les prérequis critiques sont prêts pour une première publication workers.dev. Le domaine sera rattaché ensuite." : "Critical prerequisites are ready for the first workers.dev publication. The domain will be attached later.") : (isFr ? `${missing.length} prérequis bloquant(s) restent à compléter avant de relancer la production.` : `${missing.length} blocking prerequisite(s) remain before production can be retried.`)}</p>
             </div>
           </div>
           <span className={`inline-flex min-h-7 items-center gap-1.5 rounded-md px-2 text-[8px] font-black uppercase ${readiness.ready ? "bg-burgundy text-white" : "bg-gold/20 text-burgundy"}`}><Icon className="h-3 w-3" />{readiness.ready ? (isFr ? "Prêt" : "Ready") : (isFr ? "À finaliser" : "To complete")}</span>
@@ -299,6 +299,7 @@ function DeploymentRequirementRow({ requirement, locale }: { requirement: Cloudf
   const isFr = locale === "fr";
   const StatusIcon = requirement.satisfied ? CheckCircle2 : AlertTriangle;
   const GroupIcon = DEPLOYMENT_GROUP_ICONS[requirement.group];
+  const missingLabel = requirement.severity === "recommended" ? (isFr ? "Plus tard" : "Later") : (isFr ? "Manquant" : "Missing");
 
   return (
     <article className="grid min-w-0 gap-3 px-3 py-3 sm:grid-cols-[2.25rem_minmax(0,1fr)_minmax(10rem,auto)] sm:items-center">
@@ -306,7 +307,7 @@ function DeploymentRequirementRow({ requirement, locale }: { requirement: Cloudf
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] font-black text-charcoal">{isFr ? requirement.labelFr : requirement.labelEn}</p>
-          <span className={`inline-flex min-h-5 items-center gap-1 rounded px-1.5 text-[8px] font-black uppercase ${requirement.satisfied ? "bg-burgundy/[0.07] text-burgundy" : "bg-gold/20 text-burgundy"}`}><StatusIcon className="h-3 w-3" />{requirement.satisfied ? (isFr ? "Validé" : "Cleared") : (isFr ? "Manquant" : "Missing")}</span>
+          <span className={`inline-flex min-h-5 items-center gap-1 rounded px-1.5 text-[8px] font-black uppercase ${requirement.satisfied ? "bg-burgundy/[0.07] text-burgundy" : requirement.severity === "recommended" ? "bg-white text-muted-foreground ring-1 ring-charcoal/10" : "bg-gold/20 text-burgundy"}`}><StatusIcon className="h-3 w-3" />{requirement.satisfied ? (isFr ? "Validé" : "Cleared") : missingLabel}</span>
         </div>
         <p className="mt-1 text-[9px] leading-4 text-muted-foreground">{isFr ? requirement.detailFr : requirement.detailEn}</p>
       </div>
@@ -457,7 +458,7 @@ function capabilityLabel(integrationId: Integration["id"], capability: string, l
     identity: { connection: ["API publique", "Public API"], project: ["Projet cible", "Target project"], serverAccess: ["Accès serveur", "Server access"] },
     cache: { connection: ["Protection active", "Protection active"] },
     push: { connection: ["Diffusion active", "Delivery active"] },
-    hosting: { account: ["Compte Cloudflare", "Cloudflare account"], workers: ["Cible Workers", "Workers target"], runtime: ["Runtime edge", "Edge runtime"], domain: ["Domaine public", "Public domain"] },
+    hosting: { account: ["Compte Cloudflare", "Cloudflare account"], workers: ["Cible Workers", "Workers target"], runtime: ["Runtime edge", "Edge runtime"], domainDeferred: ["Domaine plus tard", "Domain later"], domain: ["Domaine public", "Public domain"] },
   };
   return labels[integrationId][capability]?.[locale === "fr" ? 0 : 1] || capability;
 }

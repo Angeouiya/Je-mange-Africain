@@ -29,6 +29,7 @@
     "cloudflare:dev": "vinext dev --port 3001",
     "cloudflare:build": "npm run db:generate:postgres && vinext build",
     "cloudflare:preview": "wrangler dev --config dist/server/wrangler.json",
+    "cloudflare:create": "wrangler deploy --config wrangler.bootstrap.jsonc --keep-vars",
     "cloudflare:deploy": "node scripts/production-autopilot.mjs --deploy",
     "cloudflare:types": "wrangler types --config wrangler.jsonc --include-runtime=false cloudflare-env.d.ts",
     "production:audit": "node scripts/production-autopilot.mjs --check",
