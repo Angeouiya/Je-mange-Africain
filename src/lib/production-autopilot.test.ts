@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CLOUDFLARE_PUBLICATION_MODE,
+  preferredDashboardBrowser,
   printProductionReadiness,
   productionReadiness,
   PRODUCTION_SITE_URL,
@@ -130,5 +131,18 @@ describe("production autopilot", () => {
       readyForLink: false,
       readyForDbPush: true,
     });
+  });
+
+  it("opens provider dashboards with Edge first on Windows", () => {
+    const edgePath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+    const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+    const env = {
+      "PROGRAMFILES(X86)": "C:\\Program Files (x86)",
+      PROGRAMFILES: "C:\\Program Files",
+    } as unknown as NodeJS.ProcessEnv;
+    const exists = ((candidate: unknown) => [edgePath, chromePath].includes(String(candidate))) as typeof import("node:fs").existsSync;
+
+    expect(preferredDashboardBrowser({ platform: "win32", env, exists })).toEqual({ label: "Microsoft Edge", executable: edgePath });
+    expect(preferredDashboardBrowser({ platform: "win32", env: { ...env, JMA_PRODUCTION_BROWSER: "chrome" }, exists })).toEqual({ label: "Chrome", executable: chromePath });
   });
 });

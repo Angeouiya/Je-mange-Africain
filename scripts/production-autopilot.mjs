@@ -326,13 +326,32 @@ function deployCloudflare(values) {
   }
 }
 
-function chromePath() {
-  const candidates = [
-    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe"),
-    process.env.PROGRAMFILES && join(process.env.PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
-    process.env["PROGRAMFILES(X86)"] && join(process.env["PROGRAMFILES(X86)"], "Google", "Chrome", "Application", "chrome.exe"),
+export function preferredDashboardBrowser({
+  platform = process.platform,
+  env = process.env,
+  exists = existsSync,
+} = {}) {
+  if (platform !== "win32") return null;
+  const edgeCandidates = [
+    env.LOCALAPPDATA && join(env.LOCALAPPDATA, "Microsoft", "Edge", "Application", "msedge.exe"),
+    env.PROGRAMFILES && join(env.PROGRAMFILES, "Microsoft", "Edge", "Application", "msedge.exe"),
+    env["PROGRAMFILES(X86)"] && join(env["PROGRAMFILES(X86)"], "Microsoft", "Edge", "Application", "msedge.exe"),
   ].filter(Boolean);
-  return candidates.find((candidate) => existsSync(candidate));
+  const chromeCandidates = [
+    env.LOCALAPPDATA && join(env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe"),
+    env.PROGRAMFILES && join(env.PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
+    env["PROGRAMFILES(X86)"] && join(env["PROGRAMFILES(X86)"], "Google", "Chrome", "Application", "chrome.exe"),
+  ].filter(Boolean);
+  const preferChrome = (env.JMA_PRODUCTION_BROWSER || "").toLowerCase().includes("chrome");
+  const browserGroups = preferChrome
+    ? [["Chrome", chromeCandidates], ["Microsoft Edge", edgeCandidates]]
+    : [["Microsoft Edge", edgeCandidates], ["Chrome", chromeCandidates]];
+
+  for (const [label, candidates] of browserGroups) {
+    const executable = candidates.find((candidate) => exists(candidate));
+    if (executable) return { label, executable };
+  }
+  return null;
 }
 
 function openDashboards() {
@@ -344,15 +363,15 @@ function openDashboards() {
     "https://dashboard.stripe.com/webhooks",
     "https://console.upstash.com/redis",
   ];
-  const executable = process.platform === "win32" ? chromePath() : null;
-  if (executable) {
-    spawn(executable, urls, { detached: true, stdio: "ignore" }).unref();
+  const browser = preferredDashboardBrowser();
+  if (browser) {
+    spawn(browser.executable, urls, { detached: true, stdio: "ignore" }).unref();
   } else {
     const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
     const args = process.platform === "win32" ? ["/c", "start", "", ...urls] : urls;
     spawn(command, args, { detached: true, stdio: "ignore" }).unref();
   }
-  console.log("Opened production dashboards for Supabase, Cloudflare, Stripe and Upstash.");
+  console.log(`Opened production dashboards${browser ? ` in ${browser.label}` : ""} for Supabase, Cloudflare, Stripe and Upstash.`);
 }
 
 function printHelp() {
@@ -362,7 +381,7 @@ Options:
   --check              Print redacted production readiness.
   --assert             Fail unless every production prerequisite is ready.
   --check-supabase     Print redacted Supabase CLI readiness.
-  --open-dashboards    Open the exact provider pages needed to retrieve missing keys.
+  --open-dashboards    Open the exact provider pages needed to retrieve missing keys. Uses Edge first on Windows.
   --link-supabase      Link the local repo to the production Supabase project.
   --push-supabase      Push Supabase SQL migrations to the production project.
   --sync-cloudflare    Upload current env values to Cloudflare secrets for an existing Worker.
