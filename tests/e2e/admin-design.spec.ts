@@ -833,6 +833,8 @@ test("the professional sign-in owns its bilingual identity and persists the sele
 
 test("every professional workspace has a clear purpose and stays inside the viewport", async ({ page }) => {
   test.setTimeout(180_000);
+  const narrowMobile = (page.viewportSize()?.width || 0) < 768;
+  if (narrowMobile) await page.setViewportSize({ width: 320, height: 700 });
   await mockAdminApi(page);
   await page.goto("/admin", { waitUntil: "domcontentloaded" });
   await expect(page.locator("header h1")).toBeVisible();
@@ -2500,9 +2502,16 @@ test("the customer workspace provides a complete and auditable relationship view
 });
 
 test("push campaigns target a measured audience and preview both languages", async ({ page }) => {
+  const narrowMobile = (page.viewportSize()?.width || 0) < 768;
+  if (narrowMobile) await page.setViewportSize({ width: 320, height: 700 });
   await mockAdminApi(page);
   await page.goto("/admin#campaigns", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Composer, vérifier, diffuser" })).toBeVisible();
+  if (narrowMobile) {
+    const headerDescription = page.getByTestId("admin-page-header").locator("[data-admin-header-description]");
+    await expect(headerDescription).toBeVisible();
+    expect(await headerDescription.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
+  }
   await expect(page.locator('img[src*="notification-icon-burgundy"]').first()).toBeVisible();
   const readiness = page.getByTestId("campaign-readiness");
   await expect(readiness.getByText("2 contrôles sur 4")).toBeVisible();

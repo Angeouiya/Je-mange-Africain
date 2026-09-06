@@ -521,6 +521,8 @@ test("the wholesale market applies volume pricing and preserves case quantities 
 });
 
 test("global search and notifications navigate to useful client destinations", async ({ page }) => {
+  const narrowMobile = (page.viewportSize()?.width || 0) < 768;
+  if (narrowMobile) await page.setViewportSize({ width: 320, height: 700 });
   const current = new Date();
   const todayAtNoon = new Date(current.getFullYear(), current.getMonth(), current.getDate(), 12).toISOString();
   const yesterdayAtNoon = new Date(current.getFullYear(), current.getMonth(), current.getDate() - 1, 12).toISOString();
@@ -557,6 +559,15 @@ test("global search and notifications navigate to useful client destinations", a
   await expect(page.getByRole("button", { name: /actualiser les notifications|refresh notifications/i })).toBeVisible();
   const pushPreferences = page.getByTestId("push-preferences");
   await expect(pushPreferences).toBeVisible();
+  if (narrowMobile) {
+    const preferenceGrid = pushPreferences.getByTestId("push-preference-grid");
+    await expect.poll(() => preferenceGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(1);
+    const preferenceGeometry = await preferenceGrid.locator("[data-preference-label], [data-preference-description]").evaluateAll((elements) => elements.map((element) => ({
+      horizontalOverflow: element.scrollWidth - element.clientWidth,
+      verticalOverflow: element.scrollHeight - element.clientHeight,
+    })));
+    expect(preferenceGeometry.every(({ horizontalOverflow, verticalOverflow }) => horizontalOverflow <= 1 && verticalOverflow <= 1)).toBe(true);
+  }
   await expect(pushPreferences.getByRole("switch", { name: /recevoir : commandes|receive: orders/i })).toBeChecked();
   await expect(pushPreferences.getByRole("switch", { name: /recevoir : service|receive: service/i })).toBeChecked();
   await expect(pushPreferences.getByRole("switch", { name: /recevoir : recettes|receive: recipes/i })).not.toBeChecked();

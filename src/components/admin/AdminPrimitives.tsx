@@ -45,7 +45,7 @@ export function AdminPageHeader({
       <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 flex flex-col gap-3 border-y border-charcoal/8 bg-white px-4 py-4 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5 lg:-mx-8 lg:px-8">
         <div className="flex max-w-3xl items-start gap-3 sm:items-center sm:gap-4">
           {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md sm:h-12 sm:w-12" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
-          <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase sm:text-[10px]" style={{ color: readableAccent }}>{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
+          <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase sm:text-[10px]" style={{ color: readableAccent }}>{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p data-admin-header-description className="mt-1 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:text-xs sm:leading-5">{description}</p></div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>

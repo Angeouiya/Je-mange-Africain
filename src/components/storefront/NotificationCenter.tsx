@@ -445,15 +445,15 @@ function NotificationPanel({
             <p role={preferenceState === "error" ? "alert" : "status"} className={`mt-0.5 text-[9px] leading-4 ${preferenceState === "error" ? "text-destructive" : "text-muted-foreground"}`}>{preferenceCopy}</p>
           </div>
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+        <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 min-[360px]:grid-cols-2" data-testid="push-preference-grid">
           {preferenceItems.map((item) => {
             const Icon = item.icon;
             return (
               <div key={item.key} className="flex min-w-0 items-center gap-2 border-t border-border/70 py-2">
                 <Icon className="h-3.5 w-3.5 shrink-0 text-burgundy" aria-hidden="true" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[10px] font-black text-charcoal">{item.label}</span>
-                  <span className="block truncate text-[8px] text-muted-foreground">{item.description}</span>
+                  <span data-preference-label className="block text-[10px] font-black text-charcoal">{item.label}</span>
+                  <span data-preference-description className="block text-[8px] leading-3 text-muted-foreground">{item.description}</span>
                 </span>
                 <Switch checked={preferences[item.key]} disabled={preferenceState === "saving" || pushState === "busy"} onCheckedChange={(checked) => onPreferenceChange(item.key, checked)} aria-label={locale === "fr" ? `Recevoir : ${item.label}` : `Receive: ${item.label}`} className="shrink-0" />
               </div>
