@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpen, BookOpenCheck, ChefHat, ChevronRight, Clock3, Package, Sparkles, UsersRound } from "lucide-react";
+import { Archive, BookOpen, BookOpenCheck, Boxes, ChefHat, ChevronRight, Clock3, Package, PackageX, PencilLine, Sparkles, UsersRound, type LucideIcon } from "lucide-react";
 import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { ProductCreateDialog } from "@/components/admin/ProductCreateDialog";
 import { RecipeCreateDialog } from "@/components/admin/RecipeCreateDialog";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useFetch } from "@/lib/use-fetch";
@@ -20,6 +19,7 @@ type Recipe = { id: string; title: string; description?: string; country: string
 type RecipeDetails = Recipe & { steps: string[]; ingredients: Array<{ recipeIngredientId: string; quantityPerBase: number; unit: string; optional: boolean; product: { id: string; traditionalName: string; emoji: string; imageUrl?: string | null; color?: string; nameFr: string; nameEn: string; stockQty: number; reservedQty?: number; availableQty?: number; status?: "draft" | "published" | "archived" } }> };
 type ProductFilter = "all" | "published" | "depleted" | "draft" | "archived" | "wholesale";
 type RecipeFilter = "all" | "published" | "draft" | "archived" | "attention";
+type OfferPilotAction = { key: string; label: string; detail: string; value: number; icon: LucideIcon; tone: "burgundy" | "terre" | "gold" | "destructive"; active: boolean; onClick: () => void };
 
 export default function OfferSection({ locale, workspace }: { locale: "fr" | "en"; workspace: "products" | "recipes" }) {
   const isFr = locale === "fr";
@@ -60,6 +60,20 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
     const matchesFilter = recipeFilter === "all" || (recipeFilter === "attention" ? needsAttention : recipe.status === recipeFilter);
     return matchesQuery && matchesFilter;
   }), [recipes, normalizedQuery, recipeFilter]);
+  const productPilotScore = products.length ? Math.round((productStats.published / products.length) * 100) : 0;
+  const recipePilotScore = recipes.length ? Math.round((recipeStats.ready / recipes.length) * 100) : 0;
+  const productPilotActions: OfferPilotAction[] = [
+    { key: "depleted", label: isFr ? "Ruptures" : "Stock outs", detail: isFr ? "Bloquer panier, préparer réassort" : "Block basket, prepare replenishment", value: productStats.depleted, icon: PackageX, tone: "destructive", active: productFilter === "depleted", onClick: () => setProductFilter("depleted") },
+    { key: "draft", label: isFr ? "Brouillons" : "Drafts", detail: isFr ? "Compléter fiche, photo et marge" : "Complete record, photo and margin", value: productStats.draft, icon: PencilLine, tone: "gold", active: productFilter === "draft", onClick: () => setProductFilter("draft") },
+    { key: "archived", label: isFr ? "Désactivés" : "Disabled", detail: isFr ? "Hors boutique, historique conservé" : "Off store, history preserved", value: productStats.archived, icon: Archive, tone: "terre", active: productFilter === "archived", onClick: () => setProductFilter("archived") },
+    { key: "wholesale", label: isFr ? "Gros" : "Wholesale", detail: isFr ? "Lots, cartons et prix dégressifs" : "Packs, cases and tiered prices", value: productStats.wholesale, icon: Boxes, tone: "burgundy", active: productFilter === "wholesale", onClick: () => setProductFilter("wholesale") },
+  ];
+  const recipePilotActions: OfferPilotAction[] = [
+    { key: "attention", label: isFr ? "À vérifier" : "Review", detail: isFr ? "Stock, produit ou préparation à corriger" : "Fix stock, product or preparation", value: recipeStats.attention, icon: PackageX, tone: "destructive", active: recipeFilter === "attention", onClick: () => setRecipeFilter("attention") },
+    { key: "published", label: isFr ? "Publiées" : "Published", detail: isFr ? "Disponibles dans l'app client" : "Available in the customer app", value: recipeStats.published, icon: BookOpenCheck, tone: "burgundy", active: recipeFilter === "published", onClick: () => setRecipeFilter("published") },
+    { key: "draft", label: isFr ? "Brouillons" : "Drafts", detail: isFr ? "Enrichir étapes, portions et visuels" : "Improve steps, servings and visuals", value: recipeStats.draft, icon: PencilLine, tone: "gold", active: recipeFilter === "draft", onClick: () => setRecipeFilter("draft") },
+    { key: "archived", label: isFr ? "Désactivées" : "Disabled", detail: isFr ? "Retirées sans perte de traçabilité" : "Removed without losing traceability", value: recipeStats.archived, icon: Archive, tone: "terre", active: recipeFilter === "archived", onClick: () => setRecipeFilter("archived") },
+  ];
 
   const activeRequest = workspace === "products" ? productsRequest : recipesRequest;
   if (activeRequest.loading && !activeRequest.data) return <AdminSectionLoading label={isFr ? "Ouverture de l'offre" : "Opening offer workspace"} />;
@@ -110,6 +124,20 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         <RegisterFilterButton active={recipeFilter === "archived"} onClick={() => setRecipeFilter("archived")}>{isFr ? "Désactivées" : "Disabled"} · {recipeStats.archived}</RegisterFilterButton>
         <RegisterFilterButton active={recipeFilter === "attention"} onClick={() => setRecipeFilter("attention")}>{isFr ? "À vérifier" : "Review"} · {recipeStats.attention}</RegisterFilterButton>
       </div> : null}
+
+      <OfferPilotStrip
+        locale={locale}
+        title={workspace === "products" ? (isFr ? "Pilotage marchand" : "Commerce cockpit") : (isFr ? "Pilotage culinaire" : "Culinary cockpit")}
+        scoreLabel={workspace === "products" ? (isFr ? "Fiches publiées" : "Published records") : (isFr ? "Recettes prêtes" : "Ready recipes")}
+        score={workspace === "products" ? productPilotScore : recipePilotScore}
+        scoreDetail={workspace === "products"
+          ? (isFr ? `${productStats.published}/${products.length || 0} produits visibles côté client` : `${productStats.published}/${products.length || 0} products visible to customers`)
+          : (isFr ? `${recipeStats.ready}/${recipes.length || 0} recettes achetables sans alerte` : `${recipeStats.ready}/${recipes.length || 0} recipes shoppable without alerts`)}
+        actions={workspace === "products" ? productPilotActions : recipePilotActions}
+        hasActiveFilter={workspace === "products" ? productFilter !== "all" : recipeFilter !== "all"}
+        resetLabel={workspace === "products" ? (isFr ? "Voir tous les produits" : "View all products") : (isFr ? "Voir toutes les recettes" : "View all recipes")}
+        onReset={() => { if (workspace === "products") setProductFilter("all"); else setRecipeFilter("all"); }}
+      />
 
       {workspace === "products" ? (
         filteredProducts.length ? (
@@ -191,6 +219,56 @@ function ProductStatusBadge({ product, locale }: { product: Product; locale: "fr
 
 function RegisterFilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-md border px-3 py-2 text-[10px] font-black transition ${active ? "border-burgundy bg-burgundy text-white" : "border-border bg-white text-charcoal hover:border-burgundy/30"}`}>{children}</button>;
+}
+
+function OfferPilotStrip({ locale, title, scoreLabel, score, scoreDetail, actions, hasActiveFilter, resetLabel, onReset }: { locale: "fr" | "en"; title: string; scoreLabel: string; score: number; scoreDetail: string; actions: OfferPilotAction[]; hasActiveFilter: boolean; resetLabel: string; onReset: () => void }) {
+  return (
+    <section data-testid="offer-pilot-strip" className="overflow-hidden border-y border-burgundy/10 bg-[linear-gradient(135deg,#FFFCFA,rgba(214,90,50,0.045),rgba(242,169,0,0.075))]" aria-label={title}>
+      <div className="grid gap-3 px-3 py-3 sm:grid-cols-[minmax(12rem,0.9fr)_minmax(0,1.6fr)] sm:px-4 sm:py-4">
+        <div className="min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[9px] font-black uppercase text-burgundy">{title}</p>
+            {hasActiveFilter ? <button type="button" onClick={onReset} className="shrink-0 text-[9px] font-black uppercase text-terre hover:underline">{resetLabel}</button> : null}
+          </div>
+          <div className="mt-2 flex items-end gap-2">
+            <strong className="text-2xl font-black tabular-nums text-charcoal">{score}%</strong>
+            <span className="pb-1 text-[10px] font-black uppercase text-muted-foreground">{scoreLabel}</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white shadow-inner" role="progressbar" aria-label={scoreLabel} aria-valuemin={0} aria-valuemax={100} aria-valuenow={score}>
+            <div className="h-full rounded-full bg-[linear-gradient(90deg,#8A3042,#D65A32,#F2A900)]" style={{ width: `${Math.max(0, Math.min(100, score))}%` }} />
+          </div>
+          <p className="mt-2 text-[10px] leading-4 text-muted-foreground">{scoreDetail}</p>
+        </div>
+        <div className="-mx-3 flex min-w-0 snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-4 sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
+          {actions.map((action) => <OfferPilotButton key={action.key} action={action} locale={locale} />)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OfferPilotButton({ action, locale }: { action: OfferPilotAction; locale: "fr" | "en" }) {
+  const Icon = action.icon;
+  const toneClass = action.tone === "destructive"
+    ? "border-destructive/25 bg-white text-destructive"
+    : action.tone === "gold"
+      ? "border-gold/45 bg-white text-gold"
+      : action.tone === "terre"
+        ? "border-terre/24 bg-white text-terre"
+        : "border-burgundy/20 bg-white text-burgundy";
+  const activeClass = action.active ? "ring-2 ring-terre/20 shadow-[0_14px_28px_-24px_rgba(90,38,50,0.8)]" : "hover:border-burgundy/25 hover:shadow-[0_14px_28px_-26px_rgba(90,38,50,0.55)]";
+  return (
+    <button type="button" onClick={action.onClick} aria-pressed={action.active} aria-label={`${action.label}, ${action.value} ${locale === "fr" ? "éléments" : "items"}`} data-testid={`offer-pilot-action-${action.key}`} className={`flex min-h-[4.8rem] w-[9.6rem] shrink-0 snap-start flex-col justify-between rounded-md border px-3 py-2.5 text-left transition sm:w-auto ${toneClass} ${activeClass}`}>
+      <span className="flex items-start justify-between gap-2">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-current/10"><Icon className="h-4 w-4" /></span>
+        <strong className="text-lg font-black tabular-nums text-charcoal">{action.value}</strong>
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-[10px] font-black text-charcoal">{action.label}</span>
+        <span className="mt-0.5 block line-clamp-2 text-[9px] leading-3 text-muted-foreground">{action.detail}</span>
+      </span>
+    </button>
+  );
 }
 
 function RecipeStatusBadge({ recipe, locale, compact = false }: { recipe: Recipe; locale: "fr" | "en"; compact?: boolean }) {

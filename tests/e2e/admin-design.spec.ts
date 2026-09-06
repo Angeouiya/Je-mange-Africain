@@ -1892,6 +1892,14 @@ test("the product workspace edits bilingual content and calculates the customer 
   await mockAdminApi(page);
   await page.goto("/admin#catalog", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Ce qui est réellement vendu" })).toBeVisible();
+  const pilot = page.getByTestId("offer-pilot-strip");
+  await expect(pilot).toContainText("Pilotage marchand");
+  await expect(pilot).toContainText("100%");
+  await expect(pilot.getByTestId("offer-pilot-action-draft")).toContainText("Compléter fiche, photo et marge");
+  await pilot.getByTestId("offer-pilot-action-wholesale").click();
+  await expect(pilot.getByTestId("offer-pilot-action-wholesale")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Aucun produit trouvé")).toBeVisible();
+  await pilot.getByRole("button", { name: "Voir tous les produits" }).click();
   const productFilters = page.getByRole("group", { name: "Filtrer le registre des produits" });
   await expect(productFilters.getByRole("button", { name: "Tous · 2" })).toHaveAttribute("aria-pressed", "true");
   await expect(productFilters.getByRole("button", { name: "Publiés · 2" })).toBeVisible();
@@ -2157,6 +2165,12 @@ test("the recipe workspace exposes linked product publication blockers before st
   }));
 
   await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
+  const pilot = page.getByTestId("offer-pilot-strip");
+  await expect(pilot).toContainText("Pilotage culinaire");
+  await expect(pilot).toContainText("0%");
+  await expect(pilot.getByTestId("offer-pilot-action-attention")).toContainText("Stock, produit ou préparation à corriger");
+  await pilot.getByTestId("offer-pilot-action-attention").click();
+  await expect(pilot.getByTestId("offer-pilot-action-attention")).toHaveAttribute("aria-pressed", "true");
   const row = page.getByTestId("admin-recipe-row").filter({ visible: true }).first();
   await expect(row).toContainText("Produit à publier");
   await row.getByRole("button", { name: "Inspecter Placali sauce gombo" }).click();
