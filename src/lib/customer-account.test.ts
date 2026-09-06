@@ -18,8 +18,17 @@ describe("customerAddressInput", () => {
     expect(customerAddressInput.parse(validAddress).phone).toBe("+33612345678");
   });
 
+  it("normalizes the country and postcode before persistence", () => {
+    expect(customerAddressInput.parse({ ...validAddress, country: "Netherlands", postalCode: "1012ab" })).toMatchObject({ country: "Pays-Bas", postalCode: "1012 AB" });
+  });
+
   it("rejects incomplete delivery details", () => {
     const result = customerAddressInput.safeParse({ ...validAddress, street: "", phone: "0612" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a postcode that does not match the selected country", () => {
+    const result = customerAddressInput.safeParse({ ...validAddress, country: "Allemagne", postalCode: "7501" });
     expect(result.success).toBe(false);
   });
 });

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PageBackButton } from "@/components/shared/PageBackButton";
+import { PostalCodeField } from "@/components/shared/PostalCodeField";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
@@ -22,7 +23,7 @@ import { dict } from "@/lib/i18n";
 import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStore } from "@/lib/store";
 import { ApiError, postJSON } from "@/lib/use-fetch";
 import { clearPendingCheckout, readPendingCheckout, rememberPendingCheckout, type PendingCheckoutPayload } from "@/lib/checkout-return";
-import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
+import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMethodFamily, paymentMethodHint, paymentMethodLabel, uniquePaymentMethods } from "@/lib/payment-methods";
 import { clearPaymentRecovery, readPaymentRecovery, rememberPaymentRecovery, type PaymentRecovery } from "@/lib/payment-recovery-storage";
 
@@ -151,6 +152,12 @@ export function CheckoutView() {
         : baseEstimate;
   const shipFee = promotion?.freeShipping ? 0 : quotedFee;
   const displayTotal = intent?.amount ?? Math.max(0, subtotal - promoDiscount) + shipFee;
+  const postalValidation = validateEuropeanPostalCode(form.country, form.postalCode);
+  const normalizedAddress = {
+    ...form,
+    postalCode: postalValidation.normalized,
+    country: europeanCountryValue(form.country) || form.country,
+  };
   const checkoutItems: PendingCheckoutPayload["items"] = cart.map((item) => ({
     productId: item.productId,
     variantId: item.variantId,
@@ -162,21 +169,27 @@ export function CheckoutView() {
   }));
   const checkoutPayload: PendingCheckoutPayload = {
     items: checkoutItems,
-    address: form,
+    address: normalizedAddress,
     deliverySlot: slot,
     coupon,
     locale,
   };
 
   useEffect(() => {
+    if (!postalValidation.valid) {
+      setShipQuote(null);
+      setShipLoading(false);
+      return;
+    }
     let cancelled = false;
     setShipLoading(true);
     const timeout = window.setTimeout(() => {
       postJSON<ShippingQuoteResponse>("/api/shipping/quote", {
         weightGrams: weight,
         thermalClasses: thermalKey ? thermalKey.split("|") : [],
-        postalCode: form.postalCode,
+        postalCode: postalValidation.normalized,
         country: form.country,
+        locale,
       }).then((quote) => {
         if (!cancelled) {
           setShipQuote(quote);
@@ -197,7 +210,7 @@ export function CheckoutView() {
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [form.country, form.postalCode, thermalKey, weight]);
+  }, [form.country, locale, postalValidation.normalized, postalValidation.valid, thermalKey, weight]);
 
   useEffect(() => {
     let cancelled = false;
@@ -225,7 +238,7 @@ export function CheckoutView() {
     && form.email.includes("@")
     && form.phone.trim().length >= 6
     && form.street.trim()
-    && form.postalCode.trim()
+    && postalValidation.valid
     && form.city.trim()
     && form.country.trim()
     && selectedShipping?.available !== false
@@ -234,7 +247,7 @@ export function CheckoutView() {
   const preparePayment = async () => {
     setPreparingPayment(true);
     setPaymentError("");
-    setDeliveryContext(europeanCountryValue(form.country) || form.country, form.postalCode.trim().toUpperCase());
+    setDeliveryContext(normalizedAddress.country, normalizedAddress.postalCode);
     try {
       const response = await postJSON<IntentResponse>("/api/payments/intent", {
         ...checkoutPayload,
@@ -437,7 +450,7 @@ export function CheckoutView() {
               ) : null}
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-[0.7fr_1.1fr_1fr]">
                 <div className="col-span-2 sm:col-span-3"><Field label={t.checkout.street} value={form.street} onChange={(value) => updateForm("street", value)} autoComplete="street-address" /></div>
-                <Field label={t.checkout.postalCode} value={form.postalCode} onChange={(value) => updateForm("postalCode", value)} autoComplete="postal-code" />
+                <PostalCodeField id="checkout-postal-code" label={t.checkout.postalCode} country={form.country} locale={locale} value={form.postalCode} onChange={(value) => updateForm("postalCode", value)} inputClassName="h-11 min-w-0 border-charcoal/12 bg-white" />
                 <Field label={t.checkout.city} value={form.city} onChange={(value) => updateForm("city", value)} autoComplete="address-level2" />
                 <div className="col-span-2 sm:col-span-1">
                   <Label htmlFor="checkout-country" className="mb-1.5 block text-xs font-semibold text-charcoal">{locale === "fr" ? "Pays de livraison" : "Delivery country"}</Label>

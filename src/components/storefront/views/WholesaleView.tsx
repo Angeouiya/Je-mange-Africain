@@ -10,12 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch";
 import { PageBackButton } from "@/components/shared/PageBackButton";
+import { PostalCodeField } from "@/components/shared/PostalCodeField";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { useStore } from "@/lib/store";
 import { formatPrice, formatUnitPrice } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
 import { getProductPhoto } from "@/lib/market-media";
-import { europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
+import { europeanCountryOptions, europeanCountryValue, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { nextWholesaleTier, wholesaleDiscountPercent, wholesaleLineEconomics, type WholesaleTier } from "@/lib/wholesale";
 
 type WholesaleProduct = {
@@ -232,6 +233,7 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
   const isFr = locale === "fr";
   const estimatedSubtotal = lines.reduce((total, line) => total + wholesaleLineEconomics(line.product.price, line.product.wholesaleUnitsPerPack, line.product.wholesaleTiers, line.packs).lineTotal, 0);
   const totalPacks = lines.reduce((total, line) => total + line.packs, 0);
+  const postalValidation = validateEuropeanPostalCode(form.country, form.postalCode);
 
   const handleOpenChange = (next: boolean) => {
     if (status === "busy") return;
@@ -253,6 +255,7 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!postalValidation.valid) return;
     setStatus("busy");
     setErrorMessage("");
     try {
@@ -266,7 +269,7 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
           email: form.email,
           phone: form.phone,
           country: form.country,
-          postalCode: form.postalCode,
+          postalCode: postalValidation.normalized,
           additionalNeeds: form.additionalNeeds,
           deliveryRequirements: form.deliveryRequirements,
           items: lines.map((line) => ({ productId: line.product.id, packs: line.packs })),
@@ -314,11 +317,11 @@ function WholesaleQuoteDialog({ open, onOpenChange, lines, onLinesChange }: { op
             <QuoteField id="quote-email" label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} autoComplete="email" required />
             <QuoteField id="quote-phone" label={isFr ? "Téléphone" : "Phone"} type="tel" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} autoComplete="tel" required />
             <div><Label htmlFor="quote-country" className="mb-1.5 block text-xs font-bold">{isFr ? "Pays de livraison" : "Delivery country"}</Label><select id="quote-country" value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} autoComplete="country-name" className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">{europeanCountryOptions(locale).map((country) => <option key={country.code} value={country.value}>{country.label}</option>)}</select></div>
-            <QuoteField id="quote-postal-code" label={isFr ? "Code postal" : "Postcode"} value={form.postalCode} onChange={(postalCode) => setForm({ ...form, postalCode })} autoComplete="postal-code" required />
+            <PostalCodeField id="quote-postal-code" label={isFr ? "Code postal" : "Postcode"} country={form.country} locale={locale} value={form.postalCode} onChange={(postalCode) => setForm({ ...form, postalCode })} />
             <div className="sm:col-span-2"><QuoteField id="quote-volume" label={lines.length ? (isFr ? "Besoin complémentaire (optionnel)" : "Additional requirement (optional)") : (isFr ? "Produits et volumes souhaités" : "Requested products and volumes")} value={form.additionalNeeds} onChange={(additionalNeeds) => setForm({ ...form, additionalNeeds })} required={!lines.length} /></div>
             <div className="sm:col-span-2"><Label htmlFor="quote-message" className="mb-1.5 block text-xs font-bold">{isFr ? "Contraintes de livraison" : "Delivery requirements"}</Label><Textarea id="quote-message" value={form.deliveryRequirements} onChange={(event) => setForm({ ...form, deliveryRequirements: event.target.value })} rows={4} minLength={10} required /></div>
             {status === "error" ? <p role="alert" className="text-xs font-semibold text-destructive sm:col-span-2">{errorMessage}</p> : null}
-            <DialogFooter className="mt-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={status === "busy"}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={status === "busy"} className="bg-terre text-white hover:bg-terre-dark">{status === "busy" ? (isFr ? "Enregistrement..." : "Saving...") : (isFr ? "Enregistrer la demande" : "Record request")}</Button></DialogFooter>
+            <DialogFooter className="mt-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={status === "busy"}>{isFr ? "Annuler" : "Cancel"}</Button><Button type="submit" disabled={status === "busy" || !postalValidation.valid} className="bg-terre text-white hover:bg-terre-dark">{status === "busy" ? (isFr ? "Enregistrement..." : "Saving...") : (isFr ? "Enregistrer la demande" : "Record request")}</Button></DialogFooter>
           </form>
         )}
       </DialogContent>

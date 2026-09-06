@@ -9,6 +9,7 @@ import { enforceRateLimit } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 import { deliveryContactFingerprint } from "@/lib/checkout-security";
 import { paymentMethodUsed } from "@/lib/stripe-payment-method";
+import { europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
 import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +50,18 @@ export async function POST(request: NextRequest) {
 
   const parsed = CheckoutRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "La commande transmise est invalide." }, { status: 400 });
-  const body = parsed.data;
+  const postalValidation = validateEuropeanPostalCode(parsed.data.address.country, parsed.data.address.postalCode);
+  if (!postalValidation.valid) {
+    return NextResponse.json({ error: europeanPostalCodeMessage(parsed.data.address.country, parsed.data.address.postalCode, parsed.data.locale) }, { status: 400 });
+  }
+  const body = {
+    ...parsed.data,
+    address: {
+      ...parsed.data.address,
+      country: europeanCountryValue(parsed.data.address.country)!,
+      postalCode: postalValidation.normalized,
+    },
+  };
   if (!stripe) return NextResponse.json({ error: stripeConfigurationError(body.locale) }, { status: 503 });
 
   let paidIntent: Stripe.PaymentIntent | null = null;

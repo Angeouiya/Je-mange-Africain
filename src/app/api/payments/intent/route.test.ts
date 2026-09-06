@@ -90,4 +90,32 @@ describe("POST /api/payments/intent European payment policy", () => {
     expect(params.excluded_payment_method_types).not.toContain("paypal");
     expect(params.excluded_payment_method_types).toContain("sepa_debit");
   });
+
+  it("normalizes an alphanumeric postcode before pricing and Stripe", async () => {
+    const request = new NextRequest("http://localhost/api/payments/intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, locale: "en", address: { ...body.address, country: "Netherlands", postalCode: "1012ab" } }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mocks.priceCheckout).toHaveBeenCalledWith(expect.objectContaining({ country: "Pays-Bas", postalCode: "1012 AB" }));
+    expect(mocks.createIntent).toHaveBeenCalledWith(expect.objectContaining({ shipping: expect.objectContaining({ address: expect.objectContaining({ country: "NL", postal_code: "1012 AB" }) }) }), expect.anything());
+  });
+
+  it("does not create a payment attempt for an invalid destination", async () => {
+    const request = new NextRequest("http://localhost/api/payments/intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, address: { ...body.address, country: "Allemagne", postalCode: "7501" } }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(mocks.priceCheckout).not.toHaveBeenCalled();
+    expect(mocks.createIntent).not.toHaveBeenCalled();
+  });
 });

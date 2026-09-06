@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { normalizePhone, type CustomerSession } from "@/lib/customer-auth";
+import { europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { z } from "zod";
 
 export const customerAddressInput = z.object({
@@ -13,7 +14,16 @@ export const customerAddressInput = z.object({
   phone: z.string().trim().transform(normalizePhone).pipe(z.string().regex(/^\+[1-9]\d{7,14}$/)),
   isDefault: z.boolean().default(false),
   locale: z.enum(["fr", "en"]).default("fr"),
-});
+}).superRefine((value, context) => {
+  const postalValidation = validateEuropeanPostalCode(value.country, value.postalCode);
+  if (!postalValidation.valid) {
+    context.addIssue({ code: "custom", path: ["postalCode"], message: europeanPostalCodeMessage(value.country, value.postalCode, value.locale) });
+  }
+}).transform((value) => ({
+  ...value,
+  country: europeanCountryValue(value.country) || value.country,
+  postalCode: validateEuropeanPostalCode(value.country, value.postalCode).normalized,
+}));
 
 export async function loadCustomerIdentity(session: CustomerSession) {
   const email = session.email.trim().toLowerCase();

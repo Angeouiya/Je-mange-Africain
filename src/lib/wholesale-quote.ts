@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { z } from "zod";
 
 export const WHOLESALE_QUOTE_STATUSES = ["new", "reviewing", "quoted", "accepted", "declined", "expired"] as const;
@@ -19,13 +20,21 @@ export const WholesaleQuoteRequestInput = z.object({
     packs: z.number().int().min(1).max(99),
   })).max(24).default([]),
 }).superRefine((value, context) => {
+  const postalValidation = validateEuropeanPostalCode(value.country, value.postalCode);
+  if (!postalValidation.valid) {
+    context.addIssue({ code: "custom", path: ["postalCode"], message: europeanPostalCodeMessage(value.country, value.postalCode, value.locale) });
+  }
   if (!value.items.length && value.additionalNeeds.length < 3) {
     context.addIssue({ code: "custom", path: ["additionalNeeds"], message: "Describe the requested products or select at least one product." });
   }
   if (new Set(value.items.map((item) => item.productId)).size !== value.items.length) {
     context.addIssue({ code: "custom", path: ["items"], message: "A product can only appear once." });
   }
-});
+}).transform((value) => ({
+  ...value,
+  country: europeanCountryValue(value.country) || value.country,
+  postalCode: validateEuropeanPostalCode(value.country, value.postalCode).normalized,
+}));
 
 export const WholesaleQuoteAdminInput = z.object({
   locale: z.enum(["fr", "en"]).default("fr"),

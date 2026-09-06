@@ -1130,6 +1130,11 @@ test("the logistics cockpit publishes a route and mirrors the customer delivery 
 
   await page.getByRole("tab", { name: /Simulateur client/ }).click();
   const simulator = page.getByRole("form", { name: "Simulateur de livraison" });
+  await simulator.getByLabel("Pays").selectOption("Allemagne");
+  await simulator.getByLabel("Code postal").fill("7501");
+  await expect(simulator.getByText("Format attendu pour Allemagne : 10115.")).toBeVisible();
+  await expect(simulator.getByRole("button", { name: "Calculer les 3 options" })).toBeDisabled();
+  await simulator.getByLabel("Code postal").fill("10115");
   await simulator.getByLabel("Contrainte thermique").selectOption("FROZEN");
   await simulator.getByLabel("Poids du panier (kg)").fill("4.2");
   await simulator.getByRole("button", { name: "Calculer les 3 options" }).click();

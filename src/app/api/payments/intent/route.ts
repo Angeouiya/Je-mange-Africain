@@ -6,7 +6,7 @@ import { assessCheckoutRisk } from "@/lib/fraud";
 import { enforceRateLimit, redis } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 import { deliveryContactFingerprint } from "@/lib/checkout-security";
-import { europeanCountryCode } from "@/lib/european-countries";
+import { europeanCountryCode, europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { CHECKOUT_DELAYED_PAYMENT_METHODS, paypalPreferredLocale } from "@/lib/checkout-payment-policy";
 
 export const dynamic = "force-dynamic";
@@ -50,13 +50,22 @@ export async function POST(request: NextRequest) {
   if (!shippingCountryCode) {
     return NextResponse.json({ error: parsed.data.locale === "fr" ? "Ce pays n'est pas encore desservi." : "This country is not yet supported." }, { status: 400 });
   }
+  const postalValidation = validateEuropeanPostalCode(parsed.data.address.country, parsed.data.address.postalCode);
+  if (!postalValidation.valid) {
+    return NextResponse.json({ error: europeanPostalCodeMessage(parsed.data.address.country, parsed.data.address.postalCode, parsed.data.locale) }, { status: 400 });
+  }
+  const deliveryAddress = {
+    ...parsed.data.address,
+    country: europeanCountryValue(parsed.data.address.country)!,
+    postalCode: postalValidation.normalized,
+  };
   if (!stripe) return NextResponse.json({ error: stripeConfigurationError(parsed.data.locale) }, { status: 503 });
 
   try {
     const pricing = await priceCheckout({
       items: parsed.data.items,
-      country: parsed.data.address.country,
-      postalCode: parsed.data.address.postalCode,
+      country: deliveryAddress.country,
+      postalCode: deliveryAddress.postalCode,
       deliveryService: parsed.data.deliverySlot,
       coupon: parsed.data.coupon,
       locale: parsed.data.locale,
@@ -68,12 +77,12 @@ export async function POST(request: NextRequest) {
       itemCount,
       uniqueProducts: pricing.validatedItems.length,
       email: customer.email,
-      phone: parsed.data.address.phone,
-      postalCode: parsed.data.address.postalCode,
+      phone: deliveryAddress.phone,
+      postalCode: deliveryAddress.postalCode,
       recentAttempts,
     });
 
-    const addressFingerprint = deliveryContactFingerprint(parsed.data.address);
+    const addressFingerprint = deliveryContactFingerprint(deliveryAddress);
     const intent = await stripe.paymentIntents.create({
       amount: Math.round(pricing.total * 100),
       currency: "eur",
@@ -82,7 +91,7 @@ export async function POST(request: NextRequest) {
       payment_method_options: {
         paypal: { preferred_locale: paypalPreferredLocale(parsed.data.locale, shippingCountryCode) },
       },
-      receipt_email: parsed.data.address.email,
+      receipt_email: deliveryAddress.email,
       description: "Commande Je mange Africain",
       metadata: {
         customer_auth_id: customer.id,
@@ -94,12 +103,12 @@ export async function POST(request: NextRequest) {
         checkout_attempt_id: parsed.data.checkoutAttemptId,
       },
       shipping: {
-        name: `${parsed.data.address.firstName} ${parsed.data.address.lastName}`.trim(),
-        phone: parsed.data.address.phone,
+        name: `${deliveryAddress.firstName} ${deliveryAddress.lastName}`.trim(),
+        phone: deliveryAddress.phone,
         address: {
-          line1: parsed.data.address.street,
-          postal_code: parsed.data.address.postalCode,
-          city: parsed.data.address.city,
+          line1: deliveryAddress.street,
+          postal_code: deliveryAddress.postalCode,
+          city: deliveryAddress.city,
           country: shippingCountryCode,
         },
       },

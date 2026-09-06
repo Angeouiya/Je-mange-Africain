@@ -1412,6 +1412,12 @@ test("the basket prices a European destination and carries it into checkout", as
   await expect(dialog).toHaveAccessibleName("Où livrer votre panier ?");
   await expect(dialog).toContainText("32 pays");
   await dialog.getByLabel("Pays de livraison").selectOption("Allemagne");
+  const requestsBeforeInvalidPostcode = quoteRequests.length;
+  await dialog.getByLabel("Code postal").fill("7501");
+  await expect(dialog.getByText("Format attendu pour Allemagne : 10115.")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Utiliser cette destination" })).toBeDisabled();
+  await page.waitForTimeout(400);
+  expect(quoteRequests).toHaveLength(requestsBeforeInvalidPostcode);
   await dialog.getByLabel("Code postal").fill("10115");
   await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Allemagne");
   expect(quoteRequests.at(-1)?.postalCode).toBe("10115");
@@ -1440,6 +1446,7 @@ test("the basket prices a European destination and carries it into checkout", as
   await expect(page.getByRole("heading", { name: /paiement|checkout/i })).toBeVisible();
   await expect(page.getByLabel("Pays de livraison")).toHaveValue("Allemagne");
   await expect(page.getByLabel("Code postal")).toHaveValue("10115");
+  await expect(page.getByText("Exemple : 10115")).toBeVisible();
   await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Allemagne");
   await expectNoHorizontalOverflow(page);
 });
@@ -1575,6 +1582,8 @@ test("checkout compares delivery services and protects the cold chain", async ({
   if (isMobile) await expect(checkoutDock).toContainText(/29,90\s*€/);
 
   await deliveryCountry.selectOption("Belgique");
+  await expect(page.getByText("Format attendu pour Belgique : 1000.")).toBeVisible();
+  await page.getByLabel(/code postal|postcode/i).fill("1000");
   await expect.poll(() => quoteRequests.at(-1)?.country).toBe("Belgique");
   await expect(page.locator("body")).not.toContainText(/doit être configuré avant l'ouverture|must be configured before orders/i);
   if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {

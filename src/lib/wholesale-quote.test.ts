@@ -11,6 +11,11 @@ describe("wholesale quote workflow", () => {
     expect(result.success).toBe(false);
   });
 
+  it("normalizes a European delivery destination", () => {
+    const result = WholesaleQuoteRequestInput.parse({ locale: "en", company: "Maison Awa", contactName: "Awa Traore", email: "awa@example.fr", phone: "+33612345678", country: "Netherlands", postalCode: "1012ab", deliveryRequirements: "Chilled delivery on Tuesday morning.", additionalNeeds: "Attieke cases", items: [] });
+    expect(result).toMatchObject({ country: "Pays-Bas", postalCode: "1012 AB" });
+  });
+
   it("prevents skipping commercial qualification stages", () => {
     expect(canTransitionWholesaleQuote("new", "reviewing")).toBe(true);
     expect(canTransitionWholesaleQuote("reviewing", "accepted")).toBe(false);

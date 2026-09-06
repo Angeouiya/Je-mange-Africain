@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, LoaderCircle, MapPinCheck, MapPinned, Snowflake, Truck, Zap, type LucideIcon } from "lucide-react";
+import { PostalCodeField } from "@/components/shared/PostalCodeField";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatEstimatedArrival } from "@/lib/delivery-experience";
-import { EUROPEAN_COUNTRIES, europeanCountryLabel, europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
+import { EUROPEAN_COUNTRIES, europeanCountryLabel, europeanCountryOptions, europeanCountryValue, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { formatPrice } from "@/lib/format";
 import { type ThermalClass, useStore } from "@/lib/store";
 import { postJSON } from "@/lib/use-fetch";
@@ -38,7 +38,8 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
   const [options, setOptions] = useState<DeliveryOption[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const thermalKey = thermalClasses.join("|");
-  const normalizedPostalCode = draftPostalCode.trim().toUpperCase().replace(/\s+/g, " ");
+  const postalValidation = validateEuropeanPostalCode(draftCountry, draftPostalCode);
+  const normalizedPostalCode = postalValidation.normalized;
   const isFr = locale === "fr";
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -50,7 +51,7 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
   };
 
   useEffect(() => {
-    if (!open || normalizedPostalCode.length < 2) {
+    if (!open || !postalValidation.valid) {
       setOptions([]);
       setStatus("idle");
       return;
@@ -62,6 +63,7 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
       postJSON<ShippingQuoteResponse>("/api/shipping/quote", {
         country: draftCountry,
         postalCode: normalizedPostalCode,
+        locale,
         weightGrams,
         thermalClasses: thermalKey ? thermalKey.split("|") : [],
       }).then((quote) => {
@@ -79,11 +81,11 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [draftCountry, normalizedPostalCode, open, thermalKey, weightGrams]);
+  }, [draftCountry, locale, normalizedPostalCode, open, postalValidation.valid, thermalKey, weightGrams]);
 
   const applyDestination = (event: FormEvent) => {
     event.preventDefault();
-    if (status !== "ready" || normalizedPostalCode.length < 2) return;
+    if (status !== "ready" || !postalValidation.valid) return;
     setDeliveryContext(europeanCountryValue(draftCountry) || draftCountry, normalizedPostalCode);
     setOpen(false);
   };
@@ -114,10 +116,7 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
                   {europeanCountryOptions(locale).map((option) => <option key={option.code} value={option.value}>{option.label}</option>)}
                 </select>
               </div>
-              <div>
-                <Label htmlFor="delivery-destination-postal" className="mb-1.5 block text-xs font-bold text-charcoal">{isFr ? "Code postal" : "Postcode"}</Label>
-                <Input id="delivery-destination-postal" value={draftPostalCode} onChange={(event) => setDraftPostalCode(event.target.value)} minLength={2} maxLength={20} autoComplete="postal-code" inputMode="text" className="h-11 border-charcoal/12 bg-white uppercase focus:border-terre" required />
-              </div>
+              <PostalCodeField id="delivery-destination-postal" label={isFr ? "Code postal" : "Postcode"} country={draftCountry} locale={locale} value={draftPostalCode} onChange={setDraftPostalCode} inputClassName="h-11 border-charcoal/12 bg-white focus:border-terre" />
             </section>
 
             <div className="mt-4 flex items-center justify-between gap-3 border-y border-charcoal/8 bg-[#F8F7F4] px-3 py-2.5 text-[10px]">
@@ -131,7 +130,8 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
                 {status === "loading" ? <span role="status" className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><LoaderCircle className="h-3.5 w-3.5 animate-spin" />{isFr ? "Calcul" : "Calculating"}</span> : null}
               </div>
 
-              {status === "loading" || status === "idle" ? <div className="mt-3 grid gap-2 sm:grid-cols-3">{Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-[7.5rem] animate-pulse rounded-lg bg-muted" />)}</div> : null}
+              {status === "loading" ? <div className="mt-3 grid gap-2 sm:grid-cols-3">{Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-[7.5rem] animate-pulse rounded-lg bg-muted" />)}</div> : null}
+              {status === "idle" ? <p className="mt-3 border-y border-charcoal/8 py-5 text-center text-[11px] text-muted-foreground">{isFr ? "Saisissez un code postal valide pour afficher les services disponibles." : "Enter a valid postcode to see available services."}</p> : null}
               {status === "error" ? <div className="mt-3 flex items-start gap-3 border-y border-destructive/20 bg-destructive/[0.035] px-3 py-4 text-xs text-destructive"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><p>{isFr ? "Les options ne peuvent pas être calculées pour le moment. Vérifiez la destination puis réessayez." : "Options cannot be calculated right now. Check the destination and try again."}</p></div> : null}
               {status === "ready" ? <div className="mt-3 grid gap-2 sm:grid-cols-3">{options.map((option) => <DeliveryServicePreview key={option.service} option={option} locale={locale} hasColdChain={thermalClasses.some((thermal) => thermal !== "AMBIANT")} />)}</div> : null}
             </section>
@@ -139,7 +139,7 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
 
           <DialogFooter className="shrink-0 border-t border-charcoal/8 bg-white px-5 py-4 sm:px-6">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>
-            <Button type="submit" disabled={status !== "ready" || normalizedPostalCode.length < 2} className="bg-terre text-white hover:bg-terre-dark"><CheckCircle2 className="mr-1.5 h-4 w-4" />{isFr ? "Utiliser cette destination" : "Use this destination"}</Button>
+            <Button type="submit" disabled={status !== "ready" || !postalValidation.valid} className="bg-terre text-white hover:bg-terre-dark"><CheckCircle2 className="mr-1.5 h-4 w-4" />{isFr ? "Utiliser cette destination" : "Use this destination"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
