@@ -1,14 +1,30 @@
 "use client";
 
-import { AlertTriangle, Check, type LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+import type { IconFunction, IconWeight } from "reicon/createIcon";
+import { AlertTriangle } from "reicon/icons/AlertTriangle";
+import { Check } from "reicon/icons/Check";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { cn } from "@/lib/utils";
+
+type JourneyIcon = IconFunction | ComponentType<{ className?: string }>;
 
 export type JourneyStage = {
   id: string;
   label: string;
   detail?: string;
-  icon: LucideIcon;
+  icon: JourneyIcon;
 };
+
+function isReiconIcon(icon: JourneyIcon): icon is IconFunction {
+  return typeof (icon as IconFunction).toSvg === "function";
+}
+
+function JourneyIconGlyph({ icon, className, weight = "Outline" }: { icon: JourneyIcon; className?: string; weight?: IconWeight }) {
+  if (isReiconIcon(icon)) return <ReiconGlyph icon={icon} weight={weight} className={className} />;
+  const Icon = icon;
+  return <Icon className={className} />;
+}
 
 export function JourneyRail({
   stages,
@@ -53,17 +69,18 @@ export function JourneyRail({
           const complete = !interrupted && index < currentIndex;
           const current = index === currentIndex;
           const selectable = Boolean(onStageSelect && !interrupted && index <= activeIndex);
-          const Icon = interrupted && current ? AlertTriangle : complete ? Check : stage.icon;
+          const icon = interrupted && current ? AlertTriangle : complete ? Check : stage.icon;
+          const iconWeight: IconWeight = (interrupted && current) || complete || current ? "Filled" : "Outline";
           const content = (
             <>
               <span className={cn(
-                "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-md border transition-colors",
-                complete && "border-burgundy bg-burgundy text-white",
-                current && !interrupted && "border-terre/35 bg-[#FFF0E9] text-terre shadow-[0_8px_20px_-16px_rgba(185,71,43,0.9)]",
-                current && interrupted && "border-destructive/30 bg-destructive/[0.07] text-destructive",
-                !complete && !current && "border-charcoal/8 bg-muted/70 text-muted-foreground",
+                "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-md border transition duration-200",
+                complete && "border-burgundy bg-burgundy text-white shadow-[0_10px_22px_-18px_rgba(138,48,66,0.9)]",
+                current && !interrupted && "border-terre/35 bg-[linear-gradient(145deg,#FFF6EF,#FFE9DD)] text-terre shadow-[0_10px_24px_-18px_rgba(185,71,43,0.9)]",
+                current && interrupted && "border-destructive/30 bg-destructive/[0.07] text-destructive shadow-[0_10px_24px_-20px_rgba(201,42,62,0.85)]",
+                !complete && !current && "border-charcoal/8 bg-[#F9F7F5] text-muted-foreground",
               )}>
-                <Icon className="h-4 w-4" />
+                <JourneyIconGlyph icon={icon} weight={iconWeight} className="h-4 w-4" />
               </span>
               <span className="mt-1.5 min-w-0 text-center">
                 <span className={cn("block line-clamp-2 text-[9px] font-black leading-3 sm:text-[10px]", complete || current ? "text-charcoal" : "text-muted-foreground")}>{stage.label}</span>

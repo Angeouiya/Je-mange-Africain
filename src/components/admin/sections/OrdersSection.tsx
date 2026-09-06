@@ -2,6 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { ArrowRight, Box, Boxes, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardList, Clock3, CreditCard, Landmark, MapPin, PackageCheck, Smartphone, Snowflake, Truck, WalletCards } from "lucide-react";
+import { BoxTick as ReBoxTick } from "reicon/icons/BoxTick";
+import { CheckCircle as ReCheckCircle } from "reicon/icons/CheckCircle";
+import { Clock3 as ReClock3 } from "reicon/icons/Clock3";
+import { Truck as ReTruck } from "reicon/icons/Truck";
 import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import type { AdminOrder } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
@@ -71,10 +75,10 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
     closed: isFr ? "Commandes clôturées" : "Closed orders",
   };
   const orderStages: JourneyStage[] = [
-    { id: "validate", icon: Clock3, label: isFr ? "À valider" : "To validate", detail: isFr ? "Paiement et stock" : "Payment and stock" },
-    { id: "prepare", icon: PackageCheck, label: isFr ? "Préparation" : "Preparation", detail: isFr ? "Contrôle et colis" : "Checks and parcels" },
-    { id: "deliver", icon: Truck, label: isFr ? "Livraison" : "Delivery", detail: isFr ? "Transport et suivi" : "Carrier and tracking" },
-    { id: "closed", icon: CheckCircle2, label: isFr ? "Clôturée" : "Closed", detail: isFr ? "Livrée ou arrêtée" : "Delivered or stopped" },
+    { id: "validate", icon: ReClock3, label: isFr ? "À valider" : "To validate", detail: isFr ? "Paiement et stock" : "Payment and stock" },
+    { id: "prepare", icon: ReBoxTick, label: isFr ? "Préparation" : "Preparation", detail: isFr ? "Contrôle et colis" : "Checks and parcels" },
+    { id: "deliver", icon: ReTruck, label: isFr ? "Livraison" : "Delivery", detail: isFr ? "Transport et suivi" : "Carrier and tracking" },
+    { id: "closed", icon: ReCheckCircle, label: isFr ? "Clôturée" : "Closed", detail: isFr ? "Livrée ou arrêtée" : "Delivered or stopped" },
   ];
   const selectedFlowIndex = selectedOrder ? FLOW_ORDER.indexOf(flowFor(selectedOrder.status)) : 0;
   const selectedInterrupted = selectedOrder ? ["cancelled", "failed", "refunded"].includes(selectedOrder.status) : false;

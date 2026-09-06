@@ -12,6 +12,7 @@ import { Clock3 as ReClock3 } from "reicon/icons/Clock3";
 import { CreditCard as ReCreditCard } from "reicon/icons/CreditCard";
 import { Mobile as ReMobile } from "reicon/icons/Mobile";
 import { ShieldCheck as ReShieldCheck } from "reicon/icons/ShieldCheck";
+import { Truck as ReTruck } from "reicon/icons/Truck";
 import { Wallet as ReWallet } from "reicon/icons/Wallet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -363,9 +364,9 @@ export function CheckoutView() {
   }
 
   const checkoutStages: JourneyStage[] = [
-    { id: "delivery", label: t.checkout.delivery, detail: locale === "fr" ? "Adresse et transport" : "Address and carrier", icon: Truck },
-    { id: "payment", label: t.checkout.payment, detail: checkoutPaymentMethodSummary(intent?.paymentMethodTypes || anticipatedPaymentMethods, locale), icon: CreditCard },
-    { id: "review", label: t.checkout.review, detail: locale === "fr" ? "Contrôle final" : "Final check", icon: ShieldCheck },
+    { id: "delivery", label: t.checkout.delivery, detail: locale === "fr" ? "Adresse et transport" : "Address and carrier", icon: ReTruck },
+    { id: "payment", label: t.checkout.payment, detail: checkoutPaymentMethodSummary(intent?.paymentMethodTypes || anticipatedPaymentMethods, locale), icon: ReCreditCard },
+    { id: "review", label: t.checkout.review, detail: locale === "fr" ? "Contrôle final" : "Final check", icon: ReShieldCheck },
   ];
   const review = (
     <div className="space-y-4">

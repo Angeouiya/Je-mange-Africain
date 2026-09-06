@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, CalendarDays, Camera, CheckCircle2, Circle, ClipboardSignature, Download, ExternalLink, MapPin, Truck, Package, LogIn, ReceiptText, ShieldCheck } from "lucide-react";
+import { CheckCircle as ReCheckCircle } from "reicon/icons/CheckCircle";
+import { Location as ReLocation } from "reicon/icons/Location";
+import { Package as RePackage } from "reicon/icons/Package";
+import { Truck as ReTruck } from "reicon/icons/Truck";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,10 +46,10 @@ export function OrderTrackingView() {
   const deliveryCopy = getDeliveryCopy(stageIndex, locale);
   const DeliveryIcon = isInterrupted ? AlertCircle : stageIndex === 3 ? CheckCircle2 : stageIndex === 2 ? Truck : stageIndex === 1 ? Package : ShieldCheck;
   const deliveryStages: JourneyStage[] = [
-    { id: "confirmed", icon: CheckCircle2, label: locale === "fr" ? "Confirmée" : "Confirmed" },
-    { id: "packed", icon: Package, label: locale === "fr" ? "Préparée" : "Packed" },
-    { id: "transit", icon: Truck, label: locale === "fr" ? "En route" : "On the way" },
-    { id: "delivered", icon: MapPin, label: locale === "fr" ? "Livrée" : "Delivered" },
+    { id: "confirmed", icon: ReCheckCircle, label: locale === "fr" ? "Confirmée" : "Confirmed" },
+    { id: "packed", icon: RePackage, label: locale === "fr" ? "Préparée" : "Packed" },
+    { id: "transit", icon: ReTruck, label: locale === "fr" ? "En route" : "On the way" },
+    { id: "delivered", icon: ReLocation, label: locale === "fr" ? "Livrée" : "Delivered" },
   ];
 
   return (

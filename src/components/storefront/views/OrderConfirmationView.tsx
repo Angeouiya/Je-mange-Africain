@@ -1,23 +1,23 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  AlertCircle,
-  ArrowRight,
-  CalendarDays,
-  CheckCircle2,
-  Download,
-  Home,
-  LogIn,
-  MapPin,
-  PackageCheck,
-  ReceiptText,
-  ShieldCheck,
-  Truck,
-  WalletCards,
-} from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { AlertCircle } from "reicon/icons/AlertCircle";
+import { ArrowRight } from "reicon/icons/ArrowRight";
+import { BoxTick } from "reicon/icons/BoxTick";
+import { CalendarDays } from "reicon/icons/CalendarDays";
+import { CheckCircle } from "reicon/icons/CheckCircle";
+import { Download } from "reicon/icons/Download";
+import { Home } from "reicon/icons/Home";
+import { Location } from "reicon/icons/Location";
+import { Login } from "reicon/icons/Login";
+import { ReceiptText } from "reicon/icons/ReceiptText";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
+import { Truck } from "reicon/icons/Truck";
+import { Wallet } from "reicon/icons/Wallet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { PaymentMethodIdentity } from "@/components/shared/PaymentMethodIdentity";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
@@ -47,10 +47,10 @@ export function OrderConfirmationView() {
     return (
       <div className="mx-auto grid min-h-[58vh] max-w-md place-items-center px-5 text-center">
         <div>
-          <span className="mx-auto grid h-12 w-12 place-items-center rounded-lg bg-terre/10 text-terre"><LogIn className="h-5 w-5" /></span>
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-lg bg-terre/10 text-terre"><ReiconGlyph icon={Login} weight="Filled" className="h-5 w-5" /></span>
           <h1 className="mt-4 font-display text-2xl font-semibold text-charcoal">{isFr ? "Confirmation protégée" : "Protected confirmation"}</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{isFr ? "Connectez-vous avec le compte utilisé lors du paiement pour retrouver cette commande." : "Sign in with the account used at checkout to retrieve this order."}</p>
-          <Button type="button" onClick={() => navigate("account", { returnView: "orders" })} className="mt-5 bg-terre text-white hover:bg-terre-dark"><LogIn className="h-4 w-4" />{t.nav.login}</Button>
+          <Button type="button" onClick={() => navigate("account", { returnView: "orders" })} className="mt-5 bg-terre text-white hover:bg-terre-dark"><ReiconGlyph icon={Login} className="h-4 w-4" />{t.nav.login}</Button>
         </div>
       </div>
     );
@@ -70,7 +70,7 @@ export function OrderConfirmationView() {
     return (
       <div className="mx-auto grid min-h-[52vh] max-w-md place-items-center px-5 text-center">
         <div>
-          <AlertCircle className="mx-auto h-9 w-9 text-destructive" />
+          <ReiconGlyph icon={AlertCircle} weight="Filled" className="mx-auto h-9 w-9 text-destructive" />
           <h1 className="mt-4 font-display text-2xl font-semibold text-charcoal">{isFr ? "Confirmation momentanément indisponible" : "Confirmation temporarily unavailable"}</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{isFr ? "Votre commande reste enregistrée. Réessayez ou retrouvez-la depuis votre historique." : "Your order remains recorded. Retry or find it in your order history."}</p>
           <div className="mt-5 flex justify-center gap-2"><Button type="button" variant="outline" onClick={refetch}>{isFr ? "Réessayer" : "Retry"}</Button><Button type="button" onClick={() => navigate("orders")} className="bg-terre text-white hover:bg-terre-dark">{isFr ? "Mes commandes" : "My orders"}</Button></div>
@@ -92,7 +92,7 @@ export function OrderConfirmationView() {
   const firstName = customer.firstName || order.deliveryName?.split(" ")[0] || "";
   const steps: JourneyStage[] = [
     { id: "payment", icon: ShieldCheck, label: isFr ? "Paiement validé" : "Payment validated", detail: isFr ? "Transaction sécurisée" : "Secure transaction" },
-    { id: "preparation", icon: PackageCheck, label: isFr ? "Préparation" : "Preparation", detail: hasColdChain ? (isFr ? "Température contrôlée" : "Temperature controlled") : (isFr ? "Contrôle des produits" : "Product checks") },
+    { id: "preparation", icon: BoxTick, label: isFr ? "Préparation" : "Preparation", detail: hasColdChain ? (isFr ? "Température contrôlée" : "Temperature controlled") : (isFr ? "Contrôle des produits" : "Product checks") },
     { id: "handover", icon: Truck, label: isFr ? "Remise au transporteur" : "Carrier handover", detail: shipment?.carrierName || shipment?.carrier || (isFr ? "Après préparation" : "After preparation") },
   ];
 
@@ -109,7 +109,7 @@ export function OrderConfirmationView() {
               transition={{ type: "spring", stiffness: 240, damping: 17 }}
               className="grid h-12 w-12 place-items-center rounded-lg bg-burgundy text-white shadow-[0_12px_30px_-18px_rgba(138,48,66,0.8)]"
             >
-              <CheckCircle2 className="h-6 w-6" />
+              <ReiconGlyph icon={CheckCircle} weight="Filled" className="h-6 w-6" />
             </motion.span>
             <p className="mt-4 text-[10px] font-black uppercase text-terre">{isFr ? "Commande reçue" : "Order received"}</p>
             <h1 id="confirmation-title" className="mt-1 max-w-2xl font-display text-3xl font-semibold leading-tight text-charcoal sm:text-4xl">
@@ -164,21 +164,21 @@ export function OrderConfirmationView() {
 
         <div className="space-y-4">
           <section className="rounded-lg border border-border bg-white p-4 sm:p-5" aria-labelledby="confirmed-delivery-title">
-            <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-terre/10 text-terre"><Truck className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Acheminement" : "Delivery"}</p><h2 id="confirmed-delivery-title" className="mt-0.5 text-base font-black text-charcoal">{deliveryDate}</h2><p className="mt-1 text-xs text-muted-foreground">{deliveryServiceLabel(order.deliverySlot || "standard", locale)}</p></div></div>
-            <div className="mt-4 border-t border-border pt-4"><p className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground"><MapPin className="h-3.5 w-3.5 text-terre" />{isFr ? "Adresse de livraison" : "Delivery address"}</p><p className="mt-2 text-sm font-bold text-charcoal">{order.deliveryName}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{[order.deliveryAddress, `${order.deliveryPostalCode || ""} ${order.deliveryCity || ""}`.trim(), europeanCountryLabel(order.deliveryCountry, locale)].filter(Boolean).join(", ")}</p></div>
-            <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md bg-border"><ConfirmationFact icon={CalendarDays} label={isFr ? "Arrivée" : "Arrival"} value={deliveryDate} /><ConfirmationFact icon={PackageCheck} label={isFr ? "Colis" : "Parcels"} value={String(order.packageCount || order.shipments.length || 1)} /></div>
+            <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-terre/10 text-terre"><ReiconGlyph icon={Truck} weight="Filled" className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Acheminement" : "Delivery"}</p><h2 id="confirmed-delivery-title" className="mt-0.5 text-base font-black text-charcoal">{deliveryDate}</h2><p className="mt-1 text-xs text-muted-foreground">{deliveryServiceLabel(order.deliverySlot || "standard", locale)}</p></div></div>
+            <div className="mt-4 border-t border-border pt-4"><p className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground"><ReiconGlyph icon={Location} className="h-3.5 w-3.5 text-terre" />{isFr ? "Adresse de livraison" : "Delivery address"}</p><p className="mt-2 text-sm font-bold text-charcoal">{order.deliveryName}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{[order.deliveryAddress, `${order.deliveryPostalCode || ""} ${order.deliveryCity || ""}`.trim(), europeanCountryLabel(order.deliveryCountry, locale)].filter(Boolean).join(", ")}</p></div>
+            <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md bg-border"><ConfirmationFact icon={CalendarDays} label={isFr ? "Arrivée" : "Arrival"} value={deliveryDate} /><ConfirmationFact icon={BoxTick} label={isFr ? "Colis" : "Parcels"} value={String(order.packageCount || order.shipments.length || 1)} /></div>
           </section>
 
           <section className="rounded-lg border border-border bg-white p-4 sm:p-5" aria-labelledby="confirmed-payment-title">
-            <div className="flex items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy/8 text-burgundy"><WalletCards className="h-4 w-4" /></span><div><p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Transaction" : "Transaction"}</p><h2 id="confirmed-payment-title" className="text-base font-black text-charcoal">{paymentStatusLabel(payment?.status, locale)}</h2></div></div>
+            <div className="flex items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy/8 text-burgundy"><ReiconGlyph icon={Wallet} weight="Filled" className="h-4 w-4" /></span><div><p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Transaction" : "Transaction"}</p><h2 id="confirmed-payment-title" className="text-base font-black text-charcoal">{paymentStatusLabel(payment?.status, locale)}</h2></div></div>
             <dl className="mt-4 space-y-3 border-t border-border pt-4 text-xs"><div><dt className="mb-2 text-[9px] font-black uppercase text-muted-foreground">{isFr ? "Moyen utilisé" : "Method used"}</dt><dd><PaymentMethodIdentity method={payment?.method || order.paymentMethod} locale={locale} /></dd></div>{payment?.reference ? <div className="flex justify-between gap-4 border-t border-border pt-3"><dt className="text-muted-foreground">{isFr ? "Référence" : "Reference"}</dt><dd className="max-w-[12rem] truncate font-mono text-[10px] font-bold text-charcoal">{payment.reference}</dd></div> : null}</dl>
           </section>
 
           <div className="hidden grid-cols-2 gap-2 md:grid" data-testid="confirmation-desktop-actions">
-            <Button type="button" onClick={() => navigate("order-tracking", { orderId: order.id })} className="bg-terre text-white hover:bg-terre-dark"><Truck className="h-4 w-4" />{t.checkout.trackOrder}</Button>
-            <Button type="button" variant="outline" onClick={() => downloadOrderInvoice(order, locale)}><Download className="h-4 w-4" />{t.orders.invoice}</Button>
-            <Button type="button" variant="ghost" onClick={() => navigate("orders")}><ReceiptText className="h-4 w-4" />{isFr ? "Mes commandes" : "My orders"}</Button>
-            <Button type="button" variant="ghost" onClick={() => navigate("home")}><Home className="h-4 w-4" />{t.checkout.backHome}</Button>
+            <Button type="button" onClick={() => navigate("order-tracking", { orderId: order.id })} className="bg-terre text-white hover:bg-terre-dark"><ReiconGlyph icon={Truck} className="h-4 w-4" />{t.checkout.trackOrder}</Button>
+            <Button type="button" variant="outline" onClick={() => downloadOrderInvoice(order, locale)}><ReiconGlyph icon={Download} className="h-4 w-4" />{t.orders.invoice}</Button>
+            <Button type="button" variant="ghost" onClick={() => navigate("orders")}><ReiconGlyph icon={ReceiptText} className="h-4 w-4" />{isFr ? "Mes commandes" : "My orders"}</Button>
+            <Button type="button" variant="ghost" onClick={() => navigate("home")}><ReiconGlyph icon={Home} className="h-4 w-4" />{t.checkout.backHome}</Button>
           </div>
         </div>
       </div>
@@ -186,8 +186,8 @@ export function OrderConfirmationView() {
       <MobileActionDock testId="confirmation-action-dock">
         <div className="mx-auto flex max-w-xl items-center gap-2">
           <div className="min-w-0 flex-1"><p className="truncate text-[9px] font-black uppercase text-muted-foreground">{isFr ? "Commande confirmée" : "Order confirmed"}</p><p className="mt-0.5 truncate text-sm font-black text-burgundy">{order.number}</p></div>
-          <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 border-burgundy/20 bg-white text-burgundy" onClick={() => downloadOrderInvoice(order, locale)} aria-label={isFr ? "Télécharger la facture" : "Download invoice"}><Download className="h-4 w-4" /></Button>
-          <Button type="button" className="h-10 shrink-0 bg-terre px-3 text-white hover:bg-terre-dark" onClick={() => navigate("order-tracking", { orderId: order.id })}>{isFr ? "Suivre" : "Track"}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
+          <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 border-burgundy/20 bg-white text-burgundy" onClick={() => downloadOrderInvoice(order, locale)} aria-label={isFr ? "Télécharger la facture" : "Download invoice"}><ReiconGlyph icon={Download} className="h-4 w-4" /></Button>
+          <Button type="button" className="h-10 shrink-0 bg-terre px-3 text-white hover:bg-terre-dark" onClick={() => navigate("order-tracking", { orderId: order.id })}>{isFr ? "Suivre" : "Track"}<ReiconGlyph icon={ArrowRight} className="ml-1.5 h-4 w-4" /></Button>
         </div>
       </MobileActionDock>
     </div>
@@ -211,6 +211,6 @@ function SummaryLine({ label, value, accent = false }: { label: string; value: s
   return <div className={`flex items-center justify-between gap-4 py-1 ${accent ? "text-burgundy" : "text-muted-foreground"}`}><dt>{label}</dt><dd className="font-bold tabular-nums">{value}</dd></div>;
 }
 
-function ConfirmationFact({ icon: Icon, label, value }: { icon: typeof CalendarDays; label: string; value: string }) {
-  return <div className="min-w-0 bg-[#FFFCFA] px-3 py-3"><p className="flex items-center gap-1.5 text-[8px] font-black uppercase text-muted-foreground"><Icon className="h-3 w-3 shrink-0 text-terre" />{label}</p><p className="mt-1 truncate text-[10px] font-black text-charcoal">{value}</p></div>;
+function ConfirmationFact({ icon, label, value }: { icon: IconFunction; label: string; value: string }) {
+  return <div className="min-w-0 bg-[#FFFCFA] px-3 py-3"><p className="flex items-center gap-1.5 text-[8px] font-black uppercase text-muted-foreground"><ReiconGlyph icon={icon} weight="Filled" className="h-3 w-3 shrink-0 text-terre" />{label}</p><p className="mt-1 truncate text-[10px] font-black text-charcoal">{value}</p></div>;
 }
