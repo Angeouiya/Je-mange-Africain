@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { retailAvailableUnits } from "@/lib/inventory";
 import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
+import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   let nutrition: any = null;
   try { nutrition = product.nutrition ? JSON.parse(product.nutrition) : null; } catch { nutrition = null; }
 
-  return NextResponse.json({
+  return jsonWithPublicApiCache({
     id: product.id,
     sku: product.sku,
     barcode: product.barcode,
@@ -147,5 +148,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     related: related.map(proj),
     relatedRecipes,
     alternatives: alternatives.map(proj).filter((item) => item.stockQty > 0).slice(0, 4),
-  });
+  }, "storefrontDetail");
 }

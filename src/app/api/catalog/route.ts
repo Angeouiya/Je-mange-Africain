@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { wholesaleAvailablePacks, wholesaleDiscountPercent, wholesaleTiers } from "@/lib/wholesale";
 import { retailAvailableUnits } from "@/lib/inventory";
 import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
+import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 
 export const dynamic = "force-dynamic";
 type CatalogHighlight = "all" | "available" | "sale" | "new" | "recommended" | "popular";
@@ -110,7 +111,7 @@ export async function GET(req: NextRequest) {
       db.brand.findMany(),
       db.recipe.findMany({ where: { ...PUBLIC_RECIPE_WHERE, isPopular: true }, take: 6, include: { translations: true } }),
     ]);
-    return NextResponse.json({
+    return jsonWithPublicApiCache({
       bestsellers: bestsellers.map((p) => project(p, locale)),
       news: news.map((p) => project(p, locale)),
       onSale: onSale.map((p) => project(p, locale)),
@@ -127,7 +128,7 @@ export async function GET(req: NextRequest) {
           description: translation?.description,
         };
       }),
-    });
+    }, "storefrontHome");
   }
 
   // list with filters
@@ -181,7 +182,7 @@ export async function GET(req: NextRequest) {
     db.product.findMany({ where: { status: "published" }, select: { country: true }, distinct: ["country"] }),
   ]);
 
-  return NextResponse.json({
+  return jsonWithPublicApiCache({
     products: products.map((p) => project(p, locale)),
     total,
     page,
@@ -192,5 +193,5 @@ export async function GET(req: NextRequest) {
       brands: brands.map((b) => ({ id: b.id, slug: b.slug, name: b[`name${locale === "en" ? "En" : "Fr"}`] })),
       countries: countries.map((c) => c.country),
     },
-  });
+  }, "storefrontList");
 }

@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { normalize } from "@/lib/format";
 import { getRecipePhoto } from "@/lib/market-media";
 import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
+import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
     { slug: "desserts", fr: "Desserts", en: "Desserts" },
   ];
 
-  return NextResponse.json({
+  return jsonWithPublicApiCache({
     recipes: recipes.map((r) => {
       const translation = r.translations.find((item) => item.locale === locale) || r.translations[0];
       return {
@@ -86,5 +87,5 @@ export async function GET(req: NextRequest) {
       };
     }),
     categories: categories.map((c) => ({ slug: c.slug, name: c[locale === "en" ? "en" : "fr"] })),
-  });
+  }, q ? "storefrontList" : "storefrontHome");
 }

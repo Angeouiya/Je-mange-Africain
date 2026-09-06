@@ -4,6 +4,7 @@ import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { parseRecipeSteps, publicStepDetails } from "@/lib/recipe-step-storage";
 import { retailAvailableUnits } from "@/lib/inventory";
 import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
+import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const t = recipe.translations.find((x) => x.locale === locale) || recipe.translations[0];
   const steps = parseRecipeSteps(t?.steps, locale);
 
-  return NextResponse.json({
+  return jsonWithPublicApiCache({
     id: recipe.id,
     slug: recipe.slug,
     country: recipe.country,
@@ -81,5 +82,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         variants: ri.product.variants.map((v) => ({ id: v.id, label: v.label, weightGrams: v.weightGrams, volumeMl: v.volumeMl, price: Number(v.price), isDefault: v.isDefault })),
       },
     })),
-  });
+  }, "storefrontDetail");
 }

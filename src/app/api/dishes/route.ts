@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { localizeDish, searchDishLibrary, serializeDishTemplate } from "@/lib/dish-library";
+import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   const limit = Number(searchParams.get("limit") || 60);
   const matches = searchDishLibrary({ query, product, country, category, limit });
 
-  return NextResponse.json({
+  return jsonWithPublicApiCache({
     dishes: matches.map(({ dish, score }) => bilingual ? serializeDishTemplate(dish, score) : localizeDish(dish, locale, score)),
     total: matches.length,
     countries: ["Côte d'Ivoire", "Sénégal", "Cameroun", "Nigeria", "Ghana", "Éthiopie", "Congo"],
@@ -24,5 +25,5 @@ export async function GET(request: NextRequest) {
       { slug: "grill", name: locale === "fr" ? "Braisés" : "Grilled dishes" },
       { slug: "street-food", name: locale === "fr" ? "Cuisine de rue" : "Street food" },
     ],
-  });
+  }, query || product || country || category ? "storefrontList" : "dishLibrary");
 }
