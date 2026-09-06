@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { cloudflareDeploymentReadiness, platformIntegrationStatus } from "./platform-configuration";
+import { cloudflareDeploymentReadiness, platformIntegrationStatus, PRODUCTION_SUPABASE_PROJECT_REF } from "./platform-configuration";
+
+const productionDatabaseUrl = `postgresql://postgres:secret@db.${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co:5432/postgres`;
 
 describe("platform production readiness", () => {
   it("never presents an ephemeral SQLite database as production-ready on Cloudflare", () => {
@@ -37,7 +39,7 @@ describe("platform production readiness", () => {
 
   it("reports a fully connected PostgreSQL, Stripe, Supabase, cache, push and Cloudflare foundation", () => {
     const integrations = platformIntegrationStatus(true, {
-      DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
+      DATABASE_URL: productionDatabaseUrl,
       NODE_ENV: "production",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
@@ -57,14 +59,14 @@ describe("platform production readiness", () => {
     });
 
     expect(integrations.every((integration) => integration.state === "ready")).toBe(true);
-    expect(integrations.find((integration) => integration.id === "database")).toMatchObject({ provider: "PostgreSQL", capabilities: { production: true } });
+    expect(integrations.find((integration) => integration.id === "database")).toMatchObject({ provider: "Supabase PostgreSQL", capabilities: { production: true } });
     expect(integrations.find((integration) => integration.id === "identity")).toMatchObject({ provider: "Supabase", capabilities: { project: true } });
     expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ provider: "Cloudflare Workers", capabilities: { runtime: true, domain: true } });
   });
 
   it("treats the Cloudflare Worker as deployable while the public domain is deferred", () => {
     const environment = {
-      DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
+      DATABASE_URL: productionDatabaseUrl,
       NODE_ENV: "production",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
@@ -92,9 +94,29 @@ describe("platform production readiness", () => {
     expect(readiness.requirements.find((requirement) => requirement.id === "cloudflare-domain")).toMatchObject({ satisfied: false, severity: "recommended", envKeys: ["NEXT_PUBLIC_SITE_URL", "CLOUDFLARE_DOMAIN_STATUS"] });
   });
 
-  it("refuses to treat another Supabase project as the production identity target", () => {
+  it("refuses an external PostgreSQL database as the production database", () => {
     const environment = {
       DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
+      NODE_ENV: "production",
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
+      NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
+    } as const;
+
+    const integrations = platformIntegrationStatus(true, environment);
+    const readiness = cloudflareDeploymentReadiness(true, environment);
+
+    expect(integrations.find((integration) => integration.id === "database")).toMatchObject({ state: "attention", provider: "PostgreSQL externe", capabilities: { production: false } });
+    expect(readiness.ready).toBe(false);
+    expect(readiness.blockers).toContain("database-url");
+  });
+
+  it("refuses to treat another Supabase project as the production identity target", () => {
+    const environment = {
+      DATABASE_URL: productionDatabaseUrl,
       NODE_ENV: "production",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
@@ -150,7 +172,7 @@ describe("platform production readiness", () => {
 
   it("clears the Cloudflare checklist only when every deploy prerequisite is present", () => {
     const readiness = cloudflareDeploymentReadiness(true, {
-      DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
+      DATABASE_URL: productionDatabaseUrl,
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
       CLOUDFLARE_DOMAIN_STATUS: "attached",

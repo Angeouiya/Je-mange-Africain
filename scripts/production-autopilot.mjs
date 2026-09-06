@@ -16,7 +16,7 @@ export const SUPABASE_OPERATIONAL_KEYS = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_
 
 const DOTENV_FILES = [".env", ".env.local", ".env.production.local"];
 const REQUIRED_ENV = [
-  ["DATABASE_URL", "PostgreSQL runtime connection"],
+  ["DATABASE_URL", `Supabase PostgreSQL runtime connection for ${PRODUCTION_SUPABASE_PROJECT_NAME}`],
   ["NEXT_PUBLIC_SUPABASE_URL", `Supabase URL must target ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF})`],
   ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "Supabase publishable key"],
   ["SUPABASE_SERVICE_ROLE_KEY", "Supabase server service role"],
@@ -32,6 +32,9 @@ const REQUIRED_ENV = [
   ["CLOUDFLARE_DOMAIN_STATUS", "Cloudflare domain attachment status"],
   ["CLOUDFLARE_ACCOUNT_ID", "Cloudflare account"],
   ["CLOUDFLARE_DEPLOYMENT_TARGET", "Cloudflare Workers target"],
+];
+const OPTIONAL_ENV = [
+  ["DIRECT_URL", `Supabase direct migration connection for ${PRODUCTION_SUPABASE_PROJECT_NAME}`],
 ];
 const CLOUDFLARE_SECRET_KEYS = [
   "DATABASE_URL",
@@ -121,6 +124,44 @@ function isPostgresUrl(value) {
   return /^postgres(?:ql)?:\/\//i.test(value || "");
 }
 
+export function supabaseProjectRefFromPostgresUrl(value) {
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    const username = decodeURIComponent(parsed.username || "").toLowerCase();
+    const directHost = hostname.match(/^db\.([a-z0-9]{20})\.supabase\.co$/);
+    if (directHost) return directHost[1];
+    const poolerUser = username.match(/(?:^|\.)([a-z0-9]{20})(?:$|[._-])/);
+    if (hostname.includes("supabase.") && poolerUser) return poolerUser[1];
+    if (hostname.includes(PRODUCTION_SUPABASE_PROJECT_REF) || username.includes(PRODUCTION_SUPABASE_PROJECT_REF)) {
+      return PRODUCTION_SUPABASE_PROJECT_REF;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function isSupabasePostgresConnection(value) {
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    const username = decodeURIComponent(parsed.username || "").toLowerCase();
+    return hostname.includes("supabase.") || username.includes(PRODUCTION_SUPABASE_PROJECT_REF);
+  } catch {
+    return false;
+  }
+}
+
+function postgresConnectionProblem(value) {
+  if (!isPostgresUrl(value)) return "must be PostgreSQL, not SQLite/local file";
+  const projectRef = supabaseProjectRefFromPostgresUrl(value);
+  if (projectRef === PRODUCTION_SUPABASE_PROJECT_REF) return "";
+  if (projectRef) return `points to Supabase project ${projectRef}, expected ${PRODUCTION_SUPABASE_PROJECT_REF}`;
+  if (isSupabasePostgresConnection(value)) return `must include Supabase project ${PRODUCTION_SUPABASE_PROJECT_REF}`;
+  return `must target Supabase ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF})`;
+}
+
 function hasUsableValue(key, value) {
   return Boolean(value && !isPlaceholder(key, value));
 }
@@ -134,8 +175,9 @@ function evaluateRequirement(key, label, values, sources) {
   const source = sources[key] || "missing";
   if (!value) return { key, label, ok: false, source, problem: "missing" };
   if (isPlaceholder(key, value)) return { key, label, ok: false, source, problem: "placeholder value" };
-  if (key === "DATABASE_URL" && !isPostgresUrl(value)) {
-    return { key, label, ok: false, source, problem: "must be PostgreSQL, not SQLite/local file" };
+  if (key === "DATABASE_URL" || key === "DIRECT_URL") {
+    const problem = postgresConnectionProblem(value);
+    if (problem) return { key, label, ok: false, source, problem };
   }
   if (key === "NEXT_PUBLIC_SUPABASE_URL" && normalizedUrl(value) !== PRODUCTION_SUPABASE_URL) {
     const currentRef = (value.match(/https:\/\/([^.]+)/) || [])[1] || "unknown";
@@ -160,7 +202,13 @@ function evaluateRequirement(key, label, values, sources) {
 }
 
 export function productionReadiness(environment = loadProductionEnvironment()) {
-  const requirements = REQUIRED_ENV.map(([key, label]) => evaluateRequirement(key, label, environment.values, environment.sources));
+  const optionalRequirements = OPTIONAL_ENV
+    .filter(([key]) => Boolean(environment.values[key]))
+    .map(([key, label]) => evaluateRequirement(key, label, environment.values, environment.sources));
+  const requirements = [
+    ...REQUIRED_ENV.map(([key, label]) => evaluateRequirement(key, label, environment.values, environment.sources)),
+    ...optionalRequirements,
+  ];
   const blockers = requirements.filter((item) => !item.ok);
   return {
     ready: blockers.length === 0,
@@ -179,20 +227,33 @@ export function productionReadiness(environment = loadProductionEnvironment()) {
   };
 }
 
-export function supabaseCliReadiness(environment = loadProductionEnvironment()) {
+export function readSupabaseLinkedProjectRef(cwd = process.cwd()) {
+  const linkPath = resolve(cwd, "supabase", ".temp", "project-ref");
+  if (!existsSync(linkPath)) return "";
+  return readFileSync(linkPath, "utf8").trim();
+}
+
+export function supabaseCliReadiness(environment = loadProductionEnvironment(), linkedProjectRef = readSupabaseLinkedProjectRef(environment.cwd)) {
   const values = environment.values;
-  const directUrl = hasUsableValue("DIRECT_URL", values.DIRECT_URL) && isPostgresUrl(values.DIRECT_URL)
-    ? values.DIRECT_URL
-    : hasUsableValue("DATABASE_URL", values.DATABASE_URL) && isPostgresUrl(values.DATABASE_URL)
-      ? values.DATABASE_URL
-      : "";
+  const directCandidate = [
+    ["DIRECT_URL", values.DIRECT_URL],
+    ["DATABASE_URL", values.DATABASE_URL],
+  ].find(([key, value]) => hasUsableValue(key, value) && isPostgresUrl(value));
+  const directProblem = directCandidate ? postgresConnectionProblem(directCandidate[1]) : "";
+  const directProjectRef = directCandidate ? supabaseProjectRefFromPostgresUrl(directCandidate[1]) : null;
+  const hasDirectDatabaseUrl = Boolean(directCandidate && !directProblem);
   return {
     targetRef: PRODUCTION_SUPABASE_PROJECT_REF,
     hasAccessToken: hasUsableValue("SUPABASE_ACCESS_TOKEN", values.SUPABASE_ACCESS_TOKEN),
     hasDbPassword: hasUsableValue("SUPABASE_DB_PASSWORD", values.SUPABASE_DB_PASSWORD),
-    hasDirectDatabaseUrl: Boolean(directUrl),
+    hasDirectDatabaseUrl,
+    directDatabaseUrlKey: directCandidate?.[0] || null,
+    directDatabaseProjectRef: directProjectRef,
+    directDatabaseProblem: directProblem,
+    linkedProjectRef,
+    linkedToTarget: linkedProjectRef === PRODUCTION_SUPABASE_PROJECT_REF,
     readyForLink: hasUsableValue("SUPABASE_ACCESS_TOKEN", values.SUPABASE_ACCESS_TOKEN) && hasUsableValue("SUPABASE_DB_PASSWORD", values.SUPABASE_DB_PASSWORD),
-    readyForDbPush: Boolean(directUrl) || (hasUsableValue("SUPABASE_ACCESS_TOKEN", values.SUPABASE_ACCESS_TOKEN) && hasUsableValue("SUPABASE_DB_PASSWORD", values.SUPABASE_DB_PASSWORD)),
+    readyForDbPush: hasDirectDatabaseUrl || (hasUsableValue("SUPABASE_ACCESS_TOKEN", values.SUPABASE_ACCESS_TOKEN) && hasUsableValue("SUPABASE_DB_PASSWORD", values.SUPABASE_DB_PASSWORD)),
   };
 }
 
@@ -213,8 +274,10 @@ export function printSupabaseCliReadiness(report, writer = console.log) {
   writer(`Supabase CLI target: ${PRODUCTION_SUPABASE_PROJECT_NAME} (${report.targetRef})`);
   writer(`${report.hasAccessToken ? "OK" : "BLOCKED"} SUPABASE_ACCESS_TOKEN`);
   writer(`${report.hasDbPassword ? "OK" : "BLOCKED"} SUPABASE_DB_PASSWORD`);
-  writer(`${report.hasDirectDatabaseUrl ? "OK" : "BLOCKED"} DIRECT_URL or PostgreSQL DATABASE_URL`);
-  writer(`${report.readyForLink ? "OK" : "BLOCKED"} Supabase project link`);
+  writer(`${report.hasDirectDatabaseUrl ? "OK" : "BLOCKED"} DIRECT_URL or PostgreSQL DATABASE_URL${report.directDatabaseProblem ? ` - ${report.directDatabaseProblem}` : ""}`);
+  const linkDetail = report.linkedProjectRef ? (report.linkedToTarget ? report.linkedProjectRef : `points to ${report.linkedProjectRef}`) : "missing";
+  writer(`${report.linkedToTarget ? "OK" : "BLOCKED"} Local Supabase project link (${linkDetail})`);
+  writer(`${report.readyForLink ? "OK" : "BLOCKED"} Supabase relink capability`);
   writer(`${report.readyForDbPush ? "OK" : "BLOCKED"} Supabase migration push`);
 }
 
