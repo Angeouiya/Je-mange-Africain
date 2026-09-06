@@ -424,16 +424,16 @@ export function CheckoutView() {
             </div>
           </details>
 
-          <div className="rounded-lg border border-charcoal/10 bg-white p-4 sm:p-6">
+          <div className="-mx-4 border-y border-charcoal/10 bg-white px-4 py-4 sm:mx-0 sm:rounded-lg sm:border sm:p-6" data-testid="checkout-form-surface">
             {step === 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <section aria-labelledby="checkout-contact-title">
               <CheckoutSectionHeading id="checkout-contact-title" icon={ContactRound} eyebrow={locale === "fr" ? "Destinataire" : "Recipient"} title={locale === "fr" ? "Coordonnées de contact" : "Contact details"} />
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2" data-testid="checkout-contact-fields">
                 <Field label={t.checkout.firstName} value={form.firstName} onChange={(value) => updateForm("firstName", value)} autoComplete="given-name" />
                 <Field label={t.checkout.lastName} value={form.lastName} onChange={(value) => updateForm("lastName", value)} autoComplete="family-name" />
-                <div className="col-span-2 sm:col-span-1"><Field label={t.checkout.email} type="email" value={form.email} onChange={(value) => updateForm("email", value)} autoComplete="email" /></div>
-                <div className="col-span-2 sm:col-span-1"><Field label={t.checkout.phone} type="tel" value={form.phone} onChange={(value) => updateForm("phone", value)} autoComplete="tel" /></div>
+                <div className="min-[360px]:col-span-2 sm:col-span-1"><Field label={t.checkout.email} type="email" value={form.email} onChange={(value) => updateForm("email", value)} autoComplete="email" /></div>
+                <div className="min-[360px]:col-span-2 sm:col-span-1"><Field label={t.checkout.phone} type="tel" value={form.phone} onChange={(value) => updateForm("phone", value)} autoComplete="tel" /></div>
               </div>
             </section>
 
@@ -448,11 +448,11 @@ export function CheckoutView() {
                   </select>
                 </div>
               ) : null}
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-[0.7fr_1.1fr_1fr]">
-                <div className="col-span-2 sm:col-span-3"><Field label={t.checkout.street} value={form.street} onChange={(value) => updateForm("street", value)} autoComplete="street-address" /></div>
+              <div className="mt-3 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:grid-cols-[0.7fr_1.1fr_1fr]" data-testid="checkout-address-fields">
+                <div className="min-[360px]:col-span-2 sm:col-span-3"><Field label={t.checkout.street} value={form.street} onChange={(value) => updateForm("street", value)} autoComplete="street-address" /></div>
                 <PostalCodeField id="checkout-postal-code" label={t.checkout.postalCode} country={form.country} locale={locale} value={form.postalCode} onChange={(value) => updateForm("postalCode", value)} inputClassName="h-11 min-w-0 border-charcoal/12 bg-white" />
                 <Field label={t.checkout.city} value={form.city} onChange={(value) => updateForm("city", value)} autoComplete="address-level2" />
-                <div className="col-span-2 sm:col-span-1">
+                <div className="min-[360px]:col-span-2 sm:col-span-1">
                   <Label htmlFor="checkout-country" className="mb-1.5 block text-xs font-semibold text-charcoal">{locale === "fr" ? "Pays de livraison" : "Delivery country"}</Label>
                   <select id="checkout-country" value={form.country} onChange={(event) => updateForm("country", event.target.value)} autoComplete="country-name" className="h-11 w-full rounded-md border border-charcoal/12 bg-white px-3 text-sm text-charcoal outline-none focus:border-terre focus:ring-2 focus:ring-terre/20">
                     {europeanCountryOptions(locale).map((country) => <option key={country.code} value={country.value}>{country.label}</option>)}
@@ -521,7 +521,7 @@ export function CheckoutView() {
         <CheckoutMobileDock
           stepLabel={locale === "fr" ? "Livraison · 1/3" : "Delivery · 1/3"}
           statusLabel={!stripePromise
-            ? (locale === "fr" ? "Stripe indisponible" : "Stripe unavailable")
+            ? (locale === "fr" ? "Service indisponible" : "Service unavailable")
             : shipLoading || promotionLoading
               ? (locale === "fr" ? "Calcul en cours" : "Calculating")
               : !canContinue

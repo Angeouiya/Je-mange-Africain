@@ -1476,6 +1476,8 @@ test("the basket prices a European destination and carries it into checkout", as
 });
 
 test("checkout compares delivery services and protects the cold chain", async ({ page }) => {
+  const narrowMobile = (page.viewportSize()?.width || 0) < 768;
+  if (narrowMobile) await page.setViewportSize({ width: 320, height: 700 });
   const customer = { id: "customer-checkout", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
   const quoteRequests: Array<Record<string, unknown>> = [];
   await page.addInitScript(({ persistedCustomer }) => {
@@ -1555,6 +1557,7 @@ test("checkout compares delivery services and protects the cold chain", async ({
   if (isMobile) {
     await expect(checkoutDock).toBeVisible();
     await expect(checkoutDock).toContainText(/25,50\s*€/);
+    await expect(checkoutDock).toContainText(/service indisponible|service unavailable/i);
     const checkoutDockBox = await checkoutDock.boundingBox();
     const navigationBox = await page.getByTestId("mobile-navigation").boundingBox();
     expect(Math.abs((checkoutDockBox?.y || 0) + (checkoutDockBox?.height || 0) - (navigationBox?.y || 0))).toBeLessThanOrEqual(2);
@@ -1576,6 +1579,14 @@ test("checkout compares delivery services and protects the cold chain", async ({
   await expect(deliveryCountry.locator('option[value="Royaume-Uni"]')).toHaveText("Royaume-Uni");
   await expect(page.getByRole("heading", { name: /coordonnées de contact|contact details/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /adresse de livraison|delivery address/i })).toBeVisible();
+  if (narrowMobile) {
+    const viewportWidth = page.viewportSize()?.width || 0;
+    const formSurface = await page.getByTestId("checkout-form-surface").boundingBox();
+    expect(formSurface?.x).toBeLessThanOrEqual(1);
+    expect(Math.abs((formSurface?.width || 0) - viewportWidth)).toBeLessThanOrEqual(2);
+    await expect.poll(() => page.getByTestId("checkout-contact-fields").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(1);
+    await expect.poll(() => page.getByTestId("checkout-address-fields").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(1);
+  }
   const savedAddress = page.getByLabel(/utiliser une adresse enregistrée|use a saved address/i);
   await expect(savedAddress).toHaveValue("address-checkout");
   await savedAddress.selectOption("address-office");
@@ -1614,6 +1625,7 @@ test("checkout compares delivery services and protects the cold chain", async ({
   if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
     await expect(page.getByText(/paiement momentanément indisponible|payment temporarily unavailable/i)).toBeVisible();
     await expect(page.getByText(/votre panier reste enregistré|your basket remains saved/i)).toBeVisible();
+    await expect(page.locator("body")).not.toContainText(/stripe indisponible|stripe unavailable/i);
   }
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.getByText(/mode de livraison|delivery option/i).scrollIntoViewIfNeeded();
