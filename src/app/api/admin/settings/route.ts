@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import {
   PLATFORM_CONFIGURATION_ID,
   PlatformConfigurationInput,
+  cloudflareDeploymentReadiness,
   platformIntegrationStatus,
   readPlatformConfiguration,
 } from "@/lib/platform-configuration";
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
     configuration: current.configuration,
     metadata: { persisted: current.persisted, updatedBy: current.updatedBy, updatedAt: current.updatedAt },
     integrations: applyPaymentReadiness(platformIntegrationStatus(current.databaseAvailable), paymentReadiness),
+    deploymentReadiness: cloudflareDeploymentReadiness(current.databaseAvailable),
     paymentReadiness,
   });
 }
@@ -62,6 +64,7 @@ export async function PATCH(request: NextRequest) {
       configuration: PlatformConfigurationInput.parse(updated),
       metadata: { persisted: true, updatedBy: updated.updatedBy, updatedAt: updated.updatedAt.toISOString() },
       integrations: platformIntegrationStatus(true),
+      deploymentReadiness: cloudflareDeploymentReadiness(true),
     });
   } catch {
     return NextResponse.json({ error: "La configuration n'a pas pu être enregistrée." }, { status: 503 });

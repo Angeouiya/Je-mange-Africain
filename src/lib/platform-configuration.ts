@@ -97,7 +97,49 @@ type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
   | "UPSTASH_REDIS_REST_TOKEN"
   | "NEXT_PUBLIC_VAPID_PUBLIC_KEY"
   | "VAPID_PRIVATE_KEY"
+  | "VAPID_SUBJECT"
 >>;
+
+export type DeploymentRequirementGroup = "database" | "identity" | "payments" | "cache" | "push" | "hosting";
+
+export type CloudflareDeploymentRequirement = {
+  id: string;
+  group: DeploymentRequirementGroup;
+  labelFr: string;
+  labelEn: string;
+  detailFr: string;
+  detailEn: string;
+  envKeys: string[];
+  satisfied: boolean;
+  severity: "blocking";
+};
+
+export type CloudflareDeploymentReadiness = {
+  target: "Cloudflare Workers";
+  ready: boolean;
+  completed: number;
+  total: number;
+  percentage: number;
+  blockers: string[];
+  checkedAt: string;
+  deployCommand: "npm run cloudflare:deploy";
+  requirements: CloudflareDeploymentRequirement[];
+};
+
+export const CLOUDFLARE_PRODUCTION_ENV_KEYS = [
+  "DATABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "UPSTASH_REDIS_REST_URL",
+  "UPSTASH_REDIS_REST_TOKEN",
+  "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+  "VAPID_PRIVATE_KEY",
+  "VAPID_SUBJECT",
+] as const;
 
 export function platformIntegrationStatus(databaseAvailable: boolean, environment: PlatformEnvironment = process.env) {
   const databaseUrl = environment.DATABASE_URL || "";
@@ -124,4 +166,181 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
     { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime } },
   ] as const;
+}
+
+export function cloudflareDeploymentReadiness(databaseAvailable: boolean, environment: PlatformEnvironment = process.env, checkedAt = new Date().toISOString()): CloudflareDeploymentReadiness {
+  const databaseUrl = environment.DATABASE_URL || "";
+  const postgres = /^postgres(?:ql)?:\/\//i.test(databaseUrl);
+  const has = (key: keyof PlatformEnvironment) => Boolean(environment[key]);
+  const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
+  const requirements: CloudflareDeploymentRequirement[] = [
+    {
+      id: "database-url",
+      group: "database",
+      labelFr: "Base PostgreSQL Supabase",
+      labelEn: "Supabase PostgreSQL database",
+      detailFr: "Connexion PostgreSQL disponible et utilisable par le runtime Cloudflare.",
+      detailEn: "PostgreSQL connection available and usable by the Cloudflare runtime.",
+      envKeys: ["DATABASE_URL"],
+      satisfied: databaseAvailable && postgres,
+      severity: "blocking",
+    },
+    {
+      id: "supabase-url",
+      group: "identity",
+      labelFr: "URL publique Supabase",
+      labelEn: "Public Supabase URL",
+      detailFr: "Projet Supabase exposé au client pour l'inscription, la session et les médias.",
+      detailEn: "Supabase project exposed to the client for registration, session and media.",
+      envKeys: ["NEXT_PUBLIC_SUPABASE_URL"],
+      satisfied: has("NEXT_PUBLIC_SUPABASE_URL"),
+      severity: "blocking",
+    },
+    {
+      id: "supabase-publishable-key",
+      group: "identity",
+      labelFr: "Clé publique Supabase",
+      labelEn: "Supabase publishable key",
+      detailFr: "Clé publique limitée pour initialiser le client Supabase.",
+      detailEn: "Limited public key used to initialize the Supabase client.",
+      envKeys: ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"],
+      satisfied: has("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+      severity: "blocking",
+    },
+    {
+      id: "supabase-service-role",
+      group: "identity",
+      labelFr: "Accès serveur Supabase",
+      labelEn: "Supabase server access",
+      detailFr: "Accès serveur requis pour les opérations protégées de l'admin et des médias.",
+      detailEn: "Server access required for protected admin and media operations.",
+      envKeys: ["SUPABASE_SERVICE_ROLE_KEY"],
+      satisfied: has("SUPABASE_SERVICE_ROLE_KEY"),
+      severity: "blocking",
+    },
+    {
+      id: "stripe-publishable-key",
+      group: "payments",
+      labelFr: "Clé publique Stripe",
+      labelEn: "Stripe publishable key",
+      detailFr: "Initialisation sécurisée du formulaire carte, wallets et PayPal côté client.",
+      detailEn: "Secure initialization of card, wallets and PayPal on the client.",
+      envKeys: ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"],
+      satisfied: has("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"),
+      severity: "blocking",
+    },
+    {
+      id: "stripe-server-key",
+      group: "payments",
+      labelFr: "Clé serveur Stripe",
+      labelEn: "Stripe server key",
+      detailFr: "Création des intentions de paiement et rapprochement côté serveur.",
+      detailEn: "Payment intent creation and server-side reconciliation.",
+      envKeys: ["STRIPE_SECRET_KEY"],
+      satisfied: has("STRIPE_SECRET_KEY"),
+      severity: "blocking",
+    },
+    {
+      id: "stripe-webhook",
+      group: "payments",
+      labelFr: "Webhook Stripe",
+      labelEn: "Stripe webhook",
+      detailFr: "Confirmation fiable des paiements, remboursements et événements asynchrones.",
+      detailEn: "Reliable confirmation for payments, refunds and asynchronous events.",
+      envKeys: ["STRIPE_WEBHOOK_SECRET"],
+      satisfied: has("STRIPE_WEBHOOK_SECRET"),
+      severity: "blocking",
+    },
+    {
+      id: "redis-url",
+      group: "cache",
+      labelFr: "URL Upstash Redis",
+      labelEn: "Upstash Redis URL",
+      detailFr: "Cache, limitation de trafic et protection des tentatives sensibles.",
+      detailEn: "Cache, traffic limiting and protection for sensitive attempts.",
+      envKeys: ["UPSTASH_REDIS_REST_URL"],
+      satisfied: has("UPSTASH_REDIS_REST_URL"),
+      severity: "blocking",
+    },
+    {
+      id: "redis-token",
+      group: "cache",
+      labelFr: "Jeton Upstash Redis",
+      labelEn: "Upstash Redis token",
+      detailFr: "Autorisation serveur pour écrire les compteurs et données temporaires.",
+      detailEn: "Server authorization to write counters and temporary data.",
+      envKeys: ["UPSTASH_REDIS_REST_TOKEN"],
+      satisfied: has("UPSTASH_REDIS_REST_TOKEN"),
+      severity: "blocking",
+    },
+    {
+      id: "vapid-public",
+      group: "push",
+      labelFr: "Clé publique push",
+      labelEn: "Push public key",
+      detailFr: "Abonnement mobile aux notifications web push.",
+      detailEn: "Mobile subscription to web push notifications.",
+      envKeys: ["NEXT_PUBLIC_VAPID_PUBLIC_KEY"],
+      satisfied: has("NEXT_PUBLIC_VAPID_PUBLIC_KEY"),
+      severity: "blocking",
+    },
+    {
+      id: "vapid-private",
+      group: "push",
+      labelFr: "Clé serveur push",
+      labelEn: "Push server key",
+      detailFr: "Signature serveur des notifications envoyées aux abonnés.",
+      detailEn: "Server signing for notifications sent to subscribers.",
+      envKeys: ["VAPID_PRIVATE_KEY"],
+      satisfied: has("VAPID_PRIVATE_KEY"),
+      severity: "blocking",
+    },
+    {
+      id: "vapid-subject",
+      group: "push",
+      labelFr: "Contact push VAPID",
+      labelEn: "VAPID push contact",
+      detailFr: "Contact technique exigé par le protocole Web Push.",
+      detailEn: "Technical contact required by the Web Push protocol.",
+      envKeys: ["VAPID_SUBJECT"],
+      satisfied: has("VAPID_SUBJECT"),
+      severity: "blocking",
+    },
+    {
+      id: "cloudflare-account",
+      group: "hosting",
+      labelFr: "Compte Cloudflare",
+      labelEn: "Cloudflare account",
+      detailFr: "Compte Cloudflare ciblé par la configuration Wrangler.",
+      detailEn: "Cloudflare account targeted by the Wrangler configuration.",
+      envKeys: ["CLOUDFLARE_ACCOUNT_ID"],
+      satisfied: has("CLOUDFLARE_ACCOUNT_ID"),
+      severity: "blocking",
+    },
+    {
+      id: "cloudflare-workers-target",
+      group: "hosting",
+      labelFr: "Cible Workers",
+      labelEn: "Workers target",
+      detailFr: "Le déploiement doit cibler le runtime Workers de Cloudflare.",
+      detailEn: "Deployment must target the Cloudflare Workers runtime.",
+      envKeys: ["CLOUDFLARE_DEPLOYMENT_TARGET"],
+      satisfied: cloudflareWorkers,
+      severity: "blocking",
+    },
+  ];
+  const completed = requirements.filter((requirement) => requirement.satisfied).length;
+  const blockers = requirements.filter((requirement) => !requirement.satisfied).map((requirement) => requirement.id);
+
+  return {
+    target: "Cloudflare Workers",
+    ready: blockers.length === 0,
+    completed,
+    total: requirements.length,
+    percentage: Math.round((completed / requirements.length) * 100),
+    blockers,
+    checkedAt,
+    deployCommand: "npm run cloudflare:deploy",
+    requirements,
+  };
 }

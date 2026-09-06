@@ -32,6 +32,7 @@ import { BRAND_COLORS } from "@/lib/brand-colors";
 import { EUROPEAN_COUNTRIES } from "@/lib/european-countries";
 import { formatDateTime } from "@/lib/format";
 import { paymentMethodLabel, recommendedEuropeanPaymentMethods, uniquePaymentMethods } from "@/lib/payment-methods";
+import type { CloudflareDeploymentReadiness, DeploymentRequirementGroup } from "@/lib/platform-configuration";
 import type { PaymentProviderReadiness, PaymentReadinessMethod } from "@/lib/payment-readiness";
 
 type Configuration = {
@@ -55,6 +56,7 @@ type SettingsPayload = {
   configuration: Configuration;
   metadata: { persisted: boolean; updatedBy: string | null; updatedAt: string | null };
   integrations: Integration[];
+  deploymentReadiness?: CloudflareDeploymentReadiness;
   paymentReadiness: PaymentProviderReadiness;
 };
 
@@ -65,6 +67,15 @@ const INTEGRATION_PRESENTATION: Record<Integration["id"], { icon: LucideIcon; ti
   cache: { icon: Gauge, titleFr: "Protection et cache", titleEn: "Protection and cache", detailFr: "Limitation de trafic et accélération", detailEn: "Traffic limiting and acceleration" },
   push: { icon: BellRing, titleFr: "Notifications mobiles", titleEn: "Mobile notifications", detailFr: "Abonnements et campagnes ciblées", detailEn: "Subscriptions and targeted campaigns" },
   hosting: { icon: Cloud, titleFr: "Hébergement Cloudflare", titleEn: "Cloudflare hosting", detailFr: "Workers, domaine et exécution internationale", detailEn: "Workers, domain and global runtime" },
+};
+
+const DEPLOYMENT_GROUP_ICONS: Record<DeploymentRequirementGroup, LucideIcon> = {
+  database: Database,
+  identity: KeyRound,
+  payments: CreditCard,
+  cache: Gauge,
+  push: BellRing,
+  hosting: Cloud,
 };
 
 export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | "en"; canUpdate: boolean }) {
@@ -135,6 +146,8 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
       {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
       <ProductionReadiness readiness={readiness} locale={locale} />
+
+      <CloudflareLaunchReadiness readiness={data?.deploymentReadiness} locale={locale} />
 
       <EuropeanPaymentReadiness readiness={data?.paymentReadiness} locale={locale} />
 
@@ -228,6 +241,80 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
 
 function SettingsField({ id, label, icon: Icon, hint, children }: { id: string; label: string; icon: LucideIcon; hint?: string; children: React.ReactNode }) {
   return <div className="min-w-0"><Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label><div className="relative"><Icon className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-terre" />{children}</div>{hint ? <p className="mt-1.5 text-[9px] leading-4 text-muted-foreground">{hint}</p> : null}</div>;
+}
+
+function CloudflareLaunchReadiness({ readiness, locale }: { readiness?: CloudflareDeploymentReadiness; locale: "fr" | "en" }) {
+  if (!readiness) return null;
+  const isFr = locale === "fr";
+  const missing = readiness.requirements.filter((requirement) => !requirement.satisfied);
+  const Icon = readiness.ready ? ShieldCheck : AlertTriangle;
+
+  return (
+    <section className="mt-5 overflow-hidden border-y border-burgundy/14 bg-[linear-gradient(118deg,#FFFFFF_0%,#FFF8F4_58%,#FFF3E5_100%)]" aria-labelledby="cloudflare-launch-title" data-testid="cloudflare-deployment-readiness">
+      <div className="px-4 py-4 sm:px-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md text-white shadow-[0_12px_26px_-18px_rgba(185,71,43,0.85)] ${readiness.ready ? "bg-burgundy" : "bg-terre"}`}><Icon className="h-4.5 w-4.5" /></span>
+            <div className="min-w-0">
+              <p className="jma-eyebrow">{isFr ? "Mise en ligne Cloudflare" : "Cloudflare launch"}</p>
+              <h2 id="cloudflare-launch-title" className="mt-0.5 text-sm font-black text-charcoal">{readiness.ready ? (isFr ? "Déploiement production autorisé" : "Production deployment cleared") : (isFr ? "Déploiement production bloqué" : "Production deployment blocked")}</h2>
+              <p className="mt-1 max-w-2xl text-[10px] leading-4 text-muted-foreground">{readiness.ready ? (isFr ? "Tous les prérequis serveur exigés par le déploiement Cloudflare sont disponibles." : "Every server prerequisite required by the Cloudflare deployment is available.") : (isFr ? `${missing.length} prérequis bloquant(s) restent à compléter avant de relancer la production.` : `${missing.length} blocking prerequisite(s) remain before production can be retried.`)}</p>
+            </div>
+          </div>
+          <span className={`inline-flex min-h-7 items-center gap-1.5 rounded-md px-2 text-[8px] font-black uppercase ${readiness.ready ? "bg-burgundy text-white" : "bg-gold/20 text-burgundy"}`}><Icon className="h-3 w-3" />{readiness.ready ? (isFr ? "Prêt" : "Ready") : (isFr ? "À finaliser" : "To complete")}</span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 divide-x divide-burgundy/10 border-y border-burgundy/10 bg-white/70 text-center">
+          <LaunchFact label={isFr ? "Cible" : "Target"} value="Workers" />
+          <LaunchFact label={isFr ? "Validés" : "Cleared"} value={`${readiness.completed}/${readiness.total}`} />
+          <LaunchFact label={isFr ? "Blocages" : "Blockers"} value={String(readiness.blockers.length)} />
+        </div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-sm bg-white" role="progressbar" aria-label={isFr ? "Progression du déploiement Cloudflare" : "Cloudflare deployment progress"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={readiness.percentage}>
+          <span className={`block h-full ${readiness.ready ? "bg-burgundy" : "bg-terre"}`} style={{ width: `${readiness.percentage}%` }} />
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-y border-burgundy/10 bg-white/70 px-3 py-2">
+          <span className="min-w-0 text-[9px] font-bold leading-4 text-muted-foreground">{isFr ? "Commande de mise en production contrôlée" : "Controlled production deploy command"}</span>
+          <code className="max-w-full overflow-x-auto whitespace-nowrap rounded bg-burgundy/[0.06] px-2 py-1 text-[10px] font-black text-burgundy">{readiness.deployCommand}</code>
+        </div>
+
+        <div className="mt-4 divide-y divide-charcoal/8 border-y border-charcoal/8" aria-label={isFr ? "Prérequis de déploiement" : "Deployment prerequisites"}>
+          {readiness.requirements.map((requirement) => <DeploymentRequirementRow key={requirement.id} requirement={requirement} locale={locale} />)}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[8px] font-bold text-muted-foreground">
+          <span>{isFr ? "Aucune valeur sensible n'est affichée." : "No sensitive value is displayed."}</span>
+          <span className="tabular-nums">{isFr ? "Contrôlé" : "Checked"} {formatDateTime(readiness.checkedAt, locale)}</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LaunchFact({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0 px-2 py-3"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className="mt-1 truncate text-xs font-black text-charcoal">{value}</p></div>;
+}
+
+function DeploymentRequirementRow({ requirement, locale }: { requirement: CloudflareDeploymentReadiness["requirements"][number]; locale: "fr" | "en" }) {
+  const isFr = locale === "fr";
+  const StatusIcon = requirement.satisfied ? CheckCircle2 : AlertTriangle;
+  const GroupIcon = DEPLOYMENT_GROUP_ICONS[requirement.group];
+
+  return (
+    <article className="grid min-w-0 gap-3 px-3 py-3 sm:grid-cols-[2.25rem_minmax(0,1fr)_minmax(10rem,auto)] sm:items-center">
+      <span className={`grid h-9 w-9 place-items-center rounded-md ${requirement.satisfied ? "bg-burgundy/[0.07] text-burgundy" : "bg-terre/[0.08] text-terre"}`}><GroupIcon className="h-4 w-4" /></span>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[11px] font-black text-charcoal">{isFr ? requirement.labelFr : requirement.labelEn}</p>
+          <span className={`inline-flex min-h-5 items-center gap-1 rounded px-1.5 text-[8px] font-black uppercase ${requirement.satisfied ? "bg-burgundy/[0.07] text-burgundy" : "bg-gold/20 text-burgundy"}`}><StatusIcon className="h-3 w-3" />{requirement.satisfied ? (isFr ? "Validé" : "Cleared") : (isFr ? "Manquant" : "Missing")}</span>
+        </div>
+        <p className="mt-1 text-[9px] leading-4 text-muted-foreground">{isFr ? requirement.detailFr : requirement.detailEn}</p>
+      </div>
+      <div className="flex min-w-0 flex-wrap gap-1.5 sm:justify-end">
+        {requirement.envKeys.map((key) => <code key={key} className={`max-w-full break-all rounded px-1.5 py-1 text-[8px] font-black ${requirement.satisfied ? "bg-burgundy/[0.055] text-burgundy" : "bg-white text-terre ring-1 ring-terre/15"}`}>{key}</code>)}
+      </div>
+    </article>
+  );
 }
 
 function EuropeanPaymentReadiness({ readiness, locale }: { readiness?: PaymentProviderReadiness; locale: "fr" | "en" }) {

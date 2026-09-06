@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { platformIntegrationStatus } from "./platform-configuration";
+import { cloudflareDeploymentReadiness, platformIntegrationStatus } from "./platform-configuration";
 
 describe("platform production readiness", () => {
   it("never presents an ephemeral SQLite database as production-ready on Cloudflare", () => {
@@ -56,5 +56,55 @@ describe("platform production readiness", () => {
     expect(integrations.every((integration) => integration.state === "ready")).toBe(true);
     expect(integrations.find((integration) => integration.id === "database")).toMatchObject({ provider: "PostgreSQL", capabilities: { production: true } });
     expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ provider: "Cloudflare Workers", capabilities: { runtime: true } });
+  });
+
+  it("turns the current deployment blockers into an explicit Cloudflare checklist", () => {
+    const readiness = cloudflareDeploymentReadiness(true, {
+      DATABASE_URL: "file:../db/custom.db",
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: "push_public",
+      VAPID_PRIVATE_KEY: "push_private",
+      VAPID_SUBJECT: "mailto:contact@je-mange-africain.com",
+    }, "2026-09-06T15:40:00.000Z");
+    const missingKeys = readiness.requirements.filter((requirement) => !requirement.satisfied).flatMap((requirement) => requirement.envKeys);
+
+    expect(readiness.ready).toBe(false);
+    expect(readiness.deployCommand).toBe("npm run cloudflare:deploy");
+    expect(readiness.requirements.find((requirement) => requirement.id === "database-url")).toMatchObject({ satisfied: false, envKeys: ["DATABASE_URL"] });
+    expect(missingKeys).toEqual(expect.arrayContaining([
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "UPSTASH_REDIS_REST_URL",
+      "UPSTASH_REDIS_REST_TOKEN",
+    ]));
+  });
+
+  it("clears the Cloudflare checklist only when every deploy prerequisite is present", () => {
+    const readiness = cloudflareDeploymentReadiness(true, {
+      DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
+      STRIPE_SECRET_KEY: "sk_live_example",
+      STRIPE_WEBHOOK_SECRET: "whsec_example",
+      UPSTASH_REDIS_REST_URL: "https://cache.example.test",
+      UPSTASH_REDIS_REST_TOKEN: "redis_token",
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: "push_public",
+      VAPID_PRIVATE_KEY: "push_private",
+      VAPID_SUBJECT: "mailto:contact@je-mange-africain.com",
+    });
+
+    expect(readiness.ready).toBe(true);
+    expect(readiness.completed).toBe(readiness.total);
+    expect(readiness.percentage).toBe(100);
+    expect(readiness.blockers).toEqual([]);
   });
 });

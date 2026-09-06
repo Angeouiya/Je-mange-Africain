@@ -5,6 +5,27 @@ import { join } from "node:path";
 
 const now = "2026-09-02T09:30:00.000Z";
 
+function deploymentReadinessPayload() {
+  return {
+    target: "Cloudflare Workers",
+    ready: false,
+    completed: 2,
+    total: 6,
+    percentage: 33,
+    blockers: ["database-url", "stripe-webhook", "redis-url", "redis-token"],
+    checkedAt: now,
+    deployCommand: "npm run cloudflare:deploy",
+    requirements: [
+      { id: "database-url", group: "database", labelFr: "Base PostgreSQL Supabase", labelEn: "Supabase PostgreSQL database", detailFr: "Connexion PostgreSQL disponible et utilisable par le runtime Cloudflare.", detailEn: "PostgreSQL connection available and usable by the Cloudflare runtime.", envKeys: ["DATABASE_URL"], satisfied: false, severity: "blocking" },
+      { id: "supabase-service-role", group: "identity", labelFr: "Accès serveur Supabase", labelEn: "Supabase server access", detailFr: "Accès serveur requis pour les opérations protégées de l'admin et des médias.", detailEn: "Server access required for protected admin and media operations.", envKeys: ["SUPABASE_SERVICE_ROLE_KEY"], satisfied: true, severity: "blocking" },
+      { id: "stripe-publishable-key", group: "payments", labelFr: "Clé publique Stripe", labelEn: "Stripe publishable key", detailFr: "Initialisation sécurisée du formulaire carte, wallets et PayPal côté client.", detailEn: "Secure initialization of card, wallets and PayPal on the client.", envKeys: ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"], satisfied: true, severity: "blocking" },
+      { id: "stripe-webhook", group: "payments", labelFr: "Webhook Stripe", labelEn: "Stripe webhook", detailFr: "Confirmation fiable des paiements, remboursements et événements asynchrones.", detailEn: "Reliable confirmation for payments, refunds and asynchronous events.", envKeys: ["STRIPE_WEBHOOK_SECRET"], satisfied: false, severity: "blocking" },
+      { id: "redis-url", group: "cache", labelFr: "URL Upstash Redis", labelEn: "Upstash Redis URL", detailFr: "Cache, limitation de trafic et protection des tentatives sensibles.", detailEn: "Cache, traffic limiting and protection for sensitive attempts.", envKeys: ["UPSTASH_REDIS_REST_URL"], satisfied: false, severity: "blocking" },
+      { id: "redis-token", group: "cache", labelFr: "Jeton Upstash Redis", labelEn: "Upstash Redis token", detailFr: "Autorisation serveur pour écrire les compteurs et données temporaires.", detailEn: "Server authorization to write counters and temporary data.", envKeys: ["UPSTASH_REDIS_REST_TOKEN"], satisfied: false, severity: "blocking" },
+    ],
+  };
+}
+
 const dashboard = {
   generatedAt: now,
   kpis: {
@@ -693,7 +714,7 @@ async function mockAdminApi(page: Page) {
     else if (path === "/api/admin/audit") payload = auditPayload;
     else if (path === "/api/admin/settings" && request.method() === "PATCH") {
       settingsConfiguration = request.postDataJSON();
-      payload = { configuration: settingsConfiguration, metadata: { persisted: true, updatedBy: "direction@je-mange-africain.com", updatedAt: now }, integrations: [] };
+      payload = { configuration: settingsConfiguration, metadata: { persisted: true, updatedBy: "direction@je-mange-africain.com", updatedAt: now }, integrations: [], deploymentReadiness: deploymentReadinessPayload() };
     }
     else if (path === "/api/admin/settings") payload = {
       configuration: settingsConfiguration,
@@ -705,6 +726,7 @@ async function mockAdminApi(page: Page) {
         { id: "cache", state: "attention", provider: "Upstash Redis", capabilities: { connection: false } },
         { id: "push", state: "ready", provider: "Web Push", capabilities: { connection: true } },
       ],
+      deploymentReadiness: deploymentReadinessPayload(),
       paymentReadiness: {
         provider: "Stripe", state: "ready", reachable: true, liveMode: true, configurationName: "European storefront", isDefault: true, checkedAt: now, card: true, paypal: true,
         methods: [
@@ -1238,6 +1260,13 @@ test("platform settings publish durable customer-facing contact details", async 
   await expect(page.getByTestId("production-readiness")).toContainText("83 %");
   await expect(page.getByTestId("integration-database")).toContainText("Base de production");
   await expect(page.getByTestId("integration-payments")).toContainText("Confirmation serveur");
+  const launchReadiness = page.getByTestId("cloudflare-deployment-readiness");
+  await expect(launchReadiness).toContainText("Déploiement production bloqué");
+  await expect(launchReadiness).toContainText("npm run cloudflare:deploy");
+  await expect(launchReadiness).toContainText("DATABASE_URL");
+  await expect(launchReadiness).toContainText("STRIPE_WEBHOOK_SECRET");
+  await expect(launchReadiness).toContainText("UPSTASH_REDIS_REST_URL");
+  await expect(launchReadiness).not.toContainText(/sk_live_[a-z0-9]+|whsec_[a-z0-9]+|service-role-value|redis-token-value/i);
   const paymentReadiness = page.getByTestId("payment-readiness");
   await expect(paymentReadiness).toContainText("Carte + PayPal actifs");
   await expect(paymentReadiness).toContainText("LIVE");

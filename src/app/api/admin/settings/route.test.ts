@@ -26,6 +26,20 @@ vi.mock("@/lib/platform-configuration", async (importOriginal) => {
       { id: "database", state: databaseAvailable ? "ready" : "attention", provider: "PostgreSQL", capabilities: { connection: databaseAvailable } },
       { id: "payments", state: "ready", provider: "Stripe", capabilities: { connection: true, webhook: true } },
     ],
+    cloudflareDeploymentReadiness: () => ({
+      target: "Cloudflare Workers",
+      ready: false,
+      completed: 0,
+      total: 2,
+      percentage: 0,
+      blockers: ["database-url", "stripe-webhook"],
+      checkedAt: "2026-09-06T12:00:00.000Z",
+      deployCommand: "npm run cloudflare:deploy",
+      requirements: [
+        { id: "database-url", group: "database", labelFr: "Base PostgreSQL Supabase", labelEn: "Supabase PostgreSQL database", detailFr: "Connexion PostgreSQL disponible.", detailEn: "PostgreSQL connection available.", envKeys: ["DATABASE_URL"], satisfied: false, severity: "blocking" },
+        { id: "stripe-webhook", group: "payments", labelFr: "Webhook Stripe", labelEn: "Stripe webhook", detailFr: "Confirmation fiable des paiements.", detailEn: "Reliable payment confirmation.", envKeys: ["STRIPE_WEBHOOK_SECRET"], satisfied: false, severity: "blocking" },
+      ],
+    }),
   };
 });
 vi.mock("@/lib/payment-readiness", () => ({ readPaymentReadiness: mocks.paymentReadiness }));
@@ -70,8 +84,11 @@ describe("admin platform settings route", () => {
     expect(payload.configuration.supportEmail).toBe(configuration.supportEmail);
     expect(payload.integrations[0]).toEqual(expect.objectContaining({ id: "database", state: "ready" }));
     expect(payload.integrations[1]).toEqual(expect.objectContaining({ id: "payments", state: "ready", capabilities: expect.objectContaining({ configuration: true, card: true, paypal: true }) }));
+    expect(payload.deploymentReadiness).toEqual(expect.objectContaining({ target: "Cloudflare Workers", ready: false, deployCommand: "npm run cloudflare:deploy" }));
+    expect(payload.deploymentReadiness.requirements[1]).toEqual(expect.objectContaining({ envKeys: ["STRIPE_WEBHOOK_SECRET"], satisfied: false }));
     expect(payload.paymentReadiness).toEqual(expect.objectContaining({ state: "ready", card: true, paypal: true }));
-    expect(JSON.stringify(payload)).not.toContain("secret");
+    expect(JSON.stringify(payload)).not.toContain("sk_live_example");
+    expect(JSON.stringify(payload)).not.toContain("service_role_example");
   });
 
   it("marks the payment integration partial when PayPal is not active", async () => {
