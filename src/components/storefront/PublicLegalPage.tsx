@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { ArrowLeft, Globe2, Mail } from "lucide-react";
+import { ArrowLeft } from "reicon/icons/ArrowLeft";
+import { Envelope } from "reicon/icons/Envelope";
+import { Globe2 } from "reicon/icons/Globe2";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { DocumentLocaleSync } from "@/components/shared/DocumentLocaleSync";
 import { LegalDocument, type LegalKind } from "@/components/storefront/LegalDocument";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import type { Locale } from "@/lib/i18n";
 import { COMPANY_PROFILE } from "@/lib/company-profile";
 
@@ -35,13 +38,13 @@ export function PublicLegalPage({ kind, locale, pathname }: { kind: LegalKind; l
       <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-16 max-w-5xl items-center gap-2 px-4 sm:gap-4 lg:px-6">
           <Link href="/" aria-label={text.back} title={text.back} className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-border text-charcoal transition hover:border-terre hover:text-terre">
-            <ArrowLeft className="h-4 w-4" />
+            <ReiconGlyph icon={ArrowLeft} className="h-4 w-4" />
           </Link>
           <Link href="/" className="min-w-0 flex-1" aria-label="Je mange Africain">
             <BrandLockup compact responsive locale={locale} />
           </Link>
           <nav aria-label={text.language} className="flex shrink-0 items-center gap-1 rounded-md border border-border bg-muted/45 p-1">
-            <Globe2 className="ml-1.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <ReiconGlyph icon={Globe2} className="ml-1.5 h-3.5 w-3.5 text-muted-foreground" />
             {(["fr", "en"] as const).map((language) => (
               <Link key={language} href={`${pathname}?lang=${language}`} hrefLang={language} aria-current={locale === language ? "page" : undefined} className={`grid h-8 min-w-9 place-items-center rounded px-2 text-[10px] font-black transition ${locale === language ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-white hover:text-charcoal"}`}>
                 {language.toUpperCase()}
@@ -65,7 +68,7 @@ export function PublicLegalPage({ kind, locale, pathname }: { kind: LegalKind; l
             <p className="mt-2 text-[11px] text-muted-foreground">Je mange Africain · {locale === "fr" ? "Une création de" : "Created by"} {COMPANY_PROFILE.legalName}</p>
           </div>
           <a href={`mailto:${COMPANY_PROFILE.email}`} className="inline-flex w-fit max-w-full items-center gap-2 text-muted-foreground hover:text-terre">
-            <Mail className="h-3.5 w-3.5" />
+            <ReiconGlyph icon={Envelope} className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{text.contact}</span>
             <strong className="break-all text-charcoal">{COMPANY_PROFILE.email}</strong>
           </a>

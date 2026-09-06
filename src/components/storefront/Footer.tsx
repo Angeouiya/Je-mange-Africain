@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { Building2, Globe2, Mail, MapPin, Phone, SlidersHorizontal } from "lucide-react";
+import { Building2 } from "reicon/icons/Building2";
+import { Call } from "reicon/icons/Call";
+import { Envelope } from "reicon/icons/Envelope";
+import { Globe2 } from "reicon/icons/Globe2";
+import { Location } from "reicon/icons/Location";
+import { SliderHorizontal } from "reicon/icons/SliderHorizontal";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore, ViewId } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
@@ -49,7 +55,7 @@ export function Footer() {
             </div>
           </div>
           <p className="flex items-center gap-2 text-[11px] font-bold text-burgundy">
-            <Building2 className="h-3.5 w-3.5 shrink-0" />
+            <ReiconGlyph icon={Building2} weight="Filled" className="h-3.5 w-3.5 shrink-0" />
             {locale === "fr" ? "Une création de" : "Created by"} {COMPANY_PROFILE.legalName}
           </p>
           <p className="text-sm text-muted-foreground">{t.footer.aboutDesc}</p>
@@ -57,12 +63,12 @@ export function Footer() {
             {Object.values(COMPANY_PROFILE.locations).map((location) => (
               <div key={location.phoneHref} className="border-l-2 border-gold/50 pl-3">
                 <p className="font-bold text-charcoal">{locale === "fr" ? location.labelFr : location.labelEn}</p>
-                <a href={`tel:${location.phoneHref}`} className="mt-1 flex items-center gap-2 transition hover:text-terre"><Phone className="h-3.5 w-3.5 shrink-0" />{location.phoneDisplay}</a>
-                <p className="mt-1 flex items-start gap-2 leading-5"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>{location.addressLine}</span></p>
+                <a href={`tel:${location.phoneHref}`} className="mt-1 flex items-center gap-2 transition hover:text-terre"><ReiconGlyph icon={Call} className="h-3.5 w-3.5 shrink-0" />{location.phoneDisplay}</a>
+                <p className="mt-1 flex items-start gap-2 leading-5"><ReiconGlyph icon={Location} className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>{location.addressLine}</span></p>
               </div>
             ))}
-            <a href={`mailto:${COMPANY_PROFILE.email}`} className="flex items-center gap-2 transition hover:text-terre"><Mail className="h-3.5 w-3.5 shrink-0" />{COMPANY_PROFILE.email}</a>
-            <a href={COMPANY_PROFILE.website} className="flex items-center gap-2 transition hover:text-terre"><Globe2 className="h-3.5 w-3.5 shrink-0" />je-mange-africain.com</a>
+            <a href={`mailto:${COMPANY_PROFILE.email}`} className="flex items-center gap-2 transition hover:text-terre"><ReiconGlyph icon={Envelope} className="h-3.5 w-3.5 shrink-0" />{COMPANY_PROFILE.email}</a>
+            <a href={COMPANY_PROFILE.website} className="flex items-center gap-2 transition hover:text-terre"><ReiconGlyph icon={Globe2} className="h-3.5 w-3.5 shrink-0" />je-mange-africain.com</a>
           </address>
         </div>
 
@@ -89,7 +95,7 @@ export function Footer() {
             {legalLinks.map(([label, view, params]) => (
               <li key={label}><button onClick={() => go(view, params)} className="transition hover:text-terre hover:underline">{label}</button></li>
             ))}
-            <li><button type="button" onClick={requestPrivacyPreferences} className="inline-flex items-center gap-1.5 font-bold text-burgundy transition hover:text-terre hover:underline"><SlidersHorizontal className="h-3.5 w-3.5" />{locale === "fr" ? "Gérer mes choix" : "Manage my choices"}</button></li>
+            <li><button type="button" onClick={requestPrivacyPreferences} className="inline-flex items-center gap-1.5 font-bold text-burgundy transition hover:text-terre hover:underline"><ReiconGlyph icon={SliderHorizontal} className="h-3.5 w-3.5" />{locale === "fr" ? "Gérer mes choix" : "Manage my choices"}</button></li>
           </ul>
         </div>
       </div>

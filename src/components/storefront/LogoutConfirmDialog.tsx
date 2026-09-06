@@ -1,7 +1,9 @@
 "use client";
 
-import { ReactNode, useState } from "react";
-import { LogOut, ShieldAlert } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Loader } from "reicon/icons/Loader";
+import { Logout } from "reicon/icons/Logout";
+import { ShieldAlert } from "reicon/icons/ShieldAlert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
 
 export function LogoutConfirmDialog({ children }: { children: ReactNode }) {
@@ -37,7 +40,7 @@ export function LogoutConfirmDialog({ children }: { children: ReactNode }) {
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><ShieldAlert className="h-5 w-5" /></span>
+          <span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><ReiconGlyph icon={ShieldAlert} weight="Filled" className="h-5 w-5" /></span>
           <AlertDialogTitle>{locale === "fr" ? "Se déconnecter ?" : "Sign out?"}</AlertDialogTitle>
           <AlertDialogDescription>
             {locale === "fr"
@@ -48,7 +51,7 @@ export function LogoutConfirmDialog({ children }: { children: ReactNode }) {
         <AlertDialogFooter>
           <AlertDialogCancel>{locale === "fr" ? "Rester connecté" : "Stay signed in"}</AlertDialogCancel>
           <AlertDialogAction disabled={busy} onClick={() => void confirmLogout()} className="bg-destructive text-white hover:bg-destructive/90">
-            <LogOut className="mr-2 h-4 w-4" /> {busy ? (locale === "fr" ? "Déconnexion..." : "Signing out...") : (locale === "fr" ? "Oui, me déconnecter" : "Yes, sign out")}
+            <ReiconGlyph icon={busy ? Loader : Logout} className={`mr-2 h-4 w-4 ${busy ? "animate-spin" : ""}`} /> {busy ? (locale === "fr" ? "Déconnexion..." : "Signing out...") : (locale === "fr" ? "Oui, me déconnecter" : "Yes, sign out")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
