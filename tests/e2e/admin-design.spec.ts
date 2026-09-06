@@ -1067,6 +1067,32 @@ test("the adaptive professional navigation distinguishes quick and secondary wor
   await expectBrandSafeUiColors(page);
 });
 
+test("professional sign-out is explicit and requires confirmation", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin#overview", { waitUntil: "domcontentloaded" });
+  const mobile = (page.viewportSize()?.width || 0) < 768;
+
+  if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
+  await page.getByRole("button", { name: "Se déconnecter de la console professionnelle" }).click();
+
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog.getByRole("heading", { name: "Se déconnecter de la console professionnelle ?" })).toBeVisible();
+  await expect(dialog).toContainText("L'accès aux commandes, aux données clients et aux réglages sera fermé sur cet appareil.");
+  await dialog.getByRole("button", { name: "Rester connecté" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator("header h1")).toHaveText("Décider aujourd'hui");
+
+  await page.getByRole("button", { name: "Se déconnecter de la console professionnelle" }).click();
+  const sessionDelete = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === "/api/admin/session" && request.method() === "DELETE";
+  });
+  await dialog.getByRole("button", { name: "Oui, me déconnecter" }).click();
+  await sessionDelete;
+  await expect(page.getByRole("heading", { name: "Connexion professionnelle" })).toBeVisible();
+  await expectBrandSafeUiColors(page);
+});
+
 test("mobile professional tabs keep every destination readable and actionable", async ({ page }) => {
   test.skip((page.viewportSize()?.width || 0) >= 768, "Mobile tab geometry is covered at the mobile breakpoint.");
   await mockAdminApi(page);

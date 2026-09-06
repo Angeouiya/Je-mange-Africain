@@ -354,16 +354,16 @@ export function AdminView({
                       onTouchStart={() => preloadAdminSectionBundle(item.id)}
                       aria-current={active ? "page" : undefined}
                       data-active={active ? "true" : "false"}
-                      className={`group relative isolate flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2.5 text-left transition-all ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.72)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}
+                      className={`group relative isolate flex min-h-[3.1rem] w-full items-center gap-2.5 overflow-hidden rounded-md px-2.5 py-2 text-left transition-all ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.72)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}
                     >
                       {active ? <motion.span layoutId="admin-sidebar-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
                       {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : getReadableBrandAccent(item.accent) }}>
-                        <ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[18px] w-[18px]" />
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : getReadableBrandAccent(item.accent) }}>
+                        <ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[17px] w-[17px]" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[13px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
-                        <span className="mt-0.5 block line-clamp-2 text-[9px] leading-4 text-muted-foreground">{isFr ? item.purposeFr : item.purposeEn}</span>
+                        <span className="block truncate text-[12px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
+                        <span className="mt-0.5 block truncate text-[9px] leading-4 text-muted-foreground">{isFr ? item.purposeFr : item.purposeEn}</span>
                       </span>
                       {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: getReadableBrandAccent(item.accent) }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: getReadableBrandAccent(item.accent) }}>{item.marker}</span> : <ReiconGlyph icon={AngleRight} className="h-4 w-4 text-charcoal/20" />}
                     </button>
@@ -375,7 +375,7 @@ export function AdminView({
         </nav>
 
         <div className="border-t border-burgundy/10 bg-white/70 p-3">
-          <div className="mb-2 flex items-center gap-3 rounded-md bg-burgundy/5 px-3 py-2.5">
+          <div className="mb-2 flex items-center gap-3 border-l-2 border-terre bg-white px-3 py-2.5">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy text-xs font-black text-white">{(adminEmail || "J").slice(0, 1).toUpperCase()}</span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[11px] font-bold text-charcoal">{adminEmail || (isFr ? "Session professionnelle" : "Professional session")}</p>
@@ -391,10 +391,11 @@ export function AdminView({
             </Button>
             {onLogout ? (
               <AlertDialog>
-                <AlertDialogTrigger asChild><Button type="button" variant="ghost" className="h-9 justify-start px-2 text-[10px] text-terre hover:bg-terre/5"><ReiconGlyph icon={LogOut} className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Quitter" : "Sign out"}</Button></AlertDialogTrigger>
+                <AlertDialogTrigger asChild><Button type="button" variant="ghost" data-testid="admin-logout-trigger" aria-label={isFr ? "Se déconnecter de la console professionnelle" : "Sign out of the professional console"} className="h-9 min-w-0 justify-start px-2 text-[10px] text-terre hover:bg-terre/5"><ReiconGlyph icon={LogOut} className="mr-1.5 h-3.5 w-3.5 shrink-0" /> <span className="truncate">{isFr ? "Se déconnecter" : "Sign out"}</span></Button></AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>{isFr ? "Fermer la session professionnelle ?" : "Close the professional session?"}</AlertDialogTitle>
+                    <span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><ReiconGlyph icon={LogOut} className="h-5 w-5" /></span>
+                    <AlertDialogTitle>{isFr ? "Se déconnecter de la console professionnelle ?" : "Sign out of the professional console?"}</AlertDialogTitle>
                     <AlertDialogDescription>{isFr ? "L'accès aux commandes, aux données clients et aux réglages sera fermé sur cet appareil. Toutes les modifications enregistrées seront conservées." : "Access to orders, customer data and settings will close on this device. Saved changes will remain."}</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter><AlertDialogCancel>{isFr ? "Rester connecté" : "Stay signed in"}</AlertDialogCancel><AlertDialogAction onClick={onLogout} className="bg-destructive text-white hover:bg-destructive/90">{isFr ? "Oui, me déconnecter" : "Yes, sign out"}</AlertDialogAction></AlertDialogFooter>
