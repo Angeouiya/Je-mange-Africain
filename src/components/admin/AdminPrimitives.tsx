@@ -229,6 +229,7 @@ export function SectionTabs<T extends string>({
   };
 
   if (variant === "workspace") {
+    const denseWorkspace = items.length > 2;
     return (
       <div
         className="grid w-full overflow-hidden rounded-lg border border-burgundy/12 bg-[#FBF7F5] sm:w-fit sm:min-w-[32rem]"
@@ -237,6 +238,7 @@ export function SectionTabs<T extends string>({
         aria-orientation="horizontal"
         aria-label={label}
         data-testid="workspace-tabs"
+        data-density={denseWorkspace ? "dense" : "regular"}
       >
         {items.map((item, index) => {
           const active = value === item.value;
@@ -251,18 +253,18 @@ export function SectionTabs<T extends string>({
               aria-label={typeof item.count === "number" ? `${item.label}, ${item.count}` : item.label}
               onClick={() => onChange(item.value)}
               onKeyDown={(event) => moveWithKeyboard(event, index)}
-              className={`group relative flex min-h-[4.75rem] min-w-0 items-center gap-2.5 px-3 py-2.5 text-left transition sm:min-w-[15rem] sm:px-4 ${index ? "border-l border-burgundy/10" : ""} ${active ? "bg-white text-charcoal shadow-[0_14px_30px_-26px_rgba(90,38,50,0.75)]" : "text-muted-foreground hover:bg-white/65 hover:text-charcoal"}`}
+              className={`group relative flex min-w-0 transition sm:min-h-[4.75rem] sm:flex-row sm:items-center sm:justify-start sm:gap-2.5 sm:px-4 sm:py-2.5 sm:text-left ${denseWorkspace ? "min-h-[5.25rem] flex-col items-center justify-center gap-1.5 px-1.5 py-2 text-center sm:min-w-[12rem]" : "min-h-[4.75rem] items-center gap-2.5 px-3 py-2.5 text-left sm:min-w-[15rem]"} ${index ? "border-l border-burgundy/10" : ""} ${active ? "bg-white text-charcoal shadow-[0_14px_30px_-26px_rgba(90,38,50,0.75)]" : "text-muted-foreground hover:bg-white/65 hover:text-charcoal"}`}
             >
               {active ? <span className="absolute inset-x-3 top-0 h-[3px] rounded-b-full" style={{ backgroundColor: accent }} aria-hidden="true" /> : null}
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? accent : `${accent}0D`, borderColor: active ? accent : `${accent}20`, color: active ? getBrandAccentForeground(accent) : getReadableBrandAccent(accent) }}>
                 {Icon ? <Icon className="h-[1.05rem] w-[1.05rem]" /> : <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex min-w-0 items-start gap-1.5">
-                  <span className="line-clamp-2 min-w-0 text-[11px] font-black leading-3.5 sm:text-xs sm:leading-4">{item.label}</span>
+              <span className={`min-w-0 ${denseWorkspace ? "w-full sm:flex-1" : "flex-1"}`}>
+                <span className={`flex min-w-0 items-start gap-1.5 ${denseWorkspace ? "justify-center sm:justify-start" : ""}`}>
+                  <span data-tab-label className="line-clamp-2 min-w-0 text-[10px] font-black leading-3.5 sm:text-xs sm:leading-4">{item.label}</span>
                   {typeof item.count === "number" ? <span aria-hidden="true" className={`grid min-w-5 shrink-0 place-items-center rounded px-1.5 py-0.5 text-[8px] font-black tabular-nums ${active ? "bg-burgundy/[0.07] text-burgundy" : "bg-white text-muted-foreground"}`}>{item.count}</span> : null}
                 </span>
-                {item.description ? <span className="mt-0.5 block line-clamp-2 text-[8px] font-semibold leading-3.5 text-muted-foreground sm:text-[9px]">{item.description}</span> : null}
+                {item.description ? <span className={`mt-0.5 line-clamp-2 text-[8px] font-semibold leading-3.5 text-muted-foreground sm:block sm:text-[9px] ${denseWorkspace ? "hidden" : "block"}`}>{item.description}</span> : null}
               </span>
             </button>
           );
@@ -271,8 +273,9 @@ export function SectionTabs<T extends string>({
     );
   }
 
+  const mobileGridClass = items.length <= 1 ? "grid-cols-1" : items.length === 2 ? "grid-cols-2" : items.length === 3 ? "grid-cols-3" : "grid-cols-2";
   return (
-    <div className="scroll-pretty flex w-full max-w-full gap-1 overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-white p-1 sm:w-fit" role="tablist" aria-label={label} aria-orientation="horizontal">
+    <div className={`grid w-full max-w-full ${mobileGridClass} gap-1 overflow-hidden rounded-lg border border-border bg-white p-1 sm:flex sm:w-fit sm:overflow-x-auto sm:overscroll-x-contain`} role="tablist" aria-label={label} aria-orientation="horizontal" data-testid="section-tabs">
       {items.map((item, index) => (
         <button
           key={item.value}
@@ -282,9 +285,9 @@ export function SectionTabs<T extends string>({
           aria-label={typeof item.count === "number" ? `${item.label}, ${item.count}` : item.label}
           onClick={() => onChange(item.value)}
           onKeyDown={(event) => moveWithKeyboard(event, index)}
-          className={`flex h-9 min-w-max flex-1 shrink-0 items-center justify-center gap-2 rounded-md px-3 text-xs font-bold transition-colors sm:flex-none ${value === item.value ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}
+          className={`flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-center text-[10px] font-bold leading-3.5 transition-colors sm:h-9 sm:min-h-0 sm:min-w-max sm:flex-none sm:shrink-0 sm:gap-2 sm:px-3 sm:py-0 sm:text-xs ${value === item.value ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}
         >
-          {item.label}
+          <span data-tab-label className="line-clamp-2 min-w-0">{item.label}</span>
           {typeof item.count === "number" ? <span aria-hidden="true" className={`grid min-w-5 place-items-center rounded px-1.5 py-0.5 text-[9px] tabular-nums ${value === item.value ? "bg-white/12 text-white" : "bg-muted text-muted-foreground"}`}>{item.count}</span> : null}
         </button>
       ))}

@@ -23,7 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
+import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
 import { PostalCodeField } from "@/components/shared/PostalCodeField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,10 +113,10 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
   if (error && !data) return <AdminErrorState locale={locale} message={isFr ? "Le référentiel de livraison est indisponible." : "The delivery reference data is unavailable."} onRetry={refetch} />;
   if (!data) return null;
 
-  const tabs: Array<{ id: LogisticsTab; icon: LucideIcon; fr: string; en: string; detailFr: string; detailEn: string }> = [
-    { id: "routes", icon: Route, fr: "Zones tarifaires", en: "Rate zones", detailFr: "Pays, prix et délais", detailEn: "Countries, prices and timing" },
-    { id: "carriers", icon: Truck, fr: "Transporteurs", en: "Carriers", detailFr: "Partenaires et suivi", detailEn: "Partners and tracking" },
-    { id: "simulator", icon: CircleGauge, fr: "Simulateur client", en: "Customer simulator", detailFr: "Contrôler la promesse", detailEn: "Verify the promise" },
+  const tabs: Array<{ value: LogisticsTab; label: string; description: string; icon: LucideIcon; accent: string }> = [
+    { value: "routes", icon: Route, label: isFr ? "Zones tarifaires" : "Rate zones", description: isFr ? "Pays, prix et délais" : "Countries, prices and timing", accent: BRAND_COLORS.earth },
+    { value: "carriers", icon: Truck, label: isFr ? "Transporteurs" : "Carriers", description: isFr ? "Partenaires et suivi" : "Partners and tracking", accent: BRAND_COLORS.burgundy },
+    { value: "simulator", icon: CircleGauge, label: isFr ? "Simulateur client" : "Customer simulator", description: isFr ? "Contrôler la promesse" : "Verify the promise", accent: BRAND_COLORS.gold },
   ];
 
   return (
@@ -139,11 +139,8 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
         <Metric icon={Snowflake} label={isFr ? "Routes sous froid" : "Cold-chain routes"} value={data.summary.coldChainRoutes} accent={BRAND_COLORS.chilli} />
       </div>
 
-      <div className="mt-5 grid grid-cols-3 overflow-hidden rounded-md border border-burgundy/10 bg-[#FFFCFA] p-1" role="tablist" aria-label={isFr ? "Espaces logistiques" : "Logistics workspaces"}>
-        {tabs.map((item) => {
-          const active = tab === item.id;
-          return <button key={item.id} type="button" role="tab" aria-selected={active} onClick={() => setTab(item.id)} className={`relative flex min-h-[4.25rem] min-w-0 items-center justify-center gap-2 rounded-md px-2 text-left transition sm:justify-start sm:px-3 ${active ? "border border-terre/15 bg-white text-terre shadow-[0_10px_26px_-22px_rgba(185,71,43,0.8)]" : "text-muted-foreground hover:bg-white/70 hover:text-charcoal"}`}><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md ${active ? "bg-terre text-white" : "bg-terre/[0.07] text-terre"}`}><item.icon className="h-4 w-4" /></span><span className="min-w-0"><span className="block truncate text-[10px] font-black sm:text-xs">{isFr ? item.fr : item.en}</span><span className="mt-0.5 hidden truncate text-[8px] sm:block">{isFr ? item.detailFr : item.detailEn}</span></span>{active ? <span className="absolute inset-x-5 bottom-0 h-0.5 rounded-full bg-gold" /> : null}</button>;
-        })}
+      <div className="mt-5">
+        <SectionTabs variant="workspace" value={tab} onChange={setTab} items={tabs} label={isFr ? "Espaces logistiques" : "Logistics workspaces"} />
       </div>
 
       {message ? <div role={messageKind === "error" ? "alert" : "status"} className={`mt-4 flex items-start gap-2 rounded-md border px-3 py-2.5 text-xs ${messageKind === "error" ? "border-destructive/20 bg-destructive/[0.05] text-destructive" : "border-burgundy/15 bg-burgundy/[0.045] text-burgundy"}`}>{messageKind === "error" ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />}{message}</div> : null}

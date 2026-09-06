@@ -1040,6 +1040,58 @@ test("the adaptive professional navigation distinguishes quick and secondary wor
   await expectBrandSafeUiColors(page);
 });
 
+test("mobile professional tabs keep every destination readable and actionable", async ({ page }) => {
+  test.skip((page.viewportSize()?.width || 0) >= 768, "Mobile tab geometry is covered at the mobile breakpoint.");
+  await mockAdminApi(page);
+  await page.goto("/admin#promotions", { waitUntil: "domcontentloaded" });
+
+  const promotionTabs = page.getByRole("tablist", { name: "Cycle des promotions" });
+  await expect(promotionTabs).toBeVisible();
+  await expect(promotionTabs.getByRole("tab")).toHaveCount(4);
+  await expect(promotionTabs.getByRole("tab", { name: /^Toutes/ })).toHaveAttribute("aria-selected", "true");
+  for (const label of ["Toutes", "Actives", "Planifiées", "À revoir"]) {
+    await expect(promotionTabs.locator("[data-tab-label]", { hasText: label })).toBeVisible();
+  }
+  const filterGeometry = await promotionTabs.locator("[data-tab-label]").evaluateAll((labels) => labels.map((label) => ({
+    horizontalOverflow: label.scrollWidth - label.clientWidth,
+    verticalOverflow: label.scrollHeight - label.clientHeight,
+  })));
+  expect(filterGeometry.every(({ horizontalOverflow, verticalOverflow }) => horizontalOverflow <= 1 && verticalOverflow <= 1)).toBe(true);
+
+  const allPromotionsTab = promotionTabs.getByRole("tab", { name: /^Toutes/ });
+  await allPromotionsTab.focus();
+  await allPromotionsTab.press("ArrowRight");
+  await expect(promotionTabs.getByRole("tab", { name: /^Actives/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("promotion-register").getByTestId("promotion-row")).toHaveCount(1);
+
+  await page.goto("/admin#logistics", { waitUntil: "domcontentloaded" });
+  const logisticsTabs = page.getByRole("tablist", { name: "Espaces logistiques" });
+  await expect(logisticsTabs).toHaveAttribute("data-density", "dense");
+  await expect(logisticsTabs.getByRole("tab")).toHaveCount(3);
+  for (const label of ["Zones tarifaires", "Transporteurs", "Simulateur client"]) {
+    await expect(logisticsTabs.locator("[data-tab-label]", { hasText: label })).toBeVisible();
+  }
+  const workspaceGeometry = await logisticsTabs.locator("[data-tab-label]").evaluateAll((labels) => labels.map((label) => ({
+    horizontalOverflow: label.scrollWidth - label.clientWidth,
+    verticalOverflow: label.scrollHeight - label.clientHeight,
+  })));
+  expect(workspaceGeometry.every(({ horizontalOverflow, verticalOverflow }) => horizontalOverflow <= 1 && verticalOverflow <= 1)).toBe(true);
+
+  const routesTab = logisticsTabs.getByRole("tab", { name: "Zones tarifaires" });
+  await routesTab.focus();
+  await routesTab.press("End");
+  await expect(logisticsTabs.getByRole("tab", { name: "Simulateur client" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("heading", { name: "Simuler la promesse client" })).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, "admin-tabs-mobile.png"), scale: "css" });
+  }
+});
+
 test("the promotion desk schedules a targeted benefit and confirms immediate suspension", async ({ page }) => {
   const mutations: Array<{ method: string; path: string; body: Record<string, unknown> }> = [];
   page.on("request", (request) => {
