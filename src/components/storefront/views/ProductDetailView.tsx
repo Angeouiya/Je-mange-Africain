@@ -134,13 +134,13 @@ export function ProductDetailView() {
         image={heroPhoto}
         structuredData={productStructuredData}
       />
-      <div className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-28 pt-4 md:px-7 md:py-10 lg:px-8">
+      <div data-testid="product-detail-page" className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-28 pt-4 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-3 md:mb-4" />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         {/* visual */}
         <div className="min-w-0 space-y-3 lg:sticky lg:top-24 lg:self-start">
-          <div className="relative -mx-4 flex aspect-[3/2] items-center justify-center overflow-hidden border-y border-border bg-card sm:mx-0 sm:aspect-square sm:rounded-lg sm:border">
+          <div className="relative flex aspect-[3/2] w-full items-center justify-center overflow-hidden rounded-lg border border-charcoal/10 bg-[#FFFCFA] shadow-[0_18px_50px_-42px_rgba(90,38,50,0.74)] sm:aspect-square">
             <ProductImage
               src={heroPhoto}
               alt={product.name}

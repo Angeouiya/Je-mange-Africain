@@ -673,6 +673,13 @@ test("product details stay bounded and preserve real visual identification in th
     await expect(purchaseDock).toBeHidden();
   }
   await expectNoHorizontalOverflow(page);
+  const internalOverflow = await page.getByTestId("product-detail-page").evaluate((root) =>
+    [...root.querySelectorAll<HTMLElement>("*")]
+      .filter((element) => element.scrollWidth - element.clientWidth > 1)
+      .map((element) => ({ tag: element.tagName.toLowerCase(), text: element.textContent?.trim().slice(0, 80), delta: element.scrollWidth - element.clientWidth }))
+      .slice(0, 8)
+  );
+  expect(internalOverflow, `product detail elements overflow internally: ${JSON.stringify(internalOverflow)}`).toEqual([]);
   const relatedRecipesHeading = page.getByRole("heading", { name: /recettes associées|related recipes/i });
   if (await relatedRecipesHeading.count()) {
     await relatedRecipesHeading.scrollIntoViewIfNeeded();
