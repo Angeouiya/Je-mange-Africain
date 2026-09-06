@@ -12,6 +12,7 @@ import { RecipeCard, type RecipeListItem } from "@/components/shared/RecipeCard"
 import { DishDetailsDialog, DishLibraryCard, type DishLibraryItem } from "@/components/shared/DishLibraryCard";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
+import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 
 type CategoryOption = { slug: string; name: string };
 type RecipeResponse = { recipes: RecipeListItem[]; categories: CategoryOption[] };
@@ -32,13 +33,13 @@ export function RecipesView() {
   const recipeQuery = new URLSearchParams({ locale });
   if (category) recipeQuery.set("category", category);
   if (deferredSearch) recipeQuery.set("q", deferredSearch);
-  const { data, loading, error, refetch } = useFetch<RecipeResponse>(`/api/recipes?${recipeQuery.toString()}`, [locale, category, deferredSearch]);
+  const { data, loading, error, refetch } = useFetch<RecipeResponse>(`/api/recipes?${recipeQuery.toString()}`, [locale, category, deferredSearch], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
 
   const dishQuery = new URLSearchParams({ locale });
   if (category) dishQuery.set("category", category);
   if (country) dishQuery.set("country", country);
   if (deferredSearch) dishQuery.set("q", deferredSearch);
-  const { data: dishData, loading: dishesLoading, error: dishesError, refetch: refetchDishes } = useFetch<DishResponse>(`/api/dishes?${dishQuery.toString()}`, [locale, category, country, deferredSearch]);
+  const { data: dishData, loading: dishesLoading, error: dishesError, refetch: refetchDishes } = useFetch<DishResponse>(`/api/dishes?${dishQuery.toString()}`, [locale, category, country, deferredSearch], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
 
   const suggestions = isFr
     ? ["Attiéké poisson", "Sauce gombo", "Mafé", "Plantain", "Dîner rapide"]

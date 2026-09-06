@@ -20,6 +20,7 @@ import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/
 import { getProductCommercialLine, getProductGallery } from "@/lib/market-media";
 import { productEditorialHighlight } from "@/lib/editorial-flags";
 import { resolveProductPricing } from "@/lib/product-pricing";
+import { STOREFRONT_DETAIL_TTL_MS } from "@/lib/storefront-prefetch";
 
 export function ProductDetailView() {
   const locale = useStore((s) => s.locale);
@@ -31,7 +32,7 @@ export function ProductDetailView() {
   const t = dict[locale];
 
   const productId = params.productId;
-  const { data: product, loading, error, refetch } = useFetch(productId ? `/api/products/${productId}?locale=${locale}` : null, [productId, locale]);
+  const { data: product, loading, error, refetch } = useFetch(productId ? `/api/products/${productId}?locale=${locale}` : null, [productId, locale], {}, { cache: true, ttlMs: STOREFRONT_DETAIL_TTL_MS });
 
   const [variantId, setVariantId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);

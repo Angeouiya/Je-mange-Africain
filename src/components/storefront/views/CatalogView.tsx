@@ -16,6 +16,7 @@ import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
+import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 
 const THERMALS = ["AMBIANT", "REFRIGERATED", "FROZEN"];
 type CatalogHighlight = "all" | "available" | "sale" | "new" | "recommended" | "popular";
@@ -69,7 +70,7 @@ export function CatalogView() {
   if (maxPrice) qs.set("maxPrice", String(maxPrice));
   if (highlight !== "all") qs.set("highlight", highlight);
 
-  const { data, loading, error, refetch } = useFetch<CatalogResponse>(`/api/catalog?${qs.toString()}`, [search, cat, brand, country, thermal, maxPrice, highlight, sort, page, locale]);
+  const { data, loading, error, refetch } = useFetch<CatalogResponse>(`/api/catalog?${qs.toString()}`, [search, cat, brand, country, thermal, maxPrice, highlight, sort, page, locale], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
 
   const filters = data?.filters;
   const clearFilters = () => { setCat(null); setBrand(null); setCountry(null); setThermal(null); setMaxPrice(null); setHighlight("all"); };

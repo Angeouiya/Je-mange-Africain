@@ -18,6 +18,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { getProductPhoto } from "@/lib/market-media";
 import { europeanCountryOptions, europeanCountryValue, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { nextWholesaleTier, wholesaleDiscountPercent, wholesaleLineEconomics, type WholesaleTier } from "@/lib/wholesale";
+import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 
 type WholesaleProduct = {
   id: string;
@@ -62,7 +63,7 @@ export function WholesaleView() {
   const [quoteLines, setQuoteLines] = useState<WholesaleQuoteLine[]>([]);
   const deferredQuery = useDeferredValue(query.trim());
   const url = `/api/catalog?channel=wholesale&locale=${locale}&pageSize=48&sort=popular${deferredQuery ? `&q=${encodeURIComponent(deferredQuery)}` : ""}${category ? `&category=${encodeURIComponent(category)}` : ""}`;
-  const { data, loading, error, refetch } = useFetch<WholesaleResponse>(url, [locale, deferredQuery, category]);
+  const { data, loading, error, refetch } = useFetch<WholesaleResponse>(url, [locale, deferredQuery, category], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
   const isFr = locale === "fr";
   const quotePackCount = quoteLines.reduce((total, line) => total + line.packs, 0);
 

@@ -6,6 +6,7 @@ import { hydrateStore, useStore, type ViewId, type ViewParams } from "@/lib/stor
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
+import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
 
 const dynamicView = (loader: () => Promise<any>) => dynamic(loader, { loading: ViewLoading });
 const loadCatalogView = () => import("@/components/storefront/views/CatalogView").then((module) => module.CatalogView);
@@ -39,6 +40,7 @@ export default function Page() {
   const params = useStore((s) => s.params);
   const navigate = useStore((s) => s.navigate);
   const customer = useStore((s) => s.customer);
+  const locale = useStore((s) => s.locale);
   const [mounted, setMounted] = useState(false);
   const viewIdentity = view === "product"
     ? `${view}:${params.productId || ""}`
@@ -115,18 +117,43 @@ export default function Page() {
         loadRecipesView(),
         loadCartView(),
       ]);
+      void prefetchStorefrontData("home", {}, locale);
+      void prefetchStorefrontData("catalog", {}, locale);
+      void prefetchStorefrontData("recipes", {}, locale);
+    };
+    const preloadSecondaryViews = () => {
+      void Promise.allSettled([
+        loadWholesaleView(),
+        loadRecipeConfiguratorView(),
+        loadCheckoutView(),
+        loadOrderConfirmationView(),
+        loadOrdersView(),
+        loadOrderTrackingView(),
+        loadAccountView(),
+        loadInfoView(),
+      ]);
+      void prefetchStorefrontData("wholesale", {}, locale);
+      void prefetchStorefrontData("checkout", {}, locale);
+      void prefetchStorefrontData("info", { infoPage: "about" }, locale);
     };
     const browser = window as typeof window & {
       requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
       cancelIdleCallback?: (handle: number) => void;
     };
-    if (browser.requestIdleCallback) {
-      const handle = browser.requestIdleCallback(preloadPrimaryViews, { timeout: 1_500 });
-      return () => browser.cancelIdleCallback?.(handle);
-    }
-    const timeout = window.setTimeout(preloadPrimaryViews, 700);
-    return () => window.clearTimeout(timeout);
-  }, []);
+    const cancelers: Array<() => void> = [];
+    const schedule = (task: () => void, timeout: number, delay: number) => {
+      if (browser.requestIdleCallback) {
+        const handle = browser.requestIdleCallback(task, { timeout });
+        cancelers.push(() => browser.cancelIdleCallback?.(handle));
+        return;
+      }
+      const timer = window.setTimeout(task, delay);
+      cancelers.push(() => window.clearTimeout(timer));
+    };
+    schedule(preloadPrimaryViews, 1_200, 500);
+    schedule(preloadSecondaryViews, 3_200, 1_800);
+    return () => cancelers.forEach((cancel) => cancel());
+  }, [locale]);
 
   useEffect(() => {
     if (!mounted) return;

@@ -9,6 +9,7 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { getRecipePhoto } from "@/lib/market-media";
 import { recipeEditorialHighlight } from "@/lib/editorial-flags";
+import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
 
 export interface RecipeListItem {
   id: string;
@@ -48,12 +49,16 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
   const savedRecipes = useStore((s) => s.savedRecipes);
   const toggleSavedRecipe = useStore((s) => s.toggleSavedRecipe);
   const isSaved = savedRecipes.includes(recipe.id);
+  const warmRecipe = () => { void prefetchStorefrontData("recipe-config", { recipeId: recipe.id }, locale); };
 
   return (
     <motion.div
       initial={{ y: 10 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
+      onPointerEnter={warmRecipe}
+      onFocusCapture={warmRecipe}
+      onTouchStart={warmRecipe}
       className={recipeCardFrame(compact)}
     >
       <RecipeCardSurface recipe={recipe} locale={locale} compact={compact} index={index} isSaved={isSaved} onSave={() => toggleSavedRecipe(recipe.id)} onConfigure={() => navigate("recipe-config", { recipeId: recipe.id })} />

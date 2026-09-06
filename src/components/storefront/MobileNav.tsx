@@ -11,6 +11,7 @@ import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 import { clientPrimaryNavigationTarget, clientSidebarUtilityTarget } from "@/lib/client-navigation";
 import { COMPANY_PROFILE } from "@/lib/company-profile";
+import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
 
 export function MobileNav() {
   const locale = useStore((s) => s.locale);
@@ -53,6 +54,7 @@ export function MobileNav() {
   const mobileActiveTarget = clientPrimaryNavigationTarget(view, "mobile", Boolean(customer));
   const desktopActiveTarget = clientPrimaryNavigationTarget(view, "desktop", Boolean(customer));
   const utilityActiveTarget = clientSidebarUtilityTarget(view, params);
+  const warmDestination = (destination: ViewId) => { void prefetchStorefrontData(destination, {}, locale); };
 
   const renderMobileItem = (it: (typeof mobileItems)[number]) => {
     const active = mobileActiveTarget === it.id;
@@ -61,6 +63,9 @@ export function MobileNav() {
       <button
         key={it.id}
         onClick={() => navigate(it.id)}
+        onPointerEnter={() => warmDestination(it.id)}
+        onFocus={() => warmDestination(it.id)}
+        onTouchStart={() => warmDestination(it.id)}
         className={`group relative isolate flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${
           active ? "text-terre" : "text-muted-foreground hover:text-charcoal"
         }`}
@@ -97,7 +102,7 @@ export function MobileNav() {
 
       <aside data-testid="client-sidebar" className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-burgundy/10 bg-[#FFFCFA] text-charcoal shadow-[14px_0_42px_-36px_rgba(90,38,50,0.48)] md:flex">
         <div className="african-kente-stripe h-[3px] shrink-0" />
-        <button onClick={() => navigate("home")} className="border-b border-burgundy/10 px-5 py-5 text-left transition hover:bg-burgundy/[0.035]" aria-label={locale === "fr" ? "Accueil" : "Home"}>
+        <button onClick={() => navigate("home")} onPointerEnter={() => warmDestination("home")} onFocus={() => warmDestination("home")} className="border-b border-burgundy/10 px-5 py-5 text-left transition hover:bg-burgundy/[0.035]" aria-label={locale === "fr" ? "Accueil" : "Home"}>
           <BrandLockup compact locale={locale} />
         </button>
 
@@ -108,7 +113,7 @@ export function MobileNav() {
               const Icon = item.icon;
               const active = desktopActiveTarget === item.id;
               return (
-                <button key={item.id} onClick={() => navigate(item.id)} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-12 w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
+                <button key={item.id} onClick={() => navigate(item.id)} onPointerEnter={() => warmDestination(item.id)} onFocus={() => warmDestination(item.id)} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-12 w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
                   {active ? <motion.span layoutId="client-desktop-nav-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
                   {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><Icon className={`h-[1.05rem] w-[1.05rem] ${active ? "stroke-[2.4]" : "stroke-2"}`} /></span>

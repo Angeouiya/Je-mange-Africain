@@ -41,6 +41,7 @@ import { dict } from "@/lib/i18n";
 import { LegalDocument } from "@/components/storefront/LegalDocument";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { useFetch } from "@/lib/use-fetch";
+import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 import { COMPANY_PROFILE, PRIMARY_BUSINESS_LOCATION } from "@/lib/company-profile";
 
@@ -188,7 +189,7 @@ export function InfoView() {
   const t = dict[locale];
   const page = params.infoPage || "about";
   const isLegalPage = ["cgv", "privacy", "cookies", "delivery"].includes(page);
-  const { data: platformData } = useFetch<{ configuration: PublicPlatformConfiguration }>("/api/platform", []);
+  const { data: platformData } = useFetch<{ configuration: PublicPlatformConfiguration }>("/api/platform", [], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
   const responseHours = platformData?.configuration.support.responseHours || 48;
 
   const legalContent = {

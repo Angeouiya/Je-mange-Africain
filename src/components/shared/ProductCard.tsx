@@ -11,6 +11,7 @@ import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/
 import { getProductCommercialLine, getProductPhoto } from "@/lib/market-media";
 import { productEditorialHighlight } from "@/lib/editorial-flags";
 import { resolveProductPricing } from "@/lib/product-pricing";
+import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
 
 export interface ProductListItem {
   id: string;
@@ -77,6 +78,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
 
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
   const { price } = resolveProductPricing(product, defaultVariant?.price);
+  const warmProduct = () => { void prefetchStorefrontData("product", { productId: product.id }, locale); };
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -110,6 +112,9 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
       transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
       onClick={() => navigate("product", { productId: product.id })}
       onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); navigate("product", { productId: product.id }); } }}
+      onPointerEnter={warmProduct}
+      onFocus={warmProduct}
+      onTouchStart={warmProduct}
       role="link"
       tabIndex={0}
       aria-label={locale === "fr" ? `Voir ${product.name}` : `View ${product.name}`}

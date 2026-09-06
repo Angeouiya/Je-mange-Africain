@@ -29,6 +29,7 @@ import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 import { recipeEditorialHighlight } from "@/lib/editorial-flags";
 import { ingredientsForPreparationStep } from "@/lib/recipe-step-ingredients";
+import { STOREFRONT_DETAIL_TTL_MS } from "@/lib/storefront-prefetch";
 
 interface CalcResult {
   ingredients: any[];
@@ -55,7 +56,7 @@ export function RecipeConfiguratorView() {
   const t = dict[locale];
 
   const recipeId = params.recipeId;
-  const { data: recipe, loading, error, refetch } = useFetch(recipeId ? `/api/recipes/${recipeId}?locale=${locale}` : null, [recipeId, locale]);
+  const { data: recipe, loading, error, refetch } = useFetch(recipeId ? `/api/recipes/${recipeId}?locale=${locale}` : null, [recipeId, locale], {}, { cache: true, ttlMs: STOREFRONT_DETAIL_TTL_MS });
 
   // config state
   const [adults, setAdults] = useState(4);

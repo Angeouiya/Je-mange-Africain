@@ -32,6 +32,7 @@ import { dict } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import { getCategoryPhoto, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { useFetch } from "@/lib/use-fetch";
+import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 import { useStore } from "@/lib/store";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { DeliveryDestinationDialog } from "@/components/storefront/DeliveryDestinationDialog";
@@ -58,7 +59,7 @@ export function HomeView() {
   const navigate = useStore((state) => state.navigate);
   const favorites = useStore((state) => state.favorites);
   const t = dict[locale];
-  const { data, loading, error, refetch } = useFetch<HomeCatalog>(`/api/catalog?section=home&locale=${locale}`, [locale]);
+  const { data, loading, error, refetch } = useFetch<HomeCatalog>(`/api/catalog?section=home&locale=${locale}`, [locale], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
 
   const allFeaturedProducts = useMemo(() => {
     const unique = new Map<string, ProductListItem>();

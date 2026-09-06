@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { advertisementDestination } from "@/lib/advertising";
 import { useStore, type ViewId, type ViewParams } from "@/lib/store";
 import { useFetch } from "@/lib/use-fetch";
+import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 
 export type AdvertisementPlacement = "home" | "catalog" | "recipes" | "checkout";
 export type StorefrontAdvertisementVariant = "immersive" | "ribbon" | "compact";
@@ -105,7 +106,7 @@ export function StorefrontAdvertisementArtwork({ advertisement, placement, varia
 export function StorefrontAdvertisement({ placement, variant = "ribbon", fallback, fallbackDestination, className = "" }: Props) {
   const locale = useStore((state) => state.locale);
   const navigate = useStore((state) => state.navigate);
-  const { data } = useFetch<{ advertisements: StorefrontAdvertisementData[] }>(`/api/advertisements?placement=${placement}&locale=${locale}`, [locale, placement]);
+  const { data } = useFetch<{ advertisements: StorefrontAdvertisementData[] }>(`/api/advertisements?placement=${placement}&locale=${locale}`, [locale, placement], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
   const advertisement = data?.advertisements?.[0] || fallback;
 
   if (!advertisement) return null;
