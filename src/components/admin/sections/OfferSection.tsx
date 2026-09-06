@@ -18,11 +18,13 @@ import { EditorialActionsDialog } from "@/components/admin/EditorialActionsDialo
 type Product = { id: string; name: string; nameFr: string; nameEn: string; descriptionFr: string; descriptionEn: string; traditionalName: string; sku: string; categoryId: string; packaging: string; costPrice?: number | null; profitMargin?: number | null; costSource?: "recorded" | "estimated"; price: number; promoPrice?: number | null; isWholesale?: boolean; wholesalePackLabel?: string | null; wholesaleUnitsPerPack?: number; wholesaleMinPacks?: number; wholesalePrice?: number | null; wholesaleTier2MinPacks?: number | null; wholesaleTier2Price?: number | null; wholesaleTier3MinPacks?: number | null; wholesaleTier3Price?: number | null; stockQty: number; reservedQty?: number; availableQty?: number; alertThreshold?: number; netWeightGrams: number; imageColor: string; imageEmoji: string; imageUrl?: string | null; galleryUrls?: string[]; aliases?: string[]; isNew?: boolean; isRecommended?: boolean; isBestseller?: boolean; status?: "draft" | "published" | "archived"; thermalClass: "AMBIANT" | "REFRIGERATED" | "FROZEN"; storageType: "SEC" | "FRAIS" | "REFRIGERE" | "SURGELE" | "FUME" | "SECHE" | "CONSERVE"; country: string };
 type Recipe = { id: string; title: string; description?: string; country: string; category: string; difficulty: string; timeMinutes: number; baseServings: number; imageColor: string; imageEmoji: string; imageUrl?: string | null; galleryUrls?: string[]; isPopular: boolean; isNew?: boolean; isRecommended?: boolean; status?: string; ingredientCount: number; requiredIngredientCount?: number; availableIngredientCount?: number; unpublishedIngredientCount?: number; stockCoverageRate?: number; needsAttention?: boolean; stepCount?: number; updatedAt?: string };
 type RecipeDetails = Recipe & { steps: string[]; ingredients: Array<{ recipeIngredientId: string; quantityPerBase: number; unit: string; optional: boolean; product: { id: string; traditionalName: string; emoji: string; imageUrl?: string | null; color?: string; nameFr: string; nameEn: string; stockQty: number; reservedQty?: number; availableQty?: number; status?: "draft" | "published" | "archived" } }> };
+type ProductFilter = "all" | "published" | "depleted" | "draft" | "archived" | "wholesale";
 
 export default function OfferSection({ locale, workspace }: { locale: "fr" | "en"; workspace: "products" | "recipes" }) {
   const isFr = locale === "fr";
   const [query, setQuery] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [productFilter, setProductFilter] = useState<ProductFilter>("all");
   const [recipeFilter, setRecipeFilter] = useState<"all" | "published" | "draft" | "attention">("all");
   const productsRequest = useFetch<{ products: Product[]; total: number }>(workspace === "products" ? `/api/admin/products?locale=${locale}` : null, [locale, workspace]);
   const recipesRequest = useFetch<{ recipes: Recipe[] }>(workspace === "recipes" ? `/api/admin/recipes?locale=${locale}` : null, [locale, workspace]);
@@ -31,7 +33,19 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
   const products = productsRequest.data?.products || [];
   const recipes = recipesRequest.data?.recipes || [];
   const normalizedQuery = normalize(query);
-  const filteredProducts = useMemo(() => products.filter((product) => normalize(`${product.name} ${product.traditionalName} ${product.sku} ${product.country}`).includes(normalizedQuery)), [products, normalizedQuery]);
+  const productStats = useMemo(() => ({
+    published: products.filter((product) => product.status === "published").length,
+    draft: products.filter((product) => product.status === "draft").length,
+    archived: products.filter((product) => product.status === "archived").length,
+    depleted: products.filter((product) => productAvailableQty(product) <= 0).length,
+    wholesale: products.filter((product) => product.isWholesale).length,
+  }), [products]);
+  const filteredProducts = useMemo(() => products.filter((product) => {
+    const matchesQuery = normalize(`${product.name} ${product.traditionalName} ${product.sku} ${product.country}`).includes(normalizedQuery);
+    const matchesFilter = productFilter === "all"
+      || (productFilter === "depleted" ? productAvailableQty(product) <= 0 : productFilter === "wholesale" ? Boolean(product.isWholesale) : product.status === productFilter);
+    return matchesQuery && matchesFilter;
+  }), [products, normalizedQuery, productFilter]);
   const recipeStats = useMemo(() => ({
     published: recipes.filter((recipe) => recipe.status === "published").length,
     draft: recipes.filter((recipe) => recipe.status === "draft").length,
@@ -64,7 +78,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
       {activeRequest.error && activeRequest.data ? <AdminRefreshNotice locale={locale} message={activeRequest.error} onRetry={activeRequest.refetch} /> : null}
 
       <div className="flex flex-col gap-3 border-y border-charcoal/8 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-        {workspace === "products" ? <div><p className="text-[10px] font-extrabold uppercase text-muted-foreground">{isFr ? "Catalogue actif" : "Active catalogue"}</p><p className="mt-0.5 text-lg font-black tabular-nums text-charcoal">{products.length}</p></div> : <div className="grid grid-cols-3 divide-x divide-charcoal/8"><RecipeRegisterMetric label={isFr ? "Publiées" : "Published"} value={recipeStats.published} /><RecipeRegisterMetric label={isFr ? "Prêtes" : "Ready"} value={recipeStats.ready} /><RecipeRegisterMetric label={isFr ? "À vérifier" : "Review"} value={recipeStats.attention} attention={recipeStats.attention > 0} /></div>}
+        {workspace === "products" ? <div className="grid grid-cols-4 divide-x divide-charcoal/8"><RegisterMetric label={isFr ? "Publiés" : "Published"} value={productStats.published} /><RegisterMetric label={isFr ? "Rupture" : "Out"} value={productStats.depleted} attention={productStats.depleted > 0} /><RegisterMetric label={isFr ? "Brouillons" : "Drafts"} value={productStats.draft} /><RegisterMetric label={isFr ? "Désactivés" : "Disabled"} value={productStats.archived} /></div> : <div className="grid grid-cols-3 divide-x divide-charcoal/8"><RegisterMetric label={isFr ? "Publiées" : "Published"} value={recipeStats.published} /><RegisterMetric label={isFr ? "Prêtes" : "Ready"} value={recipeStats.ready} /><RegisterMetric label={isFr ? "À vérifier" : "Review"} value={recipeStats.attention} attention={recipeStats.attention > 0} /></div>}
         <AdminSearchField
           value={query}
           onChange={setQuery}
@@ -78,11 +92,20 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         />
       </div>
 
+      {workspace === "products" ? <div className="flex min-w-0 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={isFr ? "Filtrer le registre des produits" : "Filter product register"}>
+        <RegisterFilterButton active={productFilter === "all"} onClick={() => setProductFilter("all")}>{isFr ? "Tous" : "All"} · {products.length}</RegisterFilterButton>
+        <RegisterFilterButton active={productFilter === "published"} onClick={() => setProductFilter("published")}>{isFr ? "Publiés" : "Published"} · {productStats.published}</RegisterFilterButton>
+        <RegisterFilterButton active={productFilter === "depleted"} onClick={() => setProductFilter("depleted")}>{isFr ? "Stock épuisé" : "Out of stock"} · {productStats.depleted}</RegisterFilterButton>
+        <RegisterFilterButton active={productFilter === "draft"} onClick={() => setProductFilter("draft")}>{isFr ? "Brouillons" : "Drafts"} · {productStats.draft}</RegisterFilterButton>
+        <RegisterFilterButton active={productFilter === "archived"} onClick={() => setProductFilter("archived")}>{isFr ? "Désactivés" : "Disabled"} · {productStats.archived}</RegisterFilterButton>
+        <RegisterFilterButton active={productFilter === "wholesale"} onClick={() => setProductFilter("wholesale")}>{isFr ? "Gros" : "Wholesale"} · {productStats.wholesale}</RegisterFilterButton>
+      </div> : null}
+
       {workspace === "recipes" ? <div className="flex min-w-0 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={isFr ? "Filtrer le registre des recettes" : "Filter recipe register"}>
-        <RecipeFilterButton active={recipeFilter === "all"} onClick={() => setRecipeFilter("all")}>{isFr ? "Toutes" : "All"} · {recipes.length}</RecipeFilterButton>
-        <RecipeFilterButton active={recipeFilter === "published"} onClick={() => setRecipeFilter("published")}>{isFr ? "Publiées" : "Published"} · {recipeStats.published}</RecipeFilterButton>
-        <RecipeFilterButton active={recipeFilter === "draft"} onClick={() => setRecipeFilter("draft")}>{isFr ? "Brouillons" : "Drafts"} · {recipeStats.draft}</RecipeFilterButton>
-        <RecipeFilterButton active={recipeFilter === "attention"} onClick={() => setRecipeFilter("attention")}>{isFr ? "À vérifier" : "Review"} · {recipeStats.attention}</RecipeFilterButton>
+        <RegisterFilterButton active={recipeFilter === "all"} onClick={() => setRecipeFilter("all")}>{isFr ? "Toutes" : "All"} · {recipes.length}</RegisterFilterButton>
+        <RegisterFilterButton active={recipeFilter === "published"} onClick={() => setRecipeFilter("published")}>{isFr ? "Publiées" : "Published"} · {recipeStats.published}</RegisterFilterButton>
+        <RegisterFilterButton active={recipeFilter === "draft"} onClick={() => setRecipeFilter("draft")}>{isFr ? "Brouillons" : "Drafts"} · {recipeStats.draft}</RegisterFilterButton>
+        <RegisterFilterButton active={recipeFilter === "attention"} onClick={() => setRecipeFilter("attention")}>{isFr ? "À vérifier" : "Review"} · {recipeStats.attention}</RegisterFilterButton>
       </div> : null}
 
       {workspace === "products" ? (
@@ -93,7 +116,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
                 <TableHeader><TableRow><TableHead>{isFr ? "Produit" : "Product"}</TableHead><TableHead>SKU</TableHead><TableHead>{isFr ? "Origine" : "Origin"}</TableHead><TableHead>{isFr ? "Prix" : "Price"}</TableHead><TableHead>{isFr ? "Disponibilité" : "Availability"}</TableHead><TableHead>{isFr ? "Conservation" : "Storage"}</TableHead><TableHead><span className="sr-only">{isFr ? "Actions" : "Actions"}</span></TableHead></TableRow></TableHeader>
                 <TableBody>{filteredProducts.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell><div className="flex items-center gap-3"><ProductImage src={product.imageUrl || getProductPhoto(product)} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" /><div className="min-w-0"><p className="truncate text-sm font-extrabold text-charcoal">{product.name}</p><p className="truncate text-[10px] text-muted-foreground">{product.traditionalName}</p><div className="mt-1 flex gap-1">{product.isWholesale ? <Badge variant="outline" className="h-4 border-terre/25 bg-terre/[0.04] px-1 text-[8px] text-terre">{isFr ? "Gros" : "Wholesale"}</Badge> : null}{product.isNew ? <Badge variant="outline" className="h-4 px-1 text-[8px]">{isFr ? "Nouveau" : "New"}</Badge> : null}{product.isRecommended ? <Badge variant="outline" className="h-4 border-burgundy/25 px-1 text-[8px] text-burgundy">{isFr ? "Recommandé" : "Recommended"}</Badge> : null}{product.isBestseller ? <Badge variant="outline" className="h-4 border-gold/50 bg-gold/[0.08] px-1 text-[8px] text-charcoal">{isFr ? "Populaire" : "Popular"}</Badge> : null}</div></div></div></TableCell>
+                    <TableCell><div className="flex items-center gap-3"><ProductImage src={product.imageUrl || getProductPhoto(product)} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" /><div className="min-w-0"><p className="truncate text-sm font-extrabold text-charcoal">{product.name}</p><p className="truncate text-[10px] text-muted-foreground">{product.traditionalName}</p><div className="mt-1 flex flex-wrap gap-1"><ProductStatusBadge product={product} locale={locale} />{product.isWholesale ? <Badge variant="outline" className="h-4 border-terre/25 bg-terre/[0.04] px-1 text-[8px] text-terre">{isFr ? "Gros" : "Wholesale"}</Badge> : null}{product.isNew ? <Badge variant="outline" className="h-4 px-1 text-[8px]">{isFr ? "Nouveau" : "New"}</Badge> : null}{product.isRecommended ? <Badge variant="outline" className="h-4 border-burgundy/25 px-1 text-[8px] text-burgundy">{isFr ? "Recommandé" : "Recommended"}</Badge> : null}{product.isBestseller ? <Badge variant="outline" className="h-4 border-gold/50 bg-gold/[0.08] px-1 text-[8px] text-charcoal">{isFr ? "Populaire" : "Popular"}</Badge> : null}</div></div></div></TableCell>
                     <TableCell className="text-xs font-semibold text-muted-foreground">{product.sku}</TableCell>
                     <TableCell className="text-xs">{product.country}</TableCell>
                     <TableCell><p className="font-extrabold text-terre">{formatPrice(product.promoPrice || product.price, locale)}</p>{product.costPrice !== null && product.costPrice !== undefined && product.profitMargin !== null && product.profitMargin !== undefined ? <p className="mt-0.5 whitespace-nowrap text-[9px] text-muted-foreground">{formatPrice(product.costPrice, locale)} + {formatPrice(product.profitMargin, locale)} {isFr ? "de marge" : "margin"}{product.costSource === "estimated" ? ` · ${isFr ? "estimé" : "estimated"}` : ""}</p> : <p className="mt-0.5 text-[9px] text-muted-foreground">{isFr ? "Ventilation non renseignée" : "Breakdown not recorded"}</p>}{product.isWholesale && product.wholesalePrice ? <p className="mt-1 whitespace-nowrap text-[9px] font-bold text-burgundy">{isFr ? "Gros" : "Wholesale"} · {formatPrice(product.wholesalePrice, locale)} / {product.wholesalePackLabel}</p> : null}</TableCell>
@@ -105,7 +128,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
               </Table>
             </div>
             <div className="divide-y divide-border sm:hidden">{filteredProducts.map((product) => (
-              <div key={product.id} className="flex items-center gap-3 p-3 [contain-intrinsic-size:76px] [content-visibility:auto]"><ProductImage src={product.imageUrl || getProductPhoto(product)} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-11 w-11 shrink-0" rounded="rounded-md" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-extrabold">{product.name}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{product.sku} · {thermalLabel(product.thermalClass, locale)}</p>{product.costPrice !== null && product.costPrice !== undefined && product.profitMargin !== null && product.profitMargin !== undefined ? <p className="mt-1 truncate text-[9px] text-muted-foreground">{formatPrice(product.costPrice, locale)} + {formatPrice(product.profitMargin, locale)} {isFr ? "marge" : "margin"}</p> : null}{product.isWholesale && product.wholesalePrice ? <p className="mt-1 truncate text-[9px] font-bold text-burgundy">{isFr ? "Gros" : "Wholesale"} · {formatPrice(product.wholesalePrice, locale)}</p> : null}</div><div className="text-right"><p className="text-xs font-extrabold text-terre">{formatPrice(product.promoPrice || product.price, locale)}</p><ProductAvailability product={product} locale={locale} compact /><div className="mt-1 flex justify-end gap-1"><ProductCreateDialog locale={locale} product={product} onCreated={productsRequest.refetch} /><EditorialActionsDialog kind="product" entity={{ ...product, title: product.name }} locale={locale} onUpdated={productsRequest.refetch} /></div></div></div>
+              <div key={product.id} className="flex items-center gap-3 p-3 [contain-intrinsic-size:86px] [content-visibility:auto]"><ProductImage src={product.imageUrl || getProductPhoto(product)} alt={product.name} emoji={product.imageEmoji} color={product.imageColor} size="sm" className="h-11 w-11 shrink-0" rounded="rounded-md" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-1.5"><p className="truncate text-sm font-extrabold">{product.name}</p><ProductStatusBadge product={product} locale={locale} /></div><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{product.sku} · {thermalLabel(product.thermalClass, locale)}</p>{product.costPrice !== null && product.costPrice !== undefined && product.profitMargin !== null && product.profitMargin !== undefined ? <p className="mt-1 truncate text-[9px] text-muted-foreground">{formatPrice(product.costPrice, locale)} + {formatPrice(product.profitMargin, locale)} {isFr ? "marge" : "margin"}</p> : null}{product.isWholesale && product.wholesalePrice ? <p className="mt-1 truncate text-[9px] font-bold text-burgundy">{isFr ? "Gros" : "Wholesale"} · {formatPrice(product.wholesalePrice, locale)}</p> : null}</div><div className="text-right"><p className="text-xs font-extrabold text-terre">{formatPrice(product.promoPrice || product.price, locale)}</p><ProductAvailability product={product} locale={locale} compact /><div className="mt-1 flex justify-end gap-1"><ProductCreateDialog locale={locale} product={product} onCreated={productsRequest.refetch} /><EditorialActionsDialog kind="product" entity={{ ...product, title: product.name }} locale={locale} onUpdated={productsRequest.refetch} /></div></div></div>
             ))}</div>
           </div>
         ) : <AdminEmptyState icon={<Package className="h-5 w-5" />} title={isFr ? "Aucun produit trouvé" : "No products found"} description={isFr ? "Modifiez la recherche ou enregistrez un nouveau produit." : "Change the search or add a new product."} />
@@ -140,19 +163,30 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
   );
 }
 
-function RecipeRegisterMetric({ label, value, attention = false }: { label: string; value: number; attention?: boolean }) {
+function productAvailableQty(product: Pick<Product, "stockQty" | "reservedQty" | "availableQty">) {
+  return product.availableQty ?? Math.max(0, product.stockQty - (product.reservedQty || 0));
+}
+
+function RegisterMetric({ label, value, attention = false }: { label: string; value: number; attention?: boolean }) {
   return <div className="min-w-[4.5rem] px-3 first:pl-0"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className={`mt-0.5 text-base font-black tabular-nums ${attention ? "text-destructive" : "text-charcoal"}`}>{value}</p></div>;
 }
 
 function ProductAvailability({ product, locale, compact = false }: { product: Product; locale: "fr" | "en"; compact?: boolean }) {
-  const available = product.availableQty ?? Math.max(0, product.stockQty - (product.reservedQty || 0));
+  const available = productAvailableQty(product);
   const reserved = product.reservedQty || 0;
   const label = available <= 0 ? (locale === "fr" ? "Rupture" : "Out") : `${available} ${locale === "fr" ? "disponibles" : "available"}`;
   if (compact) return <div className="mt-1"><p className={`text-[10px] font-bold ${available > 0 ? "text-burgundy" : "text-destructive"}`}>{label}</p>{reserved > 0 ? <p className="text-[8px] text-muted-foreground">{reserved} {locale === "fr" ? "réservés" : "reserved"}</p> : null}</div>;
   return <div><Badge variant="outline" className={available <= 0 ? "border-destructive/30 bg-destructive/5 text-destructive" : available <= (product.alertThreshold || 5) ? "border-gold/40 bg-gold/[0.09] text-charcoal" : "border-burgundy/25 bg-burgundy/[0.04] text-burgundy"}>{label}</Badge><p className="mt-1 whitespace-nowrap text-[8px] text-muted-foreground">{product.stockQty} {locale === "fr" ? "physiques" : "on hand"}{reserved > 0 ? ` · ${reserved} ${locale === "fr" ? "réservés" : "reserved"}` : ""}</p></div>;
 }
 
-function RecipeFilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function ProductStatusBadge({ product, locale }: { product: Product; locale: "fr" | "en" }) {
+  if (product.status === "draft") return <Badge variant="outline" className="h-4 shrink-0 border-gold/50 bg-gold/[0.09] px-1 text-[8px] text-charcoal">{locale === "fr" ? "Brouillon" : "Draft"}</Badge>;
+  if (product.status === "archived") return <Badge variant="outline" className="h-4 shrink-0 border-charcoal/15 bg-white px-1 text-[8px] text-muted-foreground">{locale === "fr" ? "Désactivé" : "Disabled"}</Badge>;
+  if (productAvailableQty(product) <= 0) return <Badge variant="outline" className="h-4 shrink-0 border-destructive/30 bg-destructive/[0.06] px-1 text-[8px] text-destructive">{locale === "fr" ? "Stock épuisé" : "Out of stock"}</Badge>;
+  return <Badge variant="outline" className="h-4 shrink-0 border-burgundy/25 bg-burgundy/[0.04] px-1 text-[8px] text-burgundy">{locale === "fr" ? "Publié" : "Published"}</Badge>;
+}
+
+function RegisterFilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-md border px-3 py-2 text-[10px] font-black transition ${active ? "border-burgundy bg-burgundy text-white" : "border-border bg-white text-charcoal hover:border-burgundy/30"}`}>{children}</button>;
 }
 

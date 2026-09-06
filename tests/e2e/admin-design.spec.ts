@@ -1858,6 +1858,14 @@ test("the product workspace edits bilingual content and calculates the customer 
   await mockAdminApi(page);
   await page.goto("/admin#catalog", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Ce qui est réellement vendu" })).toBeVisible();
+  const productFilters = page.getByRole("group", { name: "Filtrer le registre des produits" });
+  await expect(productFilters.getByRole("button", { name: "Tous · 2" })).toHaveAttribute("aria-pressed", "true");
+  await expect(productFilters.getByRole("button", { name: "Publiés · 2" })).toBeVisible();
+  await expect(productFilters.getByRole("button", { name: "Stock épuisé · 0" })).toBeVisible();
+  await expect(productFilters.getByRole("button", { name: "Désactivés · 0" })).toBeVisible();
+  await productFilters.getByRole("button", { name: "Gros · 0" }).click();
+  await expect(page.getByText("Aucun produit trouvé")).toBeVisible();
+  await productFilters.getByRole("button", { name: "Tous · 2" }).click();
   await expect(page.getByText(/75 disponibles/).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText(/9 réservés/).filter({ visible: true }).first()).toBeVisible();
   if ((page.viewportSize()?.width || 0) >= 768) await expect(page.getByText(/84 physiques/).filter({ visible: true }).first()).toBeVisible();
