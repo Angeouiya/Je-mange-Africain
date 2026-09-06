@@ -115,4 +115,16 @@ describe("customer invoice document", () => {
     expect(html).toContain("Apple Pay");
     expect(html).toContain("Réglée le 03 septembre 2026");
   });
+
+  it("keeps European local payment methods readable on the invoice", () => {
+    const html = buildOrderInvoiceHtml({
+      ...order,
+      payments: [{ method: "ideal", status: "captured", reference: "pi_nl_0042" }],
+      deliveryCountry: "Netherlands",
+    }, "fr", { baseUrl: "https://je-mange-africain.com" });
+
+    expect(html).toContain("iDEAL");
+    expect(html).toContain("Pays-Bas");
+    expect(html).not.toContain(">ideal<");
+  });
 });

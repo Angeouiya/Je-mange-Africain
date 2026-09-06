@@ -644,7 +644,7 @@ async function mockAdminApi(page: Page) {
       customer: { id: "customer-1", email: "aminata@example.fr", name: "Aminata Koné", phone: "+33 6 00 00 00 00", city: "Paris", country: "France", orders: 8, loyalty: 1480, walletCredit: 12.5, preferredLang: "fr", lifetimeValue: 426.4, averageBasket: 53.3, lastOrderAt: now, joinedAt: "2025-11-12T10:00:00.000Z", updatedAt: now, addresses: 2, favorites: 2, savedRecipes: 1, openTickets: 1, segment: "ambassador", notes: "Privilégie les créneaux de livraison du samedi." },
       metrics: { completedOrders: 6, activeOrders: 1, cancelledOrders: 1 },
       addresses: [{ id: "address-1", label: "Maison", recipient: "Aminata Koné", street: "12 rue des Cultures", postalCode: "75011", city: "Paris", country: "France", phone: "+33 6 00 00 00 00", isDefault: true }],
-      recentOrders: [{ id: "order-1", number: "JMA-260902-0142", status: "preparing", total: 48.7, createdAt: now, itemCount: 2, paymentMethod: "card", paymentStatus: "captured", items: [{ id: "line-1", name: "Attiéké frais", qty: 2, imageUrl: "/products/attieke.webp" }] }],
+      recentOrders: [{ id: "order-1", number: "JMA-260902-0142", status: "preparing", total: 48.7, createdAt: now, itemCount: 2, paymentMethod: "bancontact", paymentStatus: "captured", items: [{ id: "line-1", name: "Attiéké frais", qty: 2, imageUrl: "/products/attieke.webp" }] }],
       topProducts: [{ productId: "product-1", name: "Attiéké frais", imageUrl: "/products/attieke.webp", quantity: 12, revenue: 58.8 }],
       favorites: [{ id: "favorite-1", productId: "product-1", name: "Attiéké frais", imageUrl: "/products/attieke.webp" }],
       savedRecipes: [{ id: "saved-1", recipeId: "recipe-1", title: "Attiéké poisson braisé", country: "Côte d'Ivoire", imageUrl: "/recipes/attieke-poisson.webp" }],
@@ -2362,9 +2362,20 @@ test("the customer workspace provides a complete and auditable relationship view
   await expect(dialog.getByRole("link", { name: "Appeler Aminata Koné" })).toHaveAttribute("href", "tel:+33600000000");
   await expect(dialog.getByText("Produits les plus achetés")).toBeVisible();
   await expect(dialog.getByText("Attiéké poisson braisé")).toBeVisible();
-  await dialog.getByRole("tab", { name: /Commandes/ }).click();
+  const customerOrdersTab = dialog.getByRole("tab", { name: /Commandes/ });
+  const customerOverviewTab = dialog.getByRole("tab", { name: /Synthèse/ });
+  await customerOrdersTab.click();
+  await expect(customerOrdersTab).toHaveAttribute("aria-selected", "true");
+  await expect(customerOverviewTab).toHaveAttribute("aria-selected", "false");
+  await expect.poll(() => customerOrdersTab.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(138, 48, 66)");
   await expect(dialog.getByText("JMA-260902-0142")).toBeVisible();
+  await expect(dialog.getByText(/Bancontact · Capturé/)).toBeVisible();
   await expect(dialog.getByText("48,70 €")).toBeVisible();
+  if (process.env.ADMIN_SCREENSHOTS) {
+    const directory = join(process.cwd(), "output", "playwright", "admin-review");
+    mkdirSync(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `customer-payment-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
+  }
   await dialog.getByRole("tab", { name: /Relation/ }).click();
   await expect(dialog.getByText("Précision sur mon créneau de livraison")).toBeVisible();
   const notes = dialog.getByLabel("Notes internes sur le client");

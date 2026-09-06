@@ -1656,19 +1656,19 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
     packageCount: 2,
     createdAt: "2026-09-04T10:12:00.000Z",
     deliveryName: "Awa Traoré",
-    deliveryAddress: "12 rue des Cultures",
-    deliveryCity: "Paris",
-    deliveryPostalCode: "75011",
-    deliveryCountry: "France",
+    deliveryAddress: "12 Keizersgracht",
+    deliveryCity: "Amsterdam",
+    deliveryPostalCode: "1012 AB",
+    deliveryCountry: "Netherlands",
     deliverySlot: "standard",
-    paymentMethod: "card",
+    paymentMethod: "ideal",
     items: [
       { id: "confirmed-line-1", productId: "product-attieke", variantId: "variant-attieke-800", variantLabel: "Pot 800 g", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 9.4, qty: 2, lineTotal: 18.8, thermalClass: "REFRIGERATED", recipeId: null, recipeName: null, packWeightGrams: 800, unitLabel: "Pot 800 g", imageUrl: "/products/attieke.webp" },
       { id: "confirmed-line-2", productId: "product-gombo", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", sku: "JMA-GOM-500", unitPrice: 8.5, qty: 2, lineTotal: 17, thermalClass: "FROZEN", recipeId: null, recipeName: null, packWeightGrams: 500, unitLabel: "500 g", imageUrl: "/products/gombo.webp" },
     ],
     shipments: [{ id: "confirmed-shipment", carrierId: null, carrier: "Chrono Frais", carrierName: "Chrono Frais", trackingNumber: null, thermalClass: "FROZEN", status: "preparing", confirmCode: null, estimatedDelivery: "2026-09-06T14:00:00.000Z", actualDelivery: null }],
     timeline: [{ id: "confirmed-event", status: "paymentConfirmed", label: "Paiement confirmé", at: "2026-09-04T10:12:00.000Z", actor: null }],
-    payments: [{ id: "confirmed-payment", amount: 42.3, method: "card", status: "captured", reference: "pi_jma_confirmed" }],
+    payments: [{ id: "confirmed-payment", amount: 42.3, method: "ideal", status: "captured", reference: "pi_jma_confirmed" }],
   };
 
   await page.addInitScript(({ persistedCustomer }) => {
@@ -1705,6 +1705,9 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
   await expectLoadedProductImages(page.getByRole("main").getByRole("img"), 2);
   await expect(page.getByRole("heading", { name: /6 sept\. 2026|6 september 2026/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /paiement validé|payment validated/i })).toBeVisible();
+  const paymentIdentity = page.getByTestId("payment-method-identity").first();
+  await expect(paymentIdentity).toContainText("iDEAL");
+  await expect(paymentIdentity).toContainText(/paiement bancaire aux pays-bas|dutch online banking/i);
   await expect(page.getByText("42,30 €", { exact: true })).toBeVisible();
 
   const actions = isMobile ? page.getByTestId("confirmation-action-dock") : page.getByTestId("confirmation-desktop-actions");
@@ -1727,11 +1730,18 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
     await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: `output/playwright/audit/order-confirmation-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
+    await paymentIdentity.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `output/playwright/audit/payment-identity-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
 
   await actions.getByRole("button", { name: /suivre|track/i }).click();
   await expect(page).toHaveURL(/view=order-tracking&orderId=order-confirmed/);
   await expect(page.getByRole("heading", { name: "JMA-260904-0218" })).toBeVisible();
+  if (isMobile) await page.getByRole("button", { name: /ma commande|my order/i }).click();
+  const trackingPayment = page.getByTestId("tracking-payment");
+  await expect(trackingPayment).toContainText("iDEAL");
+  await expect(trackingPayment).toContainText(/capturé|captured/i);
+  await expectNoHorizontalOverflow(page, trackingPayment);
 });
 
 test("product and recipe details recover without duplicating navigation", async ({ page }) => {

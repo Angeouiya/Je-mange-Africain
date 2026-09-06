@@ -13,12 +13,14 @@ import { deliveryServiceLabel, formatPrice, formatDate, formatDateTime, orderSta
 import { downloadOrderInvoice } from "@/lib/client-actions";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { PaymentMethodIdentity } from "@/components/shared/PaymentMethodIdentity";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { getOrderDeliveryOverview, getShipmentTrackingHref } from "@/lib/order-experience";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { OrderRefundSummary } from "@/components/storefront/OrderRefundSummary";
 import type { Order } from "@/lib/types";
 import { europeanCountryLabel } from "@/lib/european-countries";
+import { paymentStatusLabel } from "@/lib/payment-methods";
 
 export function OrderTrackingView() {
   const locale = useStore((s) => s.locale);
@@ -35,6 +37,7 @@ export function OrderTrackingView() {
   if (!order) return <div className="mx-auto max-w-3xl px-4 py-20 text-center text-muted-foreground">{locale === "fr" ? "Commande introuvable." : "Order not found."}</div>;
 
   const deliveryOverview = getOrderDeliveryOverview(order);
+  const payment = order.payments.find((entry) => ["captured", "paid", "succeeded"].includes(entry.status)) || order.payments[0];
   const { interrupted: isInterrupted, stageIndex, deliveryTimestamp, shipment: primaryShipment, trackingHref: primaryTrackingHref, packageCount } = deliveryOverview;
   const deliveryCopy = getDeliveryCopy(stageIndex, locale);
   const DeliveryIcon = isInterrupted ? AlertCircle : stageIndex === 3 ? CheckCircle2 : stageIndex === 2 ? Truck : stageIndex === 1 ? Package : ShieldCheck;
@@ -147,6 +150,15 @@ export function OrderTrackingView() {
             <p className="text-xs text-muted-foreground">{order.deliveryAddress}, {order.deliveryPostalCode} {order.deliveryCity}, {europeanCountryLabel(order.deliveryCountry, locale)}</p>
             {order.deliverySlot ? <p className="mt-3 border-t border-border pt-3 text-[11px] font-bold text-burgundy">{locale === "fr" ? "Service de livraison" : "Delivery service"} : {deliveryServiceLabel(order.deliverySlot, locale)}</p> : null}
           </div>
+
+          <section className={`rounded-lg border border-border bg-card p-4 md:block ${mobilePanel !== "order" ? "hidden" : ""}`} aria-labelledby="tracking-payment-title" data-testid="tracking-payment">
+            <div className="flex items-center justify-between gap-3">
+              <div><p className="text-[9px] font-black uppercase text-terre">{locale === "fr" ? "Transaction protégée" : "Protected transaction"}</p><h2 id="tracking-payment-title" className="mt-0.5 text-sm font-black text-charcoal">{locale === "fr" ? "Paiement de la commande" : "Order payment"}</h2></div>
+              <span className="shrink-0 rounded-md border border-burgundy/15 bg-burgundy/[0.05] px-2 py-1 text-[9px] font-black text-burgundy">{payment?.status ? paymentStatusLabel(payment.status, locale) : (locale === "fr" ? "À confirmer" : "To confirm")}</span>
+            </div>
+            <div className="mt-3 border-t border-border pt-3"><PaymentMethodIdentity method={payment?.method || order.paymentMethod} locale={locale} /></div>
+            {payment?.reference ? <p className="mt-3 truncate border-t border-border pt-3 font-mono text-[9px] text-muted-foreground">{locale === "fr" ? "Réf." : "Ref."} {payment.reference}</p> : null}
+          </section>
         </div>
       </div>
 

@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { PaymentMethodIdentity } from "@/components/shared/PaymentMethodIdentity";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
@@ -170,7 +171,7 @@ export function OrderConfirmationView() {
 
           <section className="rounded-lg border border-border bg-white p-4 sm:p-5" aria-labelledby="confirmed-payment-title">
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy/8 text-burgundy"><WalletCards className="h-4 w-4" /></span><div><p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Transaction" : "Transaction"}</p><h2 id="confirmed-payment-title" className="text-base font-black text-charcoal">{paymentStatusLabel(payment?.status, locale)}</h2></div></div>
-            <dl className="mt-4 space-y-2 border-t border-border pt-4 text-xs"><div className="flex justify-between gap-4"><dt className="text-muted-foreground">{isFr ? "Mode" : "Method"}</dt><dd className="font-bold text-charcoal">{paymentMethodLabel(payment?.method || order.paymentMethod, locale)}</dd></div>{payment?.reference ? <div className="flex justify-between gap-4"><dt className="text-muted-foreground">{isFr ? "Référence" : "Reference"}</dt><dd className="max-w-[12rem] truncate font-mono text-[10px] font-bold text-charcoal">{payment.reference}</dd></div> : null}</dl>
+            <dl className="mt-4 space-y-3 border-t border-border pt-4 text-xs"><div><dt className="mb-2 text-[9px] font-black uppercase text-muted-foreground">{isFr ? "Moyen utilisé" : "Method used"}</dt><dd><PaymentMethodIdentity method={payment?.method || order.paymentMethod} locale={locale} /></dd></div>{payment?.reference ? <div className="flex justify-between gap-4 border-t border-border pt-3"><dt className="text-muted-foreground">{isFr ? "Référence" : "Reference"}</dt><dd className="max-w-[12rem] truncate font-mono text-[10px] font-bold text-charcoal">{payment.reference}</dd></div> : null}</dl>
           </section>
 
           <div className="hidden grid-cols-2 gap-2 md:grid" data-testid="confirmation-desktop-actions">
@@ -204,17 +205,6 @@ function paymentStatusLabel(status: string | undefined, locale: "fr" | "en") {
   if (status === "failed") return locale === "fr" ? "Paiement à vérifier" : "Payment requires review";
   if (status === "refunded") return locale === "fr" ? "Paiement remboursé" : "Payment refunded";
   return locale === "fr" ? "Paiement enregistré" : "Payment recorded";
-}
-
-function paymentMethodLabel(method: string | null | undefined, locale: "fr" | "en") {
-  const labels: Record<string, { fr: string; en: string }> = {
-    card: { fr: "Carte bancaire", en: "Payment card" },
-    apple_pay: { fr: "Apple Pay", en: "Apple Pay" },
-    google_pay: { fr: "Google Pay", en: "Google Pay" },
-    paypal: { fr: "PayPal", en: "PayPal" },
-    gift_card: { fr: "Carte cadeau", en: "Gift card" },
-  };
-  return labels[method || ""]?.[locale] || (locale === "fr" ? "Enregistré" : "Recorded");
 }
 
 function SummaryLine({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
