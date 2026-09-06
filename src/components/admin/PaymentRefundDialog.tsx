@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState, type MouseEvent } from "react";
-import { CheckCircle2, CircleDollarSign, LoaderCircle, RotateCcw, ShieldCheck, TriangleAlert } from "lucide-react";
+import { AlertTriangle } from "reicon/icons/AlertTriangle";
+import { CheckCircle } from "reicon/icons/CheckCircle";
+import { DollarCircle } from "reicon/icons/DollarCircle";
+import { DollarReload } from "reicon/icons/DollarReload";
+import { Loader } from "reicon/icons/Loader";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { Textarea } from "@/components/ui/textarea";
 import { REFUND_REASONS, refundAmounts, refundReasonLabel, type RefundReason } from "@/lib/admin-refunds";
 import { formatPrice } from "@/lib/format";
@@ -100,18 +106,18 @@ export function PaymentRefundDialog({
       <AlertDialogTrigger asChild>
         {compact ? (
           <Button type="button" variant="outline" size="sm" className="h-9 flex-1 border-burgundy/20 bg-white px-2 text-[10px] font-black text-burgundy hover:bg-burgundy/[0.04] hover:text-burgundy">
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Rembourser" : "Refund"}
+            <ReiconGlyph icon={DollarReload} weight="Filled" className="mr-1.5 h-3.5 w-3.5" />{isFr ? "Rembourser" : "Refund"}
           </Button>
         ) : (
           <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-burgundy hover:bg-burgundy/[0.05] hover:text-burgundy" title={isFr ? "Rembourser ce paiement" : "Refund this payment"} aria-label={`${isFr ? "Rembourser le paiement" : "Refund payment"} ${payment.reference || order.number}`}>
-            <RotateCcw className="h-4 w-4" />
+            <ReiconGlyph icon={DollarReload} weight="Filled" className="h-4 w-4" />
           </Button>
         )}
       </AlertDialogTrigger>
       <AlertDialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto p-0 sm:max-w-xl" data-testid="payment-refund-dialog">
         {status === "completed" || status === "pending" ? (
           <div className="p-5 sm:p-6">
-            <span className={`grid h-12 w-12 place-items-center rounded-md ${status === "completed" ? "bg-burgundy text-white" : "bg-gold/20 text-terre"}`}>{status === "completed" ? <CheckCircle2 className="h-5 w-5" /> : <LoaderCircle className="h-5 w-5 animate-spin" />}</span>
+            <span className={`grid h-12 w-12 place-items-center rounded-md ${status === "completed" ? "bg-burgundy text-white" : "bg-gold/20 text-terre"}`}>{status === "completed" ? <ReiconGlyph icon={CheckCircle} weight="Filled" className="h-5 w-5" /> : <ReiconGlyph icon={Loader} className="h-5 w-5 animate-spin" />}</span>
             <AlertDialogHeader className="mt-4">
               <AlertDialogTitle>{status === "completed" ? (isFr ? "Remboursement confirmé" : "Refund confirmed") : (isFr ? "Remboursement en traitement" : "Refund processing")}</AlertDialogTitle>
               <AlertDialogDescription>{message}</AlertDialogDescription>
@@ -125,7 +131,7 @@ export function PaymentRefundDialog({
         ) : (
           <>
             <div className="border-b border-burgundy/10 bg-[#FFF8F4] px-5 py-5 sm:px-6">
-              <span className="grid h-11 w-11 place-items-center rounded-md bg-terre text-white"><RotateCcw className="h-5 w-5" /></span>
+              <span className="grid h-11 w-11 place-items-center rounded-md bg-terre text-white shadow-[0_12px_26px_-18px_rgba(185,71,43,0.82)]"><ReiconGlyph icon={DollarReload} weight="Filled" className="h-5 w-5" /></span>
               <AlertDialogHeader className="mt-4">
                 <p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Décision financière sensible" : "Sensitive financial decision"}</p>
                 <AlertDialogTitle>{isFr ? "Confirmer un remboursement" : "Confirm a refund"}</AlertDialogTitle>
@@ -147,21 +153,21 @@ export function PaymentRefundDialog({
                 </div>
               </div>
 
-              {mode === "partial" ? <div><Label htmlFor="refund-amount" className="mb-1.5 block text-xs font-bold">{isFr ? "Montant à rembourser" : "Amount to refund"}</Label><div className="relative"><CircleDollarSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" /><Input id="refund-amount" type="number" inputMode="decimal" min={0.01} max={amounts.refundable} step={0.01} value={partialAmount} onChange={(event) => { setPartialAmount(event.target.value); setStatus("idle"); setMessage(""); }} className="h-11 pl-9 pr-10" required /><span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground">€</span></div>{partialAmount && !amountReady ? <p role="alert" className="mt-1.5 text-[10px] text-destructive">{isFr ? `Saisissez un montant compris entre 0,01 € et ${formatPrice(amounts.refundable, locale)}.` : `Enter an amount between €0.01 and ${formatPrice(amounts.refundable, locale)}.`}</p> : null}</div> : null}
+              {mode === "partial" ? <div><Label htmlFor="refund-amount" className="mb-1.5 block text-xs font-bold">{isFr ? "Montant à rembourser" : "Amount to refund"}</Label><div className="relative"><ReiconGlyph icon={DollarCircle} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" /><Input id="refund-amount" type="number" inputMode="decimal" min={0.01} max={amounts.refundable} step={0.01} value={partialAmount} onChange={(event) => { setPartialAmount(event.target.value); setStatus("idle"); setMessage(""); }} className="h-11 pl-9 pr-10" required /><span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground">€</span></div>{partialAmount && !amountReady ? <p role="alert" className="mt-1.5 text-[10px] text-destructive">{isFr ? `Saisissez un montant compris entre 0,01 € et ${formatPrice(amounts.refundable, locale)}.` : `Enter an amount between €0.01 and ${formatPrice(amounts.refundable, locale)}.`}</p> : null}</div> : null}
 
               <div><Label htmlFor="refund-reason" className="mb-1.5 block text-xs font-bold">{isFr ? "Motif opérationnel" : "Operational reason"}</Label><select id="refund-reason" value={reason} onChange={(event) => setReason(event.target.value as RefundReason)} className="h-11 w-full rounded-md border border-input bg-white px-3 text-sm text-charcoal">{REFUND_REASONS.map((value) => <option key={value} value={value}>{refundReasonLabel(value, locale)}</option>)}</select></div>
               <div><div className="mb-1.5 flex items-center justify-between gap-3"><Label htmlFor="refund-note" className="text-xs font-bold">{isFr ? "Justification interne" : "Internal evidence"}</Label><span className="text-[9px] font-bold tabular-nums text-muted-foreground">{note.length}/500</span></div><Textarea id="refund-note" value={note} onChange={(event) => { setNote(event.target.value); setStatus("idle"); setMessage(""); }} maxLength={500} minLength={8} rows={3} placeholder={isFr ? "Décrivez les faits contrôlés et la décision prise..." : "Describe the verified facts and decision..."} className="resize-y" required /><p className="mt-1.5 text-[9px] leading-4 text-muted-foreground">{isFr ? "Visible dans le journal d'audit, jamais dans l'espace client." : "Visible in the audit log, never in the customer workspace."}</p></div>
 
-              <div className="flex items-start gap-3 border-y border-gold/35 bg-gold/[0.07] px-3 py-3 text-[10px] leading-4 text-charcoal"><TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><p><strong>{isFr ? "Conséquence" : "Consequence"}</strong> · {mode === "full" ? (isFr ? "Le paiement sera intégralement remboursé et la commande sera clôturée comme remboursée." : "The payment will be fully refunded and the order closed as refunded.") : (isFr ? "La commande conservera son état logistique; seul le montant confirmé sera déduit de la rentabilité." : "The order keeps its fulfilment state; only the confirmed amount is deducted from profitability.")}</p></div>
+              <div className="flex items-start gap-3 border-y border-gold/35 bg-gold/[0.07] px-3 py-3 text-[10px] leading-4 text-charcoal"><ReiconGlyph icon={AlertTriangle} weight="Filled" className="mt-0.5 h-4 w-4 text-terre" /><p><strong>{isFr ? "Conséquence" : "Consequence"}</strong> · {mode === "full" ? (isFr ? "Le paiement sera intégralement remboursé et la commande sera clôturée comme remboursée." : "The payment will be fully refunded and the order closed as refunded.") : (isFr ? "La commande conservera son état logistique; seul le montant confirmé sera déduit de la rentabilité." : "The order keeps its fulfilment state; only the confirmed amount is deducted from profitability.")}</p></div>
 
-              {status === "error" ? <p role="alert" className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/[0.05] px-3 py-2.5 text-xs leading-5 text-destructive"><TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />{message}</p> : null}
-              <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5 text-burgundy" />{paymentMethodLabel(payment.method, locale)} · {payment.reference || order.number}</div>
+              {status === "error" ? <p role="alert" className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/[0.05] px-3 py-2.5 text-xs leading-5 text-destructive"><ReiconGlyph icon={AlertTriangle} weight="Filled" className="mt-0.5 h-4 w-4" />{message}</p> : null}
+              <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground"><ReiconGlyph icon={ShieldCheck} weight="Filled" className="h-3.5 w-3.5 text-burgundy" />{paymentMethodLabel(payment.method, locale)} · {payment.reference || order.number}</div>
             </div>
 
             <AlertDialogFooter className="border-t border-burgundy/10 px-5 py-4 sm:px-6">
               <AlertDialogCancel disabled={status === "busy"}>{isFr ? "Non, conserver" : "No, keep payment"}</AlertDialogCancel>
               <AlertDialogAction onClick={submit} disabled={!ready} className="bg-terre text-white hover:bg-terre-dark">
-                {status === "busy" ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                {status === "busy" ? <ReiconGlyph icon={Loader} className="mr-2 h-4 w-4 animate-spin" /> : <ReiconGlyph icon={DollarReload} weight="Filled" className="mr-2 h-4 w-4" />}
                 {status === "busy" ? (isFr ? "Transmission..." : "Submitting...") : `${isFr ? "Oui, rembourser" : "Yes, refund"} ${amountReady ? formatPrice(requestedAmount, locale) : ""}`}
               </AlertDialogAction>
             </AlertDialogFooter>
