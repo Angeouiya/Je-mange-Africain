@@ -81,7 +81,10 @@ export async function readPlatformConfiguration() {
 type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
   | "DATABASE_URL"
   | "NODE_ENV"
-  | "VERCEL"
+  | "CF_PAGES"
+  | "CLOUDFLARE_ACCOUNT_ID"
+  | "CLOUDFLARE_DEPLOYMENT_TARGET"
+  | "CLOUDFLARE_ENV"
   | "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
   | "STRIPE_SECRET_KEY"
   | "STRIPE_WEBHOOK_SECRET"
@@ -99,7 +102,10 @@ type PlatformEnvironment = Partial<Pick<NodeJS.ProcessEnv,
 export function platformIntegrationStatus(databaseAvailable: boolean, environment: PlatformEnvironment = process.env) {
   const databaseUrl = environment.DATABASE_URL || "";
   const postgres = /^postgres(?:ql)?:/i.test(databaseUrl);
-  const deployed = environment.VERCEL === "1" || environment.NODE_ENV === "production";
+  const deployed = environment.NODE_ENV === "production";
+  const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
+  const cloudflareHosting = Boolean(environment.CLOUDFLARE_ACCOUNT_ID && cloudflareWorkers);
+  const cloudflareRuntime = cloudflareHosting || Boolean(environment.CLOUDFLARE_ENV || environment.CF_PAGES);
   const persistentDatabase = databaseAvailable && (postgres || !deployed);
   const productionDatabase = databaseAvailable && postgres;
   const stripeCore = Boolean(environment.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && environment.STRIPE_SECRET_KEY);
@@ -116,5 +122,6 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
     { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
     { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
+    { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime } },
   ] as const;
 }

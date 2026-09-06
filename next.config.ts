@@ -5,10 +5,9 @@ import path from "node:path";
 const projectRoot = fs.existsSync(path.join(process.cwd(), "node_modules", "next", "package.json"))
   ? process.cwd()
   : path.resolve(process.cwd(), "..", "..");
-const isVercel = process.env.VERCEL === "1";
 
 const nextConfig: NextConfig = {
-  ...(isVercel ? {} : { output: "standalone" as const }),
+  output: "standalone",
   turbopack: {
     root: projectRoot,
   },

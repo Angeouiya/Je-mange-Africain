@@ -6,6 +6,7 @@ import {
   BellRing,
   CheckCircle2,
   Clock3,
+  Cloud,
   CreditCard,
   Database,
   Gauge,
@@ -43,7 +44,7 @@ type Configuration = {
 };
 
 type Integration = {
-  id: "database" | "payments" | "identity" | "cache" | "push";
+  id: "database" | "payments" | "identity" | "cache" | "push" | "hosting";
   state: "ready" | "partial" | "attention";
   provider: string;
   capabilities: Record<string, boolean>;
@@ -62,6 +63,7 @@ const INTEGRATION_PRESENTATION: Record<Integration["id"], { icon: LucideIcon; ti
   identity: { icon: KeyRound, titleFr: "Identité et médias", titleEn: "Identity and media", detailFr: "Sessions, équipe et stockage d'images", detailEn: "Sessions, team and image storage" },
   cache: { icon: Gauge, titleFr: "Protection et cache", titleEn: "Protection and cache", detailFr: "Limitation de trafic et accélération", detailEn: "Traffic limiting and acceleration" },
   push: { icon: BellRing, titleFr: "Notifications mobiles", titleEn: "Mobile notifications", detailFr: "Abonnements et campagnes ciblées", detailEn: "Subscriptions and targeted campaigns" },
+  hosting: { icon: Cloud, titleFr: "Hébergement Cloudflare", titleEn: "Cloudflare hosting", detailFr: "Workers, domaine et exécution internationale", detailEn: "Workers, domain and global runtime" },
 };
 
 export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | "en"; canUpdate: boolean }) {
@@ -342,7 +344,7 @@ function ProductionReadiness({ readiness, locale }: { readiness: PlatformReadine
         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${readiness.productionReady ? "bg-burgundy text-white" : "bg-terre text-white"}`}><Icon className="h-4.5 w-4.5" /></span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Préparation opérationnelle" : "Operational readiness"}</p><h2 id="production-readiness-title" className="mt-0.5 text-sm font-black text-charcoal">{readiness.productionReady ? (isFr ? "Socle prêt pour la production" : "Production foundation ready") : (isFr ? "Mise en production à finaliser" : "Production setup to complete")}</h2></div><strong className="text-xl font-black tabular-nums text-charcoal">{readiness.percentage} %</strong></div>
-          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{readiness.productionReady ? (isFr ? "Les cinq services critiques répondent à toutes les capacités contrôlées." : "All five critical services satisfy every checked capability.") : (isFr ? `${readiness.attention} service(s) à configurer et ${readiness.partial} connexion(s) partielle(s). Les cartes ci-dessous indiquent précisément les capacités manquantes.` : `${readiness.attention} service(s) need setup and ${readiness.partial} connection(s) are partial. The cards below identify each missing capability.`)}</p>
+          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{readiness.productionReady ? (isFr ? "Tous les services critiques répondent aux capacités contrôlées." : "All critical services satisfy every checked capability.") : (isFr ? `${readiness.attention} service(s) à configurer et ${readiness.partial} connexion(s) partielle(s). Les cartes ci-dessous indiquent précisément les capacités manquantes.` : `${readiness.attention} service(s) need setup and ${readiness.partial} connection(s) are partial. The cards below identify each missing capability.`)}</p>
           <div className="mt-3 h-1.5 overflow-hidden rounded-sm bg-white/80" role="progressbar" aria-label={isFr ? "Progression de la préparation opérationnelle" : "Operational readiness progress"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={readiness.percentage}><span className={`block h-full ${readiness.productionReady ? "bg-burgundy" : "bg-terre"}`} style={{ width: `${readiness.percentage}%` }} /></div>
         </div>
       </div>
@@ -357,6 +359,7 @@ function capabilityLabel(integrationId: Integration["id"], capability: string, l
     identity: { connection: ["API publique", "Public API"], serverAccess: ["Accès serveur", "Server access"] },
     cache: { connection: ["Protection active", "Protection active"] },
     push: { connection: ["Diffusion active", "Delivery active"] },
+    hosting: { account: ["Compte Cloudflare", "Cloudflare account"], workers: ["Cible Workers", "Workers target"], runtime: ["Runtime edge", "Edge runtime"] },
   };
   return labels[integrationId][capability]?.[locale === "fr" ? 0 : 1] || capability;
 }

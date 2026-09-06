@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { platformIntegrationStatus } from "./platform-configuration";
 
 describe("platform production readiness", () => {
-  it("never presents an ephemeral Vercel SQLite database as production-ready", () => {
+  it("never presents an ephemeral SQLite database as production-ready on Cloudflare", () => {
     const integrations = platformIntegrationStatus(true, {
       DATABASE_URL: "file:/tmp/je-mange-africain/custom.db",
       NODE_ENV: "production",
-      VERCEL: "1",
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
     });
     const database = integrations.find((integration) => integration.id === "database");
 
@@ -14,6 +15,11 @@ describe("platform production readiness", () => {
       state: "attention",
       provider: "SQLite temporaire",
       capabilities: { connection: true, persistence: false, production: false },
+    });
+    expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({
+      state: "ready",
+      provider: "Cloudflare Workers",
+      capabilities: { account: true, workers: true, runtime: true },
     });
   });
 
@@ -25,13 +31,16 @@ describe("platform production readiness", () => {
     const database = integrations.find((integration) => integration.id === "database");
 
     expect(database).toMatchObject({ state: "ready", provider: "SQLite locale", capabilities: { connection: true, persistence: true, production: false } });
+    expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ state: "attention", provider: "Cloudflare Workers" });
   });
 
-  it("reports a fully connected PostgreSQL, Stripe, Supabase, cache and push foundation", () => {
+  it("reports a fully connected PostgreSQL, Stripe, Supabase, cache, push and Cloudflare foundation", () => {
     const integrations = platformIntegrationStatus(true, {
       DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
       NODE_ENV: "production",
-      VERCEL: "1",
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      CLOUDFLARE_ENV: "production",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
       STRIPE_SECRET_KEY: "sk_live_example",
       STRIPE_WEBHOOK_SECRET: "whsec_example",
@@ -46,5 +55,6 @@ describe("platform production readiness", () => {
 
     expect(integrations.every((integration) => integration.state === "ready")).toBe(true);
     expect(integrations.find((integration) => integration.id === "database")).toMatchObject({ provider: "PostgreSQL", capabilities: { production: true } });
+    expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ provider: "Cloudflare Workers", capabilities: { runtime: true } });
   });
 });
