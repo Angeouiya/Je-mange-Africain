@@ -5,7 +5,14 @@ import { Elements, ExpressCheckoutElement, PaymentElement, useElements, useStrip
 import { loadStripe } from "@stripe/stripe-js";
 import type { StripeExpressCheckoutElementConfirmEvent, StripeExpressCheckoutElementReadyEvent } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarRange, ChevronDown, ChevronRight, ContactRound, CreditCard, Landmark, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Smartphone, Snowflake, Truck, WalletCards, Zap, type LucideIcon } from "lucide-react";
+import { ArrowLeft, CalendarRange, ChevronDown, ChevronRight, ContactRound, CreditCard, Loader2, Lock, LogIn, MapPinCheck, MapPinned, PackageCheck, ShieldCheck, ShoppingBag, Snowflake, Truck, Zap, type LucideIcon } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { Bank as ReBank } from "reicon/icons/Bank";
+import { Clock3 as ReClock3 } from "reicon/icons/Clock3";
+import { CreditCard as ReCreditCard } from "reicon/icons/CreditCard";
+import { Mobile as ReMobile } from "reicon/icons/Mobile";
+import { ShieldCheck as ReShieldCheck } from "reicon/icons/ShieldCheck";
+import { Wallet as ReWallet } from "reicon/icons/Wallet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +24,7 @@ import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail"
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { PaymentRecoveryNotice } from "@/components/storefront/PaymentRecoveryNotice";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { formatEstimatedArrival } from "@/lib/delivery-experience";
 import { formatPrice, formatWeight, thermalLabel } from "@/lib/format";
 import { dict } from "@/lib/i18n";
@@ -780,9 +788,9 @@ function PaymentCapabilityPanel({ locale, methodTypes }: { locale: "fr" | "en"; 
   const methods = uniquePaymentMethods(methodTypes.length ? methodTypes : ["card"]);
 
   return (
-    <section className="overflow-hidden border-y border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_58%,#FFF5E6_100%)]" aria-labelledby="payment-choice-title" data-testid="payment-capabilities">
+    <section className="overflow-hidden rounded-md border border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_58%,#FFF5E6_100%)] shadow-[0_18px_44px_-36px_rgba(90,38,50,0.72)]" aria-labelledby="payment-choice-title" data-testid="payment-capabilities">
       <div className="flex items-start gap-3 px-3.5 py-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white shadow-[0_10px_24px_-16px_rgba(138,48,66,0.9)]"><ShieldCheck className="h-4 w-4" /></span>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white shadow-[0_10px_24px_-16px_rgba(138,48,66,0.9)]"><ReiconGlyph icon={ReShieldCheck} weight="Filled" className="h-4 w-4" /></span>
         <div className="min-w-0">
           <h2 id="payment-choice-title" className="text-xs font-black text-charcoal">{locale === "fr" ? "Choisissez votre moyen de paiement" : "Choose your payment method"}</h2>
           <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{locale === "fr" ? `${methods.length} option(s) activée(s) pour cette commande. Stripe les ordonne selon votre pays, votre appareil et le montant.` : `${methods.length} option(s) enabled for this order. Stripe orders them for your country, device and amount.`}</p>
@@ -803,7 +811,7 @@ function PaymentPreviewPanel({ country, methods, locale }: { country: string; me
   return (
     <section className="border-t border-border pt-5" aria-labelledby="checkout-payment-preview-title" data-testid="checkout-payment-preview">
       <CheckoutSectionHeading id="checkout-payment-preview-title" icon={CreditCard} eyebrow={locale === "fr" ? "Paiement Europe" : "European payment"} title={locale === "fr" ? "Moyens attendus pour votre pays" : "Expected methods for your country"} />
-      <div className="mt-3 overflow-hidden border-y border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_62%,#FFF5E6_100%)]">
+      <div className="mt-3 overflow-hidden rounded-md border border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_62%,#FFF5E6_100%)] shadow-[0_18px_44px_-36px_rgba(90,38,50,0.72)]">
         <div className="flex items-start justify-between gap-3 px-3.5 py-3">
           <div className="min-w-0">
             <p className="truncate text-[10px] font-black text-charcoal">{europeanCountryLabel(country, locale)}</p>
@@ -822,8 +830,25 @@ function PaymentPreviewPanel({ country, methods, locale }: { country: string; me
 
 function PaymentCapability({ method, locale }: { method: string; locale: "fr" | "en" }) {
   const family = paymentMethodFamily(method);
-  const Icon = family === "card" ? CreditCard : family === "bank" ? Landmark : family === "wallet" ? Smartphone : WalletCards;
-  return <div className="flex min-w-0 items-center gap-2 border-b border-r border-burgundy/10 px-3 py-3 last:border-r-0"><Icon className="h-4 w-4 shrink-0 text-terre" /><span className="min-w-0"><strong className="block truncate text-[10px] text-charcoal">{paymentMethodLabel(method, locale)}</strong><span className="mt-0.5 block truncate text-[8px] text-muted-foreground">{paymentMethodHint(method, locale)}</span></span></div>;
+  const icon = paymentCapabilityIcon(family);
+  const tone = family === "card"
+    ? "bg-terre/[0.08] text-terre border-terre/16"
+    : family === "bank"
+      ? "bg-burgundy/[0.08] text-burgundy border-burgundy/16"
+      : family === "wallet"
+        ? "bg-gold/[0.18] text-burgundy border-gold/30"
+        : family === "deferred"
+          ? "bg-gold/[0.14] text-charcoal border-gold/30"
+          : "bg-white text-muted-foreground border-charcoal/10";
+  return <div className="flex min-w-0 items-center gap-2 border-b border-r border-burgundy/10 px-3 py-3 last:border-r-0"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md border ${tone}`}><ReiconGlyph icon={icon} weight={family === "other" ? "Outline" : "Filled"} className="h-3.5 w-3.5" /></span><span className="min-w-0"><strong className="block truncate text-[10px] text-charcoal">{paymentMethodLabel(method, locale)}</strong><span className="mt-0.5 block truncate text-[8px] text-muted-foreground">{paymentMethodHint(method, locale)}</span></span></div>;
+}
+
+function paymentCapabilityIcon(family: ReturnType<typeof paymentMethodFamily>): IconFunction {
+  if (family === "card") return ReCreditCard;
+  if (family === "bank") return ReBank;
+  if (family === "wallet") return ReMobile;
+  if (family === "deferred") return ReClock3;
+  return ReWallet;
 }
 
 function stripPaymentReturnParams() {
