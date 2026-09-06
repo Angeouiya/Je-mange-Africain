@@ -2,11 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Bell, CheckCheck, ChefHat, Inbox, PackageCheck, Percent, RefreshCw, ShieldAlert, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { ArrowRight } from "reicon/icons/ArrowRight";
+import { BadgePercent } from "reicon/icons/BadgePercent";
+import { Bell } from "reicon/icons/Bell";
+import { BoxTick } from "reicon/icons/BoxTick";
+import { CheckRead } from "reicon/icons/CheckRead";
+import { ChefHat } from "reicon/icons/ChefHat";
+import { Inbox } from "reicon/icons/Inbox";
+import { Refresh } from "reicon/icons/Refresh";
+import { ShieldAlert } from "reicon/icons/ShieldAlert";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
+import { SliderHorizontal } from "reicon/icons/SliderHorizontal";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateTime } from "@/lib/format";
 import { groupNotificationsByDay, parseNotificationDestination, type NotificationDateBucket } from "@/lib/notification-navigation";
@@ -32,8 +44,8 @@ const SUBSCRIPTION_STORAGE_KEY = "jma-push-subscription-v1";
 const PREFERENCES_STORAGE_KEY = "jma-push-preferences-v1";
 const iconByType = {
   recipe: ChefHat,
-  order: PackageCheck,
-  promotion: Percent,
+  order: BoxTick,
+  promotion: BadgePercent,
 };
 const notificationFilterOrder = ["unread", "order", "recipe", "promotion"] as const;
 type NotificationFilter = "all" | (typeof notificationFilterOrder)[number];
@@ -280,7 +292,7 @@ export function NotificationCenter() {
 
   const trigger = (
     <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-md border border-transparent text-charcoal hover:border-terre/10 hover:bg-terre/[0.07] hover:text-terre" aria-label={locale === "fr" ? `Notifications, ${unread} non lues` : `Notifications, ${unread} unread`}>
-      <Bell className="h-[1.15rem] w-[1.15rem]" />
+      <ReiconGlyph icon={Bell} weight={unread ? "Filled" : "Outline"} className="h-[1.15rem] w-[1.15rem]" />
       {unread > 0 ? <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white shadow-sm">{unread > 9 ? "9+" : unread}</span> : null}
     </Button>
   );
@@ -393,11 +405,11 @@ function NotificationPanel({
     if (bucket === "yesterday") return locale === "fr" ? "Hier" : "Yesterday";
     return locale === "fr" ? "Plus tôt" : "Earlier";
   };
-  const preferenceItems: Array<{ key: PushPreferenceKey; icon: typeof Bell; label: string; description: string }> = [
-    { key: "order", icon: PackageCheck, label: locale === "fr" ? "Commandes" : "Orders", description: locale === "fr" ? "Livraison et statut" : "Delivery and status" },
+  const preferenceItems: Array<{ key: PushPreferenceKey; icon: IconFunction; label: string; description: string }> = [
+    { key: "order", icon: BoxTick, label: locale === "fr" ? "Commandes" : "Orders", description: locale === "fr" ? "Livraison et statut" : "Delivery and status" },
     { key: "system", icon: ShieldCheck, label: locale === "fr" ? "Service" : "Service", description: locale === "fr" ? "Compte et sécurité" : "Account and security" },
     { key: "recipe", icon: ChefHat, label: locale === "fr" ? "Recettes" : "Recipes", description: locale === "fr" ? "Nouvelles inspirations" : "New inspiration" },
-    { key: "promotion", icon: Percent, label: locale === "fr" ? "Offres" : "Offers", description: locale === "fr" ? "Prix et avantages" : "Prices and benefits" },
+    { key: "promotion", icon: BadgePercent, label: locale === "fr" ? "Offres" : "Offers", description: locale === "fr" ? "Prix et avantages" : "Prices and benefits" },
   ];
   const preferenceCopy = preferenceState === "saving"
     ? (locale === "fr" ? "Enregistrement des choix…" : "Saving choices…")
@@ -420,9 +432,9 @@ function NotificationPanel({
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Button type="button" variant="ghost" size="icon" onClick={onRetry} disabled={loading} className="h-9 w-9 text-muted-foreground hover:bg-cream hover:text-terre" aria-label={locale === "fr" ? "Actualiser les notifications" : "Refresh notifications"}>
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <ReiconGlyph icon={Refresh} className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
-          {unread > 0 ? <button type="button" onClick={onReadAll} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-bold text-terre hover:bg-terre/5"><CheckCheck className="h-3.5 w-3.5" /> {locale === "fr" ? "Tout lire" : "Read all"}</button> : null}
+          {unread > 0 ? <button type="button" onClick={onReadAll} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-bold text-terre hover:bg-terre/5"><ReiconGlyph icon={CheckRead} weight="Filled" className="h-3.5 w-3.5" /> {locale === "fr" ? "Tout lire" : "Read all"}</button> : null}
         </div>
       </div>
 
@@ -432,14 +444,14 @@ function NotificationPanel({
             <span className="block text-xs font-black text-charcoal">{locale === "fr" ? "Alertes sur cet appareil" : "Alerts on this device"}</span>
             <span className={`mt-0.5 block text-[10px] ${pushState === "denied" || pushError ? "text-destructive" : "text-muted-foreground"}`}>{pushCopy}</span>
           </span>
-          {pushState === "denied" ? <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" /> : (
+          {pushState === "denied" ? <ReiconGlyph icon={ShieldAlert} weight="Filled" className="h-4 w-4 shrink-0 text-destructive" /> : (
             <Switch checked={pushState === "active"} disabled={["checking", "busy", "unsupported", "needs-install"].includes(pushState)} onCheckedChange={onTogglePush} aria-label={locale === "fr" ? "Activer les alertes mobiles" : "Enable mobile alerts"} />
           )}
       </div>
 
       <div className="shrink-0 border-b border-border bg-white px-4 py-3" data-testid="push-preferences">
         <div className="flex items-start gap-2.5">
-          <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-terre" />
+          <ReiconGlyph icon={SliderHorizontal} weight="Filled" className="mt-0.5 h-4 w-4 shrink-0 text-terre" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-black text-charcoal">{locale === "fr" ? "Ce que vous recevez" : "What you receive"}</p>
             <p role={preferenceState === "error" ? "alert" : "status"} className={`mt-0.5 text-[9px] leading-4 ${preferenceState === "error" ? "text-destructive" : "text-muted-foreground"}`}>{preferenceCopy}</p>
@@ -447,10 +459,9 @@ function NotificationPanel({
         </div>
         <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 min-[360px]:grid-cols-2" data-testid="push-preference-grid">
           {preferenceItems.map((item) => {
-            const Icon = item.icon;
             return (
               <div key={item.key} className="flex min-w-0 items-center gap-2 border-t border-border/70 py-2">
-                <Icon className="h-3.5 w-3.5 shrink-0 text-burgundy" aria-hidden="true" />
+                <ReiconGlyph icon={item.icon} weight="Filled" className="h-3.5 w-3.5 shrink-0 text-burgundy" />
                 <span className="min-w-0 flex-1">
                   <span data-preference-label className="block text-[10px] font-black text-charcoal">{item.label}</span>
                   <span data-preference-description className="block text-[8px] leading-3 text-muted-foreground">{item.description}</span>
@@ -489,9 +500,9 @@ function NotificationPanel({
 
       <div id="notification-activity-list" role="tabpanel" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {loading ? <div className="space-y-1 p-3" aria-label={locale === "fr" ? "Chargement des notifications" : "Loading notifications"}>{Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-20 animate-pulse rounded-md bg-muted" />)}</div> : null}
-        {!loading && error ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><ShieldAlert className="mx-auto h-7 w-7 text-destructive" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Notifications indisponibles" : "Notifications unavailable"}</p><Button type="button" variant="link" size="sm" onClick={onRetry} className="mt-1 text-terre">{locale === "fr" ? "Réessayer" : "Retry"}</Button></div></div> : null}
-        {!loading && !error && !notifications.length ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><Inbox className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Aucune notification" : "No notifications"}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les actualités de vos commandes et offres apparaîtront ici." : "Order and offer updates will appear here."}</p></div></div> : null}
-        {!loading && !error && notifications.length > 0 && !filteredNotifications.length ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><Inbox className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Aucune activité dans cette catégorie" : "No activity in this category"}</p><button type="button" onClick={() => setSelectedFilter("all")} className="mt-2 min-h-9 rounded-md px-3 text-xs font-bold text-terre hover:bg-terre/5">{locale === "fr" ? "Voir toutes les notifications" : "View all notifications"}</button></div></div> : null}
+        {!loading && error ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><ReiconGlyph icon={ShieldAlert} weight="Filled" className="mx-auto h-7 w-7 text-destructive" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Notifications indisponibles" : "Notifications unavailable"}</p><Button type="button" variant="link" size="sm" onClick={onRetry} className="mt-1 text-terre">{locale === "fr" ? "Réessayer" : "Retry"}</Button></div></div> : null}
+        {!loading && !error && !notifications.length ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><ReiconGlyph icon={Inbox} weight="Filled" className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Aucune notification" : "No notifications"}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Les actualités de vos commandes et offres apparaîtront ici." : "Order and offer updates will appear here."}</p></div></div> : null}
+        {!loading && !error && notifications.length > 0 && !filteredNotifications.length ? <div className="grid min-h-48 place-items-center px-6 text-center"><div><ReiconGlyph icon={Inbox} weight="Filled" className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-xs font-bold text-charcoal">{locale === "fr" ? "Aucune activité dans cette catégorie" : "No activity in this category"}</p><button type="button" onClick={() => setSelectedFilter("all")} className="mt-2 min-h-9 rounded-md px-3 text-xs font-bold text-terre hover:bg-terre/5">{locale === "fr" ? "Voir toutes les notifications" : "View all notifications"}</button></div></div> : null}
         {!loading && !error ? notificationGroups.map((group) => (
           <div key={group.key}>
             <p className="border-b border-burgundy/10 bg-cream/45 px-4 py-1.5 text-[9px] font-black uppercase text-burgundy">{dayLabel(group.key)}</p>
@@ -515,13 +526,13 @@ function NotificationActivityRow({ notification, isRead, locale, onOpen }: { not
 
   return (
     <button type="button" onClick={() => onOpen(notification)} className={`group flex w-full gap-3 border-b border-border/70 px-4 py-3.5 text-left transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none ${isRead ? "bg-white" : "bg-terre/[0.035]"}`}>
-      <span className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-lg ${isRead ? "bg-muted text-muted-foreground" : "bg-terre/10 text-terre"}`}><Icon className="h-4 w-4" /></span>
+      <span className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-lg ${isRead ? "bg-muted text-muted-foreground" : "bg-terre/10 text-terre"}`}><ReiconGlyph icon={Icon} weight={isRead ? "Outline" : "Filled"} className="h-4 w-4" /></span>
       <span className="min-w-0 flex-1">
         <span className="flex items-start gap-2"><span className="flex-1 text-xs font-black leading-5 text-charcoal">{notification.title}</span>{!isRead ? <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-terre" /> : null}</span>
         <span className="mt-0.5 block text-[11px] leading-5 text-muted-foreground">{notification.body}</span>
         <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] font-bold uppercase text-muted-foreground"><span>{typeLabel}</span><span aria-hidden="true">·</span><time dateTime={notification.createdAt}>{formatDateTime(notification.createdAt, locale)}</time></span>
       </span>
-      <ArrowRight className="mt-3 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-terre" aria-hidden="true" />
+      <ReiconGlyph icon={ArrowRight} className="mt-3 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-terre" />
     </button>
   );
 }

@@ -1,8 +1,19 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookOpen, ChefHat, Clock3, LoaderCircle, Package, PackageSearch, Search, UtensilsCrossed, X } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { ArrowRight } from "reicon/icons/ArrowRight";
+import { BookOpen } from "reicon/icons/BookOpen";
+import { BoxSearch } from "reicon/icons/BoxSearch";
+import { ChefHat } from "reicon/icons/ChefHat";
+import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
+import { Clock3 } from "reicon/icons/Clock3";
+import { Loader } from "reicon/icons/Loader";
+import { Package } from "reicon/icons/Package";
+import { Search } from "reicon/icons/Search";
+import { X } from "reicon/icons/X";
 import { ProductImage } from "./ProductImage";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
@@ -172,8 +183,8 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
 
   return (
     <div ref={rootRef} className="relative w-full">
-      <div className={cn("flex items-center gap-2 rounded-lg border border-border bg-white shadow-sm transition focus-within:border-terre focus-within:ring-2 focus-within:ring-terre/20", compact ? "px-3 py-2" : "px-4 py-2.5")}>
-        {loading && debounced ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-terre" aria-hidden="true" /> : <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+      <div className={cn("flex items-center gap-2 rounded-lg border border-burgundy/10 bg-white shadow-[0_12px_26px_-24px_rgba(90,38,50,0.68)] transition focus-within:border-terre/45 focus-within:ring-2 focus-within:ring-terre/16", compact ? "px-3 py-2" : "px-4 py-2.5")}>
+        {loading && debounced ? <ReiconGlyph icon={Loader} className="h-4 w-4 animate-spin text-terre" /> : <ReiconGlyph icon={Search} className="h-4 w-4 text-muted-foreground" />}
         <input
           ref={inputRef}
           autoFocus={autoFocus}
@@ -190,22 +201,22 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
           aria-controls={listboxId}
           aria-activedescendant={activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
         />
-        {query ? <button type="button" onClick={clear} aria-label={locale === "fr" ? "Effacer la recherche" : "Clear search"} className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-charcoal"><X className="h-4 w-4" /></button> : null}
+        {query ? <button type="button" onClick={clear} aria-label={locale === "fr" ? "Effacer la recherche" : "Clear search"} className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-charcoal"><ReiconGlyph icon={X} className="h-4 w-4" /></button> : null}
       </div>
 
       {showPanel ? (
-        <div id={listboxId} role="listbox" aria-label={locale === "fr" ? "Suggestions de recherche" : "Search suggestions"} className="absolute z-50 mt-2 max-h-[min(32rem,calc(100dvh-10rem))] w-full min-w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-lg border border-border bg-white shadow-[0_22px_70px_-28px_rgba(63,41,48,0.5)] md:min-w-0">
+        <div id={listboxId} role="listbox" aria-label={locale === "fr" ? "Suggestions de recherche" : "Search suggestions"} className="absolute z-50 mt-2 max-h-[min(32rem,calc(100dvh-10rem))] w-full min-w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-lg border border-burgundy/12 bg-white shadow-[0_26px_80px_-34px_rgba(90,38,50,0.62)] md:min-w-0">
           {!query.trim() ? (
             <div className="p-4">
               <p className="text-[10px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Recherches populaires" : "Popular searches"}</p>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {POPULAR_SEARCHES.map((item) => <button key={item} type="button" onClick={() => setPopularSearch(item)} className="min-h-10 rounded-md border border-border bg-white px-3 text-left text-xs font-bold text-charcoal transition-colors hover:border-terre/30 hover:bg-terre/[0.035]"><Search className="mr-1.5 inline h-3.5 w-3.5 text-terre" />{item}</button>)}
+                {POPULAR_SEARCHES.map((item) => <button key={item} type="button" onClick={() => setPopularSearch(item)} className="min-h-10 rounded-md border border-border bg-white px-3 text-left text-xs font-bold text-charcoal transition-colors hover:border-terre/30 hover:bg-terre/[0.035]"><ReiconGlyph icon={Search} className="mr-1.5 inline-grid h-3.5 w-3.5 text-terre" />{item}</button>)}
               </div>
             </div>
           ) : loading || debounced !== query.trim() ? (
             <div className="space-y-1 p-3" aria-label={locale === "fr" ? "Recherche en cours" : "Searching"}>{Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-14 animate-pulse rounded-md bg-muted" />)}</div>
           ) : data && !options.length ? (
-            <div className="px-5 py-8 text-center"><Search className="mx-auto h-7 w-7 text-muted-foreground" /><p className="mt-3 text-sm font-bold text-charcoal">{t.catalog.noResults}</p><button type="button" onClick={() => submit()} className="mt-2 text-xs font-bold text-terre hover:underline">{locale === "fr" ? "Voir le catalogue" : "View catalogue"}</button></div>
+            <div className="px-5 py-8 text-center"><ReiconGlyph icon={Search} className="mx-auto h-7 w-7 text-muted-foreground" /><p className="mt-3 text-sm font-bold text-charcoal">{t.catalog.noResults}</p><button type="button" onClick={() => submit()} className="mt-2 text-xs font-bold text-terre hover:underline">{locale === "fr" ? "Voir le catalogue" : "View catalogue"}</button></div>
           ) : data ? (
             <>
               {data.results.length ? <SearchGroupLabel icon={Package} label={locale === "fr" ? "Produits" : "Products"} count={data.results.length} /> : null}
@@ -218,18 +229,18 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
               {data.recipes.length ? <SearchGroupLabel icon={ChefHat} label={locale === "fr" ? "Recettes" : "Recipes"} count={data.recipes.length} /> : null}
               {data.recipes.map((result) => {
                 const index = ++optionIndex;
-                return <button id={`${listboxId}-option-${index}`} role="option" aria-selected={activeIndex === index} key={`recipe-${result.id}`} type="button" onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(result)} className={`flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors ${activeIndex === index ? "bg-[#FFF7F2]" : "hover:bg-[#FFF9F6]"}`}><ProductImage src={getRecipePhoto({ ...result, title: result.name, imageEmoji: result.emoji })} alt={result.name} emoji={result.emoji} color={result.color} size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-charcoal">{result.name}</span><span className="mt-0.5 block truncate text-[10px] font-semibold text-muted-foreground">{result.country} · {result.category}</span>{result.description ? <span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{result.description}</span> : null}</span><span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-burgundy"><Clock3 className="h-3.5 w-3.5" />{result.timeMinutes} min</span></button>;
+                return <button id={`${listboxId}-option-${index}`} role="option" aria-selected={activeIndex === index} key={`recipe-${result.id}`} type="button" onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(result)} className={`flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors ${activeIndex === index ? "bg-[#FFF7F2]" : "hover:bg-[#FFF9F6]"}`}><ProductImage src={getRecipePhoto({ ...result, title: result.name, imageEmoji: result.emoji })} alt={result.name} emoji={result.emoji} color={result.color} size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-charcoal">{result.name}</span><span className="mt-0.5 block truncate text-[10px] font-semibold text-muted-foreground">{result.country} · {result.category}</span>{result.description ? <span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{result.description}</span> : null}</span><span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-burgundy"><ReiconGlyph icon={Clock3} className="h-3.5 w-3.5" />{result.timeMinutes} min</span></button>;
               })}
 
               {data.dishes.length ? <SearchGroupLabel icon={BookOpen} label={locale === "fr" ? "Bibliothèque de plats" : "Dish library"} count={data.dishes.length} /> : null}
               {data.dishes.map((result) => {
                 const index = ++optionIndex;
-                return <button id={`${listboxId}-option-${index}`} role="option" aria-selected={activeIndex === index} key={`dish-${result.slug}`} type="button" onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(result)} className={`flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors ${activeIndex === index ? "bg-[#FFF7F2]" : "hover:bg-[#FFF9F6]"}`}><ProductImage src={result.imageUrl || getRecipePhoto({ slug: result.slug, title: result.name, country: result.country, category: result.categoryLabel })} alt={result.name} emoji="" color="#8A3042" size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-charcoal">{result.name}</span><span className="mt-0.5 block truncate text-[10px] font-semibold text-muted-foreground">{result.country} · {result.region || result.categoryLabel}</span>{result.description ? <span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{result.description}</span> : null}</span><span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-burgundy"><Clock3 className="h-3.5 w-3.5" />{result.timeMinutes} min</span></button>;
+                return <button id={`${listboxId}-option-${index}`} role="option" aria-selected={activeIndex === index} key={`dish-${result.slug}`} type="button" onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(result)} className={`flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors ${activeIndex === index ? "bg-[#FFF7F2]" : "hover:bg-[#FFF9F6]"}`}><ProductImage src={result.imageUrl || getRecipePhoto({ slug: result.slug, title: result.name, country: result.country, category: result.categoryLabel })} alt={result.name} emoji="" color="#8A3042" size="sm" className="h-12 w-12 shrink-0" rounded="rounded-md" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-charcoal">{result.name}</span><span className="mt-0.5 block truncate text-[10px] font-semibold text-muted-foreground">{result.country} · {result.region || result.categoryLabel}</span>{result.description ? <span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{result.description}</span> : null}</span><span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-burgundy"><ReiconGlyph icon={Clock3} className="h-3.5 w-3.5" />{result.timeMinutes} min</span></button>;
               })}
 
               <div className={`sticky bottom-0 grid gap-px border-t border-border bg-border ${data.results.length && kitchenCount ? "grid-cols-2" : "grid-cols-1"}`}>
-                {data.results.length ? <SearchDestinationButton icon={PackageSearch} label={locale === "fr" ? "Produits" : "Products"} detail={locale === "fr" ? `${data.results.length} résultat${data.results.length > 1 ? "s" : ""}` : `${data.results.length} result${data.results.length > 1 ? "s" : ""}`} onClick={() => navigateToCollection("products")} testId="search-destination-products" /> : null}
-                {kitchenCount ? <SearchDestinationButton icon={UtensilsCrossed} label={locale === "fr" ? "Recettes & plats" : "Recipes & dishes"} detail={locale === "fr" ? `${kitchenCount} inspiration${kitchenCount > 1 ? "s" : ""}` : `${kitchenCount} idea${kitchenCount > 1 ? "s" : ""}`} onClick={() => navigateToCollection(data.recipes.length ? "recipes" : "library")} testId="search-destination-kitchen" /> : null}
+                {data.results.length ? <SearchDestinationButton icon={BoxSearch} label={locale === "fr" ? "Produits" : "Products"} detail={locale === "fr" ? `${data.results.length} résultat${data.results.length > 1 ? "s" : ""}` : `${data.results.length} result${data.results.length > 1 ? "s" : ""}`} onClick={() => navigateToCollection("products")} testId="search-destination-products" /> : null}
+                {kitchenCount ? <SearchDestinationButton icon={ChefHatHeart} label={locale === "fr" ? "Recettes & plats" : "Recipes & dishes"} detail={locale === "fr" ? `${kitchenCount} inspiration${kitchenCount > 1 ? "s" : ""}` : `${kitchenCount} idea${kitchenCount > 1 ? "s" : ""}`} onClick={() => navigateToCollection(data.recipes.length ? "recipes" : "library")} testId="search-destination-kitchen" /> : null}
               </div>
             </>
           ) : null}
@@ -239,10 +250,10 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
   );
 }
 
-function SearchGroupLabel({ icon: Icon, label, count }: { icon: typeof Search; label: string; count: number }) {
-  return <div className="sticky top-0 z-10 flex items-center gap-2 border-y border-burgundy/8 bg-[#FBF7F5]/95 px-3 py-2 text-[9px] font-black uppercase text-burgundy backdrop-blur-md"><Icon className="h-3.5 w-3.5 text-terre" /><span>{label}</span><span className="ml-auto rounded bg-white px-1.5 py-0.5 text-charcoal shadow-sm">{count}</span></div>;
+function SearchGroupLabel({ icon, label, count }: { icon: IconFunction; label: string; count: number }) {
+  return <div className="sticky top-0 z-10 flex items-center gap-2 border-y border-burgundy/8 bg-[#FBF7F5]/95 px-3 py-2 text-[9px] font-black uppercase text-burgundy backdrop-blur-md"><ReiconGlyph icon={icon} weight="Filled" className="h-3.5 w-3.5 text-terre" /><span>{label}</span><span className="ml-auto rounded bg-white px-1.5 py-0.5 text-charcoal shadow-sm">{count}</span></div>;
 }
 
-function SearchDestinationButton({ icon: Icon, label, detail, onClick, testId }: { icon: typeof Search; label: string; detail: string; onClick: () => void; testId: string }) {
-  return <button type="button" onClick={onClick} data-testid={testId} className="flex min-h-14 min-w-0 items-center gap-2 bg-white/97 px-3 text-left backdrop-blur-md transition hover:bg-[#FFF8F4]"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy/7 text-burgundy"><Icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-black text-charcoal">{label}</span><span className="block truncate text-[9px] text-muted-foreground">{detail}</span></span><ArrowRight className="h-3.5 w-3.5 shrink-0 text-terre" /></button>;
+function SearchDestinationButton({ icon, label, detail, onClick, testId }: { icon: IconFunction; label: string; detail: string; onClick: () => void; testId: string }) {
+  return <button type="button" onClick={onClick} data-testid={testId} className="flex min-h-14 min-w-0 items-center gap-2 bg-white/97 px-3 text-left backdrop-blur-md transition hover:bg-[#FFF8F4]"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy/7 text-burgundy"><ReiconGlyph icon={icon} weight="Filled" className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-black text-charcoal">{label}</span><span className="block truncate text-[9px] text-muted-foreground">{detail}</span></span><ReiconGlyph icon={ArrowRight} className="h-3.5 w-3.5 shrink-0 text-terre" /></button>;
 }
