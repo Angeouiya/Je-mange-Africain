@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -20,5 +21,5 @@ export async function GET(request: NextRequest) {
     orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
     take: 5,
   });
-  return NextResponse.json({ advertisements: advertisements.map((advertisement) => ({ id: advertisement.id, placement: advertisement.placement, title: locale === "en" ? advertisement.titleEn : advertisement.titleFr, body: locale === "en" ? advertisement.bodyEn : advertisement.bodyFr, imageUrl: advertisement.imageUrl, imageAlt: locale === "en" ? advertisement.imageAltEn : advertisement.imageAltFr, linkUrl: advertisement.linkUrl })) });
+  return jsonWithPublicApiCache({ advertisements: advertisements.map((advertisement) => ({ id: advertisement.id, placement: advertisement.placement, title: locale === "en" ? advertisement.titleEn : advertisement.titleFr, body: locale === "en" ? advertisement.bodyEn : advertisement.bodyFr, imageUrl: advertisement.imageUrl, imageAlt: locale === "en" ? advertisement.imageAltEn : advertisement.imageAltFr, linkUrl: advertisement.linkUrl })) }, "storefrontList");
 }

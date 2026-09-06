@@ -1,6 +1,9 @@
 const DEFAULT_ICON = "/brand/notification-icon-burgundy.png";
 const DEFAULT_BADGE = "/brand/notification-badge.png";
-const CACHE_NAME = "jma-shell-v3";
+const CACHE_NAME = "jma-shell-v4";
+const PUBLIC_API_CACHE_NAME = "jma-public-api-v1";
+const PUBLIC_API_CACHE_MAX_ENTRIES = 80;
+const PUBLIC_API_DEFAULT_MAX_AGE_MS = 30 * 1000;
 const APP_SHELL = [
   "/",
   "/manifest.json",
@@ -8,13 +11,26 @@ const APP_SHELL = [
   "/brand/app-icon-512-burgundy.png",
   "/brand/logo-mark-burgundy.png",
 ];
+const ACTIVE_CACHES = [CACHE_NAME, PUBLIC_API_CACHE_NAME];
+const PUBLIC_API_ROUTES = [
+  /^\/api\/advertisements$/,
+  /^\/api\/brands$/,
+  /^\/api\/catalog$/,
+  /^\/api\/categories$/,
+  /^\/api\/dishes$/,
+  /^\/api\/platform$/,
+  /^\/api\/search$/,
+  /^\/api\/products\/[^/]+$/,
+  /^\/api\/recipes$/,
+  /^\/api\/recipes\/[^/]+$/,
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", (event) => {
   event.waitUntil(Promise.all([
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("jma-") && key !== CACHE_NAME).map((key) => caches.delete(key)))),
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("jma-") && !ACTIVE_CACHES.includes(key)).map((key) => caches.delete(key)))),
     self.clients.claim(),
   ]));
 });
@@ -22,7 +38,14 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
-  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (request.method !== "GET" || url.origin !== self.location.origin) return;
+
+  if (isPublicApiRequest(url)) {
+    event.respondWith(publicApiResponse(event));
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(fetch(request).then(async (response) => {
@@ -48,6 +71,71 @@ self.addEventListener("fetch", (event) => {
     }));
   }
 });
+
+function isPublicApiRequest(url) {
+  return PUBLIC_API_ROUTES.some((pattern) => pattern.test(url.pathname));
+}
+
+async function publicApiResponse(event) {
+  const request = event.request;
+  const cached = await caches.match(request);
+
+  if (cached && isFreshPublicApiResponse(cached)) {
+    event.waitUntil(refreshPublicApiResponse(request).catch(() => undefined));
+    return cached;
+  }
+
+  try {
+    return await refreshPublicApiResponse(request);
+  } catch {
+    return cached || Response.error();
+  }
+}
+
+async function refreshPublicApiResponse(request) {
+  const response = await fetch(request);
+  if (isCacheablePublicApiResponse(response)) {
+    const cache = await caches.open(PUBLIC_API_CACHE_NAME);
+    await cache.put(request, await responseWithCachedAt(response));
+    await trimPublicApiCache(cache);
+  }
+  return response;
+}
+
+function isCacheablePublicApiResponse(response) {
+  return response.ok
+    && response.status === 200
+    && response.headers.get("content-type")?.includes("application/json")
+    && !response.headers.get("cache-control")?.includes("no-store");
+}
+
+async function responseWithCachedAt(response) {
+  const headers = new Headers(response.headers);
+  headers.set("X-JMA-Cached-At", String(Date.now()));
+  return new Response(await response.clone().arrayBuffer(), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function isFreshPublicApiResponse(response) {
+  const cachedAt = Number(response.headers.get("X-JMA-Cached-At") || 0);
+  if (!cachedAt) return false;
+  const maxAge = maxAgeMs(response.headers.get("cache-control"));
+  return Date.now() - cachedAt < maxAge;
+}
+
+function maxAgeMs(cacheControl) {
+  const match = cacheControl?.match(/(?:^|,\s*)max-age=(\d+)/i);
+  return match ? Number(match[1]) * 1000 : PUBLIC_API_DEFAULT_MAX_AGE_MS;
+}
+
+async function trimPublicApiCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length <= PUBLIC_API_CACHE_MAX_ENTRIES) return;
+  await Promise.all(keys.slice(0, keys.length - PUBLIC_API_CACHE_MAX_ENTRIES).map((key) => cache.delete(key)));
+}
 
 self.addEventListener("push", (event) => {
   if (!event.data) return;

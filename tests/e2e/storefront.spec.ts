@@ -42,8 +42,11 @@ test("the installable storefront exposes a safe app shell and public discovery m
   const workerResponse = await request.get("/sw.js");
   expect(workerResponse.ok()).toBeTruthy();
   const workerSource = await workerResponse.text();
-  expect(workerSource).toContain('url.pathname.startsWith("/api/")');
-  expect(workerSource).toContain('const CACHE_NAME = "jma-shell-v3"');
+  expect(workerSource).toContain('const CACHE_NAME = "jma-shell-v4"');
+  expect(workerSource).toContain('const PUBLIC_API_CACHE_NAME = "jma-public-api-v1"');
+  expect(workerSource).toContain("/^\\/api\\/catalog$/");
+  expect(workerSource).toContain("/^\\/api\\/products\\/[^/]+$/");
+  expect(workerSource).toContain('if (url.pathname.startsWith("/api/")) return;');
   expect(workerSource).toContain('/brand/notification-icon-burgundy.png');
 
   const sitemapResponse = await request.get("/sitemap.xml");

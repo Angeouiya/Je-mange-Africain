@@ -5,6 +5,7 @@ import { localizeDish, searchDishLibrary } from "@/lib/dish-library";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { enforceRateLimit } from "@/lib/redis";
 import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
+import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(requestedLimit, 20)) : 8;
 
   if (!q || q.length < 1) {
-    return NextResponse.json({ results: [], popular: ["Kplô", "Placali", "Attiéké", "Gombo", "Graine de palme", "Mafé"] });
+    return jsonWithPublicApiCache({ results: [], popular: ["Kplô", "Placali", "Attiéké", "Gombo", "Graine de palme", "Mafé"] }, "dishLibrary");
   }
 
   const norm = normalize(q);
@@ -179,5 +180,5 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({ query: q, results: results.slice(0, limit), recipes, dishes });
+  return jsonWithPublicApiCache({ query: q, results: results.slice(0, limit), recipes, dishes }, "storefrontList");
 }
