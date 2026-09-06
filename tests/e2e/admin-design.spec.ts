@@ -1904,6 +1904,35 @@ test("the product workspace edits bilingual content and calculates the customer 
   await expect(dialog).toBeVisible();
 });
 
+test("the product workspace marks sellable stock as exhausted from editorial controls", async ({ page }) => {
+  let stockPayload: Record<string, unknown> | null = null;
+  await mockAdminApi(page);
+  await page.route("**/api/admin/products/product-1", async (route) => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    stockPayload = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ product: { id: "product-1", stockQty: 9, reservedQty: 9, availableQty: 0, status: "published" } }),
+    });
+  });
+
+  await page.goto("/admin#catalog", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Gérer Attiéké frais" }).click();
+  const dialog = page.getByRole("dialog", { name: "Piloter la publication" });
+  await expect(dialog.getByRole("button", { name: "Marquer stock épuisé" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Marquer stock épuisé" }).click();
+
+  const confirmation = page.getByRole("alertdialog", { name: "Marquer le stock épuisé ?" });
+  await expect(confirmation).toContainText("mention rupture");
+  await expect(confirmation).toContainText("bouton d'ajout au panier sera bloqué");
+  await expect(confirmation).toContainText("réservées restent protégées");
+  await confirmation.getByRole("button", { name: "Confirmer stock épuisé" }).click();
+
+  await expect(dialog).toBeHidden();
+  expect(stockPayload).toEqual({ action: "mark_out_of_stock" });
+});
+
 test("the guided product studio publishes a complete image-backed record", async ({ page }) => {
   let createdProduct: Record<string, unknown> | null = null;
   await mockAdminApi(page);

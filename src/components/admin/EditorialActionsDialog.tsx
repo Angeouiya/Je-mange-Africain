@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Archive, LoaderCircle, MoreHorizontal, Save, Trash2 } from "lucide-react";
+import { Archive, LoaderCircle, MoreHorizontal, PackageX, Save, Trash2 } from "lucide-react";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -18,6 +18,9 @@ type EditorialEntity = {
   isRecommended?: boolean;
   isPopular?: boolean;
   isBestseller?: boolean;
+  stockQty?: number;
+  reservedQty?: number;
+  availableQty?: number;
 };
 
 export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { kind: "product" | "recipe"; entity: EditorialEntity; locale: "fr" | "en"; onUpdated: () => void }) {
@@ -25,9 +28,11 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [confirmStockOut, setConfirmStockOut] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [stockingOut, setStockingOut] = useState(false);
   const [error, setError] = useState("");
   const draftFor = () => ({
     imageUrl: entity.imageUrl || "",
@@ -51,13 +56,15 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
     || draft.galleryUrls.some((url, index) => url !== initialDraft.galleryUrls[index]);
   const reset = () => setDraft(initialDraft);
   const endpoint = `/api/admin/${kind === "product" ? "products" : "recipes"}/${entity.id}`;
+  const availableQty = entity.availableQty ?? Math.max(0, (entity.stockQty || 0) - (entity.reservedQty || 0));
 
   const handleOpen = (nextOpen: boolean) => {
-    if (saving || deleting) return;
+    if (saving || deleting || stockingOut) return;
     if (nextOpen) {
       reset();
       setError("");
       setConfirmArchive(false);
+      setConfirmStockOut(false);
       setDiscardOpen(false);
       setOpen(true);
       return;
@@ -73,6 +80,7 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
     reset();
     setError("");
     setConfirmArchive(false);
+    setConfirmStockOut(false);
     setDiscardOpen(false);
     setOpen(false);
   };
@@ -115,6 +123,24 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
     }
   };
 
+  const markOutOfStock = async () => {
+    setStockingOut(true);
+    setError("");
+    try {
+      const response = await fetch(endpoint, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark_out_of_stock" }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || (isFr ? "Mise à jour du stock impossible." : "Unable to update stock."));
+      setConfirmStockOut(false);
+      setOpen(false);
+      onUpdated();
+    } catch (cause) {
+      setConfirmStockOut(false);
+      setError(cause instanceof Error ? cause.message : (isFr ? "Mise à jour du stock impossible." : "Unable to update stock."));
+    } finally {
+      setStockingOut(false);
+    }
+  };
+
   const requestSave = () => {
     if (draft.status === "archived" && initialDraft.status !== "archived") {
       setConfirmArchive(true);
@@ -139,6 +165,7 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
                 <Flag checked={kind === "product" ? draft.isBestseller : draft.isPopular} onChange={(checked) => setDraft((current) => kind === "product" ? { ...current, isBestseller: checked } : { ...current, isPopular: checked })} label={isFr ? "Marquer comme populaire" : "Mark as popular"} />
               </div>
               <div className="border-l-2 border-gold bg-gold/[0.09] px-3 py-2 text-[10px] leading-5 text-charcoal"><Archive className="mr-1 inline h-3.5 w-3.5 text-terre" />{isFr ? "Désactiver retire le contenu de la boutique tout en conservant son historique." : "Disabling removes the content from the store while preserving its history."}</div>
+              {kind === "product" ? <Button type="button" variant="outline" onClick={() => setConfirmStockOut(true)} disabled={availableQty <= 0 || stockingOut} className="w-full justify-start border-gold/35 text-charcoal hover:bg-gold/[0.08] disabled:opacity-55"><PackageX className="mr-2 h-4 w-4 text-terre" />{availableQty <= 0 ? (isFr ? "Stock déjà épuisé" : "Already out of stock") : (isFr ? "Marquer stock épuisé" : "Mark out of stock")}</Button> : null}
               <Button type="button" variant="ghost" onClick={() => setConfirmDelete(true)} className="w-full justify-start text-destructive hover:bg-destructive/[0.06] hover:text-destructive"><Trash2 className="mr-2 h-4 w-4" />{isFr ? "Supprimer définitivement" : "Delete permanently"}</Button>
             </div>
           </div>
@@ -149,6 +176,10 @@ export function EditorialActionsDialog({ kind, entity, locale, onUpdated }: { ki
 
       <AlertDialog open={confirmArchive} onOpenChange={(next) => { if (!saving) setConfirmArchive(next); }}>
         <AlertDialogContent><AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-gold/15 text-terre"><Archive className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Désactiver ce contenu ?" : "Disable this content?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? `${entity.title} disparaîtra immédiatement de la boutique client, de la recherche et des recommandations. La fiche et son historique seront conservés dans l'administration et pourront être republiés.` : `${entity.title} will immediately disappear from the customer store, search and recommendations. The record and its history will remain available in administration and can be republished.`}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={saving}>{isFr ? "Vérifier la publication" : "Review publishing"}</AlertDialogCancel><AlertDialogAction disabled={saving} onClick={() => { setConfirmArchive(false); void save(); }} className="bg-terre text-white hover:bg-terre-dark">{saving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}{isFr ? "Confirmer la désactivation" : "Confirm disabling"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmStockOut} onOpenChange={(next) => { if (!stockingOut) setConfirmStockOut(next); }}>
+        <AlertDialogContent><AlertDialogHeader><span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-gold/15 text-terre"><PackageX className="h-5 w-5" /></span><AlertDialogTitle>{isFr ? "Marquer le stock épuisé ?" : "Mark stock as out?"}</AlertDialogTitle><AlertDialogDescription>{isFr ? `${entity.title} restera dans l'administration et, si la fiche est publiée, apparaîtra côté client avec la mention rupture. Le bouton d'ajout au panier sera bloqué. Les unités déjà réservées restent protégées pour les commandes en cours.` : `${entity.title} will stay in administration and, if published, appear to customers as out of stock. Add-to-cart will be blocked. Already reserved units remain protected for current orders.`}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={stockingOut}>{isFr ? "Conserver le stock" : "Keep stock"}</AlertDialogCancel><AlertDialogAction disabled={stockingOut} onClick={(event) => { event.preventDefault(); void markOutOfStock(); }} className="bg-terre text-white hover:bg-terre-dark">{stockingOut ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <PackageX className="mr-2 h-4 w-4" />}{isFr ? "Confirmer stock épuisé" : "Confirm out of stock"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>

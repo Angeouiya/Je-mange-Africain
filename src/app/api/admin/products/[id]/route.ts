@@ -15,6 +15,10 @@ const ProductEditorialInput = z.object({
   isBestseller: z.boolean(),
 });
 
+const ProductStockControlInput = z.object({
+  action: z.literal("mark_out_of_stock"),
+});
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const authorization = await authorizeAdminRequest(request, { module: "catalog", action: "update" });
   if (!authorization.ok) return authorization.response;
@@ -22,6 +26,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { id } = await params;
   const fullProduct = productAdminInput.safeParse(body);
   if (fullProduct.success) return updateFullProduct(id, fullProduct.data, authorization.user.email);
+
+  const stockControl = ProductStockControlInput.safeParse(body);
+  if (stockControl.success) return markProductOutOfStock(id, authorization.user.email, request);
 
   const parsed = ProductEditorialInput.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Les paramètres éditoriaux du produit sont invalides." }, { status: 400 });
@@ -34,6 +41,42 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   });
   await db.auditLog.create({ data: { action: "product_editorial_update", entityType: "Product", entityId: id, before: JSON.stringify(before), after: JSON.stringify(parsed.data), reason: `Mise à jour par ${authorization.user.email}` } });
   return NextResponse.json({ product });
+}
+
+async function markProductOutOfStock(id: string, adminEmail: string, request: NextRequest) {
+  const product = await db.product.findUnique({
+    where: { id },
+    select: { id: true, sku: true, traditionalName: true, stockQty: true, reservedQty: true, status: true },
+  });
+  if (!product) return NextResponse.json({ error: "Produit introuvable." }, { status: 404 });
+
+  const nextStockQty = Math.max(0, product.reservedQty || 0);
+  const updated = await db.$transaction(async (transaction) => {
+    const next = await transaction.product.update({
+      where: { id },
+      data: { stockQty: nextStockQty },
+      select: { id: true, sku: true, stockQty: true, reservedQty: true, status: true },
+    });
+    await transaction.auditLog.create({
+      data: {
+        action: "product_stock_depleted",
+        entityType: "Product",
+        entityId: id,
+        before: JSON.stringify({ sku: product.sku, stockQty: product.stockQty, reservedQty: product.reservedQty, availableQty: Math.max(0, product.stockQty - product.reservedQty), status: product.status }),
+        after: JSON.stringify({ sku: product.sku, stockQty: nextStockQty, reservedQty: product.reservedQty, availableQty: 0, status: product.status }),
+        reason: `Stock marqué épuisé par ${adminEmail}`,
+        ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
+      },
+    });
+    return next;
+  });
+
+  return NextResponse.json({
+    product: {
+      ...updated,
+      availableQty: Math.max(0, updated.stockQty - updated.reservedQty),
+    },
+  });
 }
 
 async function updateFullProduct(id: string, input: ProductAdminInput, adminEmail: string) {
