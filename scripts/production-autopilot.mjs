@@ -11,8 +11,7 @@ export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_RE
 export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12bc";
 export const PRODUCTION_WORKER_NAME = "je-mange-africain";
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
-export const PRODUCTION_WORKERS_DEV_URL = "https://je-mange-africain.jobbook-africa.workers.dev";
-export const CLOUDFLARE_PUBLICATION_MODE = "workers.dev first, custom domain later";
+export const CLOUDFLARE_PUBLICATION_MODE = "Worker created, public domain deferred";
 export const SUPABASE_OPERATIONAL_KEYS = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "DIRECT_URL"];
 
 const DOTENV_FILES = [".env", ".env.local", ".env.production.local"];
@@ -30,6 +29,7 @@ const REQUIRED_ENV = [
   ["VAPID_PRIVATE_KEY", "Web Push private VAPID key"],
   ["VAPID_SUBJECT", "Web Push contact subject"],
   ["NEXT_PUBLIC_SITE_URL", "Public storefront URL"],
+  ["CLOUDFLARE_DOMAIN_STATUS", "Cloudflare domain attachment status"],
   ["CLOUDFLARE_ACCOUNT_ID", "Cloudflare account"],
   ["CLOUDFLARE_DEPLOYMENT_TARGET", "Cloudflare Workers target"],
 ];
@@ -144,6 +144,12 @@ function evaluateRequirement(key, label, values, sources) {
   if (key === "NEXT_PUBLIC_SITE_URL" && !/^https:\/\//i.test(normalizedUrl(value))) {
     return { key, label, ok: false, source, problem: "must be an HTTPS URL" };
   }
+  if (key === "NEXT_PUBLIC_SITE_URL" && normalizedUrl(value) !== PRODUCTION_SITE_URL) {
+    return { key, label, ok: false, source, problem: `must be ${PRODUCTION_SITE_URL}` };
+  }
+  if (key === "CLOUDFLARE_DOMAIN_STATUS" && !["deferred", "attached"].includes(value)) {
+    return { key, label, ok: false, source, problem: "must be deferred or attached" };
+  }
   if (key === "CLOUDFLARE_ACCOUNT_ID" && value !== PRODUCTION_CLOUDFLARE_ACCOUNT_ID) {
     return { key, label, ok: false, source, problem: `must target ${PRODUCTION_CLOUDFLARE_ACCOUNT_ID}` };
   }
@@ -167,7 +173,7 @@ export function productionReadiness(environment = loadProductionEnvironment()) {
       cloudflareAccountId: PRODUCTION_CLOUDFLARE_ACCOUNT_ID,
       workerName: PRODUCTION_WORKER_NAME,
       siteUrl: PRODUCTION_SITE_URL,
-      workersDevUrl: PRODUCTION_WORKERS_DEV_URL,
+      domainStatus: environment.values.CLOUDFLARE_DOMAIN_STATUS || "deferred",
       publicationMode: CLOUDFLARE_PUBLICATION_MODE,
     },
   };
@@ -191,7 +197,10 @@ export function supabaseCliReadiness(environment = loadProductionEnvironment()) 
 }
 
 export function printProductionReadiness(report, writer = console.log) {
-  writer(`Production target: Supabase ${report.target.supabaseName} (${report.target.supabaseRef}) -> Cloudflare Worker ${report.target.workerName} -> ${report.target.workersDevUrl} (${report.target.publicationMode})`);
+  const publicTarget = report.target.domainStatus === "attached"
+    ? report.target.siteUrl
+    : `public domain deferred (${report.target.siteUrl})`;
+  writer(`Production target: Supabase ${report.target.supabaseName} (${report.target.supabaseRef}) -> Cloudflare Worker ${report.target.workerName} -> ${publicTarget} (${report.target.publicationMode})`);
   for (const item of report.requirements) {
     const state = item.ok ? "OK" : "BLOCKED";
     const suffix = item.problem ? ` - ${item.problem}` : "";

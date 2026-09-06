@@ -88,10 +88,10 @@ const html = `<!doctype html>
   <body>
     <main>
       <div class="mark" aria-hidden="true">J</div>
-      <p class="kicker">Cloudflare workers.dev</p>
+      <p class="kicker">Cloudflare Worker</p>
       <h1>Je mange Africain</h1>
-      <p>Le projet Cloudflare est cree. La plateforme complete sera publiee ici apres connexion des secrets production.</p>
-      <div class="status"><span class="dot" aria-hidden="true"></span><span>En attente de Supabase JMA, Stripe et Redis</span></div>
+      <p>Le Worker JMA est cree. Aucune route publique temporaire n'est exposee ; le domaine je-mange-africain.com sera rattache ensuite.</p>
+      <div class="status"><span class="dot" aria-hidden="true"></span><span>Domaine public en attente de rattachement</span></div>
     </main>
   </body>
 </html>`;

@@ -7,14 +7,15 @@
     "nodejs_compat"
   ],
   "main": "vinext/server/fetch-handler",
-  "workers_dev": true,
+  "workers_dev": false,
   "placement": {
     "mode": "smart"
   },
   "vars": {
     "CLOUDFLARE_ACCOUNT_ID": "82164eca9557f63e18984230deac12bc",
     "CLOUDFLARE_DEPLOYMENT_TARGET": "workers",
-    "NEXT_PUBLIC_SITE_URL": "https://je-mange-africain.jobbook-africa.workers.dev",
+    "CLOUDFLARE_DOMAIN_STATUS": "deferred",
+    "NEXT_PUBLIC_SITE_URL": "https://je-mange-africain.com",
     "NEXT_PUBLIC_SUPABASE_URL": "https://ahigidhuhqcmxzjxetnw.supabase.co",
     "SUPABASE_URL": "https://ahigidhuhqcmxzjxetnw.supabase.co"
   },

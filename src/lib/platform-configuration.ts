@@ -83,6 +83,7 @@ type PlatformEnvironmentKey =
   | "NODE_ENV"
   | "CF_PAGES"
   | "CLOUDFLARE_ACCOUNT_ID"
+  | "CLOUDFLARE_DOMAIN_STATUS"
   | "CLOUDFLARE_DEPLOYMENT_TARGET"
   | "CLOUDFLARE_ENV"
   | "NEXT_PUBLIC_SITE_URL"
@@ -106,8 +107,7 @@ export const PRODUCTION_SUPABASE_PROJECT_REF = "ahigidhuhqcmxzjxetnw";
 export const PRODUCTION_SUPABASE_PROJECT_NAME = "JMA";
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
-export const PRODUCTION_WORKERS_DEV_URL = "https://je-mange-africain.jobbook-africa.workers.dev";
-export const CLOUDFLARE_PUBLICATION_MODE = "workers.dev first, custom domain later";
+export const CLOUDFLARE_PUBLICATION_MODE = "Worker created, public domain deferred";
 
 export type DeploymentRequirementGroup = "database" | "identity" | "payments" | "cache" | "push" | "hosting";
 
@@ -149,6 +149,7 @@ export const CLOUDFLARE_PRODUCTION_ENV_KEYS = [
   "VAPID_PRIVATE_KEY",
   "VAPID_SUBJECT",
   "NEXT_PUBLIC_SITE_URL",
+  "CLOUDFLARE_DOMAIN_STATUS",
 ] as const;
 
 export function platformIntegrationStatus(databaseAvailable: boolean, environment: PlatformEnvironment = process.env) {
@@ -159,6 +160,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
   const deployed = environment.NODE_ENV === "production";
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
   const productionDomain = siteUrl === PRODUCTION_SITE_URL;
+  const domainAttached = productionDomain && environment.CLOUDFLARE_DOMAIN_STATUS === "attached";
   const cloudflareRuntime = cloudflareWorkers || Boolean(environment.CLOUDFLARE_ENV || environment.CF_PAGES);
   const cloudflareHosting = Boolean(environment.CLOUDFLARE_ACCOUNT_ID && cloudflareRuntime);
   const persistentDatabase = databaseAvailable && (postgres || !deployed);
@@ -178,7 +180,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
     { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
     { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
-    { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime, domainDeferred: !productionDomain, domain: productionDomain } },
+    { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: Boolean(environment.CLOUDFLARE_ACCOUNT_ID), workers: cloudflareWorkers, runtime: cloudflareRuntime, domainConfigured: productionDomain, domainDeferred: !domainAttached, domain: domainAttached } },
   ] as const;
 }
 
@@ -189,6 +191,7 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
   const postgres = /^postgres(?:ql)?:\/\//i.test(databaseUrl);
   const has = (key: keyof PlatformEnvironment) => Boolean(environment[key]);
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
+  const domainAttached = siteUrl === PRODUCTION_SITE_URL && environment.CLOUDFLARE_DOMAIN_STATUS === "attached";
   const requirements: CloudflareDeploymentRequirement[] = [
     {
       id: "database-url",
@@ -349,10 +352,10 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
       group: "hosting",
       labelFr: "Domaine public différé",
       labelEn: "Deferred public domain",
-      detailFr: `Phase actuelle : publication Cloudflare sur ${PRODUCTION_WORKERS_DEV_URL}. ${PRODUCTION_SITE_URL} sera rattaché ensuite.`,
-      detailEn: `Current phase: Cloudflare publication on ${PRODUCTION_WORKERS_DEV_URL}. ${PRODUCTION_SITE_URL} will be attached later.`,
-      envKeys: ["NEXT_PUBLIC_SITE_URL"],
-      satisfied: siteUrl === PRODUCTION_SITE_URL,
+      detailFr: `Le Worker Cloudflare est prêt sans route workers.dev publique. Rattachez ${PRODUCTION_SITE_URL}, puis passez CLOUDFLARE_DOMAIN_STATUS à attached.`,
+      detailEn: `The Cloudflare Worker is ready without a public workers.dev route. Attach ${PRODUCTION_SITE_URL}, then set CLOUDFLARE_DOMAIN_STATUS to attached.`,
+      envKeys: ["NEXT_PUBLIC_SITE_URL", "CLOUDFLARE_DOMAIN_STATUS"],
+      satisfied: domainAttached,
       severity: "recommended",
     },
   ];

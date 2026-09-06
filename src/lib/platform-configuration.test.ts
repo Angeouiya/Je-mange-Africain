@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PRODUCTION_WORKERS_DEV_URL, cloudflareDeploymentReadiness, platformIntegrationStatus } from "./platform-configuration";
+import { cloudflareDeploymentReadiness, platformIntegrationStatus } from "./platform-configuration";
 
 describe("platform production readiness", () => {
   it("never presents an ephemeral SQLite database as production-ready on Cloudflare", () => {
@@ -42,6 +42,7 @@ describe("platform production readiness", () => {
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
       CLOUDFLARE_ENV: "production",
+      CLOUDFLARE_DOMAIN_STATUS: "attached",
       NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
       STRIPE_SECRET_KEY: "sk_live_example",
@@ -58,16 +59,17 @@ describe("platform production readiness", () => {
     expect(integrations.every((integration) => integration.state === "ready")).toBe(true);
     expect(integrations.find((integration) => integration.id === "database")).toMatchObject({ provider: "PostgreSQL", capabilities: { production: true } });
     expect(integrations.find((integration) => integration.id === "identity")).toMatchObject({ provider: "Supabase", capabilities: { project: true } });
-    expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ provider: "Cloudflare Workers", capabilities: { runtime: true } });
+    expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ provider: "Cloudflare Workers", capabilities: { runtime: true, domain: true } });
   });
 
-  it("treats workers.dev publication as deployable while the custom domain is deferred", () => {
+  it("treats the Cloudflare Worker as deployable while the public domain is deferred", () => {
     const environment = {
       DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
       NODE_ENV: "production",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
-      NEXT_PUBLIC_SITE_URL: PRODUCTION_WORKERS_DEV_URL,
+      CLOUDFLARE_DOMAIN_STATUS: "deferred",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
@@ -84,10 +86,10 @@ describe("platform production readiness", () => {
     const integrations = platformIntegrationStatus(true, environment);
     const readiness = cloudflareDeploymentReadiness(true, environment);
 
-    expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ state: "ready", capabilities: { domainDeferred: true, domain: false } });
+    expect(integrations.find((integration) => integration.id === "hosting")).toMatchObject({ state: "ready", capabilities: { domainConfigured: true, domainDeferred: true, domain: false } });
     expect(readiness.ready).toBe(true);
     expect(readiness.blockers).toEqual([]);
-    expect(readiness.requirements.find((requirement) => requirement.id === "cloudflare-domain")).toMatchObject({ satisfied: false, severity: "recommended" });
+    expect(readiness.requirements.find((requirement) => requirement.id === "cloudflare-domain")).toMatchObject({ satisfied: false, severity: "recommended", envKeys: ["NEXT_PUBLIC_SITE_URL", "CLOUDFLARE_DOMAIN_STATUS"] });
   });
 
   it("refuses to treat another Supabase project as the production identity target", () => {
@@ -96,6 +98,7 @@ describe("platform production readiness", () => {
       NODE_ENV: "production",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      CLOUDFLARE_DOMAIN_STATUS: "attached",
       NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ailevucikakmgsxfptwv.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
@@ -150,6 +153,7 @@ describe("platform production readiness", () => {
       DATABASE_URL: "postgresql://app:secret@db.example.test:5432/app",
       CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      CLOUDFLARE_DOMAIN_STATUS: "attached",
       NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",

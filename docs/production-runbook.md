@@ -27,7 +27,7 @@ npm run production:open-dashboards
 ## Frontend deployment
 
 The production frontend is Cloudflare Workers, not Vercel. Keep the root `wrangler.jsonc` committed as the source of truth for account, Worker name, assets and observability.
-The first Cloudflare release publishes on `https://je-mange-africain.jobbook-africa.workers.dev`. `je-mange-africain.com` stays a prepared final domain and will be attached later once DNS is ready.
+The Worker can be created before the domain is ready, but `workers_dev` stays disabled so no unrelated Cloudflare subdomain is exposed. `je-mange-africain.com` is the only public storefront URL and will be attached later once DNS is ready.
 The deploy command refuses to publish when production secrets are incomplete, when `DATABASE_URL` still points to a local SQLite database, or when Supabase points to a project other than `JMA` (`ahigidhuhqcmxzjxetnw`).
 
 ```bash
@@ -42,7 +42,7 @@ For an existing Worker, refresh secrets without deploying code:
 npm run production:sync-cloudflare
 ```
 
-To create the Cloudflare Worker before the production secrets are ready, publish the safe bootstrap Worker on `workers.dev`:
+To create the Cloudflare Worker before the production secrets are ready, publish the safe bootstrap Worker without a public route:
 
 ```bash
 npm run cloudflare:create

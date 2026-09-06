@@ -4,7 +4,6 @@ import {
   printProductionReadiness,
   productionReadiness,
   PRODUCTION_SITE_URL,
-  PRODUCTION_WORKERS_DEV_URL,
   PRODUCTION_SUPABASE_PROJECT_NAME,
   PRODUCTION_SUPABASE_PROJECT_REF,
   PRODUCTION_SUPABASE_URL,
@@ -34,6 +33,7 @@ describe("production autopilot", () => {
     VAPID_PRIVATE_KEY: "push_private",
     VAPID_SUBJECT: "mailto:contact@je-mange-africain.com",
     NEXT_PUBLIC_SITE_URL: PRODUCTION_SITE_URL,
+    CLOUDFLARE_DOMAIN_STATUS: "attached",
     CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
     CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
   };
@@ -46,19 +46,31 @@ describe("production autopilot", () => {
     expect(report.target.supabaseRef).toBe(PRODUCTION_SUPABASE_PROJECT_REF);
     expect(report.target.supabaseUrl).toBe(PRODUCTION_SUPABASE_URL);
     expect(report.target.siteUrl).toBe(PRODUCTION_SITE_URL);
-    expect(report.target.workersDevUrl).toBe(PRODUCTION_WORKERS_DEV_URL);
+    expect(report.target.domainStatus).toBe("attached");
     expect(report.target.publicationMode).toBe(CLOUDFLARE_PUBLICATION_MODE);
     expect(report.blockers).toEqual([]);
   });
 
-  it("allows the initial Cloudflare launch to use an HTTPS workers.dev URL", () => {
+  it("allows the initial Cloudflare setup with the public domain still deferred", () => {
     const report = productionReadiness(environment({
       ...readyValues,
-      NEXT_PUBLIC_SITE_URL: PRODUCTION_WORKERS_DEV_URL,
+      CLOUDFLARE_DOMAIN_STATUS: "deferred",
     }));
 
     expect(report.ready).toBe(true);
     expect(report.blockers).toEqual([]);
+  });
+
+  it("refuses any unrelated workers.dev URL as the public storefront", () => {
+    const report = productionReadiness(environment({
+      ...readyValues,
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.other-project.workers.dev",
+    }));
+
+    expect(report.ready).toBe(false);
+    expect(report.blockers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: "NEXT_PUBLIC_SITE_URL", problem: expect.stringContaining(PRODUCTION_SITE_URL) }),
+    ]));
   });
 
   it("blocks local databases and previous Supabase projects", () => {
