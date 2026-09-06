@@ -31,6 +31,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { RecipeCardPreview, type RecipeListItem } from "@/components/shared/RecipeCard";
 import { getRecipePhoto } from "@/lib/market-media";
 import { buildRecipeStepGuide, type RecipeStepDetails, type RecipeStepHeat } from "@/lib/recipe-step-guide";
+import { assessRecipePreparationQuality, PUBLISHED_RECIPE_MIN_WORDS_PER_STEP, recipePreparationWordCount, type RecipePreparationQuality } from "@/lib/recipe-preparation-quality";
 
 type ProductOption = {
   id: string;
@@ -386,18 +387,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
   }, [open, editRequest.data]);
 
   const completeSteps = draft.stepsFr.every((step) => step.trim().length >= 5) && draft.stepsEn.every((step) => step.trim().length >= 5);
-  const completeStepDetails = draft.stepDetails.length === draft.stepsFr.length && draft.stepDetails.every((detail) => (
-    Number(detail.durationMinutes) >= 1
-    && Number(detail.restMinutes) >= 0
-    && detail.titleFr.trim().length >= 3
-    && detail.titleEn.trim().length >= 3
-    && detail.cueFr.trim().length >= 10
-    && detail.cueEn.trim().length >= 10
-    && detail.whyFr.trim().length >= 10
-    && detail.whyEn.trim().length >= 10
-    && detail.recoveryFr.trim().length >= 10
-    && detail.recoveryEn.trim().length >= 10
-  ));
+  const preparationQuality = assessRecipePreparationQuality(draft);
   const completeIngredients = draft.ingredients.length > 0 && draft.ingredients.every((ingredient) => ingredient.productId && Number(ingredient.quantityPerBase) > 0);
   const unpublishedPrimaryProducts = Array.from(new Map(draft.ingredients
     .map((ingredient) => productsById.get(ingredient.productId))
@@ -405,6 +395,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     .map((product) => [product.id, product])).values());
   const missingRequiredIngredient = !draft.ingredients.some((ingredient) => !ingredient.optional);
   const publicationBlocked = draft.status === "published" && (missingRequiredIngredient || unpublishedPrimaryProducts.length > 0);
+  const preparationPublicationBlocked = draft.status === "published" && !preparationQuality.ready;
   const pristineDraft = editing && editRequest.data ? draftFromRecipe(editRequest.data) : initialDraft();
   const dirty = JSON.stringify(draft) !== JSON.stringify(pristineDraft);
   const isValid = Boolean(
@@ -416,9 +407,9 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
     && Number(draft.timeMinutes) >= 5
     && Number(draft.baseServings) >= 1
     && completeSteps
-    && completeStepDetails
     && completeIngredients
     && !publicationBlocked
+    && !preparationPublicationBlocked
     && Boolean(productData)
   );
 
@@ -631,7 +622,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
 
             <section className="border-y border-border bg-[#F7F7F4] px-5 py-6 sm:px-7" aria-labelledby="recipe-steps-title">
               <SectionTitle id="recipe-steps-title" number="03" title={isFr ? "Préparation guidée professionnelle" : "Professional guided preparation"} description={isFr ? "Documentez chaque geste : ingrédients exacts, temps, chaleur, matériel, raison culinaire, résultat observable, conseil, vigilance et rattrapage. Tout apparaît dans le mode cuisson du client." : "Document every action: exact ingredients, timing, heat, equipment, culinary rationale, visible result, tip, safety and recovery. Everything appears in the customer's cooking mode."} />
-              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} details={draft.stepDetails} ingredients={draft.ingredients} productsById={productsById} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onChangeDetail={updateStepDetail} onAdd={addStep} onRemove={removeStep} onMove={moveStep} isFr={isFr} />
+              <PreparationSteps stepsFr={draft.stepsFr} stepsEn={draft.stepsEn} details={draft.stepDetails} ingredients={draft.ingredients} productsById={productsById} quality={preparationQuality} onChangeFr={(index, value) => updateStep("stepsFr", index, value)} onChangeEn={(index, value) => updateStep("stepsEn", index, value)} onChangeDetail={updateStepDetail} onAdd={addStep} onRemove={removeStep} onMove={moveStep} isFr={isFr} />
             </section>
 
             <section className="px-5 py-6 sm:px-7" aria-labelledby="recipe-ingredients-title">
@@ -656,7 +647,7 @@ export function RecipeCreateDialog({ locale, onCreated, recipe }: { locale: "fr"
           </div>
 
           <DialogFooter className="shrink-0 border-t border-border bg-white px-5 py-4 sm:px-7">
-            {submitError || editRequest.error || productsError ? <p role="alert" className="mr-auto max-w-xl self-center text-xs leading-5 text-destructive">{submitError || (productsError ? (isFr ? "Le catalogue produits n'a pas pu être chargé." : "The product catalogue could not be loaded.") : (isFr ? "La recette n'a pas pu être chargée." : "The recipe could not be loaded."))}</p> : publicationBlocked ? <p role="status" className="mr-auto max-w-xl self-center text-xs font-bold leading-5 text-destructive">{missingRequiredIngredient ? (isFr ? "Conservez au moins un ingrédient obligatoire avant de publier." : "Keep at least one required ingredient before publishing.") : isFr ? `Publiez d'abord ${unpublishedPrimaryProducts.length > 1 ? "les produits liés" : "le produit lié"} indiqué${unpublishedPrimaryProducts.length > 1 ? "s" : ""} en brouillon ou désactivé${unpublishedPrimaryProducts.length > 1 ? "s" : ""}.` : `Publish the ${unpublishedPrimaryProducts.length > 1 ? "linked products" : "linked product"} marked as draft or disabled first.`}</p> : <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{isFr ? "Les champs marqués sont obligatoires." : "Marked fields are required."}</p>}
+            {submitError || editRequest.error || productsError ? <p role="alert" className="mr-auto max-w-xl self-center text-xs leading-5 text-destructive">{submitError || (productsError ? (isFr ? "Le catalogue produits n'a pas pu être chargé." : "The product catalogue could not be loaded.") : (isFr ? "La recette n'a pas pu être chargée." : "The recipe could not be loaded."))}</p> : preparationPublicationBlocked ? <p role="status" className="mr-auto max-w-xl self-center text-xs font-bold leading-5 text-terre">{isFr ? `Préparation prête à ${preparationQuality.score} %. Repassez en brouillon ou complétez les critères de publication.` : `Preparation is ${preparationQuality.score}% ready. Switch back to draft or complete the publishing criteria.`}</p> : publicationBlocked ? <p role="status" className="mr-auto max-w-xl self-center text-xs font-bold leading-5 text-destructive">{missingRequiredIngredient ? (isFr ? "Conservez au moins un ingrédient obligatoire avant de publier." : "Keep at least one required ingredient before publishing.") : isFr ? `Publiez d'abord ${unpublishedPrimaryProducts.length > 1 ? "les produits liés" : "le produit lié"} indiqué${unpublishedPrimaryProducts.length > 1 ? "s" : ""} en brouillon ou désactivé${unpublishedPrimaryProducts.length > 1 ? "s" : ""}.` : `Publish the ${unpublishedPrimaryProducts.length > 1 ? "linked products" : "linked product"} marked as draft or disabled first.`}</p> : <p className="mr-auto hidden self-center text-[10px] text-muted-foreground sm:block">{isFr ? "Les champs marqués sont obligatoires." : "Marked fields are required."}</p>}
             <Button type="button" variant="outline" onClick={() => handleOpen(false)}>{isFr ? "Annuler" : "Cancel"}</Button>
             <Button type="submit" disabled={!isValid || submitting || (editing && !editRequest.data)} className={isValid ? "bg-burgundy text-white hover:bg-burgundy-dark" : "border border-charcoal/10 bg-[#EDE8E5] text-[#65555A]"}>{submitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : editing ? <PencilLine className="mr-2 h-4 w-4" /> : <ChefHat className="mr-2 h-4 w-4" />}{submitting ? (isFr ? "Enregistrement..." : "Saving...") : editing ? (isFr ? "Enregistrer les modifications" : "Save changes") : draft.status === "published" ? (isFr ? "Publier la recette" : "Publish recipe") : (isFr ? "Enregistrer le brouillon" : "Save draft")}</Button>
           </DialogFooter>
@@ -774,12 +765,29 @@ function RecipeColourPicker({ value, onChange, locale }: { value: string; onChan
   return <div className="flex min-h-9 flex-wrap items-center gap-1" role="group" aria-label={locale === "fr" ? "Nuancier de la recette" : "Recipe colour palette"}>{recipeColours.map((colour) => <button key={colour.value} type="button" onClick={() => onChange(colour.value)} aria-label={locale === "fr" ? colour.fr : colour.en} aria-pressed={value === colour.value} title={locale === "fr" ? colour.fr : colour.en} className={`h-7 w-7 shrink-0 rounded-md border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/35 ${value === colour.value ? "border-charcoal ring-2 ring-charcoal/15" : "border-white shadow-sm hover:border-charcoal/25"}`} style={{ backgroundColor: colour.value }} />)}</div>;
 }
 
-function PreparationSteps({ stepsFr, stepsEn, details, ingredients, productsById, onChangeFr, onChangeEn, onChangeDetail, onAdd, onRemove, onMove, isFr }: { stepsFr: string[]; stepsEn: string[]; details: StepDetailDraft[]; ingredients: IngredientDraft[]; productsById: Map<string, ProductOption>; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onChangeDetail: <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => void; onAdd: () => void; onRemove: (index: number) => void; onMove: (index: number, direction: -1 | 1) => void; isFr: boolean }) {
+function PreparationSteps({ stepsFr, stepsEn, details, ingredients, productsById, quality, onChangeFr, onChangeEn, onChangeDetail, onAdd, onRemove, onMove, isFr }: { stepsFr: string[]; stepsEn: string[]; details: StepDetailDraft[]; ingredients: IngredientDraft[]; productsById: Map<string, ProductOption>; quality: RecipePreparationQuality; onChangeFr: (index: number, value: string) => void; onChangeEn: (index: number, value: string) => void; onChangeDetail: <K extends keyof StepDetailDraft>(index: number, key: K, value: StepDetailDraft[K]) => void; onAdd: () => void; onRemove: (index: number) => void; onMove: (index: number, direction: -1 | 1) => void; isFr: boolean }) {
   const activeMinutes = details.reduce((total, detail) => total + (Number(detail.durationMinutes) || 0), 0);
   const restMinutes = details.reduce((total, detail) => total + (Number(detail.restMinutes) || 0), 0);
   const completeCues = details.filter((detail) => detail.cueFr.trim().length >= 10 && detail.cueEn.trim().length >= 10).length;
   const linkedSteps = details.filter((detail) => detail.ingredientProductIds.length > 0).length;
+  const qualityRequirements = [
+    { ready: quality.requirements.completeSequence, label: isFr ? "5 étapes FR/EN alignées" : "5 aligned FR/EN steps" },
+    { ready: quality.requirements.detailedBilingualInstructions, label: isFr ? `${PUBLISHED_RECIPE_MIN_WORDS_PER_STEP} mots minimum par langue` : `${PUBLISHED_RECIPE_MIN_WORDS_PER_STEP} words per language` },
+    { ready: quality.requirements.professionalGuidance, label: isFr ? "Repères professionnels complets" : "Complete professional cues" },
+    { ready: quality.requirements.ingredientCoverage, label: isFr ? "Ingrédients obligatoires reliés" : "Required ingredients linked" },
+  ];
   return <div className="mt-5">
+    <section className={`mb-4 border-y px-3 py-3 ${quality.ready ? "border-burgundy/15 bg-burgundy/[0.045]" : "border-terre/20 bg-terre/[0.045]"}`} data-testid="recipe-publication-quality" aria-labelledby="recipe-publication-quality-title">
+      <div className="flex items-center gap-3">
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${quality.ready ? "bg-burgundy text-white" : "bg-terre text-white"}`}><BookOpenCheck className="h-4 w-4" /></span>
+        <div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Qualité de publication" : "Publishing quality"}</p><h4 id="recipe-publication-quality-title" className="mt-0.5 text-xs font-black text-charcoal">{quality.ready ? (isFr ? "Préparation prête à publier" : "Preparation ready to publish") : (isFr ? "Préparation à compléter" : "Preparation needs work")}</h4></div>
+        <span className="text-sm font-black tabular-nums text-burgundy">{quality.score}%</span>
+      </div>
+      <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={quality.score} aria-label={isFr ? `Préparation prête à ${quality.score} %` : `Preparation ${quality.score}% ready`} className="mt-3 h-1.5 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-burgundy transition-[width]" style={{ width: `${quality.score}%` }} /></div>
+      <ul className="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+        {qualityRequirements.map((requirement) => <li key={requirement.label} className={`flex items-center gap-2 text-[10px] font-bold ${requirement.ready ? "text-burgundy" : "text-terre"}`}>{requirement.ready ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : <CircleHelp className="h-3.5 w-3.5 shrink-0" />}<span>{requirement.label}</span></li>)}
+      </ul>
+    </section>
     <div className="mb-4 grid grid-cols-5 divide-x divide-border border-y border-border bg-white py-3 text-center" aria-label={isFr ? "Couverture détaillée de la préparation" : "Detailed preparation coverage"} data-testid="recipe-step-coverage">
       <div className="min-w-0 px-1.5"><Timer className="mx-auto h-4 w-4 text-terre" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{activeMinutes} min</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "actives" : "active"}</p></div>
       <div className="min-w-0 px-1.5"><Hourglass className="mx-auto h-4 w-4 text-gold" /><p className="mt-1 truncate text-[8px] font-black uppercase text-charcoal sm:text-[9px]">{restMinutes} min</p><p className="truncate text-[8px] text-muted-foreground">{isFr ? "repos" : "rest"}</p></div>
@@ -808,7 +816,8 @@ function PreparationSteps({ stepsFr, stepsEn, details, ingredients, productsById
       };
       const guide = buildRecipeStepGuide(previewText, index, previewLocale, previewDetails);
       const detailed = Number(detail.durationMinutes) >= 1 && detail.cueFr.trim().length >= 10 && detail.cueEn.trim().length >= 10;
-      const enhanced = detailed && Boolean(detail.titleFr.trim() && detail.titleEn.trim() && detail.equipmentFr.trim() && detail.equipmentEn.trim() && detail.tipFr.trim() && detail.tipEn.trim() && detail.whyFr.trim() && detail.whyEn.trim() && detail.recoveryFr.trim() && detail.recoveryEn.trim());
+      const instructionsDetailed = recipePreparationWordCount(step) >= PUBLISHED_RECIPE_MIN_WORDS_PER_STEP && recipePreparationWordCount(stepsEn[index] || "") >= PUBLISHED_RECIPE_MIN_WORDS_PER_STEP;
+      const enhanced = detailed && instructionsDetailed && Boolean(detail.titleFr.trim() && detail.titleEn.trim() && detail.equipmentFr.trim() && detail.equipmentEn.trim() && detail.tipFr.trim() && detail.tipEn.trim() && detail.whyFr.trim() && detail.whyEn.trim() && detail.recoveryFr.trim() && detail.recoveryEn.trim());
       const quality = enhanced
         ? { label: isFr ? "Guidage complet" : "Complete guidance", className: "bg-burgundy/[0.08] text-burgundy" }
         : detailed

@@ -46,6 +46,36 @@ const validRecipe = {
   ingredients: [{ productId: "product-1", variantId: null, quantityPerBase: 400, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"] }],
 };
 
+const detailedStepFr = "Cuire doucement le fonio pendant douze minutes en remuant depuis le fond, jusqu'à obtenir des grains tendres, légers et parfaitement séparés.";
+const detailedStepEn = "Cook the fonio gently for twelve minutes, stirring from the bottom, until the grains are tender, light and perfectly separated.";
+const publishReadyRecipe = {
+  ...validRecipe,
+  status: "published",
+  stepsFr: Array(5).fill(detailedStepFr),
+  stepsEn: Array(5).fill(detailedStepEn),
+  stepDetails: Array.from({ length: 5 }, () => ({
+    titleFr: "Maîtriser la cuisson",
+    titleEn: "Control the cooking",
+    durationMinutes: 12,
+    restMinutes: 0,
+    heat: "low",
+    temperatureC: null,
+    equipmentFr: "Cocotte et cuillère en bois",
+    equipmentEn: "Heavy pot and wooden spoon",
+    cueFr: "Les grains sont tendres, légers et parfaitement séparés.",
+    cueEn: "The grains are tender, light and perfectly separated.",
+    tipFr: "Remuer régulièrement depuis le fond de la cocotte.",
+    tipEn: "Stir regularly from the bottom of the pot.",
+    warningFr: "",
+    warningEn: "",
+    whyFr: "La cuisson douce hydrate les grains sans les écraser.",
+    whyEn: "Gentle cooking hydrates the grains without crushing them.",
+    recoveryFr: "Ajouter une cuillère d'eau chaude si les grains restent fermes.",
+    recoveryEn: "Add one spoonful of hot water if the grains remain firm.",
+    ingredientProductIds: ["product-1"],
+  })),
+};
+
 const request = (body: Record<string, unknown>) => new NextRequest("http://localhost/api/admin/recipes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 describe("POST /api/admin/recipes", () => {
@@ -84,7 +114,7 @@ describe("POST /api/admin/recipes", () => {
       { id: "product-2", status: "published", variants: [] },
     ]);
 
-    const response = await POST(request({ ...validRecipe, status: "published" }));
+    const response = await POST(request(publishReadyRecipe));
     const payload = await response.json();
 
     expect(response.status).toBe(409);
@@ -94,9 +124,8 @@ describe("POST /api/admin/recipes", () => {
 
   it("requires at least one non-optional ingredient for a published recipe", async () => {
     const response = await POST(request({
-      ...validRecipe,
-      status: "published",
-      ingredients: validRecipe.ingredients.map((ingredient) => ({ ...ingredient, optional: true })),
+      ...publishReadyRecipe,
+      ingredients: publishReadyRecipe.ingredients.map((ingredient) => ({ ...ingredient, optional: true })),
     }));
     const payload = await response.json();
 

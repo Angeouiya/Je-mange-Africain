@@ -93,6 +93,21 @@ const dishTemplatePayload = {
   }],
 };
 
+const editableRecipeStepsFr = [
+  "Éponger le poisson, pratiquer des incisions régulières, puis le masser avec citron, ail et gingembre avant de le laisser mariner 15 minutes au frais.",
+  "Chauffer le gril à feu moyen-vif pendant 10 minutes, déposer le poisson égoutté et le retourner délicatement pour obtenir une coloration uniforme sans dessécher la chair.",
+  "Mélanger les oignons et les tomates avec le citron juste avant le service, afin de conserver une garniture fraîche, croquante et bien assaisonnée.",
+  "Humidifier légèrement l'attiéké puis le cuire cinq minutes à la vapeur, avant de l'égrener soigneusement jusqu'à obtenir des grains chauds, souples et séparés.",
+  "Dresser l'attiéké avec le poisson braisé et la garniture, vérifier une dernière fois l'assaisonnement puis servir immédiatement avec le piment présenté séparément.",
+];
+const editableRecipeStepsEn = [
+  "Pat the fish dry, make even cuts, then rub it with lemon, garlic and ginger before refrigerating it to marinate for 15 minutes.",
+  "Heat the grill over medium-high heat for 10 minutes, add the drained fish and turn it gently to achieve even colour without drying the flesh.",
+  "Mix the onions and tomatoes with lemon just before serving, so the garnish remains fresh, crisp and evenly seasoned throughout.",
+  "Lightly moisten the attieke and steam it for five minutes, then fluff it carefully until the grains are hot, supple and fully separated.",
+  "Plate the attieke with the grilled fish and garnish, check the seasoning one last time, then serve immediately with chilli offered separately.",
+];
+
 const order = {
   id: "order-1",
   number: "JMA-260902-0142",
@@ -577,9 +592,9 @@ async function mockAdminApi(page: Page) {
       isNew: false,
       isRecommended: true,
       status: "published",
-      steps: ["Assaisonner le poisson.", "Braiser et servir avec l'attiéké."],
-      stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
-      stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
+      steps: editableRecipeStepsFr,
+      stepsFr: editableRecipeStepsFr,
+      stepsEn: editableRecipeStepsEn,
       ingredients: [{ recipeIngredientId: "ingredient-1", productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"], note: null, product: { id: "product-1", nameFr: "Attiéké frais", nameEn: "Fresh attieke", stockQty: 84, reservedQty: 9, availableQty: 75, status: "published", imageUrl: "/products/attieke.webp" } }],
     };
     else if (path === "/api/dishes") payload = dishTemplatePayload;
@@ -2230,7 +2245,15 @@ test("the recipe studio imports a documented dish and exposes every unresolved s
   }
 
   await unresolvedProduct.selectOption("product-1");
-  await expect(dialog.getByRole("button", { name: "Enregistrer le brouillon" })).toBeEnabled();
+  const preparationQuality = dialog.getByTestId("recipe-publication-quality");
+  await expect(preparationQuality).toContainText("50%");
+  const draftButton = dialog.getByRole("button", { name: "Enregistrer le brouillon" });
+  await expect(draftButton).toBeEnabled();
+  await dialog.getByLabel("État de publication").selectOption("published");
+  await expect(dialog.getByRole("button", { name: "Publier la recette" })).toBeDisabled();
+  await expect(dialog.getByText(/Préparation prête à 50 %/)).toBeVisible();
+  await dialog.getByLabel("État de publication").selectOption("draft");
+  await expect(draftButton).toBeEnabled();
   await dialog.getByLabel("Titre français").fill("Garba maison");
   await importer.getByRole("button", { name: "Changer de plat" }).click();
   await importer.getByRole("button", { name: "Importer Garba ivoirien" }).click();
@@ -2507,8 +2530,12 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Titre français")).toHaveValue("Attiéké poisson braisé");
   await expect(dialog.getByLabel("Titre anglais")).toHaveValue("Attieke with grilled fish");
-  await expect(dialog.getByLabel("Étape 1 en français")).toHaveValue("Assaisonner soigneusement le poisson.");
-  await expect(dialog.getByLabel("Step 1 in English")).toHaveValue("Season the fish thoroughly.");
+  await expect(dialog.getByLabel("Étape 1 en français")).toHaveValue(editableRecipeStepsFr[0]);
+  await expect(dialog.getByLabel("Step 1 in English")).toHaveValue(editableRecipeStepsEn[0]);
+  const publicationQuality = dialog.getByTestId("recipe-publication-quality");
+  await expect(publicationQuality).toContainText("75%");
+  await expect(publicationQuality).toContainText("Préparation à compléter");
+  await expect(dialog.getByRole("button", { name: "Enregistrer les modifications" })).toBeDisabled();
   await expect(dialog.getByTestId("recipe-step-preview-1")).toContainText(/aperçu du guide client|customer guide preview/i);
   await expect(dialog.getByTestId("recipe-step-preview-1")).toContainText(/résultat attendu|expected result/i);
   await expect(dialog.getByLabel("Temps actif de l'étape 1")).toHaveValue("5");
@@ -2543,17 +2570,23 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   expect(blockingAccessibility, blockingAccessibility.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
 
   await dialog.getByRole("button", { name: "Descendre l'étape 1" }).click();
-  await expect(dialog.getByLabel("Étape 1 en français")).toHaveValue("Braiser puis servir avec l'attiéké.");
-  await expect(dialog.getByLabel("Step 1 in English")).toHaveValue("Grill and serve with the attieke.");
+  await expect(dialog.getByLabel("Étape 1 en français")).toHaveValue(editableRecipeStepsFr[1]);
+  await expect(dialog.getByLabel("Step 1 in English")).toHaveValue(editableRecipeStepsEn[1]);
   await expect(dialog.getByLabel("Temps actif de l'étape 1")).toHaveValue("10");
   await dialog.getByLabel("Temps de repos de l'étape 1").fill("7");
   await dialog.getByLabel("Température de l'étape 1").fill("180");
   await dialog.getByLabel("Matériel de l'étape 1 fr").fill("Gril, pince longue et thermomètre");
   await dialog.getByLabel("Step equipment 1 en").fill("Grill, long tongs and thermometer");
   await dialog.getByRole("checkbox", { name: "Utiliser Attiéké frais à l'étape 1" }).check();
+  await expect(publicationQuality).toContainText("100%");
+  await expect(publicationQuality).toContainText("Préparation prête à publier");
+  await expect(dialog.getByRole("button", { name: "Enregistrer les modifications" })).toBeEnabled();
   if (process.env.ADMIN_SCREENSHOTS) {
     const directory = join(process.cwd(), "output", "playwright", "admin-review");
     mkdirSync(directory, { recursive: true });
+    await publicationQuality.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(directory, `recipe-editor-quality-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), scale: "css" });
+    await dialog.getByTestId("recipe-step-preview-1").scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(directory, `recipe-editor-${(page.viewportSize()?.width || 0) < 768 ? "mobile" : "desktop"}.png`), scale: "css" });
   }
 
@@ -2561,8 +2594,8 @@ test("the recipe studio edits bilingual preparation and stock-linked ingredients
   await dialog.getByRole("button", { name: "Enregistrer les modifications" }).click();
   const updateRequest = await requestPromise;
   const update = updateRequest.postDataJSON() as { stepsFr: string[]; stepsEn: string[]; stepDetails: Array<{ durationMinutes: string; restMinutes: string; temperatureC: string; equipmentFr: string; equipmentEn: string; titleFr: string; whyFr: string; recoveryFr: string; ingredientProductIds: string[] }>; ingredients: Array<{ productId: string; quantityPerBase: string; alternativeProductIds: string[] }> };
-  expect(update.stepsFr[0]).toBe("Braiser puis servir avec l'attiéké.");
-  expect(update.stepsEn[0]).toBe("Grill and serve with the attieke.");
+  expect(update.stepsFr[0]).toBe(editableRecipeStepsFr[1]);
+  expect(update.stepsEn[0]).toBe(editableRecipeStepsEn[1]);
   expect(update.stepDetails[0]).toMatchObject({ durationMinutes: "10", restMinutes: "7", temperatureC: "180", equipmentFr: "Gril, pince longue et thermomètre", equipmentEn: "Grill, long tongs and thermometer" });
   expect(update.stepDetails[0].titleFr).not.toBe("");
   expect(update.stepDetails[0].whyFr).not.toBe("");

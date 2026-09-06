@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { normalize } from "@/lib/format";
 import type { RecipeStepDetails } from "@/lib/recipe-step-guide";
+import { assessRecipePreparationQuality } from "@/lib/recipe-preparation-quality";
 
 export const recipeImageReference = z.string().trim().max(1000).refine((value) => (
   z.string().url().safeParse(value).success
@@ -36,14 +37,14 @@ const optionalStepTitle = z.string().trim().max(100).nullable().optional();
 export const recipeStepDetailsAdminInput = z.object({
   titleFr: optionalStepTitle,
   titleEn: optionalStepTitle,
-  durationMinutes: z.coerce.number().int().min(1).max(240),
-  restMinutes: z.coerce.number().int().min(0).max(720).default(0),
-  heat: z.enum(["none", "low", "medium", "high", "oven"]),
+  durationMinutes: optionalInteger(1, 240),
+  restMinutes: optionalInteger(0, 720).default(0),
+  heat: z.enum(["none", "low", "medium", "high", "oven"]).default("none"),
   temperatureC: optionalInteger(30, 300),
   equipmentFr: z.string().trim().max(160).nullable().optional(),
   equipmentEn: z.string().trim().max(160).nullable().optional(),
-  cueFr: z.string().trim().min(10).max(500),
-  cueEn: z.string().trim().min(10).max(500),
+  cueFr: optionalStepText,
+  cueEn: optionalStepText,
   tipFr: optionalStepText,
   tipEn: optionalStepText,
   warningFr: optionalStepText,
@@ -92,6 +93,21 @@ export const recipeAdminInput = z.object({
       context.addIssue({ code: "custom", path: ["stepDetails", index, "ingredientProductIds"], message: "Chaque ingrédient d’étape doit appartenir à la recette." });
     }
   });
+  if (input.status !== "published") return;
+
+  const preparationQuality = assessRecipePreparationQuality(input);
+  if (!preparationQuality.requirements.completeSequence) {
+    context.addIssue({ code: "custom", path: ["stepsFr"], message: "Une recette publiée doit comporter au moins cinq étapes parfaitement alignées en français et en anglais." });
+  }
+  if (!preparationQuality.requirements.detailedBilingualInstructions) {
+    context.addIssue({ code: "custom", path: ["stepsFr"], message: "Chaque étape publiée doit détailler le geste en français et en anglais avec au moins seize mots." });
+  }
+  if (!preparationQuality.requirements.professionalGuidance) {
+    context.addIssue({ code: "custom", path: ["stepDetails"], message: "Chaque étape publiée doit préciser le temps, la chaleur, le matériel, le résultat, le conseil, la raison et le rattrapage dans les deux langues." });
+  }
+  if (!preparationQuality.requirements.ingredientCoverage) {
+    context.addIssue({ code: "custom", path: ["stepDetails"], message: "Chaque ingrédient obligatoire doit être relié à au moins une étape de préparation." });
+  }
 });
 
 export type RecipeAdminInput = z.infer<typeof recipeAdminInput>;

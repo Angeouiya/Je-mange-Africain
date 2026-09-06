@@ -8,6 +8,7 @@ import { parseRecipeSteps, serializeRecipeSteps } from "@/lib/recipe-step-storag
 import { retailAvailableUnits } from "@/lib/inventory";
 import { parseRecipeAlternativeIds, serializeRecipeAlternativeIds } from "@/lib/recipe-alternatives";
 import { hasRequiredRecipeIngredient, recipePublicationConflict, unpublishedRecipeProductIds } from "@/lib/recipe-publication";
+import { assessRecipePreparationQuality, recipePreparationPublicationConflict } from "@/lib/recipe-preparation-quality";
 
 export const dynamic = "force-dynamic";
 
@@ -138,6 +139,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "fr";
   const fullRecipe = recipeAdminInput.safeParse(body);
   if (fullRecipe.success) return updateFullRecipe(id, fullRecipe.data, authorization.user.email, locale);
+  const looksLikeFullRecipe = Boolean(body && typeof body === "object" && (
+    "titleFr" in body || "stepsFr" in body || "stepsEn" in body || "stepDetails" in body || "ingredients" in body
+  ));
+  if (looksLikeFullRecipe) {
+    return NextResponse.json({
+      error: locale === "fr" ? "La fiche complète de la recette contient encore des éléments invalides." : "The full recipe record still contains invalid items.",
+      details: fullRecipe.error.flatten(),
+    }, { status: 400 });
+  }
 
   const parsed = RecipeEditorialInput.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Les paramètres éditoriaux de la recette sont invalides." }, { status: 400 });
@@ -150,6 +160,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       isNew: true,
       isRecommended: true,
       isPopular: true,
+      translations: { select: { locale: true, steps: true } },
       ingredients: { select: { productId: true, optional: true, product: { select: { status: true } } } },
     },
   });
@@ -161,6 +172,44 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const missingRequiredIngredient = !hasRequiredRecipeIngredient(before.ingredients);
   if (parsed.data.status === "published" && (missingRequiredIngredient || unpublishedProductIds.length > 0)) {
     return NextResponse.json(recipePublicationConflict(unpublishedProductIds, missingRequiredIngredient, locale), { status: 409 });
+  }
+  if (parsed.data.status === "published" && before.status !== "published") {
+    const frenchSteps = parseRecipeSteps(before.translations.find((translation) => translation.locale === "fr")?.steps, "fr");
+    const englishSteps = parseRecipeSteps(before.translations.find((translation) => translation.locale === "en")?.steps, "en");
+    const stepDetails = Array.from({ length: Math.max(frenchSteps.length, englishSteps.length) }, (_, index) => {
+      const frenchStep = frenchSteps[index];
+      const englishStep = englishSteps[index];
+      const timing = frenchStep || englishStep;
+      return {
+        titleFr: frenchStep?.title,
+        titleEn: englishStep?.title,
+        durationMinutes: timing?.durationMinutes,
+        heat: timing?.heat,
+        equipmentFr: frenchStep?.equipment,
+        equipmentEn: englishStep?.equipment,
+        cueFr: frenchStep?.cue,
+        cueEn: englishStep?.cue,
+        tipFr: frenchStep?.tip,
+        tipEn: englishStep?.tip,
+        whyFr: frenchStep?.why,
+        whyEn: englishStep?.why,
+        recoveryFr: frenchStep?.recovery,
+        recoveryEn: englishStep?.recovery,
+        ingredientProductIds: Array.from(new Set([
+          ...(frenchStep?.ingredientProductIds || []),
+          ...(englishStep?.ingredientProductIds || []),
+        ])),
+      };
+    });
+    const preparationQuality = assessRecipePreparationQuality({
+      stepsFr: frenchSteps.map((step) => step.instruction),
+      stepsEn: englishSteps.map((step) => step.instruction),
+      stepDetails,
+      ingredients: before.ingredients,
+    });
+    if (!preparationQuality.ready) {
+      return NextResponse.json(recipePreparationPublicationConflict(preparationQuality, locale), { status: 409 });
+    }
   }
   const editorialBefore = {
     imageUrl: before.imageUrl,

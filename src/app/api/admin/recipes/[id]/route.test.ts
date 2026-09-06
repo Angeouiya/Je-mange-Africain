@@ -54,7 +54,7 @@ const validRecipe = {
   isPopular: true,
   isNew: false,
   isRecommended: true,
-  status: "published",
+  status: "draft",
   stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
   stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
   stepDetails: [0, 1].map((index) => ({
@@ -80,6 +80,43 @@ const validRecipe = {
   })),
   ingredients: [{ productId: "product-1", variantId: null, quantityPerBase: 500, unit: "g", role: "base", optional: false, alternativeProductIds: ["product-2"] }],
 };
+
+const detailedStepFr = "Cuire doucement le poisson pendant douze minutes en le retournant avec soin, jusqu'à obtenir une chair opaque, moelleuse et facilement détachable.";
+const detailedStepEn = "Cook the fish gently for twelve minutes, turning it carefully, until the flesh is opaque, moist and flakes away easily.";
+const publishReadyRecipe = {
+  ...validRecipe,
+  status: "published",
+  stepsFr: Array(5).fill(detailedStepFr),
+  stepsEn: Array(5).fill(detailedStepEn),
+  stepDetails: Array.from({ length: 5 }, () => ({
+    ...validRecipe.stepDetails[0],
+    titleFr: "Maîtriser la cuisson",
+    titleEn: "Control the cooking",
+    ingredientProductIds: ["product-1"],
+  })),
+};
+
+const readyStoredStep = (instruction: string, locale: "fr" | "en") => ({
+  version: 2,
+  instruction,
+  title: locale === "fr" ? "Maîtriser la cuisson" : "Control the cooking",
+  durationMinutes: 12,
+  restMinutes: 0,
+  heat: "low",
+  temperatureC: null,
+  equipment: locale === "fr" ? "Cocotte et cuillère en bois" : "Heavy pot and wooden spoon",
+  cue: locale === "fr" ? "La chair est opaque et moelleuse." : "The flesh is opaque and moist.",
+  tip: locale === "fr" ? "Retourner délicatement avec une spatule large." : "Turn gently with a wide spatula.",
+  warning: null,
+  why: locale === "fr" ? "La cuisson douce conserve le moelleux du poisson." : "Gentle cooking keeps the fish moist.",
+  recovery: locale === "fr" ? "Poursuivre deux minutes si le centre reste translucide." : "Cook for two more minutes if the centre remains translucent.",
+  ingredientProductIds: ["product-1"],
+});
+
+const publishReadyTranslations = [
+  { locale: "fr", steps: JSON.stringify(Array.from({ length: 5 }, () => readyStoredStep(detailedStepFr, "fr"))) },
+  { locale: "en", steps: JSON.stringify(Array.from({ length: 5 }, () => readyStoredStep(detailedStepEn, "en"))) },
+];
 
 function request(body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/admin/recipes/recipe-1", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -122,7 +159,7 @@ describe("PATCH /api/admin/recipes/:id", () => {
 
   it("refuses an alternative that no longer belongs to the catalogue", async () => {
     mocks.productFindMany.mockResolvedValue([{ id: "product-1", status: "published", variants: [] }]);
-    const response = await PATCH(request(validRecipe), { params: Promise.resolve({ id: "recipe-1" }) });
+    const response = await PATCH(request(publishReadyRecipe), { params: Promise.resolve({ id: "recipe-1" }) });
 
     expect(response.status).toBe(400);
     expect(mocks.recipeUpdate).not.toHaveBeenCalled();
@@ -134,13 +171,23 @@ describe("PATCH /api/admin/recipes/:id", () => {
       { id: "product-2", status: "published", variants: [] },
     ]);
 
-    const response = await PATCH(request(validRecipe), { params: Promise.resolve({ id: "recipe-1" }) });
+    const response = await PATCH(request(publishReadyRecipe), { params: Promise.resolve({ id: "recipe-1" }) });
     const payload = await response.json();
 
     expect(response.status).toBe(409);
     expect(payload.unpublishedProductIds).toEqual(["product-1"]);
     expect(mocks.recipeUpdate).not.toHaveBeenCalled();
     expect(mocks.ingredientDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it("does not downgrade an invalid full publication to a quick editorial update", async () => {
+    const response = await PATCH(request({ ...validRecipe, status: "published" }), { params: Promise.resolve({ id: "recipe-1" }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toContain("fiche complète");
+    expect(payload.details.fieldErrors.stepsFr).toBeDefined();
+    expect(mocks.recipeUpdate).not.toHaveBeenCalled();
   });
 
   it("refuses a quick editorial publication when a linked product is not public", async () => {
@@ -193,5 +240,63 @@ describe("PATCH /api/admin/recipes/:id", () => {
     expect(response.status).toBe(409);
     expect(payload.error).toContain("au moins un ingrédient obligatoire");
     expect(mocks.recipeUpdate).not.toHaveBeenCalled();
+  });
+
+  it("refuses a quick publication when the saved preparation is too brief", async () => {
+    mocks.recipeFindUnique.mockResolvedValue({
+      imageUrl: "/recipes/attieke-poisson.webp",
+      galleryUrls: "[]",
+      status: "draft",
+      isNew: true,
+      isRecommended: true,
+      isPopular: false,
+      translations: [
+        { locale: "fr", steps: JSON.stringify(["Cuire le poisson."]) },
+        { locale: "en", steps: JSON.stringify(["Cook the fish."]) },
+      ],
+      ingredients: [{ productId: "product-1", optional: false, product: { status: "published" } }],
+    });
+
+    const response = await PATCH(request({
+      imageUrl: "/recipes/attieke-poisson.webp",
+      galleryUrls: [],
+      status: "published",
+      isNew: true,
+      isRecommended: true,
+      isPopular: false,
+    }), { params: Promise.resolve({ id: "recipe-1" }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.error).toContain("détaillez et reliez toute la préparation");
+    expect(payload.preparationQuality.ready).toBe(false);
+    expect(mocks.recipeUpdate).not.toHaveBeenCalled();
+  });
+
+  it("allows quick publication once the stored preparation is complete", async () => {
+    mocks.recipeFindUnique.mockResolvedValue({
+      imageUrl: "/recipes/attieke-poisson.webp",
+      galleryUrls: "[]",
+      status: "draft",
+      isNew: true,
+      isRecommended: true,
+      isPopular: false,
+      translations: publishReadyTranslations,
+      ingredients: [{ productId: "product-1", optional: false, product: { status: "published" } }],
+    });
+
+    const response = await PATCH(request({
+      imageUrl: "/recipes/attieke-poisson.webp",
+      galleryUrls: [],
+      status: "published",
+      isNew: true,
+      isRecommended: true,
+      isPopular: false,
+    }), { params: Promise.resolve({ id: "recipe-1" }) });
+
+    expect(response.status).toBe(200);
+    expect(mocks.recipeUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: "published" }),
+    }));
   });
 });

@@ -17,10 +17,42 @@ const validRecipe = {
   isPopular: true,
   isNew: false,
   isRecommended: true,
-  status: "published",
+  status: "draft",
   stepsFr: ["Assaisonner soigneusement le poisson.", "Braiser puis servir avec l'attiéké."],
   stepsEn: ["Season the fish thoroughly.", "Grill and serve with the attieke."],
   ingredients: [{ productId: "product-1", quantityPerBase: "500", unit: "g", role: "base", optional: false }],
+};
+
+const detailedStepFr = "Cuire doucement la sauce pendant douze minutes en remuant depuis le fond, jusqu'à obtenir une texture brillante qui nappe clairement la cuillère.";
+const detailedStepEn = "Cook the sauce gently for twelve minutes, stirring from the bottom, until it becomes glossy and clearly coats the spoon.";
+const completeStepDetail = {
+  titleFr: "Maîtriser la cuisson",
+  titleEn: "Control the cooking",
+  durationMinutes: "12",
+  restMinutes: "0",
+  heat: "low",
+  temperatureC: "",
+  equipmentFr: "Cocotte et cuillère en bois",
+  equipmentEn: "Heavy pot and wooden spoon",
+  cueFr: "La sauce est brillante et nappe clairement la cuillère.",
+  cueEn: "The sauce is glossy and clearly coats the spoon.",
+  tipFr: "Remuer régulièrement depuis le fond de la cocotte.",
+  tipEn: "Stir regularly from the bottom of the pot.",
+  warningFr: "",
+  warningEn: "",
+  whyFr: "La cuisson douce concentre les saveurs sans brûler la base.",
+  whyEn: "Gentle cooking concentrates flavour without scorching the base.",
+  recoveryFr: "Ajouter une cuillère d'eau chaude si la sauce épaissit trop.",
+  recoveryEn: "Add one spoonful of hot water if the sauce becomes too thick.",
+  ingredientProductIds: ["product-1"],
+};
+
+const publishReadyRecipe = {
+  ...validRecipe,
+  status: "published",
+  stepsFr: Array(5).fill(detailedStepFr),
+  stepsEn: Array(5).fill(detailedStepEn),
+  stepDetails: Array.from({ length: 5 }, () => ({ ...completeStepDetail })),
 };
 
 describe("admin recipe contract", () => {
@@ -55,6 +87,12 @@ describe("admin recipe contract", () => {
 
     expect(recipeAdminInput.safeParse({ ...validRecipe, stepsFr: [detailedStep, detailedStep], stepsEn: [detailedStepEn, detailedStepEn] }).success).toBe(true);
     expect(recipeAdminInput.safeParse({ ...validRecipe, stepsFr: ["a".repeat(801), detailedStep], stepsEn: [detailedStepEn, detailedStepEn] }).success).toBe(false);
+  });
+
+  it("keeps incomplete work as a draft and protects publication quality", () => {
+    expect(recipeAdminInput.safeParse(validRecipe).success).toBe(true);
+    expect(recipeAdminInput.safeParse({ ...validRecipe, status: "published" }).success).toBe(false);
+    expect(recipeAdminInput.safeParse(publishReadyRecipe).success).toBe(true);
   });
 
   it("validates the professional cues attached to every step", () => {
