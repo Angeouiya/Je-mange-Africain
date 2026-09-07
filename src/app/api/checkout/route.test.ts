@@ -6,6 +6,23 @@ const mocks = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   priceCheckout: vi.fn(),
   paymentFindUnique: vi.fn(),
+  userFindUnique: vi.fn(),
+  customerFindUnique: vi.fn(),
+  customerCreate: vi.fn(),
+  carrierFindFirst: vi.fn(),
+  dbTransaction: vi.fn(),
+  txPaymentFindUnique: vi.fn(),
+  txPaymentCreate: vi.fn(),
+  txProductFindUnique: vi.fn(),
+  txProductUpdate: vi.fn(),
+  txOrderCreate: vi.fn(),
+  txInventoryBatchFindMany: vi.fn(),
+  txInventoryBatchUpdate: vi.fn(),
+  txStockMovementCreate: vi.fn(),
+  txOrderBatchAllocationCreate: vi.fn(),
+  txPromotionUpdate: vi.fn(),
+  txShipmentCreate: vi.fn(),
+  txAuditLogCreate: vi.fn(),
   retrieveIntent: vi.fn(),
   createRefund: vi.fn(),
 }));
@@ -16,6 +33,10 @@ vi.mock("@/lib/push-server", () => ({ sendPushToSubscriptionId: vi.fn() }));
 vi.mock("@/lib/db", () => ({
   db: {
     payment: { findUnique: mocks.paymentFindUnique },
+    user: { findUnique: mocks.userFindUnique },
+    customer: { findUnique: mocks.customerFindUnique, create: mocks.customerCreate },
+    carrier: { findFirst: mocks.carrierFindFirst },
+    $transaction: mocks.dbTransaction,
   },
 }));
 vi.mock("@/lib/stripe", () => ({
@@ -83,6 +104,33 @@ describe("POST /api/checkout payment recovery", () => {
     mocks.retrieveIntent.mockResolvedValue(paymentIntent);
     mocks.paymentFindUnique.mockResolvedValue(null);
     mocks.createRefund.mockResolvedValue({ id: "re_checkout_42", status: "pending" });
+    mocks.userFindUnique.mockResolvedValue({ id: "user-1", email: session.email, role: "customer", isActive: true });
+    mocks.customerFindUnique.mockResolvedValue({ id: "customer-1", userId: "user-1" });
+    mocks.customerCreate.mockResolvedValue({ id: "customer-1", userId: "user-1" });
+    mocks.carrierFindFirst.mockResolvedValue({ id: "carrier-1", name: "DPD Europe", rating: 4.8 });
+    mocks.txPaymentFindUnique.mockResolvedValue(null);
+    mocks.txPaymentCreate.mockResolvedValue({});
+    mocks.txProductFindUnique.mockResolvedValue({ id: "product-1", stockQty: 10, reservedQty: 0 });
+    mocks.txProductUpdate.mockResolvedValue({});
+    mocks.txOrderCreate.mockResolvedValue({ id: "order-1", number: "JMA-2026-BATCH", total: 42, status: "paymentConfirmed" });
+    mocks.txInventoryBatchFindMany.mockResolvedValue([{ id: "batch-1", quantity: 10, reserved: 0, warehouseId: "warehouse-1", costPrice: 12 }]);
+    mocks.txInventoryBatchUpdate.mockResolvedValue({});
+    mocks.txStockMovementCreate.mockResolvedValue({});
+    mocks.txOrderBatchAllocationCreate.mockResolvedValue({});
+    mocks.txPromotionUpdate.mockResolvedValue({});
+    mocks.txShipmentCreate.mockResolvedValue({});
+    mocks.txAuditLogCreate.mockResolvedValue({});
+    mocks.dbTransaction.mockImplementation(async (callback) => callback({
+      payment: { findUnique: mocks.txPaymentFindUnique, create: mocks.txPaymentCreate },
+      product: { findUnique: mocks.txProductFindUnique, update: mocks.txProductUpdate },
+      order: { create: mocks.txOrderCreate },
+      inventoryBatch: { findMany: mocks.txInventoryBatchFindMany, update: mocks.txInventoryBatchUpdate },
+      stockMovement: { create: mocks.txStockMovementCreate },
+      orderBatchAllocation: { create: mocks.txOrderBatchAllocationCreate },
+      promotion: { update: mocks.txPromotionUpdate },
+      shipment: { create: mocks.txShipmentCreate },
+      auditLog: { create: mocks.txAuditLogCreate },
+    }));
   });
 
   it("returns an existing order before repricing an idempotent retry", async () => {
@@ -137,6 +185,19 @@ describe("POST /api/checkout payment recovery", () => {
     expect(mocks.createRefund).not.toHaveBeenCalled();
   });
 
+  it("rejects an unconfirmed payment before repricing or touching order state", async () => {
+    mocks.retrieveIntent.mockResolvedValue({ ...paymentIntent, status: "requires_payment_method", amount_received: 0 });
+
+    const response = await POST(request());
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload).toMatchObject({ error: "Le paiement n'est pas encore confirmé." });
+    expect(mocks.paymentFindUnique).not.toHaveBeenCalled();
+    expect(mocks.priceCheckout).not.toHaveBeenCalled();
+    expect(mocks.createRefund).not.toHaveBeenCalled();
+  });
+
   it("never refunds a payment owned by another customer session", async () => {
     mocks.retrieveIntent.mockResolvedValue({ ...paymentIntent, metadata: { customer_auth_id: "another-customer" } });
 
@@ -157,6 +218,100 @@ describe("POST /api/checkout payment recovery", () => {
     expect(payload).toMatchObject({ securityReviewRequired: true });
     expect(mocks.paymentFindUnique).not.toHaveBeenCalled();
     expect(mocks.createRefund).not.toHaveBeenCalled();
+  });
+
+  it("refunds a captured payment when the Stripe amount no longer matches the server basket", async () => {
+    mocks.retrieveIntent.mockResolvedValue({
+      ...paymentIntent,
+      amount_received: 4100,
+      metadata: {
+        ...paymentIntent.metadata,
+        cart_fingerprint: "cart-fingerprint",
+        delivery_service: "standard",
+        address_fingerprint: deliveryContactFingerprint(body.address),
+      },
+    });
+    mocks.priceCheckout.mockResolvedValue({
+      validatedItems: [{ productId: "product-1", qty: 1, unitsPerPack: 1, salesChannel: "retail" }],
+      total: 42,
+      subtotal: 35,
+      promoDiscount: 0,
+      shipping: 7,
+      vat: 6,
+      weightGrams: 1_200,
+      thermalClasses: ["AMBIANT"],
+      shippingQuote: { carrier: "DPD Europe", service: "standard", minDelayHours: 48, maxDelayHours: 72 },
+      fingerprint: "cart-fingerprint",
+      promotionId: null,
+    });
+
+    const response = await POST(request());
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload).toMatchObject({ paymentRecovery: { status: "refund_submitted", reference: "re_checkout_42" } });
+    expect(mocks.createRefund).toHaveBeenCalledWith({
+      payment_intent: paymentIntent.id,
+      metadata: { source: "checkout_recovery", cause: "order_not_created" },
+    }, { idempotencyKey: `jma:checkout-recovery:${paymentIntent.id}` });
+  });
+
+  it("refunds a captured payment when active batches cannot cover the stock reservation", async () => {
+    mocks.retrieveIntent.mockResolvedValue({
+      ...paymentIntent,
+      metadata: {
+        ...paymentIntent.metadata,
+        cart_fingerprint: "traceable-cart",
+        delivery_service: "standard",
+        address_fingerprint: deliveryContactFingerprint(body.address),
+      },
+    });
+    mocks.priceCheckout.mockResolvedValue({
+      validatedItems: [{
+        productId: "product-1",
+        variantId: null,
+        variantLabel: null,
+        nameFr: "Attiéké premium",
+        nameEn: "Premium attieke",
+        sku: "ATT-PREMIUM",
+        unitPrice: 35,
+        qty: 1,
+        lineTotal: 35,
+        thermalClass: "AMBIANT",
+        imageUrl: null,
+        recipeId: null,
+        recipeNameFr: null,
+        recipeNameEn: null,
+        packWeightGrams: 1_200,
+        salesChannel: "retail",
+        unitsPerPack: 4,
+      }],
+      total: 42,
+      subtotal: 35,
+      promoDiscount: 0,
+      shipping: 7,
+      vat: 6,
+      weightGrams: 1_200,
+      thermalClasses: ["AMBIANT"],
+      shippingQuote: { carrier: "DPD Europe", service: "standard", minDelayHours: 48, maxDelayHours: 72 },
+      fingerprint: "traceable-cart",
+      promotionId: null,
+    });
+    mocks.txProductFindUnique.mockResolvedValue({ id: "product-1", stockQty: 4, reservedQty: 0 });
+    mocks.txInventoryBatchFindMany.mockResolvedValue([{ id: "batch-1", quantity: 2, reserved: 0, warehouseId: "warehouse-1", costPrice: 12 }]);
+
+    const response = await POST(request());
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload).toMatchObject({ paymentRecovery: { status: "refund_submitted", reference: "re_checkout_42" } });
+    expect(mocks.txProductUpdate).not.toHaveBeenCalled();
+    expect(mocks.txPaymentCreate).not.toHaveBeenCalled();
+    expect(mocks.txOrderBatchAllocationCreate).not.toHaveBeenCalled();
+    expect(mocks.createRefund).toHaveBeenCalledWith({
+      payment_intent: paymentIntent.id,
+      metadata: { source: "checkout_recovery", cause: "order_not_created" },
+    }, { idempotencyKey: `jma:checkout-recovery:${paymentIntent.id}` });
   });
 
   it("refunds a captured payment when server-side fraud verification blocks finalization", async () => {

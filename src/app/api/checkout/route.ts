@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { CheckoutPricingError, priceCheckout } from "@/lib/checkout-pricing";
+import { CheckoutStockReservationError, planCheckoutBatchAllocations } from "@/lib/checkout-stock-reservation";
 import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
 import { sendPushToSubscriptionId } from "@/lib/push-server";
@@ -188,35 +189,43 @@ export async function POST(request: NextRequest) {
 
       for (const item of pricing.validatedItems) {
         const stockUnits = item.qty * item.unitsPerPack;
-        await tx.product.update({ where: { id: item.productId }, data: { reservedQty: { increment: stockUnits } } });
-
-        let remaining = stockUnits;
         const batches = await tx.inventoryBatch.findMany({
           where: { productId: item.productId, status: "active", quantity: { gt: 0 } },
           orderBy: { expiryDate: "asc" },
         });
-        for (const batch of batches) {
-          if (remaining <= 0) break;
-          const available = Math.max(0, batch.quantity - batch.reserved);
-          const take = Math.min(remaining, available);
-          if (!take) continue;
-          await tx.inventoryBatch.update({ where: { id: batch.id }, data: { reserved: { increment: take } } });
+        let allocations: ReturnType<typeof planCheckoutBatchAllocations>;
+        try {
+          allocations = planCheckoutBatchAllocations(batches, stockUnits);
+        } catch (allocationError) {
+          if (allocationError instanceof CheckoutStockReservationError) {
+            const productName = body.locale === "fr" ? item.nameFr : item.nameEn;
+            throw new CheckoutPricingError(body.locale === "fr"
+              ? `Le stock par lot disponible pour ${productName} a changé. Vérifiez votre panier.`
+              : `Available batch stock for ${productName} has changed. Please review your basket.`, 409);
+          }
+          throw allocationError;
+        }
+
+        await tx.product.update({ where: { id: item.productId }, data: { reservedQty: { increment: stockUnits } } });
+
+        for (const allocation of allocations) {
+          const batch = batches[allocation.batchIndex];
+          await tx.inventoryBatch.update({ where: { id: batch.id }, data: { reserved: { increment: allocation.quantity } } });
           await tx.stockMovement.create({
             data: {
               batchId: batch.id,
               productId: item.productId,
               warehouseId: batch.warehouseId,
               type: "reservation",
-              quantity: -take,
+              quantity: -allocation.quantity,
               reason: `Commande ${number}`,
-              beforeQty: available,
-              afterQty: available - take,
+              beforeQty: allocation.beforeQty,
+              afterQty: allocation.afterQty,
             },
           });
           await tx.orderBatchAllocation.create({
-            data: { orderId: order.id, productId: item.productId, batchId: batch.id, quantity: take, unitCost: batch.costPrice },
+            data: { orderId: order.id, productId: item.productId, batchId: batch.id, quantity: allocation.quantity, unitCost: batch.costPrice },
           });
-          remaining -= take;
         }
       }
 
