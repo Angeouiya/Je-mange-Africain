@@ -34,7 +34,12 @@ export function ClientSeo({ id, title, description, canonicalPath, image, struct
       setMeta("name", "twitter:image", imageUrl, restorers);
     }
 
-    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    const getCanonicalLinks = () => [...document.querySelectorAll<HTMLLinkElement>('link[rel="canonical"]')];
+    let canonicalLinks = getCanonicalLinks();
+    let canonical =
+      canonicalLinks.find((element) => element.dataset.jmaClientSeo === id) ||
+      canonicalLinks.find((element) => element.parentElement === document.head) ||
+      canonicalLinks[0];
     const createdCanonical = !canonical;
     const previousCanonical = canonical?.getAttribute("href");
     if (!canonical) {
@@ -42,15 +47,33 @@ export function ClientSeo({ id, title, description, canonicalPath, image, struct
       canonical.rel = "canonical";
       document.head.appendChild(canonical);
     }
-    canonical.href = canonicalUrl;
+    let syncingCanonical = false;
+    const syncCanonical = () => {
+      if (syncingCanonical || !canonical) return;
+      syncingCanonical = true;
+      try {
+        canonicalLinks = getCanonicalLinks();
+        if (!canonical.isConnected || canonical.parentElement !== document.head) document.head.appendChild(canonical);
+        canonical.dataset.jmaClientSeo = id;
+        canonical.href = canonicalUrl;
+        canonicalLinks.filter((element) => element !== canonical).forEach((element) => element.remove());
+      } finally {
+        syncingCanonical = false;
+      }
+    };
+    syncCanonical();
+    const canonicalObserver = new MutationObserver(syncCanonical);
+    canonicalObserver.observe(document.documentElement, { childList: true, subtree: true });
     restorers.push(() => {
+      canonicalObserver.disconnect();
       if (createdCanonical) canonical?.remove();
       else if (previousCanonical === null || previousCanonical === undefined) canonical?.removeAttribute("href");
       else canonical?.setAttribute("href", previousCanonical);
+      canonical?.removeAttribute("data-jma-client-seo");
     });
 
     return () => restorers.reverse().forEach((restore) => restore());
-  }, [canonicalPath, description, image, title]);
+  }, [canonicalPath, description, id, image, title]);
 
   return (
     <script

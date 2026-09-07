@@ -722,6 +722,7 @@ test("product details stay bounded and preserve real visual identification in th
 
   await expect(page.getByRole("heading", { level: 1, name: productName })).toBeVisible();
   await expect(page).toHaveURL(/\?view=product&productId=[^&]+/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\?view=product&productId=[^&]+/);
   const productSchema = JSON.parse((await page.locator('script[id^="jma-structured-product-"]').textContent()) || "{}");
   expect(productSchema["@type"]).toBe("Product");
@@ -742,6 +743,18 @@ test("product details stay bounded and preserve real visual identification in th
   const purchaseDock = page.getByTestId("product-purchase-dock");
   if (isMobile) {
     await expect(purchaseDock).toBeVisible();
+    await expectNoHorizontalOverflow(page, purchaseDock);
+    const dockProtrusions = await purchaseDock.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      return [...root.querySelectorAll<HTMLElement>("*")]
+        .filter((element) => {
+          const box = element.getBoundingClientRect();
+          return box.left < bounds.left - 1 || box.right > bounds.right + 1;
+        })
+        .map((element) => ({ tag: element.tagName.toLowerCase(), text: element.textContent?.trim().slice(0, 80), left: Math.round(element.getBoundingClientRect().left), right: Math.round(element.getBoundingClientRect().right) }))
+        .slice(0, 8);
+    });
+    expect(dockProtrusions, `product purchase dock protrusions: ${JSON.stringify(dockProtrusions)}`).toEqual([]);
     const dockBox = await purchaseDock.boundingBox();
     const navigationBox = await page.getByTestId("mobile-navigation").boundingBox();
     expect(Math.abs((dockBox?.y || 0) + (dockBox?.height || 0) - (navigationBox?.y || 0))).toBeLessThanOrEqual(2);
@@ -1956,6 +1969,131 @@ test("product and recipe details recover without duplicating navigation", async 
 test("the recipe configurator recalculates, removes and restores an ingredient", async ({ page }) => {
   await seedAuthenticatedCustomer(page);
   let calculationAvailable = false;
+  let latestRecipePayload: any = null;
+  const egousiProduct = {
+    productId: "mock-egousi",
+    variantId: "mock-egousi-500g",
+    nameFr: "Égousi",
+    nameEn: "Egusi",
+    traditionalName: "Égousi",
+    emoji: "🌰",
+    imageUrl: "/products/egousi.webp",
+    color: "#B9472B",
+    thermalClass: "AMBIANT",
+    stockQty: 18,
+    packLabel: "Sachet 500 g",
+    packWeightGrams: 500,
+    unitPrice: 6.2,
+  };
+  const buildMockCalculation = (body: any) => {
+    const sourceIngredient = latestRecipePayload?.ingredients?.[0];
+    if (!sourceIngredient) throw new Error("Recipe fixture is missing an ingredient");
+    const sourceProduct = sourceIngredient.product;
+    const originalNameFr = sourceProduct.nameFr || sourceProduct.traditionalName;
+    const originalNameEn = sourceProduct.nameEn || sourceProduct.traditionalName;
+    const replacingWithEgousi = body.replacements?.[sourceIngredient.recipeIngredientId] === egousiProduct.productId;
+    const selectedProduct = replacingWithEgousi ? egousiProduct : {
+      productId: sourceProduct.id,
+      variantId: sourceProduct.variants?.[0]?.id || sourceIngredient.variantId,
+      nameFr: originalNameFr,
+      nameEn: originalNameEn,
+      traditionalName: sourceProduct.traditionalName,
+      emoji: sourceProduct.emoji,
+      imageUrl: sourceProduct.imageUrl,
+      color: sourceProduct.color,
+      thermalClass: sourceProduct.thermalClass,
+      stockQty: sourceProduct.stockQty,
+      packLabel: sourceProduct.variants?.[0]?.label || "Unité",
+      packWeightGrams: sourceProduct.variants?.[0]?.weightGrams || sourceProduct.variants?.[0]?.volumeMl || 1,
+      unitPrice: sourceProduct.variants?.[0]?.price || 1,
+    };
+    const removedByPantry = [sourceIngredient.recipeIngredientId, sourceProduct.id].some((id) => body.haveAtHome?.includes(id));
+    const removedByChoice = [sourceIngredient.recipeIngredientId, sourceProduct.id].some((id) => body.excludedIngredients?.includes(id));
+    const removed = removedByPantry || removedByChoice;
+    const servings = Number(body.servings || latestRecipePayload.baseServings || 4);
+    const scale = servings / Number(latestRecipePayload.baseServings || 4);
+    const neededQty = Math.round(Number(sourceIngredient.quantityPerBase || 1) * scale * 10) / 10;
+    const neededUnit = sourceIngredient.unit || "g";
+    const neededBase = neededUnit === "kg" || neededUnit === "L" ? neededQty * 1000 : neededUnit === "tbsp" ? neededQty * 15 : neededUnit === "tsp" ? neededQty * 5 : neededQty;
+    const packs = removed ? 0 : Math.max(1, Math.ceil(neededBase / Math.max(1, selectedProduct.packWeightGrams)));
+    const boughtQty = packs * selectedProduct.packWeightGrams;
+    const lineTotal = Math.round(packs * selectedProduct.unitPrice * 100) / 100;
+    const replacementOptions = [{
+      productId: egousiProduct.productId,
+      nameFr: egousiProduct.nameFr,
+      nameEn: egousiProduct.nameEn,
+      emoji: egousiProduct.emoji,
+      imageUrl: egousiProduct.imageUrl,
+      availableStock: egousiProduct.stockQty,
+      packLabel: egousiProduct.packLabel,
+      unitPrice: egousiProduct.unitPrice,
+      recommended: true,
+    }];
+    const ingredient = {
+      recipeIngredientId: sourceIngredient.recipeIngredientId,
+      productId: selectedProduct.productId,
+      variantId: selectedProduct.variantId,
+      nameFr: selectedProduct.nameFr,
+      nameEn: selectedProduct.nameEn,
+      traditionalName: selectedProduct.traditionalName,
+      emoji: selectedProduct.emoji,
+      imageUrl: selectedProduct.imageUrl,
+      color: selectedProduct.color,
+      role: sourceIngredient.role || "base",
+      optional: false,
+      neededQty,
+      neededUnit,
+      boughtQty,
+      boughtLabel: `${packs} × ${selectedProduct.packLabel}`,
+      packs,
+      packLabel: selectedProduct.packLabel,
+      packWeightGrams: selectedProduct.packWeightGrams,
+      leftover: Math.max(0, boughtQty - neededBase),
+      leftoverUnit: neededUnit === "piece" ? "piece" : "g",
+      unitPrice: selectedProduct.unitPrice,
+      lineTotal,
+      available: packs <= selectedProduct.stockQty,
+      stockQty: selectedProduct.stockQty,
+      thermalClass: selectedProduct.thermalClass,
+      removed,
+      removalReason: removedByPantry ? "pantry" : removedByChoice ? "excluded" : null,
+      originalProductId: sourceProduct.id,
+      originalNameFr,
+      originalNameEn,
+      isReplacement: replacingWithEgousi,
+      replacementOptions,
+      substituteProductId: null,
+      substituteName: null,
+    };
+    const baseSteps = latestRecipePayload.steps?.length ? latestRecipePayload.steps : ["Délayer la pâte d'arachide puis laisser mijoter."];
+    const recipeStepsFr = baseSteps.map((step: string) => replacingWithEgousi
+      ? `${step.replace(/p[aâ]te\s+d['’]arachide|peanut paste|arachide|peanut/giu, egousiProduct.nameFr)} Adaptée à votre remplacement.`
+      : step
+    );
+    if (replacingWithEgousi && !recipeStepsFr.join(" ").match(/égousi/i)) {
+      recipeStepsFr[0] = `Ajouter l'Égousi et mélanger doucement. Adaptée à votre remplacement.`;
+    }
+    const recipeStepsEn = recipeStepsFr.map((step: string) => step
+      .replace(/Égousi/g, "Egusi")
+      .replace(/Adaptée à votre remplacement\./g, "Adapted to your replacement.")
+    );
+    const activeIngredients = removed ? [] : [ingredient];
+    const totalCost = activeIngredients.reduce((sum: number, item: any) => sum + item.lineTotal, 0);
+    const totalWeightGrams = activeIngredients.reduce((sum: number, item: any) => sum + item.boughtQty, 0);
+    const thermalSplit = Array.from(new Set(activeIngredients.map((item: any) => item.thermalClass)));
+    return {
+      ingredients: [ingredient],
+      totalCost,
+      costPerPerson: totalCost / servings,
+      totalWeightGrams,
+      thermalSplit,
+      packageCount: thermalSplit.length,
+      steps: { fr: recipeStepsFr, en: recipeStepsEn },
+      stepSourceIndexes: { fr: recipeStepsFr.map((_: string, index: number) => index), en: recipeStepsEn.map((_: string, index: number) => index) },
+      unavailableCount: activeIngredients.filter((item: any) => !item.available).length,
+      leftoverCount: activeIngredients.filter((item: any) => item.leftover > 0).length,
+    };
+  };
   await page.route(/\/api\/recipes\/[^/?]+\?/, async (route) => {
     const response = await route.fetch();
     const payload = await response.json();
@@ -1976,6 +2114,7 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
       recovery: "Si le repère manque, corriger une seule variable puis contrôler de nouveau avant de poursuivre.",
       ingredientProductIds: index === 0 && payload.ingredients[0]?.productId ? [payload.ingredients[0].productId] : [],
     }));
+    latestRecipePayload = payload;
     await route.fulfill({ response, json: payload });
   });
   await page.route(/\/api\/recipes\/[^/]+\/calculate(?:\?|$)/, async (route) => {
@@ -1983,7 +2122,8 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
       await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Recipe calculation unavailable" }) });
       return;
     }
-    await route.continue();
+    const body = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ result: buildMockCalculation(body), locale: "fr" }) });
   });
   await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();

@@ -52,7 +52,6 @@ export const metadata: Metadata = {
     images: ["/hero-feast-v2.webp"],
   },
   alternates: {
-    canonical: "/",
     languages: { "fr-FR": "/", "en-GB": "/?lang=en", "x-default": "/" },
   },
   robots: { index: true, follow: true },
