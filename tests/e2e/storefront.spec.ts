@@ -223,6 +223,24 @@ test("the installable storefront exposes a safe app shell and public discovery m
   const sitemap = await sitemapResponse.text();
   expect(sitemap).toContain("view=catalog");
   expect(sitemap).toContain("view=recipes");
+  expect(sitemap).toContain("view=wholesale");
+  expect(sitemap).toContain("infoPage=about");
+  expect(sitemap).toContain("infoPage=privacy");
+  expect(sitemap).toContain("infoPage=cookies");
+  expect(sitemap).toContain("conditions-generales");
+  expect(sitemap).toContain("confidentialite");
+  expect(sitemap).not.toMatch(/admin|auth|checkout|orders|order-tracking|order-confirmation|infoPage=contact/i);
+
+  const robotsResponse = await request.get("/robots.txt");
+  expect(robotsResponse.ok()).toBeTruthy();
+  const robots = await robotsResponse.text();
+  expect(robots).toContain("Allow: /");
+  expect(robots).toContain("Disallow: /api/");
+  expect(robots).toContain("Disallow: /auth/reset");
+  expect(robots).toContain("Disallow: /*?view=checkout");
+  expect(robots).toContain("Disallow: /*?view=orders");
+  expect(robots).toContain("Disallow: /*?view=info&infoPage=contact");
+  expect(robots).toContain("Sitemap: https://je-mange-africain.com/sitemap.xml");
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect.poll(() => page.evaluate(async () => Boolean(await navigator.serviceWorker.getRegistration()))).toBe(true);

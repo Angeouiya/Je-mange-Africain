@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://je-mange-africain.com";
+import { publicSiteUrl, ROBOTS_PRIVATE_DISALLOW } from "@/lib/public-seo";
 
 export default function robots(): MetadataRoute.Robots {
+  const siteUrl = publicSiteUrl();
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/admin", "/auth/reset", "/api/"] },
+    rules: { userAgent: "*", allow: "/", disallow: [...ROBOTS_PRIVATE_DISALLOW] },
     sitemap: `${siteUrl}/sitemap.xml`,
     host: siteUrl,
   };

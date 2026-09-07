@@ -1,43 +1,37 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://je-mange-africain.com").replace(/\/$/, "");
+import { absolutePublicUrl, publicImageUrls, publicLanguageAlternates, publicSiteUrl, publicStaticSitemapEntries } from "@/lib/public-seo";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const siteUrl = publicSiteUrl();
   const lastModified = new Date();
-  const staticEntries: MetadataRoute.Sitemap = [
-    { url: siteUrl, lastModified, changeFrequency: "daily", priority: 1 },
-    { url: `${siteUrl}/?view=catalog`, lastModified, changeFrequency: "daily", priority: 0.9 },
-    { url: `${siteUrl}/?view=recipes`, lastModified, changeFrequency: "weekly", priority: 0.85 },
-    { url: `${siteUrl}/?view=wholesale`, lastModified, changeFrequency: "daily", priority: 0.8 },
-    { url: `${siteUrl}/?view=info&infoPage=help`, lastModified, changeFrequency: "monthly", priority: 0.45 },
-    { url: `${siteUrl}/?view=info&infoPage=delivery`, lastModified, changeFrequency: "monthly", priority: 0.45 },
-    { url: `${siteUrl}/?view=info&infoPage=contact`, lastModified, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${siteUrl}/conditions-generales`, lastModified, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${siteUrl}/confidentialite`, lastModified, changeFrequency: "yearly", priority: 0.3 },
-  ];
+  const staticEntries = publicStaticSitemapEntries(siteUrl, lastModified);
 
   try {
     const [products, recipes] = await Promise.all([
-      db.product.findMany({ where: { status: "published" }, select: { id: true, updatedAt: true } }),
-      db.recipe.findMany({ where: { status: "published" }, select: { id: true, updatedAt: true } }),
+      db.product.findMany({ where: { status: "published" }, select: { id: true, updatedAt: true, imageUrl: true, galleryUrls: true } }),
+      db.recipe.findMany({ where: { status: "published" }, select: { id: true, updatedAt: true, imageUrl: true, galleryUrls: true } }),
     ]);
 
     return [
       ...staticEntries,
-      ...products.map((product) => ({
-        url: `${siteUrl}/?view=product&productId=${encodeURIComponent(product.id)}`,
+      ...products.map((product): MetadataRoute.Sitemap[number] => ({
+        url: absolutePublicUrl(`/?view=product&productId=${encodeURIComponent(product.id)}`, siteUrl),
         lastModified: product.updatedAt,
-        changeFrequency: "weekly" as const,
+        changeFrequency: "weekly",
         priority: 0.75,
+        images: publicImageUrls(siteUrl, product.imageUrl, product.galleryUrls),
+        alternates: publicLanguageAlternates(`/?view=product&productId=${encodeURIComponent(product.id)}`, siteUrl),
       })),
-      ...recipes.map((recipe) => ({
-        url: `${siteUrl}/?view=recipe-config&recipeId=${encodeURIComponent(recipe.id)}`,
+      ...recipes.map((recipe): MetadataRoute.Sitemap[number] => ({
+        url: absolutePublicUrl(`/?view=recipe-config&recipeId=${encodeURIComponent(recipe.id)}`, siteUrl),
         lastModified: recipe.updatedAt,
-        changeFrequency: "weekly" as const,
+        changeFrequency: "weekly",
         priority: 0.7,
+        images: publicImageUrls(siteUrl, recipe.imageUrl, recipe.galleryUrls),
+        alternates: publicLanguageAlternates(`/?view=recipe-config&recipeId=${encodeURIComponent(recipe.id)}`, siteUrl),
       })),
     ];
   } catch {
