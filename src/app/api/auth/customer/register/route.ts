@@ -23,11 +23,13 @@ const Registration = z.object({
 });
 
 export async function POST(request: Request) {
-  const limited = await enforceRateLimit(request, "register");
+  const limited = await enforceRateLimit(request, "register", undefined, { scopes: ["ip", "global"] });
   if (limited) return limited;
 
   const parsed = Registration.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Veuillez vérifier toutes les informations saisies." }, { status: 400 });
+  const identityLimited = await enforceRateLimit(request, "register", `${parsed.data.email}:${parsed.data.phone}`, { scopes: ["subject"] });
+  if (identityLimited) return identityLimited;
 
   const { url, key, serviceRoleKey } = getSupabaseCustomerConfig();
   if (!url || !key) return NextResponse.json({ error: "Le service d'inscription est momentanément indisponible." }, { status: 503 });

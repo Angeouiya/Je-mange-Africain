@@ -4,6 +4,7 @@ import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { broadcastLocalizedPush, getPushAudienceCounts, isPushConfigured } from "@/lib/push-server";
 import { PUSH_AUDIENCES } from "@/lib/push-audience";
 import { db } from "@/lib/db";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request, { module: "marketing", action: "create" });
   if (!authorization.ok) return authorization.response;
+  const limited = await enforceRateLimit(request, "admin-sensitive", authorization.user.id || authorization.user.email, { scopes: ["subject"] });
+  if (limited) return limited;
+
   if (!CAMPAIGN_ROLES.has(authorization.user.role)) {
     return NextResponse.json({ error: "Votre rôle ne permet pas d'envoyer une campagne." }, { status: 403 });
   }

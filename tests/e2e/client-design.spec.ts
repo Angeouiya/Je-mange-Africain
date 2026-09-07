@@ -1571,23 +1571,24 @@ test("checkout compares delivery services and protects the cold chain", async ({
   const narrowMobile = (page.viewportSize()?.width || 0) < 768;
   if (narrowMobile) await page.setViewportSize({ width: 320, height: 700 });
   const customer = { id: "customer-checkout", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traoré", role: "customer", loyaltyPoints: 180, walletCredit: 0 };
+  const checkoutAddresses = [
+    { id: "address-checkout", label: "Domicile", firstName: "Awa", lastName: "Traoré", street: "12 rue de la Gare", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678", isDefault: true },
+    { id: "address-office", label: "Bureau", firstName: "Awa", lastName: "Traoré", street: "8 Alexanderplatz", postalCode: "10178", city: "Berlin", country: "Allemagne", phone: "+49301234567" },
+  ];
   const quoteRequests: Array<Record<string, unknown>> = [];
-  await page.addInitScript(({ persistedCustomer }) => {
+  await page.addInitScript(({ persistedCustomer, persistedAddresses }) => {
     localStorage.setItem("jma-store", JSON.stringify({
       state: {
         locale: "fr",
         cart: [{ id: "line-frozen", productId: "product-frozen", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", unitPrice: 8.5, unitLabel: "500 g", packWeightGrams: 500, thermalClass: "FROZEN", imageUrl: "/products/gombo.webp", qty: 2, maxStock: 40 }],
         customer: persistedCustomer,
-        addresses: [
-          { id: "address-checkout", label: "Domicile", firstName: "Awa", lastName: "Traoré", street: "12 rue de la Gare", postalCode: "75011", city: "Paris", country: "France", phone: "+33612345678", isDefault: true },
-          { id: "address-office", label: "Bureau", firstName: "Awa", lastName: "Traoré", street: "8 Alexanderplatz", postalCode: "10178", city: "Berlin", country: "Allemagne", phone: "+49301234567" },
-        ],
+        addresses: persistedAddresses,
         favorites: [], savedRecipes: [], recentlyViewed: [], country: "Belgique", postalCode: "1000", coupon: null,
       },
       version: 0,
     }));
-  }, { persistedCustomer: customer });
-  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer }) }));
+  }, { persistedCustomer: customer, persistedAddresses: checkoutAddresses });
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: checkoutAddresses }) }));
   await page.route("**/api/advertisements?*", (route) => {
     const placement = new URL(route.request().url()).searchParams.get("placement");
     const advertisements = placement === "checkout"

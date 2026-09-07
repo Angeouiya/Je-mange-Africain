@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest, getSupabaseAdminConfig } from "@/lib/admin-auth";
 import { hasAdminPermission, type AdminModule } from "@/lib/admin-permissions";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ async function ensureBucket(url: string, serviceRoleKey: string) {
 export async function POST(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request);
   if (!authorization.ok) return authorization.response;
+  const limited = await enforceRateLimit(request, "media-upload", authorization.user.id || authorization.user.email, { scopes: ["subject"] });
+  if (limited) return limited;
 
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
@@ -119,6 +122,9 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const authorization = await authorizeAdminRequest(request);
   if (!authorization.ok) return authorization.response;
+  const limited = await enforceRateLimit(request, "admin-sensitive", authorization.user.id || authorization.user.email, { scopes: ["subject"] });
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
   const objectPath = typeof body?.objectPath === "string" ? body.objectPath : "";
   const kind = objectPath.split("/")[0];

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = await enforceRateLimit(request, "auth");
+  const limited = await enforceRateLimit(request, "auth", undefined, { scopes: ["ip"] });
   if (limited) return limited;
 
   const parsed = Credentials.safeParse(await request.json().catch(() => null));
@@ -39,6 +39,9 @@ export async function POST(request: NextRequest) {
 
   const identifierKey = parsed.data.identifier.includes("@") ? "email" : "phone";
   const identifier = identifierKey === "phone" ? normalizePhone(parsed.data.identifier) : parsed.data.identifier.toLowerCase();
+  const identityLimited = await enforceRateLimit(request, "auth", identifier, { scopes: ["subject"] });
+  if (identityLimited) return identityLimited;
+
   let authResponse: Response;
   try {
     authResponse = await exchangePassword(url, key, { [identifierKey]: identifier, password: parsed.data.password });

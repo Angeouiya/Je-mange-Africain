@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseCustomerConfig } from "@/lib/customer-auth";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +9,14 @@ const Recovery = z.object({ email: z.string().trim().email().max(254) });
 const Reset = z.object({ accessToken: z.string().min(20), password: z.string().min(8).max(256) });
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit(request, "password-reset", undefined, { scopes: ["ip", "global"] });
+  if (limited) return limited;
+
   const parsed = Recovery.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 });
+  const identityLimited = await enforceRateLimit(request, "password-reset", parsed.data.email.toLowerCase(), { scopes: ["subject"] });
+  if (identityLimited) return identityLimited;
+
   const { url, key } = getSupabaseCustomerConfig();
   if (!url || !key) return NextResponse.json({ error: "Le service de récupération est momentanément indisponible." }, { status: 503 });
 
@@ -30,6 +37,9 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const limited = await enforceRateLimit(request, "password-reset", undefined, { scopes: ["ip"] });
+  if (limited) return limited;
+
   const parsed = Reset.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Lien invalide ou nouveau mot de passe insuffisant." }, { status: 400 });
   const { url, key } = getSupabaseCustomerConfig();

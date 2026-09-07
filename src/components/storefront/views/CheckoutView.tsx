@@ -23,6 +23,7 @@ import { PostalCodeField } from "@/components/shared/PostalCodeField";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
+import { CheckoutSecurityReviewNotice } from "@/components/storefront/CheckoutSecurityReviewNotice";
 import { PaymentRecoveryNotice } from "@/components/storefront/PaymentRecoveryNotice";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
@@ -63,6 +64,7 @@ type DeliveryOption = {
 };
 
 type ShippingQuoteResponse = DeliveryOption & { options: DeliveryOption[] };
+type SecurityReviewState = { message: string } | null;
 
 export function CheckoutView() {
   const locale = useStore((state) => state.locale);
@@ -81,6 +83,7 @@ export function CheckoutView() {
   const [processing, setProcessing] = useState(false);
   const [preparingPayment, setPreparingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [securityReview, setSecurityReview] = useState<SecurityReviewState>(null);
   const [paymentRecovery, setPaymentRecovery] = useState<PaymentRecovery | null>(null);
   const [intent, setIntent] = useState<IntentResponse | null>(null);
   const address = addresses.find((item) => item.isDefault) || addresses[0];
@@ -109,11 +112,13 @@ export function CheckoutView() {
 
   const updateForm = (field: keyof typeof form, value: string) => {
     setSelectedAddressId("custom");
+    setSecurityReview(null);
     setForm((current) => ({ ...current, [field]: value }));
   };
 
   const chooseAddress = (addressId: string) => {
     setSelectedAddressId(addressId);
+    setSecurityReview(null);
     if (addressId === "custom") {
       setForm((current) => ({
         ...current,
@@ -257,6 +262,7 @@ export function CheckoutView() {
   const preparePayment = async () => {
     setPreparingPayment(true);
     setPaymentError("");
+    setSecurityReview(null);
     setDeliveryContext(normalizedAddress.country, normalizedAddress.postalCode);
     try {
       const response = await postJSON<IntentResponse>("/api/payments/intent", {
@@ -269,6 +275,16 @@ export function CheckoutView() {
       setIntent(response);
       setStep(1);
     } catch (error) {
+      if (error instanceof ApiError) {
+        const payload = error.payload as { securityReviewRequired?: boolean; error?: string };
+        if (payload.securityReviewRequired) {
+          setIntent(null);
+          setStep(0);
+          setPaymentError("");
+          setSecurityReview({ message: payload.error || error.message });
+          return;
+        }
+      }
       setPaymentError(error instanceof Error ? error.message : (locale === "fr" ? "Le paiement est indisponible." : "Payment is unavailable."));
     } finally {
       setPreparingPayment(false);
@@ -278,6 +294,7 @@ export function CheckoutView() {
   const finalizeOrder = async (paymentIntentId: string, payload = checkoutPayload) => {
     setProcessing(true);
     setPaymentError("");
+    setSecurityReview(null);
     try {
       const response = await postJSON<{ order: { id: string; number: string; total: number } }>("/api/checkout", {
         ...payload,
@@ -300,6 +317,15 @@ export function CheckoutView() {
             setIntent(null);
             setStep(0);
           }
+          return;
+        }
+        const review = (error.payload as { securityReviewRequired?: boolean; error?: string }).securityReviewRequired;
+        if (review) {
+          clearPendingCheckout();
+          setIntent(null);
+          setStep(0);
+          setPaymentError("");
+          setSecurityReview({ message: (error.payload as { error?: string }).error || error.message });
           return;
         }
       }
@@ -495,6 +521,7 @@ export function CheckoutView() {
             </section>
             <PaymentPreviewPanel country={form.country} methods={anticipatedPaymentMethods} locale={locale} />
             {paymentRecovery ? <PaymentRecoveryNotice recovery={paymentRecovery} locale={locale} onRetry={paymentRecovery.status === "finalization_pending" ? resumePaymentFinalization : undefined} retrying={processing} /> : null}
+            {securityReview ? <CheckoutSecurityReviewNotice locale={locale} message={securityReview.message} onEditDelivery={() => { setStep(0); setSecurityReview(null); }} onReviewCart={() => navigate("cart")} /> : null}
             {paymentError ? <ErrorMessage>{paymentError}</ErrorMessage> : null}
             <Button onClick={preparePayment} disabled={!canContinue || preparingPayment || shipLoading || promotionLoading || !stripePromise} aria-describedby={!stripePromise ? "checkout-payment-unavailable" : undefined} className="hidden w-full bg-terre text-cream hover:bg-terre-dark lg:flex">
               {preparingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.loading}</> : !stripePromise ? (locale === "fr" ? "Paiement indisponible" : "Payment unavailable") : t.next}
@@ -533,6 +560,8 @@ export function CheckoutView() {
           stepLabel={locale === "fr" ? "Livraison · 1/3" : "Delivery · 1/3"}
           statusLabel={!stripePromise
             ? (locale === "fr" ? "Service indisponible" : "Service unavailable")
+            : securityReview
+              ? (locale === "fr" ? "Vérification requise" : "Review required")
             : shipLoading || promotionLoading
               ? (locale === "fr" ? "Calcul en cours" : "Calculating")
               : !canContinue
@@ -806,9 +835,6 @@ function PaymentCapabilityPanel({ locale, methodTypes }: { locale: "fr" | "en"; 
 }
 
 function PaymentPreviewPanel({ country, methods, locale }: { country: string; methods: string[]; locale: "fr" | "en" }) {
-  const visibleMethods = methods.slice(0, 4);
-  const extraCount = Math.max(0, methods.length - visibleMethods.length);
-
   return (
     <section className="border-t border-border pt-5" aria-labelledby="checkout-payment-preview-title" data-testid="checkout-payment-preview">
       <CheckoutSectionHeading id="checkout-payment-preview-title" icon={CreditCard} eyebrow={locale === "fr" ? "Paiement Europe" : "European payment"} title={locale === "fr" ? "Moyens attendus pour votre pays" : "Expected methods for your country"} />
@@ -821,8 +847,7 @@ function PaymentPreviewPanel({ country, methods, locale }: { country: string; me
           <span className="shrink-0 rounded-md bg-gold/15 px-2 py-1 text-[9px] font-black text-charcoal">{methods.length} {locale === "fr" ? "option(s)" : "option(s)"}</span>
         </div>
         <div className="grid grid-cols-2 border-t border-burgundy/10 sm:grid-cols-4">
-          {visibleMethods.map((method) => <PaymentCapability key={method} method={method} locale={locale} />)}
-          {extraCount ? <div className="flex min-h-[3.9rem] items-center justify-center border-b border-r border-burgundy/10 px-3 py-3 text-[10px] font-black text-terre">+{extraCount}</div> : null}
+          {methods.map((method) => <PaymentCapability key={method} method={method} locale={locale} />)}
         </div>
       </div>
     </section>

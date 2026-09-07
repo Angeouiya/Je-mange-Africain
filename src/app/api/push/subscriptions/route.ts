@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { DEFAULT_PUSH_PREFERENCES, pushPreferenceData } from "@/lib/push-preferences";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -34,12 +35,18 @@ const PreferencesUpdateBody = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(request, "push", undefined, { scopes: ["ip"] });
+  if (limited) return limited;
+
   const parsed = SubscriptionBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Abonnement push invalide." }, { status: 400 });
 
   const { subscription, deviceId, locale, preferences } = parsed.data;
   const authorization = await authorizePushDirectoryUser(request);
   if (!authorization.ok) return authorization.response;
+  const userLimited = await enforceRateLimit(request, "push", authorization.userId, { scopes: ["subject"] });
+  if (userLimited) return userLimited;
+
   const saved = await db.pushSubscription.upsert({
     where: { endpoint: subscription.endpoint },
     create: {
@@ -70,11 +77,17 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const limited = await enforceRateLimit(request, "push", undefined, { scopes: ["ip"] });
+  if (limited) return limited;
+
   const parsed = PreferencesUpdateBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Préférences push invalides." }, { status: 400 });
 
   const authorization = await authorizePushDirectoryUser(request);
   if (!authorization.ok) return authorization.response;
+  const userLimited = await enforceRateLimit(request, "push", authorization.userId, { scopes: ["subject"] });
+  if (userLimited) return userLimited;
+
   const { endpoint, deviceId, preferences } = parsed.data;
   const updated = await db.pushSubscription.updateMany({
     where: { endpoint, deviceId, userId: authorization.userId, enabled: true },
@@ -85,10 +98,16 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const limited = await enforceRateLimit(request, "push", undefined, { scopes: ["ip"] });
+  if (limited) return limited;
+
   const parsed = DeleteBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Abonnement push invalide." }, { status: 400 });
   const authorization = await authorizePushDirectoryUser(request);
   if (!authorization.ok) return authorization.response;
+  const userLimited = await enforceRateLimit(request, "push", authorization.userId, { scopes: ["subject"] });
+  if (userLimited) return userLimited;
+
   await db.pushSubscription.deleteMany({ where: { endpoint: parsed.data.endpoint, userId: authorization.userId } });
   return NextResponse.json({ active: false });
 }

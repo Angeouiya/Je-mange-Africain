@@ -38,11 +38,13 @@ const IntentRequest = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const limited = await enforceRateLimit(request, "checkout");
+  const limited = await enforceRateLimit(request, "payment-intent", undefined, { scopes: ["ip", "route"] });
   if (limited) return limited;
 
   const customer = await authorizeCustomerRequest(request);
   if (!customer) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+  const customerLimited = await enforceRateLimit(request, "payment-intent", customer.id, { scopes: ["subject"] });
+  if (customerLimited) return customerLimited;
 
   const parsed = IntentRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Le panier ou l'adresse est invalide." }, { status: 400 });

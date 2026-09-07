@@ -11,7 +11,7 @@ import { createWholesaleQuoteReference, WholesaleQuoteRequestInput } from "@/lib
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const limited = await enforceRateLimit(request, "account");
+  const limited = await enforceRateLimit(request, "account", undefined, { scopes: ["ip"] });
   if (limited) return limited;
 
   const parsed = WholesaleQuoteRequestInput.safeParse(await request.json().catch(() => null));
@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
   try {
     const session = await authorizeCustomerRequest(request);
     if (!session) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+    const customerLimited = await enforceRateLimit(request, "account", session.id, { scopes: ["subject"] });
+    if (customerLimited) return customerLimited;
+
     const customerIdentity = await loadCustomerIdentity(session).catch(() => null);
     if (!customerIdentity) return NextResponse.json({ error: isFr ? "Votre espace client est introuvable ou inactif." : "Your customer account is missing or inactive." }, { status: 403 });
     const products = input.items.length

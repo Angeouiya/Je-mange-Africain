@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeCustomerRequest } from "@/lib/customer-auth";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,15 @@ const FALLBACK_NOTIFICATIONS = [
 ];
 
 export async function GET(req: NextRequest) {
+  const limited = await enforceRateLimit(req, "push", undefined, { scopes: ["ip"] });
+  if (limited) return limited;
+
   const locale = new URL(req.url).searchParams.get("locale") === "en" ? "en" : "fr";
   const customer = await authorizeCustomerRequest(req);
   if (!customer) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+  const customerLimited = await enforceRateLimit(req, "push", customer.id, { scopes: ["subject"] });
+  if (customerLimited) return customerLimited;
+
   const directoryUser = await db.user.findUnique({ where: { email: customer.email.toLowerCase() }, select: { id: true } });
   const stored = await db.notification.findMany({
     where: {

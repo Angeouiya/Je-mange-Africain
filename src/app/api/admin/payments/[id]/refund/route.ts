@@ -3,6 +3,7 @@ import { AdminRefundInput, isFullRefund, providerRefundStatus, refundAmounts, re
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push-server";
+import { enforceRateLimit } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const authorization = await authorizeAdminRequest(request, { module: "finance", action: "update" });
   if (!authorization.ok) return authorization.response;
+  const limited = await enforceRateLimit(request, "admin-sensitive", authorization.user.id || authorization.user.email, { scopes: ["subject"] });
+  if (limited) return limited;
 
   const parsed = AdminRefundInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

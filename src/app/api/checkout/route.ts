@@ -43,11 +43,13 @@ const CheckoutRequest = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const limited = await enforceRateLimit(request, "checkout");
+  const limited = await enforceRateLimit(request, "checkout-finalize", undefined, { scopes: ["ip", "route"] });
   if (limited) return limited;
 
   const session = await authorizeCustomerRequest(request);
   if (!session) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+  const customerLimited = await enforceRateLimit(request, "checkout-finalize", session.id, { scopes: ["subject"] });
+  if (customerLimited) return customerLimited;
 
   const parsed = CheckoutRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "La commande transmise est invalide." }, { status: 400 });

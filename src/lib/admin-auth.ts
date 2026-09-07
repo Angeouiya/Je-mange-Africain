@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { type AdminAction, type AdminModule, hasAdminPermission, permissionsForRole } from "@/lib/admin-permissions";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const ADMIN_ROLES = new Set([
   "super_admin",
@@ -25,6 +26,10 @@ export function getSupabaseAdminConfig() {
 }
 
 export async function authorizeAdminRequest(request: NextRequest, permission?: { module: AdminModule; action?: AdminAction }) {
+  const policy = request.method === "GET" ? "admin-read" : "admin-write";
+  const limited = await enforceRateLimit(request, policy, undefined, { scopes: ["ip", "route"] });
+  if (limited) return { ok: false as const, response: limited };
+
   const { url: supabaseUrl, key: publishableKey } = getSupabaseAdminConfig();
   const headerAuthorization = request.headers.get("authorization");
   const cookieToken = request.cookies.get(ADMIN_ACCESS_COOKIE)?.value;

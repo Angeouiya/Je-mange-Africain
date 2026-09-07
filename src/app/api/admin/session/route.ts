@@ -8,6 +8,7 @@ import {
   getSupabaseAdminConfig,
 } from "@/lib/admin-auth";
 import { permissionsForRole } from "@/lib/admin-permissions";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +32,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(request, "admin-auth", undefined, { scopes: ["ip"] });
+  if (limited) return limited;
+
   const parsed = Credentials.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Identifiants incomplets ou invalides." }, { status: 400 });
+  const identityLimited = await enforceRateLimit(request, "admin-auth", parsed.data.email.toLowerCase(), { scopes: ["subject"] });
+  if (identityLimited) return identityLimited;
 
   const { url, key } = getSupabaseAdminConfig();
   if (!url || !key) return NextResponse.json({ error: "La connexion professionnelle n'est pas configurée." }, { status: 503 });
