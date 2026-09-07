@@ -1,4 +1,4 @@
-import type { MetadataRoute } from "next";
+import type { Metadata, MetadataRoute } from "next";
 
 export const DEFAULT_PUBLIC_SITE_URL = "https://je-mange-africain.com";
 
@@ -24,6 +24,11 @@ type PublicSitemapRoute = {
   changeFrequency: ChangeFrequency;
   priority: number;
 };
+
+export type PublicSearchParams = Record<string, string | string[] | undefined>;
+
+const PUBLIC_VIEW_IDS = new Set(["home", "catalog", "wholesale", "product", "recipes", "recipe-config", "info"]);
+const PUBLIC_INFO_PAGES = new Set(["about", "help", "delivery", "privacy", "cookies", "cgv"]);
 
 export const PUBLIC_SITEMAP_ROUTES: PublicSitemapRoute[] = [
   { path: "/", changeFrequency: "daily", priority: 1 },
@@ -101,7 +106,63 @@ export function publicImageUrls(siteUrl: string, ...values: Array<string | null 
   }).filter(Boolean))];
 }
 
-export function publicSearchViewBlockedByRobots(view: string, params: Record<string, string | undefined> = {}) {
+function firstSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function pathWithParams(view: string, params: Record<string, string | undefined>) {
+  if (view === "home") return "/";
+  const searchParams = new URLSearchParams({ view });
+  for (const [key, value] of Object.entries(params)) {
+    if (value) searchParams.set(key, value);
+  }
+  return `/?${searchParams.toString()}`;
+}
+
+export function publicStorefrontPathFromSearchParams(searchParams: PublicSearchParams = {}) {
+  const requestedView = firstSearchParam(searchParams.view);
+  const view = requestedView && PUBLIC_VIEW_IDS.has(requestedView) ? requestedView : "home";
+
+  if (view === "product") {
+    const productId = firstSearchParam(searchParams.productId);
+    return productId ? pathWithParams("product", { productId }) : "/?view=catalog";
+  }
+  if (view === "recipe-config") {
+    const recipeId = firstSearchParam(searchParams.recipeId);
+    return recipeId ? pathWithParams("recipe-config", { recipeId }) : "/?view=recipes";
+  }
+  if (view === "info") {
+    const infoPage = firstSearchParam(searchParams.infoPage) || "about";
+    return PUBLIC_INFO_PAGES.has(infoPage) ? pathWithParams("info", { infoPage }) : "/";
+  }
+
+  return pathWithParams(view, {});
+}
+
+export function publicSearchViewBlockedByRobots(view: string, params: PublicSearchParams = {}) {
+  const infoPage = firstSearchParam(params.infoPage);
   if (["account", "cart", "checkout", "order-confirmation", "order-tracking", "orders"].includes(view)) return true;
-  return view === "info" && params.infoPage === "contact";
+  return view === "info" && infoPage === "contact";
+}
+
+export function storefrontMetadataFromSearchParams(searchParams: PublicSearchParams = {}, siteUrl = publicSiteUrl()): Metadata {
+  const requestedView = firstSearchParam(searchParams.view);
+  const view = requestedView || "home";
+  const blocked = publicSearchViewBlockedByRobots(view, searchParams);
+  const canonicalPath = blocked ? "/" : publicStorefrontPathFromSearchParams(searchParams);
+
+  return {
+    alternates: {
+      canonical: absolutePublicUrl(canonicalPath, siteUrl),
+    },
+    robots: blocked
+      ? {
+          index: false,
+          follow: false,
+        }
+      : {
+          index: true,
+          follow: true,
+        },
+  };
 }

@@ -5,8 +5,10 @@ import {
   publicLanguageAlternates,
   publicSearchViewBlockedByRobots,
   publicSiteUrl,
+  publicStorefrontPathFromSearchParams,
   publicStaticSitemapEntries,
   ROBOTS_PRIVATE_DISALLOW,
+  storefrontMetadataFromSearchParams,
 } from "./public-seo";
 
 describe("public SEO", () => {
@@ -62,5 +64,38 @@ describe("public SEO", () => {
       "https://je-mange-africain.com/products/gombo.webp",
       "https://cdn.example.test/fonio.webp",
     ]);
+  });
+
+  it("canonicalizes public storefront query views", () => {
+    expect(publicStorefrontPathFromSearchParams({ view: "catalog", query: "attieke" })).toBe("/?view=catalog");
+    expect(publicStorefrontPathFromSearchParams({ view: "product", productId: "attieke-premium" })).toBe("/?view=product&productId=attieke-premium");
+    expect(publicStorefrontPathFromSearchParams({ view: "recipe-config", recipeId: "mafe-poulet" })).toBe("/?view=recipe-config&recipeId=mafe-poulet");
+    expect(publicStorefrontPathFromSearchParams({ view: "info", infoPage: "privacy" })).toBe("/?view=info&infoPage=privacy");
+    expect(publicStorefrontPathFromSearchParams({ view: "unknown" })).toBe("/");
+  });
+
+  it("adds noindex metadata to private and transactional storefront views", () => {
+    expect(storefrontMetadataFromSearchParams({ view: "checkout" }, DEFAULT_PUBLIC_SITE_URL)).toMatchObject({
+      alternates: { canonical: "https://je-mange-africain.com/" },
+      robots: { index: false, follow: false },
+    });
+    expect(storefrontMetadataFromSearchParams({ view: "orders" }, DEFAULT_PUBLIC_SITE_URL)).toMatchObject({
+      robots: { index: false, follow: false },
+    });
+    expect(storefrontMetadataFromSearchParams({ view: "info", infoPage: "contact" }, DEFAULT_PUBLIC_SITE_URL)).toMatchObject({
+      alternates: { canonical: "https://je-mange-africain.com/" },
+      robots: { index: false, follow: false },
+    });
+  });
+
+  it("keeps public storefront metadata indexable", () => {
+    expect(storefrontMetadataFromSearchParams({ view: "recipes" }, DEFAULT_PUBLIC_SITE_URL)).toMatchObject({
+      alternates: { canonical: "https://je-mange-africain.com/?view=recipes" },
+      robots: { index: true, follow: true },
+    });
+    expect(storefrontMetadataFromSearchParams({ view: "info", infoPage: "delivery" }, DEFAULT_PUBLIC_SITE_URL)).toMatchObject({
+      alternates: { canonical: "https://je-mange-africain.com/?view=info&infoPage=delivery" },
+      robots: { index: true, follow: true },
+    });
   });
 });
