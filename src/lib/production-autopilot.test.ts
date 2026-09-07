@@ -4,6 +4,7 @@ import {
   cloudflareSecretNames,
   parseJsonPayload,
   preferredDashboardBrowser,
+  postgresPasswordFromUrl,
   printRemoteProductionReadiness,
   printProductionReadiness,
   productionReadiness,
@@ -161,12 +162,48 @@ describe("production autopilot", () => {
 
     expect(report).toMatchObject({
       hasAccessToken: false,
-      hasDbPassword: false,
+      hasDbPassword: true,
+      dbPasswordSource: "DIRECT_URL",
       hasDirectDatabaseUrl: true,
       directDatabaseUrlKey: "DIRECT_URL",
       directDatabaseProjectRef: PRODUCTION_SUPABASE_PROJECT_REF,
       readyForLink: false,
       readyForDbPush: true,
+    });
+  });
+
+  it("derives the Supabase database password from a valid production Postgres URL", () => {
+    const encodedPassword = encodeURIComponent("remote@password#2609");
+    const report = supabaseCliReadiness(environment({
+      SUPABASE_ACCESS_TOKEN: "sbp_example",
+      DATABASE_URL: `postgresql://postgres:${encodedPassword}@db.${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co:5432/postgres`,
+    }));
+
+    expect(postgresPasswordFromUrl(`postgresql://postgres:${encodedPassword}@db.${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co:5432/postgres`)).toBe("remote@password#2609");
+    expect(report).toMatchObject({
+      hasAccessToken: true,
+      hasDbPassword: true,
+      dbPasswordSource: "DATABASE_URL",
+      hasDirectDatabaseUrl: true,
+      readyForLink: true,
+      readyForDbPush: true,
+    });
+  });
+
+  it("rejects placeholder Postgres passwords before Supabase linking", () => {
+    const placeholderUrl = `postgresql://postgres:${encodeURIComponent("[YOUR-PASSWORD]")}@db.${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co:5432/postgres`;
+    const report = supabaseCliReadiness(environment({
+      SUPABASE_ACCESS_TOKEN: "sbp_example",
+      DATABASE_URL: placeholderUrl,
+    }));
+
+    expect(postgresPasswordFromUrl(placeholderUrl)).toBe("");
+    expect(report).toMatchObject({
+      hasDbPassword: false,
+      hasDirectDatabaseUrl: false,
+      directDatabaseProblem: "placeholder value",
+      readyForLink: false,
+      readyForDbPush: false,
     });
   });
 
