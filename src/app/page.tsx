@@ -71,8 +71,6 @@ export default function Page() {
         // The public shell remains usable with its safe defaults.
       }
       if (cancelled) return;
-      const hydratedState = useStore.getState();
-      if (!hydratedState.customer) hydratedState.setCustomer(null);
       const sessionSubject = useStore.getState().customer?.id || null;
       const userAlreadyNavigated = useStore.getState().navigationHistory.length > 0;
       if (!userAlreadyNavigated) applyLocation();
@@ -125,17 +123,21 @@ export default function Page() {
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
     const preloadPrimaryViews = () => {
+      void prefetchStorefrontData("home", {}, locale);
+      if (!customer) return;
       void Promise.allSettled([
         loadCatalogView(),
         loadProductDetailView(),
         loadRecipesView(),
         loadCartView(),
       ]);
-      void prefetchStorefrontData("home", {}, locale);
       void prefetchStorefrontData("catalog", {}, locale);
       void prefetchStorefrontData("recipes", {}, locale);
     };
     const preloadSecondaryViews = () => {
+      void loadInfoView();
+      void prefetchStorefrontData("info", { infoPage: "about" }, locale);
+      if (!customer) return;
       void Promise.allSettled([
         loadWholesaleView(),
         loadRecipeConfiguratorView(),
@@ -148,7 +150,6 @@ export default function Page() {
       ]);
       void prefetchStorefrontData("wholesale", {}, locale);
       void prefetchStorefrontData("checkout", {}, locale);
-      void prefetchStorefrontData("info", { infoPage: "about" }, locale);
     };
     const browser = window as typeof window & {
       requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
@@ -167,7 +168,7 @@ export default function Page() {
     schedule(preloadPrimaryViews, 1_200, 500);
     schedule(preloadSecondaryViews, 3_200, 1_800);
     return () => cancelers.forEach((cancel) => cancel());
-  }, [locale]);
+  }, [customer, locale]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -194,7 +195,7 @@ export default function Page() {
 
   return (
     <div className="jma-shell min-h-screen">
-      {isPublicAuthGate ? null : <MobileNav />}
+      {isPublicAuthGate ? null : <MobileNav ready={mounted} />}
       <div className={`flex min-h-screen flex-col ${isPublicAuthGate ? "" : "md:pl-64"}`}>
       {isPublicAuthGate ? null : <Header />}
       <main id="main-content" tabIndex={-1} className={isPublicAuthGate ? "flex-1" : "flex-1 pb-20 md:pb-0"}>

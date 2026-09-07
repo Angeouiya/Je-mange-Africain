@@ -1,25 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Fraunces } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/lib/store-provider";
 import { StructuredData } from "@/components/shared/StructuredData";
 import { PwaRegistration } from "@/components/shared/PwaRegistration";
 import { PrivacyPreferenceCenter } from "@/components/storefront/PrivacyPreferenceCenter";
-
-const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["latin"],
-  display: "swap",
-  preload: false,
-});
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  display: "swap",
-  preload: false,
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://je-mange-africain.com"),
@@ -87,7 +72,7 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body
-        className={`${manrope.variable} ${fraunces.variable} antialiased bg-background text-foreground min-h-screen`}
+        className="antialiased bg-background text-foreground min-h-screen"
       >
         <StructuredData />
         <PwaRegistration />

@@ -26,7 +26,7 @@ import { COMPANY_PROFILE } from "@/lib/company-profile";
 import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
-export function MobileNav() {
+export function MobileNav({ ready = true }: { ready?: boolean }) {
   const locale = useStore((s) => s.locale);
   const view = useStore((s) => s.view);
   const params = useStore((s) => s.params);
@@ -34,7 +34,7 @@ export function MobileNav() {
   const cart = useStore((s) => s.cart);
   const customer = useStore((s) => s.customer);
   const t = dict[locale];
-  const count = cartCount(cart);
+  const count = customer ? cartCount(cart) : 0;
 
   type ClientNavItem = { id: ViewId; label: string; desktopLabel: string; purpose: string; icon: IconFunction; accent: string };
   const publicItems: ClientNavItem[] = [
@@ -77,15 +77,17 @@ export function MobileNav() {
     return (
       <button
         key={it.id}
+        disabled={!ready}
         onClick={() => navigate(it.id)}
         onPointerEnter={() => warmDestination(it.id)}
         onFocus={() => warmDestination(it.id)}
         onTouchStart={() => warmDestination(it.id)}
         className={`group relative isolate flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${
           active ? "text-terre" : "text-muted-foreground hover:text-charcoal"
-        }`}
+        } disabled:pointer-events-none disabled:opacity-65`}
         aria-label={it.label}
         aria-current={active ? "page" : undefined}
+        aria-disabled={!ready}
         data-active={active ? "true" : "false"}
       >
         {active ? (
@@ -117,7 +119,7 @@ export function MobileNav() {
 
       <aside data-testid="client-sidebar" className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-burgundy/10 bg-[#FFFCFA] text-charcoal shadow-[14px_0_42px_-36px_rgba(90,38,50,0.48)] md:flex">
         <div className="african-kente-stripe h-[3px] shrink-0" />
-        <button onClick={() => navigate("home")} onPointerEnter={() => warmDestination("home")} onFocus={() => warmDestination("home")} className="border-b border-burgundy/10 px-5 py-5 text-left transition hover:bg-burgundy/[0.035]" aria-label={locale === "fr" ? "Accueil" : "Home"}>
+        <button disabled={!ready} onClick={() => navigate("home")} onPointerEnter={() => warmDestination("home")} onFocus={() => warmDestination("home")} className="border-b border-burgundy/10 px-5 py-5 text-left transition hover:bg-burgundy/[0.035] disabled:pointer-events-none disabled:opacity-65" aria-label={locale === "fr" ? "Accueil" : "Home"} aria-disabled={!ready}>
           <BrandLockup compact locale={locale} />
         </button>
 
@@ -127,7 +129,7 @@ export function MobileNav() {
             <div className="space-y-1">{group.items.map((item) => {
               const active = desktopActiveTarget === item.id;
               return (
-                <button key={item.id} onClick={() => navigate(item.id)} onPointerEnter={() => warmDestination(item.id)} onFocus={() => warmDestination(item.id)} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-12 w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
+                <button key={item.id} disabled={!ready} onClick={() => navigate(item.id)} onPointerEnter={() => warmDestination(item.id)} onFocus={() => warmDestination(item.id)} aria-current={active ? "page" : undefined} aria-disabled={!ready} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-12 w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition disabled:pointer-events-none disabled:opacity-65 ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
                   {active ? <motion.span layoutId="client-desktop-nav-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
                   {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.05rem] w-[1.05rem]" /></span>
@@ -143,10 +145,12 @@ export function MobileNav() {
           {customer ? (
             <button
               type="button"
+              disabled={!ready}
               onClick={() => navigate("account", { accountSection: "profile" })}
               aria-current={utilityActiveTarget === "account" ? "page" : undefined}
+              aria-disabled={!ready}
               data-active={utilityActiveTarget === "account" ? "true" : "false"}
-              className={`mb-1 flex w-full items-center gap-3 rounded-md border px-2 py-2 text-left transition ${utilityActiveTarget === "account" ? "border-burgundy/10 bg-burgundy/[0.06] shadow-[0_10px_24px_-22px_rgba(90,38,50,0.75)]" : "border-transparent hover:bg-burgundy/5"}`}
+              className={`mb-1 flex w-full items-center gap-3 rounded-md border px-2 py-2 text-left transition disabled:pointer-events-none disabled:opacity-65 ${utilityActiveTarget === "account" ? "border-burgundy/10 bg-burgundy/[0.06] shadow-[0_10px_24px_-22px_rgba(90,38,50,0.75)]" : "border-transparent hover:bg-burgundy/5"}`}
             >
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-terre text-xs font-extrabold text-white">{customer.firstName[0]}{customer.lastName[0] || ""}</span>
               <span className="min-w-0"><span className="block truncate text-xs font-bold text-charcoal">{customer.firstName} {customer.lastName}</span><span className="block truncate text-[10px] text-muted-foreground">{customer.email}</span></span>
@@ -155,22 +159,26 @@ export function MobileNav() {
           {customer ? (
             <button
               type="button"
+              disabled={!ready}
               onClick={() => navigate("account", { accountSection: "settings" })}
               aria-current={utilityActiveTarget === "settings" ? "page" : undefined}
+              aria-disabled={!ready}
               data-active={utilityActiveTarget === "settings" ? "true" : "false"}
-              className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition ${utilityActiveTarget === "settings" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
+              className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition disabled:pointer-events-none disabled:opacity-65 ${utilityActiveTarget === "settings" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
             >
               <ReiconGlyph icon={Settings2} className="h-4 w-4" /> {locale === "fr" ? "Paramètres" : "Settings"}
             </button>
           ) : (
-            <button type="button" onClick={() => navigate("account")} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy"><ReiconGlyph icon={Login} className="h-4 w-4" /> {t.nav.login}</button>
+            <button type="button" disabled={!ready} onClick={() => navigate("account")} aria-disabled={!ready} className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-muted-foreground transition hover:bg-burgundy/5 hover:text-burgundy disabled:pointer-events-none disabled:opacity-65"><ReiconGlyph icon={Login} className="h-4 w-4" /> {t.nav.login}</button>
           )}
           <button
             type="button"
+            disabled={!ready}
             onClick={() => navigate("info", { infoPage: "help" })}
             aria-current={utilityActiveTarget === "help" ? "page" : undefined}
+            aria-disabled={!ready}
             data-active={utilityActiveTarget === "help" ? "true" : "false"}
-            className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition ${utilityActiveTarget === "help" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
+            className={`flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold transition disabled:pointer-events-none disabled:opacity-65 ${utilityActiveTarget === "help" ? "bg-burgundy/[0.07] text-burgundy" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}
           >
             <ReiconGlyph icon={Lifebuoy} className="h-4 w-4" /> {t.nav.help}
           </button>

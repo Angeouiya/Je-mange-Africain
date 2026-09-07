@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { customerProtectedView, publicFallbackForAuthTarget, useStore, type CartItem, type Customer } from "./store";
+import { customerProtectedView, mergeCustomerSafePersistedState, publicFallbackForAuthTarget, useStore, type CartItem, type Customer } from "./store";
 
 const customer: Customer = {
   id: "customer-1",
@@ -25,6 +25,11 @@ const cartItem: Omit<CartItem, "id" | "qty"> & { qty: number } = {
   qty: 2,
   maxStock: 12,
   imageUrl: "/products/attieke.webp",
+};
+
+const persistedCartItem: CartItem = {
+  ...cartItem,
+  id: "line-stored-attieke",
 };
 
 function resetStore() {
@@ -105,5 +110,27 @@ describe("customer auth guard", () => {
     expect(useStore.getState().favorites).toEqual([]);
     expect(useStore.getState().savedRecipes).toEqual([]);
     expect(useStore.getState().recentlyViewed).toEqual([]);
+  });
+
+  it("does not trust a persisted customer profile before the server session is verified", () => {
+    const merged = mergeCustomerSafePersistedState({
+      customer,
+      addresses: [{ id: "address-stored" }],
+      cart: [persistedCartItem],
+      favorites: ["product-attieke"],
+      savedRecipes: ["recipe-garba"],
+      savedOwnerId: customer.id,
+      country: "Belgique",
+      postalCode: "1000",
+    }, useStore.getState());
+
+    useStore.setState(merged);
+
+    expect(useStore.getState().customer).toBeNull();
+    expect(useStore.getState().addresses).toEqual([]);
+    expect(useStore.getState().cart).toEqual([persistedCartItem]);
+    expect(useStore.getState().addToCart(cartItem)).toBe(false);
+    expect(useStore.getState().view).toBe("account");
+    expect(useStore.getState().authReturnTarget).toEqual({ view: "home", params: {} });
   });
 });

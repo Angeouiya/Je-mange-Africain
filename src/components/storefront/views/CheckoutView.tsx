@@ -502,7 +502,7 @@ export function CheckoutView() {
             {!stripePromise ? <div id="checkout-payment-unavailable" className="flex items-start gap-3 rounded-lg border border-gold/35 bg-gold/[0.08] p-3 text-charcoal"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-terre"><Lock className="h-3.5 w-3.5" /></span><div><p className="text-xs font-extrabold">{locale === "fr" ? "Paiement momentanément indisponible" : "Payment temporarily unavailable"}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{locale === "fr" ? "Votre panier reste enregistré. Vous pourrez reprendre cette commande dès le retour du service." : "Your basket remains saved. You can resume this order as soon as the service returns."}</p></div></div> : null}
               </motion.div>
             ) : intent && stripePromise ? (
-              <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#B9472B", colorText: "#3F2930", borderRadius: "8px", fontFamily: "Manrope, sans-serif" } } }}>
+              <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, locale, appearance: { theme: "stripe", variables: { colorPrimary: "#B9472B", colorText: "#3F2930", borderRadius: "8px", fontFamily: "Aptos, Segoe UI, Inter, Helvetica Neue, Arial, sans-serif" } } }}>
                 <SecurePaymentStages
                   step={step}
                   setStep={setStep}

@@ -102,7 +102,7 @@ export type SavedSyncStatus = "idle" | "syncing" | "synced" | "error";
 /* Store                                                               */
 /* ------------------------------------------------------------------ */
 
-interface AppState {
+export interface AppState {
   // i18n
   locale: Locale;
   setLocale: (l: Locale) => void;
@@ -179,8 +179,46 @@ const CUSTOMER_PROTECTED_VIEWS = new Set<ViewId>([
   "order-tracking",
 ]);
 
+type PersistedClientState = Partial<Pick<AppState,
+  | "locale"
+  | "cart"
+  | "favorites"
+  | "savedRecipes"
+  | "savedOwnerId"
+  | "recentlyViewed"
+  | "country"
+  | "postalCode"
+  | "coupon"
+>>;
+
 export function customerProtectedView(view: ViewId) {
   return CUSTOMER_PROTECTED_VIEWS.has(view);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function stringArrayOrFallback(value: unknown, fallback: string[]) {
+  return Array.isArray(value) && value.every((item) => typeof item === "string") ? value : fallback;
+}
+
+export function mergeCustomerSafePersistedState(persistedState: unknown, currentState: AppState): AppState {
+  const persisted = (isRecord(persistedState) ? persistedState : {}) as PersistedClientState;
+  return {
+    ...currentState,
+    locale: persisted.locale === "fr" || persisted.locale === "en" ? persisted.locale : currentState.locale,
+    cart: Array.isArray(persisted.cart) ? persisted.cart : currentState.cart,
+    favorites: stringArrayOrFallback(persisted.favorites, currentState.favorites),
+    savedRecipes: stringArrayOrFallback(persisted.savedRecipes, currentState.savedRecipes),
+    savedOwnerId: typeof persisted.savedOwnerId === "string" ? persisted.savedOwnerId : null,
+    recentlyViewed: stringArrayOrFallback(persisted.recentlyViewed, currentState.recentlyViewed),
+    country: typeof persisted.country === "string" ? persisted.country : currentState.country,
+    postalCode: typeof persisted.postalCode === "string" ? persisted.postalCode : currentState.postalCode,
+    coupon: typeof persisted.coupon === "string" ? persisted.coupon : null,
+    customer: null,
+    addresses: [],
+  };
 }
 
 function sanitizedAuthReturnTarget(view: ViewId, params: ViewParams = {}): AuthReturnTarget {
@@ -475,12 +513,11 @@ export const useStore = create<AppState>()(
         savedRecipes: s.savedRecipes,
         savedOwnerId: s.savedOwnerId,
         recentlyViewed: s.recentlyViewed,
-        customer: s.customer,
-        addresses: s.addresses,
         country: s.country,
         postalCode: s.postalCode,
         coupon: s.coupon,
       }),
+      merge: mergeCustomerSafePersistedState,
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);
       },
