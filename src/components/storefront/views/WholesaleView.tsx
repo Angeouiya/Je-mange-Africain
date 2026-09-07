@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch";
+import { StorefrontWorkspaceHeader } from "@/components/storefront/StorefrontWorkspaceHeader";
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { PostalCodeField } from "@/components/shared/PostalCodeField";
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
@@ -98,19 +99,22 @@ export function WholesaleView() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-2" />
-      <header className="border-b border-charcoal/10 pb-4 sm:pb-5">
-        <div className="flex items-start justify-between gap-3 sm:items-end">
-          <div className="min-w-0">
-            <p className="jma-eyebrow">{isFr ? "Distribution professionnelle" : "Professional distribution"}</p>
-            <h1 className="jma-section-title mt-1">{isFr ? "Marché de gros" : "Wholesale market"}</h1>
-            <p className="mt-1.5 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-5">{isFr ? "Commandez par carton ou par lot, profitez de prix dégressifs et conservez la traçabilité de la chaîne du froid." : "Order by case or lot, access tiered pricing and preserve cold-chain traceability."}</p>
-          </div>
-          <Button type="button" variant="outline" onClick={() => { if (ensureWholesaleAuth()) setQuoteOpen(true); }} className="h-10 shrink-0 px-3 sm:px-4" aria-label={!customer ? (isFr ? "Connectez-vous pour demander un devis" : "Sign in to request a quote") : quoteLines.length ? (isFr ? `Ouvrir le devis, ${quoteLines.length} produit(s) et ${quotePackCount} colis` : `Open quote, ${quoteLines.length} product(s) and ${quotePackCount} cases`) : (isFr ? "Demander un devis" : "Request a quote")}><ReiconGlyph icon={Box} className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{customer ? (isFr ? "Devis" : "Quote") : (isFr ? "Connexion" : "Sign in")}</span><span className="hidden sm:inline">{customer ? (isFr ? "Demander un devis" : "Request a quote") : (isFr ? "Se connecter pour un devis" : "Sign in for quote")}</span>{quoteLines.length ? <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded bg-burgundy px-1 text-[9px] font-black text-white" aria-hidden="true">{quoteLines.length}</span> : null}</Button>
-        </div>
-        <div className="mt-3 sm:mt-4"><MarketChannelSwitch channel="wholesale" /></div>
-      </header>
+      <StorefrontWorkspaceHeader
+        icon={Box}
+        eyebrow={isFr ? "Distribution professionnelle" : "Professional distribution"}
+        title={isFr ? "Marché de gros" : "Wholesale market"}
+        description={isFr ? "Commandez par carton ou par lot, profitez de prix dégressifs et conservez la traçabilité de la chaîne du froid." : "Order by case or lot, access tiered pricing and preserve cold-chain traceability."}
+        signalsMobile={false}
+        signals={[
+          { icon: BoxTick, value: loading ? "..." : String(data?.total ?? 0), label: isFr ? "offres pro" : "pro offers", tone: "burgundy" },
+          { icon: ShieldCheck, value: isFr ? "FEFO" : "FEFO", label: isFr ? "lots tracés" : "tracked lots", tone: "earth" },
+          { icon: Truck, value: "EU", label: isFr ? "multi-zone" : "multi-zone", tone: "gold" },
+        ]}
+        action={<Button type="button" variant="outline" onClick={() => { if (ensureWholesaleAuth()) setQuoteOpen(true); }} className="h-10 px-3 sm:px-4" aria-label={!customer ? (isFr ? "Connectez-vous pour demander un devis" : "Sign in to request a quote") : quoteLines.length ? (isFr ? `Ouvrir le devis, ${quoteLines.length} produit(s) et ${quotePackCount} colis` : `Open quote, ${quoteLines.length} product(s) and ${quotePackCount} cases`) : (isFr ? "Demander un devis" : "Request a quote")}><ReiconGlyph icon={Box} className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{customer ? (isFr ? "Devis" : "Quote") : (isFr ? "Connexion" : "Sign in")}</span><span className="hidden sm:inline">{customer ? (isFr ? "Demander un devis" : "Request a quote") : (isFr ? "Se connecter pour un devis" : "Sign in for quote")}</span>{quoteLines.length ? <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded bg-burgundy px-1 text-[9px] font-black text-white" aria-hidden="true">{quoteLines.length}</span> : null}</Button>}
+        switcher={<MarketChannelSwitch channel="wholesale" />}
+      />
 
-      <section className="grid grid-cols-3 divide-x divide-charcoal/10 border-b border-charcoal/10" aria-label={isFr ? "Services du marché de gros" : "Wholesale services"}>
+      <section className="hidden grid-cols-3 divide-x divide-charcoal/10 border-b border-charcoal/10 sm:grid" aria-label={isFr ? "Services du marché de gros" : "Wholesale services"}>
         <WholesalePromise icon={BoxTick} title={isFr ? "Prix par volume" : "Volume pricing"} detail={isFr ? "Le meilleur palier s'applique automatiquement." : "The best tier applies automatically."} />
         <WholesalePromise icon={ShieldCheck} title={isFr ? "Lots traçables" : "Traceable batches"} detail={isFr ? "Réservation FEFO sur le stock réel." : "FEFO reservation against live stock."} />
         <WholesalePromise icon={Truck} title={isFr ? "Livraison Europe" : "European delivery"} detail={isFr ? "Ambiant, frais et surgelé séparés." : "Ambient, chilled and frozen separated."} />

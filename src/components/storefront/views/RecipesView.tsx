@@ -8,7 +8,6 @@ import { ForkKnife } from "reicon/icons/ForkKnife";
 import { Globe2 } from "reicon/icons/Globe2";
 import { MapPoint } from "reicon/icons/MapPoint";
 import { Search } from "reicon/icons/Search";
-import { Sparkle } from "reicon/icons/Sparkle";
 import { X } from "reicon/icons/X";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +18,7 @@ import { RecipeCard, type RecipeListItem } from "@/components/shared/RecipeCard"
 import { DishDetailsDialog, DishLibraryCard, type DishLibraryItem } from "@/components/shared/DishLibraryCard";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
+import { StorefrontWorkspaceHeader } from "@/components/storefront/StorefrontWorkspaceHeader";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 
@@ -78,10 +78,14 @@ export function RecipesView() {
       <section className="relative mb-4 min-h-[14.5rem] overflow-hidden rounded-lg border border-burgundy/10 bg-[#FFF8F4] md:min-h-[16.5rem]" data-testid="recipes-hero">
         <Image src="/recipe-library-hero.webp" alt="" fill sizes="(max-width: 767px) 100vw, calc(100vw - 16rem)" loading="eager" fetchPriority="high" className="object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/55 md:via-white/90 md:to-white/20" />
-        <div className="relative flex min-h-[14.5rem] max-w-3xl flex-col justify-center p-4 md:min-h-[16.5rem] md:p-7">
-          <p className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase text-terre"><ReiconGlyph icon={Sparkle} className="h-3.5 w-3.5" />{isFr ? "Cuisine africaine, panier intelligent" : "African cooking, smart basket"}</p>
-          <h1 className="mt-1.5 max-w-xl font-display text-2xl font-semibold leading-tight text-charcoal md:text-4xl">{t.recipes.title}</h1>
-          <p className="mt-1.5 line-clamp-2 max-w-xl text-[11px] leading-4 text-charcoal/75 md:text-sm md:leading-5">{t.recipes.subtitle}</p>
+        <div className="relative flex min-h-[14.5rem] max-w-3xl flex-col justify-center p-3 md:min-h-[16.5rem] md:p-7">
+          <StorefrontWorkspaceHeader
+            variant="hero"
+            icon={ChefHatHeart}
+            eyebrow={isFr ? "Cuisine africaine, panier intelligent" : "African cooking, smart basket"}
+            title={t.recipes.title}
+            description={t.recipes.subtitle}
+          />
           <div className="mt-3 max-w-2xl rounded-md border border-burgundy/15 bg-white p-1 shadow-[0_12px_34px_-24px_rgba(138,48,66,0.45)]">
             <label className="flex h-9 items-center gap-2 px-2.5">
               <ReiconGlyph icon={Search} className="h-4 w-4 shrink-0 text-terre" />

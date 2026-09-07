@@ -25,6 +25,7 @@ import { useFetch } from "@/lib/use-fetch";
 import { ProductCard, type ProductListItem } from "@/components/shared/ProductCard";
 import { MarketChannelSwitch } from "@/components/storefront/MarketChannelSwitch";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
+import { StorefrontWorkspaceHeader } from "@/components/storefront/StorefrontWorkspaceHeader";
 import { CategoryIcon } from "@/components/shared/CategoryIcon";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
 import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
@@ -170,7 +171,18 @@ export function CatalogView() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
       <div className="mb-5 flex flex-col gap-3 border-b border-charcoal/10 pb-5 md:mb-6 md:gap-4 md:pb-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="jma-eyebrow">{locale === "fr" ? "Marché vivant" : "Live market"}</p><h1 className="jma-section-title mt-1">{t.catalog.title}</h1></div><MarketChannelSwitch channel="retail" /></div>
+        <StorefrontWorkspaceHeader
+          icon={BoxSearch}
+          eyebrow={locale === "fr" ? "Marché vivant" : "Live market"}
+          title={t.catalog.title}
+          description={locale === "fr" ? "Produits authentiques, disponibilité réelle, promotions et ingrédients prêts à basculer vers une recette." : "Authentic products, live availability, promotions and ingredients ready to become a recipe basket."}
+          signals={[
+            { icon: BoxSearch, value: loading ? "..." : String(data?.total ?? 0), label: locale === "fr" ? "références" : "items", tone: "burgundy" },
+            { icon: CheckCircle, value: locale === "fr" ? "Stock" : "Stock", label: locale === "fr" ? "temps réel" : "live", tone: "earth" },
+            { icon: BadgePercent, value: locale === "fr" ? "Promos" : "Deals", label: locale === "fr" ? "prix visibles" : "visible prices", tone: "gold" },
+          ]}
+          switcher={<MarketChannelSwitch channel="retail" />}
+        />
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
           <div className="relative col-span-2 flex-1 sm:col-span-1">
             <ReiconGlyph icon={SearchIcon} className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
