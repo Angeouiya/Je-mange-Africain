@@ -11,7 +11,7 @@ describe("storefront prefetch map", () => {
     expect(storefrontPrefetchUrls("recipe-config", {}, "fr")).toEqual([]);
   });
 
-  it("warms the public home, recipe and platform surfaces without private account endpoints", () => {
+  it("warms the public home, recipe and platform surfaces without account mutations", () => {
     expect(storefrontPrefetchUrls("home", {}, "fr")).toEqual([
       "/api/catalog?section=home&locale=fr",
       "/api/advertisements?placement=home&locale=fr",
@@ -23,6 +23,11 @@ describe("storefront prefetch map", () => {
       "/api/advertisements?placement=recipes&locale=en",
     ]);
     expect(storefrontPrefetchUrls("account", {}, "fr")).toEqual([]);
-    expect(storefrontPrefetchUrls("orders", {}, "fr")).toEqual([]);
+  });
+
+  it("prepares authenticated order workspaces when the navigation already has context", () => {
+    expect(storefrontPrefetchUrls("orders", {}, "fr")).toEqual(["/api/orders?locale=fr"]);
+    expect(storefrontPrefetchUrls("order-tracking", { orderId: "order 1" }, "en")).toEqual(["/api/orders/order%201?locale=en"]);
+    expect(storefrontPrefetchUrls("order-confirmation", {}, "fr")).toEqual([]);
   });
 });

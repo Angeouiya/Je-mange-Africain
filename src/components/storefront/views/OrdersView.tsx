@@ -20,6 +20,11 @@ import {
   ShoppingBag,
   X,
 } from "lucide-react";
+import { AlertCircle as ReAlertCircle } from "reicon/icons/AlertCircle";
+import { Card as ReCard } from "reicon/icons/Card";
+import { CheckCircle as ReCheckCircle } from "reicon/icons/CheckCircle";
+import { ClipboardList as ReClipboardList } from "reicon/icons/ClipboardList";
+import { Package as RePackage } from "reicon/icons/Package";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -37,12 +42,14 @@ import {
 import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { OrderRefundSummary } from "@/components/storefront/OrderRefundSummary";
+import { StorefrontWorkspaceHeader } from "@/components/storefront/StorefrontWorkspaceHeader";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch } from "@/lib/use-fetch";
 import { formatPrice, formatDate, normalize, orderStatusColor, orderStatusKey } from "@/lib/format";
 import { downloadOrderInvoice } from "@/lib/client-actions";
 import { getOrderDeliveryTimestamp, getOrderProgress, getOrderStageIndex, isTerminalOrder, orderNeedsAttention, summarizeOrders } from "@/lib/order-experience";
+import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 import { europeanCountryLabel } from "@/lib/european-countries";
 import type { Order, OrderLine } from "@/lib/types";
 
@@ -67,7 +74,7 @@ export function OrdersView() {
   const addManyToCart = useStore((state) => state.addManyToCart);
   const customer = useStore((state) => state.customer);
   const t = dict[locale];
-  const { data, loading, error, refetch } = useFetch<{ orders: Order[] }>(customer ? `/api/orders?locale=${locale}` : null, [customer?.id, locale]);
+  const { data, loading, error, refetch } = useFetch<{ orders: Order[] }>(customer ? `/api/orders?locale=${locale}` : null, [customer?.id, locale], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<OrderFilter>("all");
   const [pendingReorder, setPendingReorder] = useState<Order | null>(null);
@@ -146,11 +153,21 @@ export function OrdersView() {
     <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="account" fallbackParams={{ accountSection: "profile" }} className="mb-4" />
 
-      <header className="mb-5 max-w-2xl" data-testid="orders-header">
-        <p className="text-[10px] font-black uppercase text-terre">{locale === "fr" ? "Centre de commandes" : "Order centre"}</p>
-        <h1 className="mt-1 font-display text-3xl font-semibold text-charcoal sm:text-4xl">{t.orders.title}</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{t.orders.subtitle}</p>
-      </header>
+      <div className="mb-5" data-testid="orders-header">
+        <StorefrontWorkspaceHeader
+          icon={ReClipboardList}
+          eyebrow={locale === "fr" ? "Centre de commandes" : "Order centre"}
+          title={t.orders.title}
+          description={t.orders.subtitle}
+          signals={[
+            { icon: RePackage, value: loading ? "..." : String(portfolio.active), label: locale === "fr" ? "en cours" : "active", tone: "burgundy" },
+            { icon: ReAlertCircle, value: loading ? "..." : String(portfolio.attention), label: locale === "fr" ? "à suivre" : "attention", tone: portfolio.attention > 0 ? "gold" : "earth" },
+            { icon: ReCheckCircle, value: loading ? "..." : String(portfolio.delivered), label: locale === "fr" ? "livrées" : "delivered", tone: "earth" },
+            { icon: ReCard, value: loading ? "..." : formatPrice(portfolio.orderedValue, locale), label: locale === "fr" ? "historique" : "history", tone: "gold" },
+          ]}
+          action={<Button type="button" variant="outline" onClick={() => navigate("catalog")} className="h-10 border-burgundy/20 bg-white px-3 text-burgundy hover:bg-burgundy/[0.04] hover:text-burgundy" aria-label={locale === "fr" ? "Racheter des produits" : "Shop again"} title={locale === "fr" ? "Racheter des produits" : "Shop again"}><ShoppingBag className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{locale === "fr" ? "Racheter" : "Shop again"}</span></Button>}
+        />
+      </div>
 
       {loading ? (
         <div className="space-y-3"><Skeleton className="h-24 rounded-lg" />{Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-52 rounded-lg" />)}</div>

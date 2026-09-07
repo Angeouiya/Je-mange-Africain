@@ -1608,7 +1608,7 @@ test("checkout compares delivery services and protects the cold chain", async ({
     localStorage.setItem("jma-store", JSON.stringify({
       state: {
         locale: "fr",
-        cart: [{ id: "line-frozen", productId: "product-frozen", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", unitPrice: 8.5, unitLabel: "500 g", packWeightGrams: 500, thermalClass: "FROZEN", imageUrl: "/products/gombo.webp", qty: 2, maxStock: 40 }],
+        cart: [{ id: "line-frozen", productId: "product-frozen", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", unitPrice: 8.5, unitLabel: "500 g", packWeightGrams: 500, thermalClass: "FROZEN", imageUrl: "/products/gombo-frais.webp", qty: 2, maxStock: 40 }],
         customer: persistedCustomer,
         addresses: persistedAddresses,
         favorites: [], savedRecipes: [], recentlyViewed: [], country: "Belgique", postalCode: "1000", coupon: null,
@@ -1838,7 +1838,7 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
     paymentMethod: "ideal",
     items: [
       { id: "confirmed-line-1", productId: "product-attieke", variantId: "variant-attieke-800", variantLabel: "Pot 800 g", name: "Attiéké frais", nameFr: "Attiéké frais", nameEn: "Fresh attieke", sku: "JMA-ATT-500", unitPrice: 9.4, qty: 2, lineTotal: 18.8, thermalClass: "REFRIGERATED", recipeId: null, recipeName: null, packWeightGrams: 800, unitLabel: "Pot 800 g", imageUrl: "/products/attieke.webp" },
-      { id: "confirmed-line-2", productId: "product-gombo", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", sku: "JMA-GOM-500", unitPrice: 8.5, qty: 2, lineTotal: 17, thermalClass: "FROZEN", recipeId: null, recipeName: null, packWeightGrams: 500, unitLabel: "500 g", imageUrl: "/products/gombo.webp" },
+      { id: "confirmed-line-2", productId: "product-gombo", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", sku: "JMA-GOM-500", unitPrice: 8.5, qty: 2, lineTotal: 17, thermalClass: "FROZEN", recipeId: null, recipeName: null, packWeightGrams: 500, unitLabel: "500 g", imageUrl: "/products/gombo-frais.webp" },
     ],
     shipments: [{ id: "confirmed-shipment", carrierId: null, carrier: "Chrono Frais", carrierName: "Chrono Frais", trackingNumber: null, thermalClass: "FROZEN", status: "preparing", confirmCode: null, estimatedDelivery: "2026-09-06T14:00:00.000Z", actualDelivery: null }],
     timeline: [{ id: "confirmed-event", status: "paymentConfirmed", label: "Paiement confirmé", at: "2026-09-04T10:12:00.000Z", actor: null }],
@@ -2334,7 +2334,7 @@ test("delivered orders expose carrier tracking and proof without leaking interna
     deliveryCity: "Bruxelles",
     deliveryPostalCode: "1000",
     deliveryCountry: "Belgique",
-    items: [{ id: "line-active", productId: "product-active", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", sku: "JMA-GOM-500", unitPrice: 8.5, currentUnitPrice: 8.5, qty: 3, lineTotal: 25.5, thermalClass: "FROZEN", imageUrl: "/products/gombo.webp", recipeId: null, recipeName: null, unitLabel: "Sachet 500 g", packWeightGrams: 500, maxStock: 18, purchasable: true }],
+    items: [{ id: "line-active", productId: "product-active", name: "Gombo surgelé", nameFr: "Gombo surgelé", nameEn: "Frozen okra", sku: "JMA-GOM-500", unitPrice: 8.5, currentUnitPrice: 8.5, qty: 3, lineTotal: 25.5, thermalClass: "FROZEN", imageUrl: "/products/gombo-frais.webp", recipeId: null, recipeName: null, unitLabel: "Sachet 500 g", packWeightGrams: 500, maxStock: 18, purchasable: true }],
     shipments: [{ id: "shipment-active", trackingNumber: "JMA-BE-260903-ACTIVE", thermalClass: "FROZEN", status: "in_transit", estimatedDelivery: "2026-09-05T12:00:00.000Z", actualDelivery: null, confirmCode: "5930", carrier: "Chrono Frais Europe", carrierName: "Chrono Frais Europe", trackingUrl: "https://track.example.com/{ref}", proofPhoto: null, signature: null }],
     timeline: [{ status: "paymentConfirmed", label: "Payment confirmed", at: "2026-09-03T08:10:00.000Z", actor: null }, { status: "in_transit", label: "In transit", at: "2026-09-03T14:20:00.000Z", actor: null }],
     payments: [{ method: "Carte", status: "captured", amount: 32.4, reference: "pi_active" }],

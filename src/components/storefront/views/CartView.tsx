@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Trash2, ShoppingBag, ChevronRight, Tag, Truck, Package, Check, Boxes, MapPin, Clock3, X, ChefHat, Plus, ShieldCheck, PencilLine, LogIn } from "lucide-react";
+import { BasketShopping as ReBasketShopping } from "reicon/icons/BasketShopping";
+import { Card as ReCard } from "reicon/icons/Card";
+import { Package as RePackage } from "reicon/icons/Package";
+import { Truck as ReTruck } from "reicon/icons/Truck";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,6 +23,7 @@ import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { DeliveryDestinationDialog } from "@/components/storefront/DeliveryDestinationDialog";
+import { StorefrontWorkspaceHeader } from "@/components/storefront/StorefrontWorkspaceHeader";
 import { europeanCountryLabel } from "@/lib/european-countries";
 
 export function CartView() {
@@ -103,6 +108,7 @@ export function CartView() {
   const taxable = Math.max(0, subtotal - promoDiscount);
   const vat = Math.round((taxable / 1.2) * 0.2 * 100) / 100;
   const total = taxable + shipFee;
+  const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
   // group cart by recipe
   const recipeGroups = new Map<string, CartItem[]>();
@@ -184,15 +190,28 @@ export function CartView() {
   return (
     <div className="mx-auto max-w-7xl px-4 pb-36 pt-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="catalog" className="mb-2" />
-      <div className="mb-5 flex items-end justify-between gap-4 border-b border-charcoal/10 pb-4">
-        <div><p className="jma-eyebrow">{locale === "fr" ? "Votre sélection" : "Your selection"}</p><h1 className="jma-section-title mt-1">{t.cart.title}</h1></div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="mr-1 h-4 w-4" /> {t.cart.clear}</Button></AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>{locale === "fr" ? "Vider tout le panier ?" : "Empty the entire cart?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? "Tous les produits, quantités et paniers de recettes seront retirés. Cette action ne peut pas être annulée." : "All products, quantities and recipe baskets will be removed. This action cannot be undone."}</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>{locale === "fr" ? "Conserver mon panier" : "Keep my cart"}</AlertDialogCancel><AlertDialogAction onClick={clearCart} className="bg-destructive text-white hover:bg-destructive/90">{locale === "fr" ? "Oui, tout retirer" : "Yes, remove all"}</AlertDialogAction></AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      <div className="mb-5">
+        <StorefrontWorkspaceHeader
+          icon={ReBasketShopping}
+          eyebrow={locale === "fr" ? "Cockpit panier" : "Basket cockpit"}
+          title={t.cart.title}
+          description={locale === "fr" ? "Quantités, recettes, remise, livraison et total final restent lisibles avant le paiement sécurisé." : "Quantities, recipes, discount, delivery and final total stay clear before secure checkout."}
+          signals={[
+            { icon: ReBasketShopping, value: String(itemCount), label: locale === "fr" ? "article(s)" : "item(s)", tone: "burgundy" },
+            { icon: RePackage, value: formatWeight(weight, locale), label: locale === "fr" ? "poids total" : "total weight", tone: "earth" },
+            { icon: ReTruck, value: shipLoading ? "..." : shipFee === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipFee, locale), label: locale === "fr" ? "livraison" : "delivery", tone: "gold" },
+            { icon: ReCard, value: formatPrice(total, locale), label: locale === "fr" ? "total estimé" : "estimated total", tone: "burgundy" },
+          ]}
+          action={(
+            <AlertDialog>
+              <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="h-10 px-2 text-destructive hover:text-destructive sm:px-3" aria-label={t.cart.clear} title={t.cart.clear}><Trash2 className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{t.cart.clear}</span></Button></AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader><AlertDialogTitle>{locale === "fr" ? "Vider tout le panier ?" : "Empty the entire cart?"}</AlertDialogTitle><AlertDialogDescription>{locale === "fr" ? "Tous les produits, quantités et paniers de recettes seront retirés. Cette action ne peut pas être annulée." : "All products, quantities and recipe baskets will be removed. This action cannot be undone."}</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogFooter><AlertDialogCancel>{locale === "fr" ? "Conserver mon panier" : "Keep my cart"}</AlertDialogCancel><AlertDialogAction onClick={clearCart} className="bg-destructive text-white hover:bg-destructive/90">{locale === "fr" ? "Oui, tout retirer" : "Yes, remove all"}</AlertDialogAction></AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">

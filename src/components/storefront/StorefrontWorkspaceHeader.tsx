@@ -59,7 +59,12 @@ export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, s
         {signals.length || switcher ? (
           <div className={cn("mt-3 grid min-w-0 gap-2", switcher ? "sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" : "")}>
             {signals.length ? (
-              <div className={cn("-mx-1 min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", signalsMobile ? "flex" : "hidden sm:flex")} aria-label="Workspace signals">
+              <div
+                className={cn("-mx-1 min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", signalsMobile ? "flex" : "hidden sm:flex")}
+                role="region"
+                tabIndex={0}
+                aria-label={title}
+              >
                 {signals.map((signal) => (
                   <span
                     key={`${signal.label}-${signal.value}`}

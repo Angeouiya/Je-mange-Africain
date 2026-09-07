@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, CalendarDays, Camera, CheckCircle2, Circle, ClipboardSignature, Download, ExternalLink, MapPin, Truck, Package, LogIn, ReceiptText, ShieldCheck } from "lucide-react";
 import { CheckCircle as ReCheckCircle } from "reicon/icons/CheckCircle";
+import { Card as ReCard } from "reicon/icons/Card";
 import { Location as ReLocation } from "reicon/icons/Location";
 import { Package as RePackage } from "reicon/icons/Package";
 import { Truck as ReTruck } from "reicon/icons/Truck";
@@ -19,9 +20,11 @@ import { PageBackButton } from "@/components/shared/PageBackButton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { PaymentMethodIdentity } from "@/components/shared/PaymentMethodIdentity";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
+import { StorefrontWorkspaceHeader } from "@/components/storefront/StorefrontWorkspaceHeader";
 import { getOrderDeliveryOverview, getShipmentTrackingHref } from "@/lib/order-experience";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { OrderRefundSummary } from "@/components/storefront/OrderRefundSummary";
+import { STOREFRONT_DETAIL_TTL_MS } from "@/lib/storefront-prefetch";
 import type { Order } from "@/lib/types";
 import { europeanCountryLabel } from "@/lib/european-countries";
 import { paymentStatusLabel } from "@/lib/payment-methods";
@@ -33,7 +36,7 @@ export function OrderTrackingView() {
   const customer = useStore((s) => s.customer);
   const t = dict[locale];
   const [mobilePanel, setMobilePanel] = useState<"delivery" | "order">("delivery");
-  const { data: order, loading, error, refetch } = useFetch<Order>(customer && params.orderId ? `/api/orders/${params.orderId}?locale=${locale}` : null, [customer?.id, params.orderId, locale]);
+  const { data: order, loading, error, refetch } = useFetch<Order>(customer && params.orderId ? `/api/orders/${params.orderId}?locale=${locale}` : null, [customer?.id, params.orderId, locale], {}, { cache: true, ttlMs: STOREFRONT_DETAIL_TTL_MS });
 
   if (!customer) return <div className="mx-auto grid min-h-[55vh] max-w-md place-items-center px-4 text-center"><div><span className="mx-auto grid h-11 w-11 place-items-center rounded-lg bg-terre/10 text-terre"><LogIn className="h-5 w-5" /></span><h1 className="mt-4 font-display text-2xl font-semibold text-charcoal">{locale === "fr" ? "Suivi protégé" : "Protected tracking"}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "fr" ? "Connectez-vous avec le compte ayant passé cette commande." : "Sign in with the account that placed this order."}</p><Button onClick={() => navigate("account")} className="mt-5 bg-terre text-white hover:bg-terre-dark">{t.nav.login}</Button></div></div>;
   if (loading) return <div className="mx-auto max-w-3xl px-4 py-6"><Skeleton className="h-96 rounded-lg" /></div>;
@@ -56,16 +59,25 @@ export function OrderTrackingView() {
     <div className="mx-auto max-w-3xl px-4 pb-40 pt-7 md:px-7 md:py-10 lg:px-8">
       <PageBackButton fallbackView="orders" className="mb-4" />
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-5">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase text-terre">{locale === "fr" ? "Suivi de commande" : "Order tracking"}</p>
-          <h1 className="font-display text-3xl font-semibold text-charcoal">{order.number}</h1>
-          <p className="mt-1 text-xs text-muted-foreground">{locale === "fr" ? "Commandée le" : "Ordered on"} {formatDate(order.createdAt, locale)}</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Badge className={`border ${orderStatusColor(order.status)}`}>{t.orders.statuses[orderStatusKey(order.status) as keyof typeof t.orders.statuses] || order.status}</Badge>
-          <Button type="button" size="sm" variant="outline" className="hidden bg-white md:inline-flex" onClick={() => downloadOrderInvoice(order, locale)}><Download className="h-3.5 w-3.5" />{t.orders.invoice}</Button>
-        </div>
+      <div className="mb-5" data-testid="tracking-header">
+        <StorefrontWorkspaceHeader
+          icon={ReTruck}
+          eyebrow={locale === "fr" ? "Suivi de commande" : "Order tracking"}
+          title={order.number}
+          description={`${locale === "fr" ? "Commandée le" : "Ordered on"} ${formatDate(order.createdAt, locale)} · ${[order.deliveryCity, europeanCountryLabel(order.deliveryCountry, locale)].filter(Boolean).join(", ")}`}
+          signals={[
+            { icon: ReCheckCircle, value: t.orders.statuses[orderStatusKey(order.status) as keyof typeof t.orders.statuses] || order.status, label: locale === "fr" ? "statut" : "status", tone: isInterrupted ? "gold" : "burgundy" },
+            { icon: RePackage, value: String(packageCount), label: locale === "fr" ? "colis" : "parcels", tone: "earth" },
+            { icon: ReTruck, value: primaryShipment?.carrierName || primaryShipment?.carrier || (locale === "fr" ? "À attribuer" : "Pending"), label: locale === "fr" ? "transporteur" : "carrier", tone: "gold" },
+            { icon: ReCard, value: payment?.status ? paymentStatusLabel(payment.status, locale) : (locale === "fr" ? "À confirmer" : "To confirm"), label: locale === "fr" ? "paiement" : "payment", tone: "burgundy" },
+          ]}
+          action={(
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Badge className={`max-w-[9rem] truncate border text-center ${orderStatusColor(order.status)}`}>{t.orders.statuses[orderStatusKey(order.status) as keyof typeof t.orders.statuses] || order.status}</Badge>
+              <Button type="button" size="sm" variant="outline" className="hidden bg-white md:inline-flex" onClick={() => downloadOrderInvoice(order, locale)}><Download className="h-3.5 w-3.5" />{t.orders.invoice}</Button>
+            </div>
+          )}
+        />
       </div>
 
       <section className={`mb-5 overflow-hidden border-y px-4 py-4 ${isInterrupted ? "border-destructive/20 bg-destructive/[0.045]" : "border-burgundy/15 bg-[#FFF8F4]"}`} aria-labelledby="delivery-command-title" data-testid="delivery-command-center" aria-live="polite">

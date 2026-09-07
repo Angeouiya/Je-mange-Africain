@@ -40,6 +40,12 @@ export function storefrontPrefetchUrls(view: ViewId, params: ViewParams = {}, lo
       return params.recipeId ? [`/api/recipes/${encodeURIComponent(params.recipeId)}?locale=${locale}`] : [];
     case "checkout":
       return [`/api/advertisements?placement=checkout&locale=${locale}`];
+    case "orders":
+      return [`/api/orders?locale=${locale}`];
+    case "order-tracking":
+      return params.orderId ? [`/api/orders/${encodeURIComponent(params.orderId)}?locale=${locale}`] : [];
+    case "order-confirmation":
+      return params.orderId ? [`/api/orders/${encodeURIComponent(params.orderId)}?locale=${locale}`] : [];
     case "info":
       return ["/api/platform"];
     default:
