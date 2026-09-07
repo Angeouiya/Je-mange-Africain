@@ -58,11 +58,21 @@ const anonymousHomePayload = {
   ],
 };
 
+const anonymousHomeCampaign = {
+  id: "campaign-auth-lock",
+  placement: "home",
+  title: "Table ivoirienne du week-end",
+  body: "Une sélection publiée par l'équipe Je mange Africain.",
+  imageUrl: "/hero-feast-v2.webp",
+  imageAlt: "Table de plats africains",
+  linkUrl: "https://partner.example/offre",
+};
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("jma-privacy-consent-v1", JSON.stringify({ version: 1, necessary: true, analytics: false, personalization: false, marketing: false, updatedAt: "2026-09-05T12:00:00.000Z" })));
 });
 
-async function seedAnonymousHome(page: Page) {
+async function seedAnonymousHome(page: Page, advertisements: unknown[] = []) {
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
@@ -71,7 +81,7 @@ async function seedAnonymousHome(page: Page) {
   await page.route("**/api/advertisements?*", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify({ advertisements: [] }),
+    body: JSON.stringify({ advertisements }),
   }));
   await page.route("**/api/catalog?*", (route) => {
     const url = new URL(route.request().url());
@@ -138,6 +148,16 @@ test("anonymous customer actions require sign-in before continuing", async ({ pa
   for (const action of actions) {
     await expectAuthGateAfter(action, page);
   }
+});
+
+test("anonymous campaign actions require sign-in even for external links", async ({ page }) => {
+  await seedAnonymousHome(page, [anonymousHomeCampaign]);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const campaign = page.getByTestId("advertisement-home");
+  await expect(campaign).toBeVisible();
+  await expectAuthGateAfter(campaign.getByRole("button", { name: /connexion requise|sign in required/i }), page);
+  expect(page.url()).not.toContain("partner.example");
 });
 
 test("anonymous direct access to support contact is guarded while legal pages stay public", async ({ page }) => {
