@@ -4,6 +4,7 @@ import {
   optionalConsentCount,
   parsePrivacyConsent,
   parsePrivacyConsentCookie,
+  PRIVACY_CONSENT_COOKIE_NAME,
   PRIVACY_CONSENT_COMPLETED_COOKIE_NAME,
   PRIVACY_CONSENT_COMPLETED_SESSION_KEY,
   PRIVACY_CONSENT_COMPLETED_STORAGE_KEY,
@@ -123,6 +124,52 @@ describe("privacy consent", () => {
       expect(stored[PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]).toBe("v1");
       resetPrivacyConsentMemoryForTests();
     }
+  });
+
+  it("keeps the European privacy step dismissed when the old consent slot contains the final choice", () => {
+    const markers = [
+      { marker: "refused", expected: { analytics: false, personalization: false, marketing: false } },
+      { marker: "accepted", expected: { analytics: true, personalization: true, marketing: true } },
+      { marker: "v1.010", expected: { analytics: false, personalization: true, marketing: false } },
+      { marker: JSON.stringify({ version: 1, status: "refuser" }), expected: { analytics: false, personalization: false, marketing: false } },
+    ];
+
+    for (const { marker, expected } of markers) {
+      const stored: Record<string, string | null> = {
+        [PRIVACY_CONSENT_STORAGE_KEY]: marker,
+        [PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]: null,
+      };
+      vi.stubGlobal("document", { cookie: "" });
+      vi.stubGlobal("window", {
+        localStorage: {
+          getItem: vi.fn((key: string) => stored[key] ?? null),
+          setItem: vi.fn((key: string, value: string) => { stored[key] = value; }),
+        },
+        sessionStorage: {
+          getItem: vi.fn(() => null),
+          setItem: vi.fn(),
+        },
+        location: { protocol: "https:", hostname: "je-mange-africain.com" },
+        dispatchEvent: vi.fn(),
+      });
+
+      expect(readPrivacyConsent()).toMatchObject({ necessary: true, ...expected });
+      expect(stored[PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]).toBe("v1");
+      resetPrivacyConsentMemoryForTests();
+    }
+  });
+
+  it("restores accepted or refused legacy cookies without reopening the first privacy step", () => {
+    expect(parsePrivacyConsentCookie(`${PRIVACY_CONSENT_COOKIE_NAME}=accepted`, new Date("2026-09-05T13:10:00.000Z"))).toMatchObject({
+      analytics: true,
+      personalization: true,
+      marketing: true,
+    });
+    expect(parsePrivacyConsentCookie(`${PRIVACY_CONSENT_COOKIE_NAME}=refuser`, new Date("2026-09-05T13:11:00.000Z"))).toMatchObject({
+      analytics: false,
+      personalization: false,
+      marketing: false,
+    });
   });
 
   it("keeps the European privacy step dismissed from a completed cookie marker", () => {

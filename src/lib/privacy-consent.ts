@@ -57,10 +57,50 @@ export function parsePrivacyConsent(raw: string | null | undefined): PrivacyCons
   }
 }
 
+function normalizePrivacyMarker(value: string) {
+  return value.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function markerPrivacyConsent(raw: string | null | undefined, now = new Date()): PrivacyConsent | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value) return null;
+  const flagMatch = value.match(/^v(\d+)\.([01]{3})$/i);
+  if (flagMatch && Number(flagMatch[1]) === PRIVACY_CONSENT_VERSION) {
+    const flags = flagMatch[2];
+    return createPrivacyConsent({
+      analytics: flags[0] === "1",
+      personalization: flags[1] === "1",
+      marketing: flags[2] === "1",
+    }, now);
+  }
+  const marker = normalizePrivacyMarker(value);
+  if (marker === "accepted" || marker === "accept" || marker === "accepte" || marker === "allowed") {
+    return createPrivacyConsent({ analytics: true, personalization: true, marketing: true }, now);
+  }
+  if (marker === "refused" || marker === "rejected" || marker === "declined" || marker === "reject" || marker === "refuse" || marker === "refuser") {
+    return createPrivacyConsent({}, now);
+  }
+  if (marker === `v${PRIVACY_CONSENT_VERSION}` || marker === String(PRIVACY_CONSENT_VERSION) || marker === "true") {
+    return createPrivacyConsent({}, now);
+  }
+  return null;
+}
+
 function legacyPrivacyConsent(raw: string | null | undefined, now = new Date()): PrivacyConsent | null {
   if (!raw) return null;
+  const markerConsent = markerPrivacyConsent(raw, now);
+  if (markerConsent) return markerConsent;
   try {
-    const value = JSON.parse(raw) as Partial<PrivacyConsent> & { accepted?: boolean; refused?: boolean };
+    const value = JSON.parse(raw) as Partial<PrivacyConsent> & {
+      accepted?: boolean;
+      completed?: boolean;
+      dismissed?: boolean;
+      refused?: boolean;
+      rejected?: boolean;
+      choice?: string;
+      status?: string;
+    };
     if (value.necessary === true) {
       return createPrivacyConsent({
         analytics: value.analytics === true,
@@ -75,7 +115,32 @@ function legacyPrivacyConsent(raw: string | null | undefined, now = new Date()):
         marketing: value.accepted,
       }, now);
     }
-    if (value.refused === true) return createPrivacyConsent({}, now);
+    const choice = typeof value.choice === "string" ? normalizePrivacyMarker(value.choice) : "";
+    const status = typeof value.status === "string" ? normalizePrivacyMarker(value.status) : "";
+    if (choice === "accepted" || choice === "accept" || choice === "accepte" || status === "accepted" || status === "accept" || status === "accepte") {
+      return createPrivacyConsent({ analytics: true, personalization: true, marketing: true }, now);
+    }
+    if (
+      value.refused === true
+      || value.rejected === true
+      || choice === "refused"
+      || choice === "rejected"
+      || choice === "declined"
+      || choice === "refuse"
+      || choice === "refuser"
+      || status === "refused"
+      || status === "rejected"
+      || status === "declined"
+      || status === "refuse"
+      || status === "refuser"
+    ) return createPrivacyConsent({}, now);
+    if (value.completed === true || value.dismissed === true || choice === "custom" || status === "custom") {
+      return createPrivacyConsent({
+        analytics: value.analytics === true,
+        personalization: value.personalization === true,
+        marketing: value.marketing === true,
+      }, now);
+    }
   } catch {
     return null;
   }
@@ -111,6 +176,11 @@ export function parsePrivacyConsentCookie(rawCookie: string | null | undefined, 
       marketing: flags[2] === "1",
     }, now);
   }
+  for (const encodedValue of privacyCookieValues(rawCookie, PRIVACY_CONSENT_COOKIE_NAME)) {
+    const value = decodePrivacyCookieValue(encodedValue);
+    const legacy = legacyPrivacyConsent(value, now);
+    if (legacy) return legacy;
+  }
   return null;
 }
 
@@ -118,15 +188,7 @@ function hasCompletedPrivacyStep(raw: string | null | undefined, now = new Date(
   if (!raw) return false;
   const value = raw.trim();
   if (!value) return false;
-  if (
-    value === `v${PRIVACY_CONSENT_VERSION}`
-    || value === String(PRIVACY_CONSENT_VERSION)
-    || value === "true"
-    || value === "accepted"
-    || value === "refused"
-    || value === "rejected"
-    || value === "declined"
-  ) return true;
+  if (markerPrivacyConsent(value, now)) return true;
 
   if (new RegExp(`^v${PRIVACY_CONSENT_VERSION}\\.[01]{3}$`).test(value)) return true;
   if (parsePrivacyConsent(value) || legacyPrivacyConsent(value, now)) return true;
