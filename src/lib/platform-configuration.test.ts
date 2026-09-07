@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cloudflareDeploymentReadiness, platformIntegrationStatus, PRODUCTION_SUPABASE_PROJECT_REF } from "./platform-configuration";
+import { cloudflareDeploymentReadiness, platformIntegrationStatus, PRODUCTION_SUPABASE_PROJECT_REF, PRODUCTION_SUPABASE_PUBLISHABLE_KEY } from "./platform-configuration";
 
 const productionDatabaseUrl = `postgresql://postgres:secret@db.${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co:5432/postgres`;
 
@@ -50,7 +50,7 @@ describe("platform production readiness", () => {
       STRIPE_SECRET_KEY: "sk_live_example",
       STRIPE_WEBHOOK_SECRET: "whsec_example",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
       UPSTASH_REDIS_REST_URL: "https://cache.example.test",
       UPSTASH_REDIS_REST_TOKEN: "redis_example",
@@ -73,7 +73,7 @@ describe("platform production readiness", () => {
       CLOUDFLARE_DOMAIN_STATUS: "deferred",
       NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
       STRIPE_SECRET_KEY: "sk_live_example",
@@ -102,7 +102,7 @@ describe("platform production readiness", () => {
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
       NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
     } as const;
 
@@ -123,7 +123,7 @@ describe("platform production readiness", () => {
       CLOUDFLARE_DOMAIN_STATUS: "attached",
       NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ailevucikakmgsxfptwv.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
       STRIPE_SECRET_KEY: "sk_live_example",
@@ -150,7 +150,7 @@ describe("platform production readiness", () => {
       CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
       NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: "push_public",
       VAPID_PRIVATE_KEY: "push_private",
       VAPID_SUBJECT: "mailto:contact@je-mange-africain.com",
@@ -178,7 +178,7 @@ describe("platform production readiness", () => {
       CLOUDFLARE_DOMAIN_STATUS: "attached",
       NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
       NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
       SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
       STRIPE_SECRET_KEY: "sk_live_example",
@@ -194,5 +194,30 @@ describe("platform production readiness", () => {
     expect(readiness.completed).toBe(readiness.total);
     expect(readiness.percentage).toBe(100);
     expect(readiness.blockers).toEqual([]);
+  });
+
+  it("refuses another Supabase publishable key even when the project URL is correct", () => {
+    const integrations = platformIntegrationStatus(true, {
+      DATABASE_URL: productionDatabaseUrl,
+      NODE_ENV: "production",
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
+      NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_other_project",
+      SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
+    });
+    const readiness = cloudflareDeploymentReadiness(true, {
+      DATABASE_URL: productionDatabaseUrl,
+      CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+      CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
+      NEXT_PUBLIC_SITE_URL: "https://je-mange-africain.com",
+      NEXT_PUBLIC_SUPABASE_URL: "https://ahigidhuhqcmxzjxetnw.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_other_project",
+      SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
+    });
+
+    expect(integrations.find((integration) => integration.id === "identity")).toMatchObject({ state: "attention", capabilities: { project: true, publishableKey: false } });
+    expect(readiness.requirements.find((requirement) => requirement.id === "supabase-publishable-key")).toMatchObject({ satisfied: false });
   });
 });

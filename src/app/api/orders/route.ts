@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
       id: o.id,
       number: o.number,
       status: o.status,
+      ...(access.scope === "admin" ? { fraudScore: o.fraudScore } : {}),
       subtotal: Number(o.subtotal),
       shippingCost: Number(o.shippingCost),
       vatAmount: Number(o.vatAmount),

@@ -106,6 +106,7 @@ type PlatformEnvironment = Partial<Record<PlatformEnvironmentKey, string>>;
 export const PRODUCTION_SUPABASE_PROJECT_REF = "ahigidhuhqcmxzjxetnw";
 export const PRODUCTION_SUPABASE_PROJECT_NAME = "JMA";
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
+export const PRODUCTION_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_AUIg2aOqbAJKzAvkEFdG8A_qYZiGd7D";
 export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12bc";
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
 export const CLOUDFLARE_PUBLICATION_MODE = "Worker created, public domain deferred";
@@ -188,11 +189,13 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
   const domainAttached = productionDomain && environment.CLOUDFLARE_DOMAIN_STATUS === "attached";
   const cloudflareRuntime = cloudflareWorkers || Boolean(environment.CLOUDFLARE_ENV || environment.CF_PAGES);
   const cloudflareHosting = Boolean(cloudflareAccount && cloudflareRuntime);
+  const supabasePublishableKey = environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || environment.SUPABASE_PUBLISHABLE_KEY || "";
+  const productionSupabasePublishableKey = supabasePublishableKey === PRODUCTION_SUPABASE_PUBLISHABLE_KEY;
   const persistentDatabase = databaseAvailable && (postgres || !deployed);
   const productionDatabase = databaseAvailable && supabasePostgres;
   const stripeCore = Boolean(environment.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && environment.STRIPE_SECRET_KEY);
   const supabaseProject = supabaseUrl === PRODUCTION_SUPABASE_URL;
-  const supabaseCore = Boolean(supabaseProject && (environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || environment.SUPABASE_PUBLISHABLE_KEY));
+  const supabaseCore = Boolean(supabaseProject && productionSupabasePublishableKey);
 
   return [
     {
@@ -202,7 +205,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
       capabilities: { connection: databaseAvailable, persistence: persistentDatabase, production: productionDatabase },
     },
     { id: "payments", state: stripeCore && environment.STRIPE_WEBHOOK_SECRET ? "ready" : stripeCore ? "partial" : "attention", provider: "Stripe", capabilities: { connection: stripeCore, webhook: Boolean(environment.STRIPE_WEBHOOK_SECRET) } },
-    { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
+    { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, publishableKey: productionSupabasePublishableKey, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
     { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
     { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: cloudflareAccount, workers: cloudflareWorkers, runtime: cloudflareRuntime, domainConfigured: productionDomain, domainDeferred: !domainAttached, domain: domainAttached } },
@@ -212,6 +215,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
 export function cloudflareDeploymentReadiness(databaseAvailable: boolean, environment: PlatformEnvironment = process.env, checkedAt = new Date().toISOString()): CloudflareDeploymentReadiness {
   const databaseUrl = environment.DATABASE_URL || "";
   const supabaseUrl = (environment.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+  const supabasePublishableKey = environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
   const siteUrl = (environment.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
   const supabasePostgres = targetsProductionSupabaseDatabase(databaseUrl);
   const has = (key: keyof PlatformEnvironment) => Boolean(environment[key]);
@@ -246,10 +250,10 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
       group: "identity",
       labelFr: "Clé publique Supabase",
       labelEn: "Supabase publishable key",
-      detailFr: "Clé publique limitée pour initialiser le client Supabase.",
-      detailEn: "Limited public key used to initialize the Supabase client.",
+      detailFr: `Clé publique limitée du projet ${PRODUCTION_SUPABASE_PROJECT_NAME}.`,
+      detailEn: `Limited public key for the ${PRODUCTION_SUPABASE_PROJECT_NAME} project.`,
       envKeys: ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"],
-      satisfied: has("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+      satisfied: supabasePublishableKey === PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
       severity: "blocking",
     },
     {

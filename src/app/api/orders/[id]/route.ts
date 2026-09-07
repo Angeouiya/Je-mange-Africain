@@ -33,6 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     id: order.id,
     number: order.number,
     status: order.status,
+    ...(access.scope === "admin" ? { fraudScore: order.fraudScore } : {}),
     subtotal: Number(order.subtotal),
     shippingCost: Number(order.shippingCost),
     vatAmount: Number(order.vatAmount),

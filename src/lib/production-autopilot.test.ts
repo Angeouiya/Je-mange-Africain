@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   CLOUDFLARE_PUBLICATION_MODE,
+  cloudflareSecretNames,
+  parseJsonPayload,
   preferredDashboardBrowser,
+  printRemoteProductionReadiness,
   printProductionReadiness,
   productionReadiness,
   PRODUCTION_SITE_URL,
+  PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
   PRODUCTION_SUPABASE_PROJECT_NAME,
   PRODUCTION_SUPABASE_PROJECT_REF,
   PRODUCTION_SUPABASE_URL,
+  remoteProductionReadiness,
+  REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS,
   supabaseCliReadiness,
   supabaseProjectRefFromPostgresUrl,
 } from "../../scripts/production-autopilot.mjs";
@@ -21,10 +27,11 @@ function environment(values: Record<string, string>) {
 }
 
 describe("production autopilot", () => {
+  const cliResult = (stdout: string, status = 0) => ({ status, stdout, stderr: "", error: "" });
   const readyValues = {
     DATABASE_URL: `postgresql://postgres:secret@db.${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co:5432/postgres`,
     NEXT_PUBLIC_SUPABASE_URL: PRODUCTION_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
     SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
     STRIPE_SECRET_KEY: "sk_live_example",
@@ -86,6 +93,18 @@ describe("production autopilot", () => {
     expect(report.blockers).toEqual(expect.arrayContaining([
       expect.objectContaining({ key: "DATABASE_URL", problem: expect.stringContaining("PostgreSQL") }),
       expect.objectContaining({ key: "NEXT_PUBLIC_SUPABASE_URL", problem: expect.stringContaining(PRODUCTION_SUPABASE_PROJECT_REF) }),
+    ]));
+  });
+
+  it("blocks publishable keys that do not belong to the JMA Supabase project", () => {
+    const report = productionReadiness(environment({
+      ...readyValues,
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_other_project",
+    }));
+
+    expect(report.ready).toBe(false);
+    expect(report.blockers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", problem: expect.stringContaining(PRODUCTION_SUPABASE_PROJECT_NAME) }),
     ]));
   });
 
@@ -179,5 +198,67 @@ describe("production autopilot", () => {
 
     expect(preferredDashboardBrowser({ platform: "win32", env, exists })).toEqual({ label: "Microsoft Edge", executable: edgePath });
     expect(preferredDashboardBrowser({ platform: "win32", env: { ...env, JMA_PRODUCTION_BROWSER: "chrome" }, exists })).toEqual({ label: "Chrome", executable: chromePath });
+  });
+
+  it("parses provider JSON even when a CLI appends a status line", () => {
+    expect(parseJsonPayload('{"projects":[{"ref":"one","name":"Demo"}]}\nCannot find project ref.')).toEqual({
+      projects: [{ ref: "one", name: "Demo" }],
+    });
+    expect(cloudflareSecretNames([{ name: "DATABASE_URL" }, { name: "STRIPE_SECRET_KEY" }])).toEqual(["DATABASE_URL", "STRIPE_SECRET_KEY"]);
+  });
+
+  it("reports remote blockers when Cloudflare secrets are empty and JMA is not visible in Supabase", () => {
+    const report = remoteProductionReadiness({
+      environment: environment(readyValues),
+      linkedProjectRef: "",
+      runner: (command, args) => {
+        const joined = `${command} ${args.join(" ")}`;
+        if (joined.includes("wrangler deployments list")) return cliResult("Version(s): prod");
+        if (joined.includes("wrangler secret list")) return cliResult("[]");
+        if (joined.includes("supabase projects list")) return {
+          status: 0,
+          stdout: JSON.stringify({ projects: [{ ref: "umockhnaabuxdmeeyszy", name: "Angeouiya's Project" }] }),
+          stderr: "",
+          error: "",
+        };
+        return { status: 1, stdout: "", stderr: "unexpected", error: "" };
+      },
+    });
+
+    expect(report.ready).toBe(false);
+    expect(report.cloudflare.workerDeploymentsReadable).toBe(true);
+    expect(report.cloudflare.missingRemoteSecretKeys).toEqual(REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS);
+    expect(report.supabase.targetProject).toBeNull();
+    expect(report.blockers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: "CLOUDFLARE_SECRETS" }),
+      expect.objectContaining({ key: "SUPABASE_PROJECT" }),
+      expect.objectContaining({ key: "SUPABASE_LINK" }),
+    ]));
+  });
+
+  it("accepts remote production wiring when the worker secrets and JMA project are visible", () => {
+    const report = remoteProductionReadiness({
+      environment: environment(readyValues),
+      linkedProjectRef: PRODUCTION_SUPABASE_PROJECT_REF,
+      runner: (command, args) => {
+        const joined = `${command} ${args.join(" ")}`;
+        if (joined.includes("wrangler deployments list")) return cliResult("Version(s): prod");
+        if (joined.includes("wrangler secret list")) return cliResult(JSON.stringify(REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS.map((name) => ({ name }))));
+        if (joined.includes("supabase projects list")) return {
+          status: 0,
+          stdout: JSON.stringify({ projects: [{ ref: PRODUCTION_SUPABASE_PROJECT_REF, name: PRODUCTION_SUPABASE_PROJECT_NAME, region: "eu-west-3" }] }),
+          stderr: "",
+          error: "",
+        };
+        return { status: 1, stdout: "", stderr: "unexpected", error: "" };
+      },
+    });
+    const lines: string[] = [];
+
+    printRemoteProductionReadiness(report, (line) => lines.push(line));
+
+    expect(report.ready).toBe(true);
+    expect(lines.join("\n")).toContain("Remote production wiring is ready.");
+    expect(lines.join("\n")).not.toContain(readyValues.STRIPE_SECRET_KEY);
   });
 });

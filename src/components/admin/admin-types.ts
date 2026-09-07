@@ -85,6 +85,7 @@ export type AdminOrder = {
   id: string;
   number: string;
   status: string;
+  fraudScore?: number;
   subtotal: number;
   shippingCost: number;
   vatAmount: number;

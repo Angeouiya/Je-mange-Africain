@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, Box, Boxes, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardList, Clock3, CreditCard, Landmark, MapPin, PackageCheck, Smartphone, Snowflake, Truck, WalletCards } from "lucide-react";
+import { ArrowRight, Box, Boxes, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardList, Clock3, CreditCard, Landmark, LockKeyhole, MapPin, PackageCheck, ShieldAlert, Smartphone, Snowflake, Truck, WalletCards } from "lucide-react";
 import { BoxTick as ReBoxTick } from "reicon/icons/BoxTick";
 import { CheckCircle as ReCheckCircle } from "reicon/icons/CheckCircle";
 import { Clock3 as ReClock3 } from "reicon/icons/Clock3";
@@ -43,6 +43,30 @@ function statusLabel(status: string, isFr: boolean) {
   return (labels[status] || [status, status])[isFr ? 0 : 1];
 }
 
+function orderSecurityWarning(order: AdminOrder, isFr: boolean) {
+  const hasCapturedPayment = order.payments.some((payment) => payment.status === "captured");
+  const operationalStatuses = !["cart", "cancelled", "failed", "refunded", "delivered"].includes(order.status);
+  if (order.status === "fraudCheck" || (order.fraudScore ?? 0) >= 60) {
+    return {
+      icon: ShieldAlert,
+      label: isFr ? "Antifraude serveur" : "Server fraud review",
+      detail: isFr ? "Commande bloquée avant préparation." : "Order blocked before fulfilment.",
+      tone: "border-burgundy/18 bg-burgundy/[0.055] text-burgundy",
+      iconTone: "bg-white text-burgundy",
+    };
+  }
+  if (operationalStatuses && !hasCapturedPayment) {
+    return {
+      icon: LockKeyhole,
+      label: isFr ? "Paiement non capturé" : "Payment not captured",
+      detail: isFr ? "Avancement logistique interdit." : "Fulfilment advancement is blocked.",
+      tone: "border-gold/35 bg-gold/[0.12] text-charcoal",
+      iconTone: "bg-white text-terre",
+    };
+  }
+  return null;
+}
+
 export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "en"; canUpdate: boolean }) {
   const isFr = locale === "fr";
   const { data, loading, error, refetch } = useFetch<{ orders: AdminOrder[] }>(`/api/orders?locale=${locale}`, [locale]);
@@ -82,6 +106,8 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
   ];
   const selectedFlowIndex = selectedOrder ? FLOW_ORDER.indexOf(flowFor(selectedOrder.status)) : 0;
   const selectedInterrupted = selectedOrder ? ["cancelled", "failed", "refunded"].includes(selectedOrder.status) : false;
+  const selectedSecurityWarning = selectedOrder ? orderSecurityWarning(selectedOrder, isFr) : null;
+  const SelectedSecurityIcon = selectedSecurityWarning?.icon;
 
   return (
     <div className="space-y-6">
@@ -120,9 +146,12 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
             const flowIndex = FLOW_ORDER.indexOf(currentFlow);
             const nextStatus = nextFulfillmentStatus(order.status);
             const coldChain = order.items.some((item) => item.thermalClass === "FROZEN" || item.thermalClass === "REFRIGERATED");
+            const securityWarning = orderSecurityWarning(order, isFr);
+            const SecurityIcon = securityWarning?.icon;
             return (
             <button key={order.id} type="button" data-testid={`admin-order-card-${order.id}`} onClick={() => setSelectedOrder(order)} className="group rounded-lg border border-charcoal/8 bg-white p-4 text-left transition [contain-intrinsic-size:236px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
               <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-terre">{order.number}</p><p className="mt-1 text-[10px] text-muted-foreground">{formatDateTime(order.createdAt, locale)}</p></div><Badge className={`border ${orderStatusColor(order.status)}`}>{statusLabel(order.status, isFr)}</Badge></div>
+              {securityWarning && SecurityIcon ? <div className={`mt-3 flex items-start gap-2 rounded-md border px-2.5 py-2 ${securityWarning.tone}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-md shadow-sm ${securityWarning.iconTone}`}><SecurityIcon className="h-3.5 w-3.5" /></span><span className="min-w-0"><span className="block text-[10px] font-black uppercase">{securityWarning.label}</span><span className="mt-0.5 block text-[9px] leading-4 text-muted-foreground">{securityWarning.detail}</span></span></div> : null}
               <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="flex shrink-0 -space-x-2" aria-label={isFr ? "Aperçu des produits" : "Product preview"}>{order.items.slice(0, 3).map((item) => <ProductImage key={item.id} src={item.imageUrl} alt={isFr ? item.nameFr : item.nameEn} emoji="" color="#F8F3EF" size="sm" className="h-9 w-9 border-2 border-white" rounded="rounded-md" />)}{order.items.length > 3 ? <span className="relative grid h-9 w-9 place-items-center rounded-md border-2 border-white bg-burgundy/10 text-[9px] font-black text-burgundy">+{order.items.length - 3}</span> : null}</span><span className="min-w-0 flex-1"><span className="block break-words text-xs font-extrabold leading-4 text-charcoal">{order.deliveryName}</span><span className="mt-0.5 flex items-start gap-1 text-[10px] leading-4 text-muted-foreground"><MapPin className="mt-0.5 h-3 w-3 shrink-0" /><span className="break-words">{order.deliveryPostalCode} {order.deliveryCity}</span></span></span>{coldChain ? <Snowflake className="h-4 w-4 shrink-0 text-burgundy" aria-label={isFr ? "Chaîne du froid" : "Cold chain"} /> : null}</div>
               <div className="mt-3 grid grid-cols-4 gap-1" role="progressbar" aria-label={`${isFr ? "Progression" : "Progress"}: ${statusLabel(order.status, isFr)}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={(flowIndex + 1) * 25}>{FLOW_ORDER.map((stage, index) => <span key={stage} className={`h-1 rounded-sm ${index <= flowIndex ? "bg-terre" : "bg-charcoal/10"}`} />)}</div>
               <div className="mt-3 flex items-end justify-between gap-3"><div className="min-w-0"><p className="text-[10px] text-muted-foreground">{order.items.length} {isFr ? "article(s)" : "item(s)"} · {order.packageCount} {isFr ? "colis" : "parcel(s)"} · {formatWeight(order.weightGrams, locale)}</p><p className="mt-1 flex items-center gap-1 text-[9px] font-black uppercase text-burgundy">{nextStatus ? <>{isFr ? "Prochaine" : "Next"}: {fulfillmentStatusLabel(nextStatus, locale)} <ArrowRight className="h-3 w-3" /></> : (isFr ? "Flux terminé" : "Workflow complete")}</p></div><p className="shrink-0 text-base font-black tabular-nums text-charcoal">{formatPrice(order.total, locale)}</p></div>
@@ -148,6 +177,18 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
               testId="admin-order-progress"
               className="mx-5 mt-5 sm:mx-6"
             />
+            {selectedSecurityWarning && SelectedSecurityIcon ? (
+              <div className={`mx-5 mt-4 flex items-start gap-3 border-y px-3 py-4 sm:mx-6 ${selectedSecurityWarning.tone}`}>
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md shadow-sm ${selectedSecurityWarning.iconTone}`}>
+                  <SelectedSecurityIcon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase">{selectedSecurityWarning.label}</p>
+                  <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{selectedSecurityWarning.detail}</p>
+                  {typeof selectedOrder.fraudScore === "number" ? <p className="mt-2 text-[9px] font-black uppercase text-burgundy">{isFr ? "Score serveur" : "Server score"}: {selectedOrder.fraudScore}/100</p> : null}
+                </div>
+              </div>
+            ) : null}
             <div className="grid gap-7 px-5 py-6 lg:grid-cols-[1.05fr_0.95fr] sm:px-6">
               <div className="space-y-6">
                 <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Articles à préparer" : "Items to fulfil"}</h3><div className="mt-3 divide-y divide-border border-y border-border">{selectedOrder.items.map((item) => <div key={item.id} className="flex items-center gap-3 py-3"><ProductImage src={item.imageUrl} alt={isFr ? item.nameFr : item.nameEn} emoji="" color="#F8F3EF" size="sm" className="h-10 w-10 shrink-0" rounded="rounded-md" /><span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy/10 text-[10px] font-black text-burgundy">{item.qty}×</span><div className="min-w-0 flex-1"><p className="break-words text-xs font-bold leading-4">{isFr ? item.nameFr : item.nameEn}</p><p className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">{item.salesChannel === "wholesale" ? <span className="inline-flex items-center gap-1 font-bold text-burgundy"><Boxes className="h-3 w-3" />{isFr ? "Gros" : "Wholesale"}</span> : null}{item.variantLabel ? <span className="font-bold text-charcoal">{item.variantLabel}</span> : null}<span>{item.sku} · {thermalLabel(item.thermalClass, locale)}</span></p></div><span className="shrink-0 text-xs font-extrabold">{formatPrice(item.lineTotal, locale)}</span></div>)}</div></section>

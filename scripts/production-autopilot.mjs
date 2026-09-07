@@ -8,6 +8,7 @@ import { spawn, spawnSync } from "node:child_process";
 export const PRODUCTION_SUPABASE_PROJECT_REF = "ahigidhuhqcmxzjxetnw";
 export const PRODUCTION_SUPABASE_PROJECT_NAME = "JMA";
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
+export const PRODUCTION_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_AUIg2aOqbAJKzAvkEFdG8A_qYZiGd7D";
 export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12bc";
 export const PRODUCTION_WORKER_NAME = "je-mange-africain";
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
@@ -41,6 +42,19 @@ const CLOUDFLARE_SECRET_KEYS = [
   "DIRECT_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "UPSTASH_REDIS_REST_URL",
+  "UPSTASH_REDIS_REST_TOKEN",
+  "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+  "VAPID_PRIVATE_KEY",
+  "VAPID_SUBJECT",
+];
+export const REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS = [
+  "DATABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
   "STRIPE_SECRET_KEY",
@@ -183,6 +197,9 @@ function evaluateRequirement(key, label, values, sources) {
     const currentRef = (value.match(/https:\/\/([^.]+)/) || [])[1] || "unknown";
     return { key, label, ok: false, source, problem: `points to ${currentRef}, expected ${PRODUCTION_SUPABASE_PROJECT_REF}` };
   }
+  if (key === "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" && value !== PRODUCTION_SUPABASE_PUBLISHABLE_KEY) {
+    return { key, label, ok: false, source, problem: `must match the publishable key for ${PRODUCTION_SUPABASE_PROJECT_NAME}` };
+  }
   if (key === "NEXT_PUBLIC_SITE_URL" && !/^https:\/\//i.test(normalizedUrl(value))) {
     return { key, label, ok: false, source, problem: "must be an HTTPS URL" };
   }
@@ -291,13 +308,152 @@ function bin(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
 }
 
+function windowsCmdArg(value) {
+  const text = String(value);
+  if (/^[A-Za-z0-9_/:=.,@+-]+$/.test(text)) return text;
+  return `"${text.replace(/(["^&|<>])/g, "^$1")}"`;
+}
+
+function commandInvocation(command, args) {
+  if (process.platform !== "win32") return { command: bin(command), args };
+  const line = [bin(command), ...args].map(windowsCmdArg).join(" ");
+  return { command: "cmd.exe", args: ["/d", "/s", "/c", line] };
+}
+
 function run(command, args, env) {
-  const result = spawnSync(bin(command), args, {
+  const invocation = commandInvocation(command, args);
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: process.cwd(),
     env: { ...process.env, ...env },
     stdio: "inherit",
   });
   if (result.status !== 0) process.exit(result.status || 1);
+}
+
+function runCapture(command, args, env = {}, cwd = process.cwd()) {
+  const invocation = commandInvocation(command, args);
+  const result = spawnSync(invocation.command, invocation.args, {
+    cwd,
+    env: { ...process.env, ...env },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  return {
+    status: result.status ?? 1,
+    stdout: result.stdout || "",
+    stderr: result.stderr || "",
+    error: result.error?.message || "",
+  };
+}
+
+function stripAnsi(value) {
+  return String(value || "").replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "");
+}
+
+export function parseJsonPayload(output) {
+  const text = stripAnsi(output).trim();
+  const starts = [text.indexOf("["), text.indexOf("{")].filter((index) => index >= 0).sort((left, right) => left - right);
+  if (!starts.length) return null;
+  const start = starts[0];
+  const close = text[start] === "[" ? "]" : "}";
+  const end = text.lastIndexOf(close);
+  if (end < start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+export function cloudflareSecretNames(payload) {
+  if (!Array.isArray(payload)) return [];
+  return payload
+    .map((item) => typeof item === "string" ? item : item?.name)
+    .filter((item) => typeof item === "string" && item.trim())
+    .sort();
+}
+
+function supabaseProjectsFromPayload(payload) {
+  const projects = Array.isArray(payload?.projects) ? payload.projects : Array.isArray(payload) ? payload : [];
+  return projects
+    .map((project) => ({
+      ref: String(project?.ref || project?.id || ""),
+      name: String(project?.name || ""),
+      region: String(project?.region || ""),
+      status: String(project?.status || ""),
+    }))
+    .filter((project) => project.ref);
+}
+
+export function remoteProductionReadiness({
+  environment = loadProductionEnvironment(),
+  linkedProjectRef = readSupabaseLinkedProjectRef(environment.cwd),
+  runner = (command, args) => runCapture(command, args, environment.values, environment.cwd),
+} = {}) {
+  const deploymentResult = runner("npx", ["wrangler", "deployments", "list", "--config", "wrangler.jsonc", "--name", PRODUCTION_WORKER_NAME]);
+  const deploymentOutput = `${deploymentResult.stdout || ""}\n${deploymentResult.stderr || ""}`;
+  const workerDeploymentsReadable = deploymentResult.status === 0 && !/not found|does not exist/i.test(deploymentOutput);
+
+  const secretResult = runner("npx", ["wrangler", "secret", "list", "--config", "wrangler.jsonc", "--name", PRODUCTION_WORKER_NAME]);
+  const secretPayload = parseJsonPayload(`${secretResult.stdout || ""}\n${secretResult.stderr || ""}`);
+  const remoteSecrets = cloudflareSecretNames(secretPayload);
+  const missingRemoteSecretKeys = REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS.filter((key) => !remoteSecrets.includes(key));
+  const cloudflareSecretsReadable = secretResult.status === 0 && Array.isArray(secretPayload);
+
+  const supabaseResult = runner("npx", ["supabase", "projects", "list"]);
+  const supabasePayload = parseJsonPayload(`${supabaseResult.stdout || ""}\n${supabaseResult.stderr || ""}`);
+  const visibleProjects = supabaseProjectsFromPayload(supabasePayload);
+  const supabaseProjectsReadable = supabaseResult.status === 0 && visibleProjects.length > 0;
+  const targetProject = visibleProjects.find((project) => project.ref === PRODUCTION_SUPABASE_PROJECT_REF) || null;
+  const linkedToTarget = linkedProjectRef === PRODUCTION_SUPABASE_PROJECT_REF;
+
+  const blockers = [];
+  if (!workerDeploymentsReadable) blockers.push({ key: "CLOUDFLARE_WORKER", problem: "deployments are not readable for the configured Worker" });
+  if (!cloudflareSecretsReadable) blockers.push({ key: "CLOUDFLARE_SECRETS", problem: "remote Worker secrets cannot be listed" });
+  else if (missingRemoteSecretKeys.length) blockers.push({ key: "CLOUDFLARE_SECRETS", problem: `${missingRemoteSecretKeys.length} required secret(s) missing` });
+  if (!supabaseProjectsReadable) blockers.push({ key: "SUPABASE_PROJECTS", problem: "Supabase CLI projects are not readable" });
+  else if (!targetProject) blockers.push({ key: "SUPABASE_PROJECT", problem: `project ${PRODUCTION_SUPABASE_PROJECT_REF} is not visible to the current CLI session` });
+  if (!linkedToTarget) blockers.push({ key: "SUPABASE_LINK", problem: linkedProjectRef ? `linked to ${linkedProjectRef}` : "missing local project link" });
+
+  return {
+    ready: blockers.length === 0,
+    blockers,
+    cloudflare: {
+      workerDeploymentsReadable,
+      deploymentStatus: deploymentResult.status,
+      cloudflareSecretsReadable,
+      secretStatus: secretResult.status,
+      remoteSecrets,
+      requiredRemoteSecretKeys: REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS,
+      missingRemoteSecretKeys,
+    },
+    supabase: {
+      projectsReadable: supabaseProjectsReadable,
+      projectsStatus: supabaseResult.status,
+      targetProject,
+      visibleProjects,
+      linkedProjectRef,
+      linkedToTarget,
+    },
+  };
+}
+
+export function printRemoteProductionReadiness(report, writer = console.log) {
+  writer(`Remote production audit: Cloudflare Worker ${PRODUCTION_WORKER_NAME} + Supabase ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF})`);
+  writer(`${report.cloudflare.workerDeploymentsReadable ? "OK" : "BLOCKED"} Cloudflare Worker deployments`);
+  const present = report.cloudflare.remoteSecrets.length;
+  const required = report.cloudflare.requiredRemoteSecretKeys.length;
+  const missing = report.cloudflare.missingRemoteSecretKeys.length
+    ? ` - missing: ${report.cloudflare.missingRemoteSecretKeys.join(", ")}`
+    : "";
+  writer(`${report.cloudflare.cloudflareSecretsReadable && !report.cloudflare.missingRemoteSecretKeys.length ? "OK" : "BLOCKED"} Cloudflare Worker secrets (${present}/${required} required present)${missing}`);
+  const visible = report.supabase.visibleProjects.length
+    ? report.supabase.visibleProjects.map((project) => `${project.name || "Sans nom"} (${project.ref})`).join(", ")
+    : "none";
+  writer(`${report.supabase.targetProject ? "OK" : "BLOCKED"} Supabase CLI target visibility - visible: ${visible}`);
+  const linkDetail = report.supabase.linkedProjectRef ? report.supabase.linkedProjectRef : "missing";
+  writer(`${report.supabase.linkedToTarget ? "OK" : "BLOCKED"} Local Supabase project link (${linkDetail})`);
+  writer(report.ready ? "Remote production wiring is ready." : `${report.blockers.length} remote production blocker(s) remain.`);
 }
 
 function ensureSupabaseCanLink(values) {
@@ -444,6 +600,7 @@ Options:
   --check              Print redacted production readiness.
   --assert             Fail unless every production prerequisite is ready.
   --check-supabase     Print redacted Supabase CLI readiness.
+  --check-remote       Verify remote Cloudflare secrets and Supabase project visibility.
   --open-dashboards    Open the exact provider pages needed to retrieve missing keys. Uses Edge first on Windows.
   --link-supabase      Link the local repo to the production Supabase project.
   --push-supabase      Push Supabase SQL migrations to the production project.
@@ -465,6 +622,7 @@ function main() {
   const report = productionReadiness(environment);
   if (args.has("--check")) printProductionReadiness(report);
   if (args.has("--check-supabase")) printSupabaseCliReadiness(supabaseCliReadiness(environment));
+  if (args.has("--check-remote")) printRemoteProductionReadiness(remoteProductionReadiness({ environment }));
   if (args.has("--open-dashboards")) openDashboards();
   if (args.has("--assert") || args.has("--sync-cloudflare") || args.has("--migrate") || args.has("--deploy")) ensureReady(report);
   if (args.has("--link-supabase")) linkSupabaseProject(environment.values);

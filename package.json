@@ -34,6 +34,8 @@
     "cloudflare:types": "wrangler types --config wrangler.jsonc --include-runtime=false cloudflare-env.d.ts",
     "production:audit": "node scripts/production-autopilot.mjs --check",
     "production:check-supabase": "node scripts/production-autopilot.mjs --check-supabase",
+    "production:remote-audit": "node scripts/production-autopilot.mjs --check-remote",
+    "production:full-audit": "node scripts/production-autopilot.mjs --check --check-supabase --check-remote",
     "production:open-dashboards": "node scripts/production-autopilot.mjs --open-dashboards",
     "production:link-supabase": "node scripts/production-autopilot.mjs --link-supabase",
     "production:push-supabase": "node scripts/production-autopilot.mjs --push-supabase",

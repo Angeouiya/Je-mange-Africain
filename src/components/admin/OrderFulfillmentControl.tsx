@@ -33,7 +33,9 @@ import {
 import {
   FULFILLMENT_TARGETS,
   fulfillmentStatusLabel,
+  fulfillmentSecurityIssue,
   nextFulfillmentStatus,
+  type FulfillmentSecurityIssue,
   type FulfillmentStatus,
 } from "@/lib/admin-order-fulfillment";
 
@@ -62,6 +64,21 @@ const consequences: Record<FulfillmentStatus, { fr: string; en: string }> = {
   delivered: { fr: "La commande sera clôturée comme livrée. Une photo ou une signature est obligatoire par colis.", en: "The order will close as delivered. A photo or signature is required for every parcel." },
 };
 
+const securityCopies: Record<FulfillmentSecurityIssue, { titleFr: string; titleEn: string; bodyFr: string; bodyEn: string }> = {
+  captured_payment_required: {
+    titleFr: "Paiement capturé requis",
+    titleEn: "Captured payment required",
+    bodyFr: "Le serveur n'a pas confirmé de paiement capturé. La commande reste consultable, mais aucun avancement opérationnel n'est autorisé.",
+    bodyEn: "The server has not confirmed a captured payment. The order remains visible, but no operational advancement is allowed.",
+  },
+  fraud_review_required: {
+    titleFr: "Antifraude serveur actif",
+    titleEn: "Server fraud review active",
+    bodyFr: "Cette commande est bloquée par la vérification antifraude. Elle ne peut pas passer en préparation, expédition ou livraison.",
+    bodyEn: "This order is blocked by fraud verification. It cannot move to preparation, shipping or delivery.",
+  },
+};
+
 function localDateTime(value?: string | null) {
   if (!value) return "";
   const date = new Date(value);
@@ -86,7 +103,7 @@ function currentStatusLabel(status: string, locale: "fr" | "en") {
   const labels: Record<string, { fr: string; en: string }> = {
     paymentConfirmed: { fr: "Paiement confirmé", en: "Payment confirmed" },
     stockReserved: { fr: "Stock réservé", en: "Stock reserved" },
-    fraudCheck: { fr: "Contrôle validé", en: "Fraud check cleared" },
+    fraudCheck: { fr: "Contrôle antifraude", en: "Fraud review" },
     preparing: { fr: "En préparation", en: "Preparing" },
     packed: { fr: "Colis prêt", en: "Packed" },
     controlDone: { fr: "Contrôle terminé", en: "Quality checked" },
@@ -121,14 +138,24 @@ export function OrderFulfillmentControl({
   const progressIndex = FULFILLMENT_TARGETS.indexOf(order.status as FulfillmentStatus);
   const isDelivered = order.status === "delivered";
   const isClosedWithoutDelivery = ["cancelled", "failed", "refunded"].includes(order.status);
-  const nextStageTitle = nextStatus
+  const securityIssue: FulfillmentSecurityIssue | null = order.status === "fraudCheck"
+    ? "fraud_review_required"
+    : nextStatus
+      ? fulfillmentSecurityIssue({ currentStatus: order.status, targetStatus: nextStatus, fraudScore: order.fraudScore, payments: order.payments })
+      : null;
+  const securityCopy = securityIssue ? securityCopies[securityIssue] : null;
+  const nextStageTitle = securityCopy
+    ? (isFr ? securityCopy.titleFr : securityCopy.titleEn)
+    : nextStatus
     ? (isFr ? "Prochaine étape contrôlée" : "Next controlled stage")
     : isDelivered
       ? (isFr ? "Flux opérationnel terminé" : "Operational workflow complete")
       : isClosedWithoutDelivery
         ? (isFr ? "Commande clôturée hors livraison" : "Order closed without delivery")
         : (isFr ? "Prérequis externe attendu" : "External prerequisite pending");
-  const nextStageCopy = nextStatus
+  const nextStageCopy = securityCopy
+    ? (isFr ? securityCopy.bodyFr : securityCopy.bodyEn)
+    : nextStatus
     ? fulfillmentStatusLabel(nextStatus, locale)
     : isDelivered
       ? (isFr ? "La remise et sa preuve sont enregistrées." : "Handover and delivery proof are recorded.")
@@ -225,6 +252,17 @@ export function OrderFulfillmentControl({
             </label>
           </div>
 
+          {securityCopy ? (
+            <div className="mt-5 flex items-start gap-3 border-y border-burgundy/18 bg-burgundy/[0.055] px-3 py-4 text-burgundy">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white shadow-sm"><LockKeyhole className="h-4 w-4" /></span>
+              <div>
+                <p className="text-xs font-black">{isFr ? securityCopy.titleFr : securityCopy.titleEn}</p>
+                <p className="mt-1 text-[11px] leading-5 text-charcoal/75">{isFr ? securityCopy.bodyFr : securityCopy.bodyEn}</p>
+                {typeof order.fraudScore === "number" ? <p className="mt-2 text-[9px] font-black uppercase tracking-normal text-burgundy">{isFr ? "Score serveur" : "Server score"}: {order.fraudScore}/100</p> : null}
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2"><Label htmlFor={`thermal-${order.id}`}>{isFr ? "Conservation" : "Temperature class"}</Label><select id={`thermal-${order.id}`} value={form.thermalClass} onChange={(event) => updateField("thermalClass", event.target.value as ShipmentForm["thermalClass"])} className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm"><option value="AMBIANT">{isFr ? "Ambiant" : "Ambient"}</option><option value="REFRIGERATED">{isFr ? "Réfrigéré" : "Refrigerated"}</option><option value="FROZEN">{isFr ? "Surgelé" : "Frozen"}</option></select></div>
             <div className="space-y-2"><Label htmlFor={`carrier-${order.id}`}>{isFr ? "Transporteur" : "Carrier"}</Label><Input id={`carrier-${order.id}`} value={form.carrier} onChange={(event) => updateField("carrier", event.target.value)} placeholder="Chrono Frais" maxLength={100} /></div>
@@ -237,12 +275,12 @@ export function OrderFulfillmentControl({
           </div>
 
           <div className="mt-5 flex flex-col gap-3 border-y border-border bg-muted/35 px-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-terre shadow-sm"><CheckCircle2 className="h-4 w-4" /></span><div><p className="text-xs font-black text-charcoal">{nextStageTitle}</p><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{nextStageCopy}</p></div></div>
+            <div className="flex min-w-0 items-start gap-3"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white shadow-sm ${securityIssue ? "text-burgundy" : "text-terre"}`}>{securityIssue ? <LockKeyhole className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}</span><div><p className="text-xs font-black text-charcoal">{nextStageTitle}</p><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{nextStageCopy}</p></div></div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button type="button" variant="outline" disabled={saving} onClick={() => save()} className="h-10"><Save className="mr-2 h-4 w-4" />{isFr ? "Enregistrer la logistique" : "Save logistics"}</Button>
               {nextStatus ? (
                 <AlertDialog>
-                  <AlertDialogTrigger asChild><Button type="button" disabled={saving} className="h-10 bg-terre text-white hover:bg-terre-dark"><ArrowRight className="mr-2 h-4 w-4" />{isFr ? "Passer à" : "Move to"} {fulfillmentStatusLabel(nextStatus, locale)}</Button></AlertDialogTrigger>
+                  <AlertDialogTrigger asChild><Button type="button" disabled={saving || Boolean(securityIssue)} className="h-10 bg-terre text-white hover:bg-terre-dark"><ArrowRight className="mr-2 h-4 w-4" />{isFr ? "Passer à" : "Move to"} {fulfillmentStatusLabel(nextStatus, locale)}</Button></AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader><AlertDialogTitle>{isFr ? "Confirmer l'avancement de la commande ?" : "Confirm order advancement?"}</AlertDialogTitle><AlertDialogDescription>{consequences[nextStatus][locale]}</AlertDialogDescription></AlertDialogHeader>
                     <div className="flex items-start gap-3 border-y border-border bg-muted/45 px-3 py-3"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-terre" /><div><p className="text-xs font-black text-charcoal">{currentStatusLabel(order.status, locale)} <ArrowRight className="mx-1 inline h-3.5 w-3.5" /> {fulfillmentStatusLabel(nextStatus, locale)}</p><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{isFr ? "Cette action sera horodatée, attribuée à votre compte et visible dans la chronologie client." : "This action will be timestamped, attributed to your account and visible in the customer timeline."}</p></div></div>
