@@ -2314,6 +2314,11 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/ingrédients|ingredients/i);
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/préparation|preparation/i);
   await expect(page.getByTestId("recipe-flow-nav")).toContainText(/\d+\/\d+ (terminées|complete)/i);
+  const commandCenter = page.getByTestId("recipe-command-center");
+  await expect(commandCenter).toContainText(/recette intelligente|smart recipe/i);
+  await expect(commandCenter).toContainText(/substitutions|swaps/i);
+  await expect(commandCenter).toContainText(/panier|basket/i);
+  await expect(commandCenter).toContainText(/modifiable|editable/i);
   const recipeFlow = page.getByTestId("recipe-flow-nav");
   const settingsStage = recipeFlow.getByRole("button", { name: /configurer|configure/i });
   const ingredientsStage = recipeFlow.getByRole("button", { name: /ingrédients|ingredients/i });
@@ -2346,6 +2351,12 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
     await expect(page.getByTestId("recipe-live-summary")).toBeHidden();
   }
   await expect(page.getByText(/ingrédients nécessaires|ingredients needed/i)).toBeVisible();
+  await expect(page.getByTestId("recipe-ingredient-actions-guide")).toContainText(/déjà chez moi|at home/i);
+  await expect(page.getByTestId("recipe-ingredient-actions-guide")).toContainText(/remplacer|replace/i);
+  await expect(page.getByTestId("recipe-ingredient-actions-guide")).toContainText(/retirer|remove/i);
+  await expect(page.getByTestId("recipe-ingredient-action-bar").first()).toContainText(/remplacer|replace/i);
+  await expect(page.getByTestId("recipe-ingredient-impact").first()).toContainText(/panier|basket/i);
+  await expect(page.getByTestId("recipe-ingredient-impact").first()).toContainText(/stock/i);
   if (!isMobile) await expect(page.getByText(/coût total|total cost/i)).toBeVisible();
   if (isMobile) {
     await expect(page.getByRole("button", { name: /j'ai déjà .* à la maison|i already have .* at home/i }).first()).toBeVisible();

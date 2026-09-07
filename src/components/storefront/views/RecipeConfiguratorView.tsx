@@ -9,11 +9,20 @@ import {
   Timer, Eye, Lightbulb, Play, Pause,
   CircleHelp, CookingPot, Hourglass, LifeBuoy, ListChecks, Thermometer,
 } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { ArrowSwapHorizontal as ReArrowSwapHorizontal } from "reicon/icons/ArrowSwapHorizontal";
+import { BasketShopping as ReBasketShopping } from "reicon/icons/BasketShopping";
+import { BoxTick as ReBoxTick } from "reicon/icons/BoxTick";
+import { ChefHatHeart as ReChefHatHeart } from "reicon/icons/ChefHatHeart";
+import { CheckListNotes as ReCheckListNotes } from "reicon/icons/CheckListNotes";
+import { Timer as ReTimer } from "reicon/icons/Timer";
+import { UserHeart as ReUserHeart } from "reicon/icons/UserHeart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { useFetch, postJSON } from "@/lib/use-fetch";
@@ -284,6 +293,11 @@ export function RecipeConfiguratorView() {
   };
   const preparationAdjustments = (calc?.ingredients || []).filter((ingredient) => ingredient.removalReason === "excluded" || ingredient.removalReason === "protein-none" || ingredient.isReplacement);
   const purchasableCount = (calc?.ingredients || []).filter((ingredient) => !ingredient.removed && ingredient.packs > 0 && ingredient.available).length;
+  const activeIngredientCount = (calc?.ingredients || []).filter((ingredient) => !ingredient.removed).length;
+  const removedIngredientCount = (calc?.ingredients || []).filter((ingredient) => ingredient.removalReason === "excluded").length;
+  const pantryIngredientCount = (calc?.ingredients || []).filter((ingredient) => ingredient.removalReason === "pantry").length;
+  const replacementCount = (calc?.ingredients || []).filter((ingredient) => ingredient.isReplacement).length;
+  const packAdjustmentCount = Object.keys(packOverrides).length;
   const canonicalPath = `/?view=recipe-config&recipeId=${encodeURIComponent(recipe.id)}`;
   const recipeStructuredData = {
     "@context": "https://schema.org",
@@ -364,6 +378,22 @@ export function RecipeConfiguratorView() {
         <RecipeFlowButton active={mobileStage === "ingredients"} onClick={() => openStage("ingredients")} icon={Package} number="2" label={locale === "fr" ? "Ingrédients" : "Ingredients"} detail={calcLoading ? (locale === "fr" ? "Actualisation…" : "Updating…") : calcError ? (locale === "fr" ? "À recalculer" : "Recalculate") : `${purchasableCount} ${locale === "fr" ? "achats" : "items"}`} />
         <RecipeFlowButton active={mobileStage === "preparation"} onClick={() => openStage("preparation")} icon={Sparkles} number="3" label={locale === "fr" ? "Préparation" : "Preparation"} detail={`${completedStepCount}/${preparationSteps.length} ${locale === "fr" ? "terminées" : "complete"}`} />
       </nav>
+
+      <RecipeCommandCenter
+        locale={locale}
+        servings={servings}
+        activeIngredientCount={activeIngredientCount}
+        purchasableCount={purchasableCount}
+        replacementCount={replacementCount}
+        removedIngredientCount={removedIngredientCount}
+        pantryIngredientCount={pantryIngredientCount}
+        packAdjustmentCount={packAdjustmentCount}
+        completedStepCount={completedStepCount}
+        preparationStepCount={preparationSteps.length}
+        totalCost={calc?.totalCost || 0}
+        loading={calcLoading}
+        onOpenStage={openStage}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         {/* LEFT: config form */}
@@ -468,6 +498,7 @@ export function RecipeConfiguratorView() {
                 </Button>
               )}
             </div>
+            <IngredientActionGuide locale={locale} />
             {calcError ? (
               <div role="alert" className="flex items-start gap-3 border-b border-destructive/25 bg-destructive/[0.06] px-4 py-3 text-xs text-destructive">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -734,6 +765,69 @@ function RecipeFlowButton({ active, onClick, icon: Icon, number, label, detail }
   );
 }
 
+function RecipeCommandCenter({ locale, servings, activeIngredientCount, purchasableCount, replacementCount, removedIngredientCount, pantryIngredientCount, packAdjustmentCount, completedStepCount, preparationStepCount, totalCost, loading, onOpenStage }: { locale: "fr" | "en"; servings: number; activeIngredientCount: number; purchasableCount: number; replacementCount: number; removedIngredientCount: number; pantryIngredientCount: number; packAdjustmentCount: number; completedStepCount: number; preparationStepCount: number; totalCost: number; loading: boolean; onOpenStage: (stage: RecipeStage) => void }) {
+  const isFr = locale === "fr";
+  const choiceCount = replacementCount + removedIngredientCount + pantryIngredientCount + packAdjustmentCount;
+  const stepsValue = preparationStepCount ? `${completedStepCount}/${preparationStepCount}` : "0/0";
+  return (
+    <section className="mb-5 overflow-hidden border-y border-burgundy/10 bg-[linear-gradient(135deg,rgba(255,252,250,0.98),rgba(214,90,50,0.045),rgba(242,169,0,0.05))]" aria-labelledby="recipe-command-center-title" data-testid="recipe-command-center">
+      <div className="flex items-start gap-3 px-3 py-3 md:px-4">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-terre text-white shadow-[0_14px_26px_-18px_rgba(214,90,50,0.9)]">
+          <ReiconGlyph icon={ReChefHatHeart} weight="Filled" className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black uppercase text-terre">{isFr ? "Recette intelligente" : "Smart recipe"}</p>
+          <h2 id="recipe-command-center-title" className="mt-0.5 text-sm font-black leading-5 text-charcoal">{isFr ? "Un panier recalculé, une préparation guidée" : "A recalculated basket and guided cooking plan"}</h2>
+          <p className="mt-1 max-w-3xl text-[10px] leading-4 text-muted-foreground">{isFr ? "Chaque modification ajuste les quantités, le stock, le coût et les étapes avant l'ajout au panier." : "Every change updates quantities, stock, cost and cooking steps before adding to basket."}</p>
+        </div>
+        <span className="shrink-0 rounded-md border border-burgundy/15 bg-white px-2 py-1 text-[10px] font-black text-burgundy">{loading ? (isFr ? "Calcul..." : "Calculating...") : formatPrice(totalCost, locale)}</span>
+      </div>
+      <div className="grid grid-cols-2 divide-x divide-y divide-burgundy/8 border-t border-burgundy/10 bg-white/70 sm:grid-cols-4 sm:divide-y-0">
+        <RecipeCommandTile icon={ReUserHeart} label={isFr ? "Portions" : "Servings"} value={`${servings}`} detail={isFr ? "adultes/enfants" : "adults/children"} onClick={() => onOpenStage("settings")} />
+        <RecipeCommandTile icon={ReArrowSwapHorizontal} label={isFr ? "Substitutions" : "Swaps"} value={`${choiceCount}`} detail={isFr ? `${replacementCount} remp. · ${removedIngredientCount + pantryIngredientCount} retirés` : `${replacementCount} swap · ${removedIngredientCount + pantryIngredientCount} removed`} onClick={() => onOpenStage("ingredients")} />
+        <RecipeCommandTile icon={ReTimer} label={isFr ? "Préparation" : "Cooking"} value={stepsValue} detail={isFr ? "étapes enrichies" : "enriched steps"} onClick={() => onOpenStage("preparation")} />
+        <RecipeCommandTile icon={ReBasketShopping} label={isFr ? "Panier" : "Basket"} value={`${purchasableCount}/${activeIngredientCount}`} detail={isFr ? "modifiable" : "editable"} onClick={() => onOpenStage("ingredients")} />
+      </div>
+    </section>
+  );
+}
+
+function RecipeCommandTile({ icon, label, value, detail, onClick }: { icon: IconFunction; label: string; value: string; detail: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="group flex min-h-[4.5rem] min-w-0 items-center gap-2 px-3 py-2.5 text-left transition hover:bg-terre/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/35">
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy/[0.07] text-burgundy transition group-hover:bg-terre/[0.08] group-hover:text-terre">
+        <ReiconGlyph icon={icon} weight="Filled" className="h-4 w-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-[9px] font-black uppercase text-muted-foreground">{label}</span>
+        <span className="mt-0.5 block truncate text-sm font-black tabular-nums text-charcoal">{value}</span>
+        <span className="block truncate text-[9px] font-bold text-terre">{detail}</span>
+      </span>
+    </button>
+  );
+}
+
+function IngredientActionGuide({ locale }: { locale: "fr" | "en" }) {
+  const isFr = locale === "fr";
+  return (
+    <div className="grid grid-cols-3 divide-x divide-burgundy/8 border-b border-burgundy/10 bg-[#FFFCFA]" data-testid="recipe-ingredient-actions-guide" aria-label={isFr ? "Actions disponibles sur les ingrédients" : "Available ingredient actions"}>
+      <IngredientGuideItem icon={ReBoxTick} label={isFr ? "Déjà chez moi" : "At home"} detail={isFr ? "retire du panier" : "removes from basket"} />
+      <IngredientGuideItem icon={ReArrowSwapHorizontal} label={isFr ? "Remplacer" : "Replace"} detail={isFr ? "propose un équivalent" : "suggests an alternative"} />
+      <IngredientGuideItem icon={ReCheckListNotes} label={isFr ? "Retirer" : "Remove"} detail={isFr ? "adapte la préparation" : "adapts cooking steps"} />
+    </div>
+  );
+}
+
+function IngredientGuideItem({ icon, label, detail }: { icon: IconFunction; label: string; detail: string }) {
+  return (
+    <div className="min-w-0 px-2 py-2.5 text-center">
+      <ReiconGlyph icon={icon} weight="Filled" className="mx-auto h-4 w-4 text-terre" />
+      <p className="mt-1 truncate text-[9px] font-black text-charcoal">{label}</p>
+      <p className="hidden truncate text-[8px] font-semibold text-muted-foreground sm:block">{detail}</p>
+    </div>
+  );
+}
+
 function PreparationIngredients({ ingredients, locale }: { ingredients: any[]; locale: "fr" | "en" }) {
   return (
     <div className="py-2.5" data-testid="recipe-step-ingredients">
@@ -895,6 +989,9 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
   const removalActionLabel = locale === "fr"
     ? (deliberatelyRemoved ? "Réintégrer l'ingrédient" : "Retirer de la recette")
     : (deliberatelyRemoved ? "Restore ingredient" : "Remove from recipe");
+  const replacementActionLabel = locale === "fr"
+    ? `Remplacer ${localizedName}`
+    : `Replace ${localizedName}`;
 
   return (
     <div className={`space-y-3 p-4 transition ${ing.removed ? "bg-muted/20" : ""}`} data-testid="recipe-ingredient-row">
@@ -910,23 +1007,21 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
             {ing.isReplacement ? <span className="rounded bg-terre/10 px-1.5 py-0.5 text-[9px] font-bold text-terre">{locale === "fr" ? `Remplace ${originalName}` : `Replaces ${originalName}`}</span> : null}
           </div>
         </div>
-        <div className="hidden shrink-0 gap-1 sm:flex">
-          <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} aria-label={pantryActionLabel} title={pantryActionLabel} className={`grid h-9 w-9 place-items-center rounded-md border transition ${pantryRemoved ? "border-burgundy bg-burgundy text-white" : "border-border text-muted-foreground hover:border-burgundy hover:text-burgundy"}`}>
-            <House className="h-4 w-4" />
-          </button>
-          {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} title={removalActionLabel} aria-label={removalActionLabel} className={`grid h-9 w-9 place-items-center rounded-md border transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-border text-muted-foreground hover:border-terre hover:text-terre"}`}>
-            {deliberatelyRemoved ? <Undo2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-          </button> : null}
-        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:hidden" aria-label={locale === "fr" ? `Actions pour ${localizedName}` : `Actions for ${localizedName}`}>
-        <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} aria-label={pantryActionLabel} className={`flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-2 text-[10px] font-bold transition ${pantryRemoved ? "border-burgundy bg-burgundy text-white" : "border-burgundy/20 bg-burgundy/[0.035] text-burgundy"}`}>
-          <House className="h-3.5 w-3.5" /> {pantryRemoved ? (locale === "fr" ? "À acheter" : "Buy it") : (locale === "fr" ? "Déjà chez moi" : "Already at home")}
+      <div className="grid grid-cols-3 gap-1.5" aria-label={locale === "fr" ? `Actions pour ${localizedName}` : `Actions for ${localizedName}`} data-testid="recipe-ingredient-action-bar">
+        <button type="button" onClick={onTogglePantry} aria-pressed={pantryRemoved} aria-label={pantryActionLabel} title={pantryActionLabel} className={`flex min-h-9 min-w-0 items-center justify-center gap-1.5 rounded-md border px-1.5 text-[10px] font-bold transition ${pantryRemoved ? "border-burgundy bg-burgundy text-white" : "border-burgundy/20 bg-burgundy/[0.035] text-burgundy hover:border-burgundy/40"}`}>
+          <House className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{pantryRemoved ? (locale === "fr" ? "À acheter" : "Buy it") : (locale === "fr" ? "Chez moi" : "At home")}</span>
         </button>
-        {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} aria-pressed={deliberatelyRemoved} aria-label={removalActionLabel} className={`flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-2 text-[10px] font-bold transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-terre/25 bg-terre/[0.035] text-terre"}`}>
-          {deliberatelyRemoved ? <Undo2 className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />} {deliberatelyRemoved ? (locale === "fr" ? "Réintégrer" : "Restore") : (locale === "fr" ? "Retirer" : "Remove")}
-        </button> : <span />}
+        <button type="button" onClick={() => setReplacementOpen(true)} aria-expanded={replacementOpen} aria-controls={`replacement-panel-${ing.recipeIngredientId}`} aria-label={replacementActionLabel} title={replacementActionLabel} className={`flex min-h-9 min-w-0 items-center justify-center gap-1.5 rounded-md border px-1.5 text-[10px] font-bold transition ${replacementOpen ? "border-burgundy bg-burgundy text-white" : "border-gold/35 bg-gold/[0.08] text-charcoal hover:border-gold/60"}`}>
+          <RefreshCw className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{locale === "fr" ? "Remplacer" : "Replace"}</span>
+        </button>
+        {!proteinRemoved ? <button type="button" onClick={onToggleExcluded} aria-pressed={deliberatelyRemoved} aria-label={removalActionLabel} title={removalActionLabel} className={`flex min-h-9 min-w-0 items-center justify-center gap-1.5 rounded-md border px-1.5 text-[10px] font-bold transition ${deliberatelyRemoved ? "border-terre bg-terre text-white" : "border-terre/25 bg-terre/[0.035] text-terre hover:border-terre/45"}`}>
+          {deliberatelyRemoved ? <Undo2 className="h-3.5 w-3.5 shrink-0" /> : <Trash2 className="h-3.5 w-3.5 shrink-0" />}
+          <span className="truncate">{deliberatelyRemoved ? (locale === "fr" ? "Réintégrer" : "Restore") : (locale === "fr" ? "Retirer" : "Remove")}</span>
+        </button> : <span className="min-h-9 rounded-md border border-border bg-muted/20" aria-hidden="true" />}
       </div>
 
       {ing.removed ? (
@@ -956,7 +1051,7 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
         </div>
       </div>
 
-      <details className="group rounded-md border border-border bg-muted/15" onToggle={(event) => setReplacementOpen(event.currentTarget.open)}>
+      <details open={replacementOpen} className="group rounded-md border border-border bg-muted/15" onToggle={(event) => setReplacementOpen(event.currentTarget.open)} id={`replacement-panel-${ing.recipeIngredientId}`}>
         <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 px-3 text-[11px] font-bold text-charcoal marker:hidden [&::-webkit-details-marker]:hidden">
           <RefreshCw className="h-3.5 w-3.5 text-terre" />
           <span className="min-w-0 flex-1">
@@ -1001,7 +1096,19 @@ function IngredientRow({ ing, locale, onPackDelta, onToggleExcluded, onTogglePan
         </div> : null}
       </details>
 
+      {!ing.removed ? (
+        <div className="grid grid-cols-3 divide-x divide-burgundy/8 rounded-md border border-burgundy/10 bg-[#FFFCFA] text-center" data-testid="recipe-ingredient-impact">
+          <IngredientImpact label={locale === "fr" ? "Panier" : "Basket"} value={ing.boughtLabel || `${ing.packs} × ${ing.packLabel}`} />
+          <IngredientImpact label={locale === "fr" ? "Stock" : "Stock"} value={ing.available ? `${ing.stockQty}` : t.config.unavailable} />
+          <IngredientImpact label={locale === "fr" ? "Coût" : "Cost"} value={formatPrice(ing.lineTotal, locale as any)} />
+        </div>
+      ) : null}
+
       {!ing.removed && ing.leftover > 0 ? <p className="text-[10px] text-burgundy">{t.config.leftover} : {formatQty(ing.leftover, ing.leftoverUnit || (ing.neededUnit === "L" ? "ml" : "g"), locale as any)} · {ing.packLabel}</p> : null}
     </div>
   );
+}
+
+function IngredientImpact({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0 px-2 py-2"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className="mt-0.5 truncate text-[10px] font-black text-charcoal">{value}</p></div>;
 }
