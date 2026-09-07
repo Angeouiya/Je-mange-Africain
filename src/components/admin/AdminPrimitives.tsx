@@ -3,16 +3,14 @@
 import { useId, type ComponentType, type KeyboardEvent, type ReactNode } from "react";
 import type { IconFunction, IconWeight } from "reicon/createIcon";
 import { AlertCircle } from "reicon/icons/AlertCircle";
-import { ChartBar } from "reicon/icons/ChartBar";
 import { CloudX } from "reicon/icons/CloudX";
-import { Loader } from "reicon/icons/Loader";
 import { Refresh } from "reicon/icons/Refresh";
 import { Search } from "reicon/icons/Search";
-import { Sparkles } from "reicon/icons/Sparkles";
 import { X } from "reicon/icons/X";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
+import { PremiumLoadingFrame } from "@/components/shared/PremiumLoadingFrame";
 import { getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
 
 type ReactIcon = ComponentType<{ className?: string }>;
@@ -103,53 +101,7 @@ export function AdminPageHeader({
 
 export function AdminSectionLoading({ label = "Chargement de l'espace" }: { label?: string }) {
   return (
-    <div className="mx-auto w-full max-w-[100rem] py-1" role="status" aria-live="polite" aria-label={label} data-testid="admin-section-loading">
-      <div className="overflow-hidden border-y border-burgundy/10 bg-[#FFFCFA] shadow-[0_24px_70px_-52px_rgba(90,38,50,0.72)]">
-        <div className="african-kente-stripe h-[3px]" />
-        <div className="grid gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_15rem] sm:px-5">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.08))] text-terre shadow-[0_18px_34px_-28px_rgba(185,71,43,0.82)]">
-              <span className="absolute inset-2 rounded border border-terre/20" />
-              <ReiconGlyph icon={Sparkles} weight="Filled" className="h-4 w-4 animate-pulse" />
-            </span>
-            <span className="min-w-0 flex-1 pt-0.5">
-              <span className="inline-flex min-h-5 items-center gap-1.5 rounded bg-burgundy/[0.055] px-2 text-[9px] font-black uppercase text-burgundy">
-                <ReiconGlyph icon={Loader} className="h-3 w-3 animate-spin text-terre" />
-                {label}
-              </span>
-              <span className="mt-2 block h-7 w-full max-w-md animate-pulse rounded bg-charcoal/8" />
-              <span className="mt-2 block h-3 w-4/5 max-w-lg animate-pulse rounded bg-terre/12" />
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-1">
-            {["#B9472B", "#8A3042", "#F2A900"].map((accent, index) => (
-              <span key={accent} className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-charcoal/8 bg-white px-2 shadow-[0_12px_28px_-24px_rgba(90,38,50,0.5)]">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: `${accent}14`, color: accent }}>
-                  <ReiconGlyph icon={ChartBar} weight={index === 0 ? "Filled" : "Outline"} className="h-3.5 w-3.5" />
-                </span>
-                <span className="hidden min-w-0 flex-1 sm:block">
-                  <span className="block h-2.5 w-2/3 animate-pulse rounded bg-charcoal/8" />
-                  <span className="mt-1.5 block h-2 w-1/2 animate-pulse rounded bg-terre/10" />
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-2 border-t border-charcoal/8 bg-white px-4 py-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="min-h-32 overflow-hidden rounded-md border border-charcoal/8 bg-white shadow-[0_16px_36px_-30px_rgba(90,38,50,0.62)]">
-              <div className="h-2 bg-[linear-gradient(90deg,#B9472B,#F2A900)] opacity-80" />
-              <div className="space-y-3 p-3">
-                <div className="h-8 w-8 animate-pulse rounded-md bg-terre/10" />
-                <div className="h-4 w-3/4 animate-pulse rounded bg-charcoal/8" />
-                <div className="h-2.5 w-full animate-pulse rounded bg-terre/10" />
-                <div className="h-2.5 w-2/3 animate-pulse rounded bg-burgundy/10" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <PremiumLoadingFrame context="admin" density="section" label={label} testId="admin-section-loading" />
   );
 }
 

@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandLockup } from "@/components/shared/BrandLockup";
+import { PremiumLoadingFrame } from "@/components/shared/PremiumLoadingFrame";
 import type { Locale } from "@/lib/i18n";
 
 type AdminSession = { email: string; role: string };
@@ -117,12 +118,15 @@ export function AdminGate() {
     return (
       <>
         <title>{pageTitle}</title>
-        <main id="main-content" tabIndex={-1} className="grid min-h-dvh place-items-center bg-white px-6">
-          <div className="text-center" role="status" aria-live="polite">
-            <BrandLockup context="admin" size="large" locale={locale} className="justify-center" />
-            <span className="mx-auto mt-8 grid h-11 w-11 place-items-center rounded-md border border-terre/15 bg-terre/[0.06] text-terre"><LoaderCircle className="h-5 w-5 animate-spin" /></span>
-            <p className="mt-3 text-xs font-bold text-charcoal">{isFr ? "Vérification de la session professionnelle" : "Checking the professional session"}</p>
-          </div>
+        <main id="main-content" tabIndex={-1}>
+          <PremiumLoadingFrame
+            context="admin"
+            density="auth"
+            locale={locale}
+            label={isFr ? "Vérification de la session professionnelle" : "Checking the professional session"}
+            testId="admin-session-loading"
+            brand={<BrandLockup context="admin" size="large" locale={locale} className="justify-center [&>span:first-child]:h-20 [&>span:first-child]:w-20" />}
+          />
         </main>
       </>
     );

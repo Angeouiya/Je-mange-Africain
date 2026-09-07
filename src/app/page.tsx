@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Sparkles } from "reicon/icons/Sparkles";
 import { customerProtectedDestination, hydrateStore, useStore, type ViewId, type ViewParams } from "@/lib/store";
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
 import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
-import { ReiconGlyph } from "@/components/ui/reicon-glyph";
+import { PremiumLoadingFrame } from "@/components/shared/PremiumLoadingFrame";
 import {
   loadAccountView,
   loadCartView,
@@ -298,28 +297,12 @@ function renderView(view: string) {
 function ViewLoading() {
   const locale = useStore((state) => state.locale);
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-7 md:py-8 lg:px-8" role="status" aria-live="polite" aria-label={locale === "fr" ? "Chargement de la vue" : "Loading view"} data-testid="storefront-view-loading">
-      <div className="flex items-center gap-3 border-b border-charcoal/8 pb-5">
-        <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.11),rgba(242,169,0,0.07))] text-terre shadow-[0_18px_34px_-28px_rgba(185,71,43,0.82)]">
-          <span className="absolute inset-2 rounded border border-terre/20" />
-          <ReiconGlyph icon={Sparkles} weight="Filled" className="h-4 w-4 animate-pulse" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block h-3 w-24 animate-pulse rounded bg-terre/16" />
-          <span className="mt-2 block h-6 w-full max-w-xs animate-pulse rounded bg-charcoal/8" />
-        </span>
-      </div>
-      <div className="mt-5 grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="overflow-hidden rounded-md border border-charcoal/8 bg-white shadow-[0_14px_34px_-30px_rgba(90,38,50,0.62)]">
-            <div className="aspect-[4/3] animate-pulse bg-[linear-gradient(115deg,#F8F4F3_0%,#FFF9F2_46%,#F7EEE9_100%)]" />
-            <div className="space-y-2 p-2.5">
-              <div className="h-3 w-4/5 animate-pulse rounded bg-charcoal/9" />
-              <div className="h-2.5 w-3/5 animate-pulse rounded bg-terre/13" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <PremiumLoadingFrame
+      locale={locale}
+      context="client"
+      density="view"
+      label={locale === "fr" ? "Chargement de la vue" : "Loading view"}
+      testId="storefront-view-loading"
+    />
   );
 }
