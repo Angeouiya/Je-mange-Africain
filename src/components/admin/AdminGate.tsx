@@ -2,30 +2,30 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
-import {
-  ArrowLeft,
-  ArrowRight,
-  AtSign,
-  BadgeCheck,
-  Eye,
-  EyeOff,
-  Fingerprint,
-  Globe2,
-  History,
-  KeyRound,
-  LoaderCircle,
-  LockKeyhole,
-  Mail,
-  ShieldCheck,
-  UserRoundCog,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { ArrowLeft } from "reicon/icons/ArrowLeft";
+import { ArrowRight } from "reicon/icons/ArrowRight";
+import { AtSign } from "reicon/icons/AtSign";
+import { CheckCircle } from "reicon/icons/CheckCircle";
+import { Envelope } from "reicon/icons/Envelope";
+import { Eye } from "reicon/icons/Eye";
+import { EyeOff } from "reicon/icons/EyeOff";
+import { Fingerprint } from "reicon/icons/Fingerprint";
+import { Globe2 } from "reicon/icons/Globe2";
+import { History } from "reicon/icons/History";
+import { Key } from "reicon/icons/Key";
+import { Loader } from "reicon/icons/Loader";
+import { LockKeyhole } from "reicon/icons/LockKeyhole";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
+import { ShieldUser } from "reicon/icons/ShieldUser";
 import { AdminView } from "@/components/admin/AdminView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { PremiumLoadingFrame } from "@/components/shared/PremiumLoadingFrame";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
+import { BRAND_COLORS, getReadableBrandAccent } from "@/lib/brand-colors";
 import type { Locale } from "@/lib/i18n";
 
 type AdminSession = { email: string; role: string };
@@ -136,12 +136,12 @@ export function AdminGate() {
 
   const accessSignals = isFr
     ? [
-        { icon: UserRoundCog, label: "Habilitations", detail: "Rôles appliqués" },
+        { icon: ShieldUser, label: "Habilitations", detail: "Rôles appliqués" },
         { icon: History, label: "Traçabilité", detail: "Actions journalisées" },
         { icon: ShieldCheck, label: "Session", detail: "Accès protégé" },
       ]
     : [
-        { icon: UserRoundCog, label: "Permissions", detail: "Roles enforced" },
+        { icon: ShieldUser, label: "Permissions", detail: "Roles enforced" },
         { icon: History, label: "Traceability", detail: "Actions logged" },
         { icon: ShieldCheck, label: "Session", detail: "Protected access" },
       ];
@@ -152,7 +152,7 @@ export function AdminGate() {
       <main id="main-content" tabIndex={-1} className="grid min-h-dvh bg-white lg:grid-cols-[minmax(0,1.08fr)_minmax(31rem,0.72fr)]">
         <div className="african-kente-stripe fixed inset-x-0 top-0 z-30 h-[3px]" />
         <div className="fixed right-4 top-4 z-30 inline-flex items-center gap-1 rounded-md border border-burgundy/10 bg-white/95 p-1 shadow-[0_10px_26px_-22px_rgba(90,38,50,0.7)] backdrop-blur sm:right-6 sm:top-6" role="group" aria-label={isFr ? "Langue de la console" : "Console language"}>
-          <Globe2 className="ml-1.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          <ReiconGlyph icon={Globe2} weight="Filled" className="ml-1.5 h-3.5 w-3.5 text-muted-foreground" />
           {(["fr", "en"] as const).map((language) => (
             <button key={language} type="button" onClick={() => changeLocale(language)} aria-pressed={locale === language} className={`grid h-8 min-w-9 place-items-center rounded px-2 text-[10px] font-black uppercase transition ${locale === language ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy"}`}>
               {language}
@@ -167,7 +167,7 @@ export function AdminGate() {
           <BrandLockup context="admin" size="large" inverse locale={locale} className="relative z-10" />
 
           <div className="relative z-10 max-w-xl">
-            <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-gold"><Fingerprint className="h-4 w-4" />{isFr ? "Console de pilotage" : "Operations control"}</div>
+            <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-gold"><ReiconGlyph icon={Fingerprint} weight="Filled" className="h-4 w-4" />{isFr ? "Console de pilotage" : "Operations control"}</div>
             <h1 className="mt-5 max-w-2xl font-display text-5xl font-semibold leading-[1.06] xl:text-6xl">{isFr ? "Chaque décision, au bon niveau d'accès." : "Every decision, at the right access level."}</h1>
             <p className="mt-5 max-w-lg text-sm leading-7 text-cream/82">{isFr ? "Catalogue, recettes, stocks, commandes et conformité réunis dans un espace réservé aux équipes autorisées." : "Catalogue, recipes, stock, orders and compliance brought together for authorised teams."}</p>
           </div>
@@ -182,7 +182,7 @@ export function AdminGate() {
             <BrandLockup context="admin" size="large" locale={locale} className="mb-8 [&>span:first-child]:h-20 [&>span:first-child]:w-20 lg:hidden" />
 
             <div className="flex items-start gap-3.5">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre"><LockKeyhole className="h-5 w-5" /></span>
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre"><ReiconGlyph icon={LockKeyhole} weight="Filled" className="h-5 w-5" /></span>
               <div className="min-w-0">
                 <p className="text-[9px] font-black uppercase text-terre">{isFr ? "Accès équipe" : "Team access"}</p>
                 <h2 className="mt-1 font-display text-[1.75rem] font-semibold leading-tight text-charcoal sm:text-[2rem]">{isFr ? "Connexion professionnelle" : "Professional sign in"}</h2>
@@ -194,32 +194,34 @@ export function AdminGate() {
               {accessSignals.map((signal) => <ProfessionalSignal key={signal.label} {...signal} compact />)}
             </div>
 
+            <AdminAuthCommandRail locale={locale} credentialsReady={credentialsReady} />
+
             <form onSubmit={submit} className="mt-6 space-y-4" aria-label={isFr ? "Formulaire de connexion professionnelle" : "Professional sign-in form"}>
               <div className="min-w-0">
                 <Label htmlFor="admin-email" className="mb-1.5 block text-xs font-bold text-charcoal">{isFr ? "Adresse e-mail professionnelle" : "Professional email address"}</Label>
-                <div className="relative"><AtSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" /><Input id="admin-email" type="email" autoFocus autoComplete="username" value={email} onChange={(event) => { setEmail(event.target.value); clearError(); }} required placeholder="prenom@je-mange-africain.com" className="h-11 rounded-md border-charcoal/12 bg-white pl-9 focus:border-terre" /></div>
+                <div className="relative"><ReiconGlyph icon={AtSign} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" /><Input id="admin-email" type="email" autoFocus autoComplete="username" value={email} onChange={(event) => { setEmail(event.target.value); clearError(); }} required placeholder="prenom@je-mange-africain.com" className="h-11 rounded-md border-charcoal/12 bg-white pl-9 focus:border-terre" /></div>
               </div>
               <div className="min-w-0">
-                <div className="mb-1.5 flex items-center justify-between gap-3"><Label htmlFor="admin-password" className="text-xs font-bold text-charcoal">{isFr ? "Mot de passe" : "Password"}</Label><span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground"><BadgeCheck className="h-3.5 w-3.5 text-burgundy" />{isFr ? "Identité vérifiée à l'entrée" : "Identity checked on entry"}</span></div>
+                <div className="mb-1.5 flex items-center justify-between gap-3"><Label htmlFor="admin-password" className="text-xs font-bold text-charcoal">{isFr ? "Mot de passe" : "Password"}</Label><span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground"><ReiconGlyph icon={CheckCircle} weight="Filled" className="h-3.5 w-3.5 text-burgundy" />{isFr ? "Identité vérifiée à l'entrée" : "Identity checked on entry"}</span></div>
                 <div className="relative">
-                  <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" />
+                  <ReiconGlyph icon={Key} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" />
                   <Input id="admin-password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => { setPassword(event.target.value); clearError(); }} required minLength={8} className="h-11 rounded-md border-charcoal/12 bg-white pl-9 pr-11 focus:border-terre" />
                   <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground transition hover:text-terre" aria-label={showPassword ? (isFr ? "Masquer le mot de passe" : "Hide password") : (isFr ? "Afficher le mot de passe" : "Show password")} title={showPassword ? (isFr ? "Masquer" : "Hide") : (isFr ? "Afficher" : "Show")}>
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <ReiconGlyph icon={showPassword ? EyeOff : Eye} className="h-4 w-4" />
                   </button>
                 </div>
               </div>
 
-              {error ? <p role="alert" className="flex gap-2 rounded-md border border-destructive/20 bg-destructive/[0.045] px-3 py-2.5 text-xs leading-5 text-destructive"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />{error}</p> : null}
+              {error ? <p role="alert" className="flex gap-2 rounded-md border border-destructive/20 bg-destructive/[0.045] px-3 py-2.5 text-xs leading-5 text-destructive"><ReiconGlyph icon={ShieldCheck} weight="Filled" className="mt-0.5 h-4 w-4 shrink-0" />{error}</p> : null}
               <Button type="submit" disabled={submitting || !credentialsReady} className={`min-h-12 w-full justify-between px-4 disabled:opacity-100 ${submitting || !credentialsReady ? "bg-muted text-muted-foreground shadow-none hover:bg-muted" : "bg-terre text-white shadow-[0_16px_34px_-24px_rgba(185,71,43,0.9)] hover:bg-terre-dark"}`}>
-                <span className="inline-flex items-center gap-2">{submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}{submitting ? (isFr ? "Vérification..." : "Checking...") : (isFr ? "Accéder à la console" : "Open the console")}</span>
-                <ArrowRight className="h-4 w-4" />
+                <span className="inline-flex items-center gap-2">{submitting ? <ReiconGlyph icon={Loader} className="h-4 w-4 animate-spin" /> : <ReiconGlyph icon={LockKeyhole} weight="Filled" className="h-4 w-4" />}{submitting ? (isFr ? "Vérification..." : "Checking...") : (isFr ? "Accéder à la console" : "Open the console")}</span>
+                <ReiconGlyph icon={ArrowRight} className="h-4 w-4" />
               </Button>
             </form>
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-charcoal/8 pt-4 text-[10px] font-bold">
-              <a href="/" className="inline-flex min-h-10 items-center gap-1.5 text-charcoal transition hover:text-terre"><ArrowLeft className="h-3.5 w-3.5" />{isFr ? "Revenir à la boutique" : "Return to the store"}</a>
-              <a href="mailto:direction@je-mange-africain.com" className="inline-flex min-h-10 items-center gap-1.5 text-terre hover:underline"><Mail className="h-3.5 w-3.5" />{isFr ? "Contacter la direction" : "Contact management"}</a>
+              <a href="/" className="inline-flex min-h-10 items-center gap-1.5 text-charcoal transition hover:text-terre"><ReiconGlyph icon={ArrowLeft} className="h-3.5 w-3.5" />{isFr ? "Revenir à la boutique" : "Return to the store"}</a>
+              <a href="mailto:direction@je-mange-africain.com" className="inline-flex min-h-10 items-center gap-1.5 text-terre hover:underline"><ReiconGlyph icon={Envelope} weight="Filled" className="h-3.5 w-3.5" />{isFr ? "Contacter la direction" : "Contact management"}</a>
             </div>
             <p className="mt-3 text-center text-[9px] leading-4 text-muted-foreground">{isFr ? "Chaque accès et chaque action sensible sont consignés dans le journal de gouvernance." : "Every access and sensitive action is recorded in the governance log."}</p>
           </div>
@@ -229,10 +231,33 @@ export function AdminGate() {
   );
 }
 
-function ProfessionalSignal({ icon: Icon, label, detail, compact = false }: { icon: LucideIcon; label: string; detail: string; compact?: boolean }) {
+function AdminAuthCommandRail({ locale, credentialsReady }: { locale: Locale; credentialsReady: boolean }) {
+  const isFr = locale === "fr";
+  const items: Array<{ icon: IconFunction; label: string; value: string; accent: string }> = [
+    { icon: ShieldUser, label: isFr ? "Rôles" : "Roles", value: isFr ? "limités" : "scoped", accent: BRAND_COLORS.burgundy },
+    { icon: History, label: isFr ? "Audit" : "Audit", value: isFr ? "actif" : "active", accent: BRAND_COLORS.terracotta },
+    { icon: LockKeyhole, label: isFr ? "Accès" : "Access", value: credentialsReady ? (isFr ? "prêt" : "ready") : (isFr ? "à vérifier" : "to check"), accent: BRAND_COLORS.gold },
+  ];
+
+  return (
+    <div className="mt-5 grid grid-cols-3 divide-x divide-burgundy/8 border-y border-burgundy/8 bg-[#FFFCFA]" data-testid="admin-auth-command-rail" aria-label={isFr ? "Repères de connexion professionnelle" : "Professional sign-in signals"}>
+      {items.map((item) => (
+        <div key={item.label} className="min-w-0 px-2.5 py-3">
+          <span className="grid h-8 w-8 place-items-center rounded-md border bg-white" style={{ borderColor: `${item.accent}24`, color: getReadableBrandAccent(item.accent) }}>
+            <ReiconGlyph icon={item.icon} weight="Filled" className="h-4 w-4" />
+          </span>
+          <span className="mt-1.5 block truncate text-[9px] font-black uppercase text-burgundy">{item.label}</span>
+          <span className="mt-0.5 block truncate text-[10px] font-bold text-charcoal">{item.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProfessionalSignal({ icon: Icon, label, detail, compact = false }: { icon: IconFunction; label: string; detail: string; compact?: boolean }) {
   return (
     <div className={`min-w-0 ${compact ? "px-2 text-center" : "px-4 first:pl-0 last:pr-0"}`}>
-      <Icon className={`${compact ? "mx-auto h-4 w-4 text-terre" : "h-4 w-4 text-gold"}`} />
+      <ReiconGlyph icon={Icon} weight="Filled" className={`${compact ? "mx-auto h-4 w-4 text-terre" : "h-4 w-4 text-gold"}`} />
       <p className={`${compact ? "mt-1 text-[9px] text-charcoal" : "mt-2 text-[10px] text-white"} truncate font-black`}>{label}</p>
       <p className={`${compact ? "hidden" : "mt-0.5 text-[9px] text-cream/64"}`}>{detail}</p>
     </div>

@@ -792,6 +792,8 @@ test("the professional sign-in owns its bilingual identity and persists the sele
   await page.goto("/admin", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Connexion professionnelle" })).toBeVisible();
   await expect(page.getByTestId("admin-auth-workspace")).toBeVisible();
+  await expect(page.getByTestId("admin-auth-command-rail")).toContainText(/Rôles|Roles/);
+  await expect(page.getByTestId("admin-auth-command-rail")).toContainText(/Audit/);
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   const visual = page.getByTestId("admin-auth-visual");
   if (isMobile) {
@@ -821,6 +823,7 @@ test("the professional sign-in owns its bilingual identity and persists the sele
 
   await expect(page.getByRole("heading", { name: "Professional sign in" })).toBeVisible();
   await expect(page.getByText("Professional console", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByTestId("admin-auth-command-rail")).toContainText("to check");
   await expect(page).toHaveTitle("Professional console | Je mange Africain");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator(".jma-skip-link")).toHaveText("Skip to main content");
@@ -844,6 +847,7 @@ test("the professional sign-in owns its bilingual identity and persists the sele
   await reloadedForm.getByLabel("Professional email address").fill("direction@je-mange-africain.com");
   const password = reloadedForm.locator("#admin-password");
   await password.fill("motdepasse-solide");
+  await expect(page.getByTestId("admin-auth-command-rail")).toContainText("ready");
   await expect(password).toHaveAttribute("type", "password");
   await reloadedForm.getByRole("button", { name: "Show password" }).click();
   await expect(password).toHaveAttribute("type", "text");
