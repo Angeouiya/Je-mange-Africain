@@ -79,7 +79,7 @@ export const dict = {
     // Mobile nav
     mobileNav: {
       home: "Accueil",
-      categories: "Catégories",
+      categories: "Marché",
       recipes: "Recettes",
       cart: "Panier",
       account: "Compte",
@@ -545,7 +545,7 @@ export const dict = {
 
     mobileNav: {
       home: "Home",
-      categories: "Categories",
+      categories: "Market",
       recipes: "Recipes",
       cart: "Cart",
       account: "Account",

@@ -43,7 +43,7 @@ export function Header() {
   const t = dict[locale];
   const [mobileOpen, setMobileOpen] = useState(false);
   const searchContext = view === "catalog"
-    ? { icon: Store, label: locale === "fr" ? "Catalogue" : "Catalogue", detail: locale === "fr" ? "Produits et ingrédients" : "Products and ingredients" }
+    ? { icon: Store, label: locale === "fr" ? "Marché alimentaire" : "Food market", detail: locale === "fr" ? "Détail, gros et ingrédients" : "Retail, wholesale and ingredients" }
     : view === "wholesale"
       ? { icon: Box, label: locale === "fr" ? "Marché de gros" : "Wholesale market", detail: locale === "fr" ? "Cartons, lots et volumes" : "Cases, lots and volume" }
     : view === "recipes"

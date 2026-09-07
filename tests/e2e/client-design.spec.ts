@@ -206,8 +206,12 @@ test("the client application exposes clear catalogue, recipe and basket workspac
     await page.screenshot({ path: `output/playwright/audit/home-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
 
-  await page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first().click();
+  await page.getByRole("button", { name: /marché|market|catégories|categories|acheter les produits|shop products/i }).first().click();
   await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
+  if (!isMobile) {
+    await expect(page.getByRole("banner").getByText(/marché alimentaire|food market/i)).toBeVisible();
+    await expect(page.getByRole("banner").getByText(/détail, gros et ingrédients|retail, wholesale and ingredients/i)).toBeVisible();
+  }
   await expect(page.getByLabel(/rechercher dans le catalogue|search the catalogue/i)).toBeVisible();
   await expect(page.getByLabel(/trier les produits|sort products/i)).toBeVisible();
   const quickSelections = page.getByRole("group", { name: /sélections rapides du catalogue|catalog quick selections/i });
@@ -384,7 +388,7 @@ test("authenticated discovery workspaces recover without losing the customer jou
   await expect(homeFailure).toBeHidden();
   await expect(page.getByText(/la sélection arrive bientôt|selection is coming soon/i)).toBeVisible();
 
-  await page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first().click();
+  await page.getByRole("button", { name: /marché|market|catégories|categories|acheter les produits|shop products/i }).first().click();
   const catalogFailure = page.getByTestId("storefront-catalog-unavailable");
   await expect(catalogFailure).toBeVisible();
   recoverCatalog = true;
@@ -436,12 +440,12 @@ test("the adaptive client navigation keeps every destination clear and touch fri
       return { width: box.width, height: box.height };
     }));
     expect(targets.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
-    await navigation.getByRole("button", { name: /catégories|categories/i }).click();
-    await expect(navigation.locator('button[aria-current="page"]')).toContainText(/catégories|categories/i);
+    await navigation.getByRole("button", { name: /marché|market/i }).click();
+    await expect(navigation.locator('button[aria-current="page"]')).toContainText(/marché|market/i);
   } else {
-    await navigation.getByRole("button", { name: /acheter les produits|shop products/i }).click();
-    await expect(navigation.locator('button[aria-current="page"]')).toContainText(/acheter les produits|shop products/i);
-    await expect(navigation.getByText(/rayons, origine et disponibilité|categories, origin and availability/i)).toBeVisible();
+    await navigation.getByRole("button", { name: /marché alimentaire|food market/i }).click();
+    await expect(navigation.locator('button[aria-current="page"]')).toContainText(/marché alimentaire|food market/i);
+    await expect(navigation.getByText(/détail, gros, origine et disponibilité|retail, wholesale, origin and availability/i)).toBeVisible();
   }
 
   await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
@@ -505,7 +509,7 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   const grid = page.getByTestId("wholesale-product-grid");
   await expect(grid).toBeVisible();
   const isMobile = (page.viewportSize()?.width || 0) < 768;
-  await expectClientNavigationTarget(page, isMobile, isMobile ? /catégories|categories/i : /marché de gros|wholesale market/i);
+  await expectClientNavigationTarget(page, isMobile, isMobile ? /marché|market/i : /marché de gros|wholesale market/i);
   const columns = await grid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(columns).toBe(isMobile ? 2 : 4);
   const wholesaleImage = grid.getByRole("img", { name: "Attiéké professionnel" });
@@ -706,7 +710,7 @@ test("product details stay bounded and preserve real visual identification in th
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) }));
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first().click();
+  await page.getByRole("button", { name: /marché|market|catégories|categories|acheter les produits|shop products/i }).first().click();
   await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
 
   const firstProduct = page.locator("main h3").first();

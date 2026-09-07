@@ -107,7 +107,7 @@ test("the public storefront stays inside the viewport and exposes no admin entry
 
 test("the catalogue and authentication entry are interactive", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  const catalogue = page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first();
+  const catalogue = page.getByRole("button", { name: /marché|market|catégories|categories|acheter les produits|shop products/i }).first();
   await expect(catalogue).toBeVisible();
   await catalogue.click();
   const authDialog = page.getByRole("dialog");
