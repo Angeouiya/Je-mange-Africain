@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
+  authorize: vi.fn(),
   enforceRateLimit: vi.fn(),
   promotionFindUnique: vi.fn(),
   productFindMany: vi.fn(),
 }));
 
+vi.mock("@/lib/customer-auth", () => ({ authorizeCustomerRequest: mocks.authorize }));
 vi.mock("@/lib/redis", () => ({ enforceRateLimit: mocks.enforceRateLimit }));
 vi.mock("@/lib/db", () => ({
   db: {
@@ -40,12 +42,25 @@ const promotion = {
 describe("POST /api/promotions/validate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authorize.mockResolvedValue({ id: "customer-auth-1", email: "awa@example.fr", role: "customer" });
     mocks.enforceRateLimit.mockResolvedValue(null);
     mocks.promotionFindUnique.mockResolvedValue(promotion);
     mocks.productFindMany.mockResolvedValue([
       { id: "product-akpi", categoryId: "category-spices" },
       { id: "product-attieke", categoryId: "category-staples" },
     ]);
+  });
+
+  it("requires a connected customer before validating a promotion", async () => {
+    mocks.authorize.mockResolvedValue(null);
+
+    const response = await POST(request({ code: "EPICES15", subtotal: 50, locale: "fr", items: [] }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(payload.error).toBe("Authentification client requise.");
+    expect(mocks.enforceRateLimit).not.toHaveBeenCalled();
+    expect(mocks.promotionFindUnique).not.toHaveBeenCalled();
   });
 
   it("discounts only lines in the targeted category", async () => {
@@ -61,6 +76,7 @@ describe("POST /api/promotions/validate", () => {
     }));
 
     await expect(response.json()).resolves.toMatchObject({ valid: true, code: "EPICES15", discount: 3, eligibleSubtotal: 20, lifecycle: "active" });
+    expect(mocks.enforceRateLimit).toHaveBeenCalledWith(expect.any(NextRequest), "search", "customer-auth-1");
     expect(mocks.productFindMany).toHaveBeenCalledWith({
       where: { id: { in: ["product-akpi", "product-attieke"] } },
       select: { id: true, categoryId: true },

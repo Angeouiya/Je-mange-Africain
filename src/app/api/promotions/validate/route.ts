@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
 import { enforceRateLimit } from "@/lib/redis";
 import { evaluatePromotion, type PromotionLine } from "@/lib/promotion-policy";
@@ -18,7 +19,10 @@ const PromotionValidationInput = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const limited = await enforceRateLimit(req, "search");
+  const customer = await authorizeCustomerRequest(req);
+  if (!customer) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+
+  const limited = await enforceRateLimit(req, "search", customer.id);
   if (limited) return limited;
   const parsed = PromotionValidationInput.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ valid: false, error: "Code ou panier invalide." }, { status: 400 });

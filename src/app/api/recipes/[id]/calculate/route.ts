@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
 import { computeRecipe, type RecipeConfigInput } from "@/lib/recipe-engine";
 import { getProductPhoto } from "@/lib/market-media";
@@ -28,6 +29,9 @@ const RecipeConfiguration = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const customer = await authorizeCustomerRequest(req);
+  if (!customer) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+
   const { id } = await params;
   const payload = await req.json().catch(() => null);
   const parsed = RecipeConfiguration.safeParse(payload);

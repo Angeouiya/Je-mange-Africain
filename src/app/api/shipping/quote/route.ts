@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { authorizeAdminRequest } from "@/lib/admin-auth";
+import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { calculateShippingOptions, DELIVERY_SERVICES } from "@/lib/shipping";
 
@@ -15,6 +17,9 @@ const ShippingQuoteRequest = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const authorization = await authorizeShippingQuoteRequest(req);
+  if (!authorization.ok) return authorization.response;
+
   const parsed = ShippingQuoteRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Paramètres de livraison invalides." }, { status: 400 });
   const postalValidation = validateEuropeanPostalCode(parsed.data.country, parsed.data.postalCode);
@@ -33,4 +38,18 @@ export async function POST(req: NextRequest) {
   const options = await calculateShippingOptions(destination);
   const selected = options.find((option) => option.service === parsed.data.service) || options[0];
   return NextResponse.json({ ...selected, options });
+}
+
+async function authorizeShippingQuoteRequest(request: NextRequest) {
+  const customer = await authorizeCustomerRequest(request);
+  if (customer) return { ok: true as const };
+
+  const admin = await authorizeAdminRequest(request, { module: "logistics", action: "read" });
+  if (admin.ok) return { ok: true as const };
+  if (admin.response.status === 403 || admin.response.status === 503) return admin;
+
+  return {
+    ok: false as const,
+    response: NextResponse.json({ error: "Authentification client ou administrateur requise." }, { status: 401 }),
+  };
 }
