@@ -32,8 +32,9 @@ import { dict } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import { getCategoryPhoto, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { useFetch } from "@/lib/use-fetch";
-import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
-import { useStore } from "@/lib/store";
+import { prefetchStorefrontData, STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
+import { preloadStorefrontViewBundle } from "@/components/storefront/view-loaders";
+import { useStore, type ViewId, type ViewParams } from "@/lib/store";
 import { StorefrontAdvertisement } from "@/components/storefront/StorefrontAdvertisement";
 import { DeliveryDestinationDialog } from "@/components/storefront/DeliveryDestinationDialog";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
@@ -85,6 +86,12 @@ export function HomeView() {
         recipes: "À cuisiner cette semaine",
         recipesAction: "Toutes les recettes",
         offers: "Offres du moment",
+        favouritesIntent: savedFeaturedProducts.length ? "Vos produits repérés, prêts à retrouver" : "Produits aimés par les clients en Europe",
+        categoriesIntent: "Chaque rayon a une destination claire",
+        bestsellersIntent: "Les références qui partent le plus vite",
+        recipesIntent: "Recettes détaillées avec panier recalculé",
+        offersIntent: "Nouveaux prix, ancien prix et avantage visible",
+        newIntent: "Dernières arrivées publiées par l'équipe",
         signalEurope: "Europe",
         signalEuropeValue: "multi-zone",
         signalPayment: "Paiement",
@@ -100,6 +107,12 @@ export function HomeView() {
         recipes: "Cook this week",
         recipesAction: "All recipes",
         offers: "Current offers",
+        favouritesIntent: savedFeaturedProducts.length ? "Your saved products, ready to reopen" : "Products customers in Europe keep choosing",
+        categoriesIntent: "Every department has a clear destination",
+        bestsellersIntent: "The references moving fastest now",
+        recipesIntent: "Detailed recipes with a recalculated basket",
+        offersIntent: "New price, old price and visible advantage",
+        newIntent: "Latest products published by the team",
         signalEurope: "Europe",
         signalEuropeValue: "multi-zone",
         signalPayment: "Payment",
@@ -119,6 +132,27 @@ export function HomeView() {
     { icon: CreditCard, label: copy.signalPayment, value: copy.signalPaymentValue },
     { icon: ChefHat, label: copy.signalRecipe, value: copy.signalRecipeValue },
   ];
+  const quickActions: HomeQuickAction[] = locale === "fr"
+    ? [
+        { view: "catalog", label: "Marché", detail: "Produits, prix et disponibilité", icon: BoxSearch, accent: "#B9472B" },
+        { view: "recipes", label: "Recettes", detail: "Panier ajusté automatiquement", icon: ChefHat, accent: "#8A3042" },
+        { view: "wholesale", label: "Gros", detail: "Lots, cartons et volumes", icon: Users, accent: "#D65A32" },
+        { view: "orders", label: "Suivi", detail: "Commandes et livraison", icon: Truck, accent: "#F2A900" },
+      ]
+    : [
+        { view: "catalog", label: "Market", detail: "Products, prices and availability", icon: BoxSearch, accent: "#B9472B" },
+        { view: "recipes", label: "Recipes", detail: "Automatically adjusted basket", icon: ChefHat, accent: "#8A3042" },
+        { view: "wholesale", label: "Wholesale", detail: "Lots, cases and volume", icon: Users, accent: "#D65A32" },
+        { view: "orders", label: "Tracking", detail: "Orders and delivery", icon: Truck, accent: "#F2A900" },
+      ];
+  const warmDestination = (view: ViewId, params: ViewParams = {}) => {
+    void preloadStorefrontViewBundle(view);
+    void prefetchStorefrontData(view, params, locale);
+  };
+  const selectDestination = (view: ViewId, params?: ViewParams) => {
+    warmDestination(view, params);
+    navigate(view, params);
+  };
 
   return (
     <div className="flex flex-col bg-white pb-8 md:pb-0">
@@ -183,21 +217,24 @@ export function HomeView() {
             animate={{ opacity: 1, y: 0 }}
             className="flex gap-2"
           >
-            <Button onClick={() => navigate("catalog")} className="h-9 bg-terre px-3 text-[11px] text-white shadow-lg hover:bg-terre-dark md:h-11 md:px-5 md:text-sm">
+            <Button onPointerEnter={() => warmDestination("catalog")} onFocus={() => warmDestination("catalog")} onTouchStart={() => warmDestination("catalog")} onClick={() => selectDestination("catalog")} className="h-9 bg-terre px-3 text-[11px] text-white shadow-lg hover:bg-terre-dark md:h-11 md:px-5 md:text-sm">
               {t.home.heroCtaCatalog} <ReiconGlyph icon={ArrowRight} className="ml-1 h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
-            <Button onClick={() => navigate("recipes")} className="h-9 border border-white/50 bg-white px-3 text-[11px] text-burgundy shadow-lg hover:bg-cream md:h-11 md:px-5 md:text-sm">
+            <Button onPointerEnter={() => warmDestination("recipes")} onFocus={() => warmDestination("recipes")} onTouchStart={() => warmDestination("recipes")} onClick={() => selectDestination("recipes")} className="h-9 border border-white/50 bg-white px-3 text-[11px] text-burgundy shadow-lg hover:bg-cream md:h-11 md:px-5 md:text-sm">
               {t.home.heroCtaRecipes}
             </Button>
           </motion.div>
         </div>
       </section>
 
-      {!error ? <div className="order-3 mx-auto w-full max-w-7xl px-4 pb-5 pt-5 md:order-2 md:px-8 md:pb-9 md:pt-8">
+      {!error ? <div className="order-3 mx-auto w-full max-w-7xl space-y-5 px-4 pb-5 pt-5 md:order-2 md:px-8 md:pb-9 md:pt-8">
+        <HomeQuickLaunch actions={quickActions} onSelect={selectDestination} onWarm={warmDestination} locale={locale} />
         <Section
           title={copy.favourites}
+          intent={copy.favouritesIntent}
+          index="01"
           actionLabel={copy.favouritesAction}
-          onAction={() => navigate(savedFeaturedProducts.length ? "account" : "catalog", savedFeaturedProducts.length ? { accountSection: "saved" } : undefined)}
+          onAction={() => selectDestination(savedFeaturedProducts.length ? "account" : "catalog", savedFeaturedProducts.length ? { accountSection: "saved" } : undefined)}
           compact
         >
           {loading ? <StorySkeleton /> : favouriteShelf.length ? <FavouriteShelf products={favouriteShelf} /> : <HomeCollectionEmpty locale={locale} />}
@@ -205,15 +242,15 @@ export function HomeView() {
       </div> : null}
 
       <div className="order-4 mx-auto w-full max-w-7xl space-y-9 px-4 pt-7 md:order-3 md:space-y-14 md:px-8 md:pt-12">
-        {error ? <StorefrontUnavailableState surface="home" locale={locale} onRetry={refetch} /> : <><Section title={copy.categories} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
+        {error ? <StorefrontUnavailableState surface="home" locale={locale} onRetry={refetch} /> : <><Section title={copy.categories} intent={copy.categoriesIntent} index="02" actionLabel={t.viewAll} onAction={() => selectDestination("catalog")}>
           {loading ? <StorySkeleton /> : <CategoryShelf categories={data?.categories || []} />}
         </Section>
 
-        <Section title={t.home.bestsellers} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
+        <Section title={t.home.bestsellers} intent={copy.bestsellersIntent} index="03" actionLabel={t.viewAll} onAction={() => selectDestination("catalog")}>
           {loading ? <ProductRailSkeleton /> : <ProductRail products={data?.bestsellers || []} testId="home-bestseller-rail" />}
         </Section>
 
-        <Section title={copy.recipes} actionLabel={copy.recipesAction} onAction={() => navigate("recipes")}>
+        <Section title={copy.recipes} intent={copy.recipesIntent} index="04" actionLabel={copy.recipesAction} onAction={() => selectDestination("recipes")}>
           {loading ? <StorySkeleton tall /> : <RecipeShelf recipes={data?.popularRecipes || []} />}
         </Section>
 
@@ -230,10 +267,10 @@ export function HomeView() {
         />
 
         <div className="grid gap-9 md:gap-14 lg:grid-cols-2">
-          <Section title={t.home.newProducts} actionLabel={t.viewAll} onAction={() => navigate("catalog", { sort: "new" })}>
+          <Section title={t.home.newProducts} intent={copy.newIntent} index="05" actionLabel={t.viewAll} onAction={() => selectDestination("catalog", { sort: "new" })}>
             {loading ? <ProductRailSkeleton short /> : <ProductRail products={data?.news || []} testId="home-new-rail" condensedDesktop />}
           </Section>
-          <Section title={copy.offers} actionLabel={t.viewAll} onAction={() => navigate("catalog")}>
+          <Section title={copy.offers} intent={copy.offersIntent} index="06" actionLabel={t.viewAll} onAction={() => selectDestination("catalog")}>
             {loading ? <ProductRailSkeleton short /> : <ProductRail products={data?.onSale || []} testId="home-offer-rail" condensedDesktop />}
           </Section>
         </div></>}
@@ -260,11 +297,53 @@ export function HomeView() {
   );
 }
 
-function Section({ title, actionLabel, onAction, children, compact = false }: { title: string; actionLabel?: string; onAction?: () => void; children: React.ReactNode; compact?: boolean }) {
+type HomeQuickAction = {
+  view: ViewId;
+  params?: ViewParams;
+  label: string;
+  detail: string;
+  icon: IconFunction;
+  accent: string;
+};
+
+function HomeQuickLaunch({ actions, onSelect, onWarm, locale }: { actions: HomeQuickAction[]; onSelect: (view: ViewId, params?: ViewParams) => void; onWarm: (view: ViewId, params?: ViewParams) => void; locale: "fr" | "en" }) {
+  return (
+    <section data-testid="home-quick-launch" aria-label={locale === "fr" ? "Actions principales" : "Primary actions"} className="border-y border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(255,249,242,0.92),rgba(242,169,0,0.055))] py-2">
+      <div className="grid grid-cols-4 gap-1.5 md:gap-2">
+        {actions.map((action, index) => (
+          <button
+            key={action.view}
+            type="button"
+            onClick={() => onSelect(action.view, action.params)}
+            onPointerEnter={() => onWarm(action.view, action.params)}
+            onFocus={() => onWarm(action.view, action.params)}
+            onTouchStart={() => onWarm(action.view, action.params)}
+            className="group min-w-0 border-l px-1.5 py-2 text-left transition first:border-l-0 hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/45"
+            style={{ borderLeftColor: index ? `${action.accent}24` : "transparent" }}
+          >
+            <span className="mx-auto grid h-9 w-9 place-items-center rounded-md border transition-transform duration-200 group-hover:scale-[1.04]" style={{ color: action.accent, borderColor: `${action.accent}24`, backgroundColor: `${action.accent}0F` }}>
+              <ReiconGlyph icon={action.icon} weight="Filled" className="h-4.5 w-4.5" />
+            </span>
+            <span className="mt-1.5 block truncate text-center text-[10px] font-black leading-3 text-charcoal">{action.label}</span>
+            <span className="mx-auto mt-0.5 hidden max-w-[8rem] text-center text-[8px] font-semibold leading-3 text-muted-foreground sm:block">{action.detail}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Section({ title, intent, index, actionLabel, onAction, children, compact = false }: { title: string; intent?: string; index?: string; actionLabel?: string; onAction?: () => void; children: React.ReactNode; compact?: boolean }) {
   return (
     <section className={`min-w-0 ${compact ? "space-y-2.5" : "space-y-3.5 md:space-y-5"}`}>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className={`${compact ? "text-xl md:text-2xl" : "text-lg md:text-3xl"} min-w-0 font-black leading-tight text-charcoal md:font-display md:font-semibold`}>{title}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2.5">
+          {index ? <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md border border-terre/15 bg-terre/[0.06] text-[9px] font-black tabular-nums text-terre">{index}</span> : null}
+          <div className="min-w-0">
+            <h2 className={`${compact ? "text-xl md:text-2xl" : "text-lg md:text-3xl"} min-w-0 font-black leading-tight text-charcoal md:font-display md:font-semibold`}>{title}</h2>
+            {intent ? <p data-testid="home-section-intent" className="mt-0.5 line-clamp-2 text-[10px] font-semibold leading-4 text-muted-foreground md:text-xs">{intent}</p> : null}
+          </div>
+        </div>
         {actionLabel && onAction ? (
           <button type="button" onClick={onAction} className="inline-flex min-h-9 shrink-0 items-center gap-1 text-[11px] font-extrabold text-terre hover:underline md:text-xs">
             {actionLabel} <ReiconGlyph icon={ArrowRight} className="h-3.5 w-3.5" />

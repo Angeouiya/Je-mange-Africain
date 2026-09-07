@@ -150,6 +150,18 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   });
   expect(greenAccents, `green accents remain in the computed palette: ${greenAccents.join(", ")}`).toEqual([]);
   await expectBrandSafeUiColors(page);
+  const quickLaunch = page.getByTestId("home-quick-launch");
+  await expect(quickLaunch).toBeVisible();
+  await expect(quickLaunch.getByRole("button")).toHaveCount(4);
+  await expect(quickLaunch).toContainText(/Marché|Market/i);
+  await expect(quickLaunch).toContainText(/Recettes|Recipes/i);
+  await expectNoHorizontalOverflow(page, quickLaunch);
+  const quickTargets = await quickLaunch.getByRole("button").evaluateAll((buttons) => buttons.map((button) => {
+    const box = button.getBoundingClientRect();
+    return { width: box.width, height: box.height };
+  }));
+  expect(quickTargets.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
+  await expect(page.getByTestId("home-section-intent").first()).toBeVisible();
   const favouritesHeading = page.getByRole("heading", { name: /favoris du moment|popular favourites/i });
   await expect(favouritesHeading).toBeVisible();
   const favouritesRail = page.getByTestId("home-favourites-rail");
