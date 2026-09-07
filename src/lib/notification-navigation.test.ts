@@ -19,6 +19,32 @@ describe("parseNotificationDestination", () => {
     expect(parseNotificationDestination("//example.com/?view=catalog")).toBeNull();
   });
 
+  it("routes commercial notifications to precise client workspaces only", () => {
+    expect(parseNotificationDestination("/?view=wholesale&category=manioc&query=placali")).toEqual({
+      view: "wholesale",
+      params: { category: "manioc", query: "placali" },
+    });
+    expect(parseNotificationDestination("/?view=catalog&category=epices&sort=available")).toEqual({
+      view: "catalog",
+      params: { category: "epices", sort: "available" },
+    });
+    expect(parseNotificationDestination("/?view=account&accountSection=settings")).toEqual({
+      view: "account",
+      params: { accountSection: "settings" },
+    });
+    expect(parseNotificationDestination("/?view=info&infoPage=delivery&contactReason=delivery")).toEqual({
+      view: "info",
+      params: { infoPage: "delivery", contactReason: "delivery" },
+    });
+  });
+
+  it("rejects incomplete protected notification destinations", () => {
+    expect(parseNotificationDestination("/?view=product")).toBeNull();
+    expect(parseNotificationDestination("/?view=recipe-config")).toBeNull();
+    expect(parseNotificationDestination("/?view=order-tracking")).toBeNull();
+    expect(parseNotificationDestination("/?view=order-confirmation")).toBeNull();
+  });
+
   it("classifies activity by the customer local calendar", () => {
     const now = "2026-09-03T12:00:00.000Z";
     expect(notificationDateBucket("2026-09-03T08:00:00.000Z", now)).toBe("today");

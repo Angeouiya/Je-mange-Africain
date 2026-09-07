@@ -26,6 +26,21 @@ const PUBLIC_API_ROUTES = [
   /^\/api\/recipes$/,
   /^\/api\/recipes\/[^/]+$/,
 ];
+const SAFE_NOTIFICATION_VIEWS = new Set([
+  "home",
+  "catalog",
+  "wholesale",
+  "product",
+  "recipes",
+  "recipe-config",
+  "cart",
+  "checkout",
+  "order-confirmation",
+  "orders",
+  "order-tracking",
+  "account",
+  "info",
+]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
@@ -200,10 +215,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   if (event.action === "dismiss") return;
-  const notificationUrl = new URL(event.notification.data?.url || "/", self.location.origin);
-  const targetUrl = notificationUrl.origin === self.location.origin
-    ? notificationUrl.href
-    : new URL("/", self.location.origin).href;
+  const targetUrl = safeNotificationTargetUrl(event.notification.data?.url);
 
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
@@ -216,3 +228,21 @@ self.addEventListener("notificationclick", (event) => {
     return self.clients.openWindow(targetUrl);
   })());
 });
+
+function safeNotificationTargetUrl(value) {
+  try {
+    const notificationUrl = new URL(value || "/", self.location.origin);
+    if (notificationUrl.origin !== self.location.origin || notificationUrl.pathname !== "/") {
+      return new URL("/", self.location.origin).href;
+    }
+
+    const view = notificationUrl.searchParams.get("view") || "home";
+    if (!SAFE_NOTIFICATION_VIEWS.has(view)) return new URL("/", self.location.origin).href;
+    if (view === "product" && !notificationUrl.searchParams.get("productId")) return new URL("/", self.location.origin).href;
+    if (view === "recipe-config" && !notificationUrl.searchParams.get("recipeId")) return new URL("/", self.location.origin).href;
+    if ((view === "order-tracking" || view === "order-confirmation") && !notificationUrl.searchParams.get("orderId")) return new URL("/", self.location.origin).href;
+    return notificationUrl.href;
+  } catch {
+    return new URL("/", self.location.origin).href;
+  }
+}

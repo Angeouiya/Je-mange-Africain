@@ -205,7 +205,11 @@ test("the installable storefront exposes a safe app shell and public discovery m
   expect(workerSource).toContain("/^\\/api\\/products\\/[^/]+$/");
   expect(workerSource).toContain('if (url.pathname.startsWith("/api/")) return;');
   expect(workerSource).toContain('/brand/notification-icon-burgundy.png');
-  expect(workerSource).toContain("notificationUrl.origin === self.location.origin");
+  expect(workerSource).toContain("SAFE_NOTIFICATION_VIEWS");
+  expect(workerSource).toContain('"wholesale"');
+  expect(workerSource).toContain("safeNotificationTargetUrl(event.notification.data?.url)");
+  expect(workerSource).toContain('notificationUrl.pathname !== "/"');
+  expect(workerSource).toContain('view === "product" && !notificationUrl.searchParams.get("productId")');
 
   const offlineResponse = await request.get("/offline.html");
   expect(offlineResponse.ok()).toBeTruthy();
