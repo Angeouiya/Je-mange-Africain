@@ -28,24 +28,29 @@ export function PrivacyPreferenceCenter() {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>("summary");
   const [consent, setConsent] = useState<PrivacyConsent | null>(null);
+  const [consentReady, setConsentReady] = useState(false);
   const [draft, setDraft] = useState<PreferenceDraft>(EMPTY_PREFERENCES);
   const isFr = locale === "fr";
   const hasRecordedChoice = Boolean(consent);
   const selectedCount = optionalConsentCount(draft);
 
   useEffect(() => {
-    const stored = readPrivacyConsent();
-    setConsent(stored);
-    setDraft(preferencesFrom(stored));
+    const syncFromBrowser = () => {
+      const stored = readPrivacyConsent();
+      setConsent(stored);
+      setDraft(preferencesFrom(stored));
+      return stored;
+    };
+
+    const stored = syncFromBrowser();
+    setConsentReady(true);
     if (window.location.pathname === "/" && !stored) {
       setPanel("summary");
       setOpen(true);
     }
 
     const openPreferences = () => {
-      const current = readPrivacyConsent();
-      setConsent(current);
-      setDraft(preferencesFrom(current));
+      syncFromBrowser();
       setPanel("preferences");
       setOpen(true);
     };
@@ -55,11 +60,18 @@ export function PrivacyPreferenceCenter() {
       setConsent(next);
       setDraft(preferencesFrom(next));
     };
+    const syncExternalStorage = (event: StorageEvent) => {
+      if (event.key && !event.key.startsWith("jma-privacy-")) return;
+      const current = syncFromBrowser();
+      if (current) setOpen(false);
+    };
     window.addEventListener(PRIVACY_PREFERENCES_EVENT, openPreferences);
     window.addEventListener(PRIVACY_CONSENT_CHANGE_EVENT, syncConsent);
+    window.addEventListener("storage", syncExternalStorage);
     return () => {
       window.removeEventListener(PRIVACY_PREFERENCES_EVENT, openPreferences);
       window.removeEventListener(PRIVACY_CONSENT_CHANGE_EVENT, syncConsent);
+      window.removeEventListener("storage", syncExternalStorage);
     };
   }, []);
 
@@ -75,6 +87,8 @@ export function PrivacyPreferenceCenter() {
     if (!nextOpen && !hasRecordedChoice) return;
     setOpen(nextOpen);
   };
+
+  if (!consentReady && !open) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

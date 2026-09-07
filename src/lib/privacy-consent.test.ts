@@ -5,7 +5,9 @@ import {
   parsePrivacyConsent,
   parsePrivacyConsentCookie,
   PRIVACY_CONSENT_COMPLETED_COOKIE_NAME,
+  PRIVACY_CONSENT_COMPLETED_SESSION_KEY,
   PRIVACY_CONSENT_COMPLETED_STORAGE_KEY,
+  PRIVACY_CONSENT_SESSION_KEY,
   PRIVACY_CONSENT_STORAGE_KEY,
   PRIVACY_CONSENT_VERSION,
   readPrivacyConsent,
@@ -109,6 +111,7 @@ describe("privacy consent", () => {
   it("writes a durable completed marker when the visitor accepts or refuses", () => {
     const stored: Record<string, string> = {};
     const cookies: string[] = [];
+    const session: Record<string, string> = {};
     vi.stubGlobal("document", {
       get cookie() { return cookies.join("; "); },
       set cookie(value: string) { cookies.push(value); },
@@ -118,6 +121,10 @@ describe("privacy consent", () => {
         getItem: vi.fn(() => null),
         setItem: vi.fn((key: string, value: string) => { stored[key] = value; }),
       },
+      sessionStorage: {
+        getItem: vi.fn(() => null),
+        setItem: vi.fn((key: string, value: string) => { session[key] = value; }),
+      },
       location: { protocol: "https:", hostname: "je-mange-africain.com" },
       dispatchEvent: vi.fn(),
     });
@@ -125,8 +132,60 @@ describe("privacy consent", () => {
     savePrivacyConsent(createPrivacyConsent({ analytics: true, personalization: true, marketing: true }, new Date("2026-09-05T13:30:00.000Z")));
 
     expect(stored[PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]).toBe("v1");
+    expect(session[PRIVACY_CONSENT_COMPLETED_SESSION_KEY]).toBe("v1");
     expect(JSON.parse(stored[PRIVACY_CONSENT_STORAGE_KEY] || "{}")).toMatchObject({ analytics: true, personalization: true, marketing: true });
+    expect(JSON.parse(session[PRIVACY_CONSENT_SESSION_KEY] || "{}")).toMatchObject({ analytics: true, personalization: true, marketing: true });
     expect(cookies.some((cookie) => cookie.startsWith(`${PRIVACY_CONSENT_COMPLETED_COOKIE_NAME}=v1`))).toBe(true);
     expect(cookies.some((cookie) => cookie.includes("Domain=.je-mange-africain.com"))).toBe(true);
+  });
+
+  it("does not reopen after a choice when cookies are refused by the browser", () => {
+    const stored: Record<string, string | null> = {};
+    const session: Record<string, string | null> = {};
+    vi.stubGlobal("document", {
+      get cookie() { return ""; },
+      set cookie(_value: string) { throw new Error("cookies blocked"); },
+    });
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: vi.fn((key: string) => stored[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => { stored[key] = value; }),
+      },
+      sessionStorage: {
+        getItem: vi.fn((key: string) => session[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => { session[key] = value; }),
+      },
+      location: { protocol: "https:", hostname: "je-mange-africain.com" },
+      dispatchEvent: vi.fn(),
+    });
+
+    expect(() => savePrivacyConsent(createPrivacyConsent({}, new Date("2026-09-05T14:00:00.000Z")))).not.toThrow();
+
+    expect(stored[PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]).toBe("v1");
+    expect(session[PRIVACY_CONSENT_COMPLETED_SESSION_KEY]).toBe("v1");
+    expect(readPrivacyConsent()).toMatchObject({ analytics: false, personalization: false, marketing: false });
+  });
+
+  it("restores the completed step from session storage when localStorage is unavailable", () => {
+    const consent = createPrivacyConsent({ analytics: true }, new Date("2026-09-05T14:30:00.000Z"));
+    const session: Record<string, string | null> = {
+      [PRIVACY_CONSENT_SESSION_KEY]: JSON.stringify(consent),
+      [PRIVACY_CONSENT_COMPLETED_SESSION_KEY]: "v1",
+    };
+    vi.stubGlobal("document", { cookie: "" });
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: vi.fn(() => { throw new Error("blocked"); }),
+        setItem: vi.fn(() => { throw new Error("blocked"); }),
+      },
+      sessionStorage: {
+        getItem: vi.fn((key: string) => session[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => { session[key] = value; }),
+      },
+      location: { protocol: "https:", hostname: "je-mange-africain.com" },
+      dispatchEvent: vi.fn(),
+    });
+
+    expect(readPrivacyConsent()).toMatchObject({ analytics: true, personalization: false, marketing: false });
   });
 });

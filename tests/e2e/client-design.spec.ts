@@ -1259,6 +1259,10 @@ test("privacy choices are granular, durable and equally easy to refuse", async (
   expect(await page.evaluate(() => document.cookie)).toContain("jma_privacy_consent=v1.110");
   await page.reload({ waitUntil: "networkidle" });
   await expect(center).toBeHidden();
+  await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
+  await expect(center).toBeHidden();
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(center).toBeHidden();
 
   if (viewport === "mobile") {
     await page.getByRole("button", { name: "Menu" }).click();

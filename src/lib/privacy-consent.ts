@@ -7,6 +7,11 @@ export const PRIVACY_PREFERENCES_EVENT = "jma:open-privacy-preferences";
 export const PRIVACY_CONSENT_CHANGE_EVENT = "jma:privacy-consent-change";
 
 const PRIVACY_CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+export const PRIVACY_CONSENT_SESSION_KEY = "jma-privacy-consent-session-v1";
+export const PRIVACY_CONSENT_COMPLETED_SESSION_KEY = "jma-privacy-choice-session-v1";
+
+let memoryPrivacyConsent: PrivacyConsent | null = null;
+let memoryPrivacyChoiceCompleted = false;
 
 export type OptionalPrivacyPreference = "analytics" | "personalization" | "marketing";
 
@@ -119,12 +124,21 @@ function hasCompletedPrivacyStepCookie(rawCookie: string | null | undefined) {
     .some((value) => hasCompletedPrivacyStep(decodePrivacyCookieValue(value)));
 }
 
-function persistLocalPrivacyConsent(consent: PrivacyConsent) {
+function safeStorageGet(storage: Storage | undefined, key: string) {
+  if (!storage) return null;
   try {
-    window.localStorage.setItem(PRIVACY_CONSENT_STORAGE_KEY, JSON.stringify(consent));
-    window.localStorage.setItem(PRIVACY_CONSENT_COMPLETED_STORAGE_KEY, `v${consent.version}`);
+    return storage.getItem(key);
   } catch {
-    // The cookie is enough to avoid reopening the first-choice step.
+    return null;
+  }
+}
+
+function safeStorageSet(storage: Storage | undefined, key: string, value: string) {
+  if (!storage) return;
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // Browser storage can be blocked; cookies and memory keep the completed step stable.
   }
 }
 
@@ -140,23 +154,38 @@ function privacyCookieAttributes() {
 
 function writePrivacyCookie(name: string, value: string) {
   if (typeof document === "undefined") return;
-  document.cookie = `${name}=${encodeURIComponent(value)}${privacyCookieAttributes()}`;
+  try {
+    document.cookie = `${name}=${encodeURIComponent(value)}${privacyCookieAttributes()}`;
+  } catch {
+    // Some hardened privacy modes reject cookie writes. Storage fallbacks still record the choice.
+  }
+}
+
+function persistLocalPrivacyConsent(consent: PrivacyConsent) {
+  if (typeof window === "undefined") return;
+  const serialized = JSON.stringify(consent);
+  const completed = `v${consent.version}`;
+  memoryPrivacyConsent = consent;
+  memoryPrivacyChoiceCompleted = true;
+  safeStorageSet(window.localStorage, PRIVACY_CONSENT_STORAGE_KEY, serialized);
+  safeStorageSet(window.localStorage, PRIVACY_CONSENT_COMPLETED_STORAGE_KEY, completed);
+  safeStorageSet(window.sessionStorage, PRIVACY_CONSENT_SESSION_KEY, serialized);
+  safeStorageSet(window.sessionStorage, PRIVACY_CONSENT_COMPLETED_SESSION_KEY, completed);
 }
 
 export function readPrivacyConsent() {
   if (typeof window === "undefined") return null;
   const now = new Date();
-  let completedLocally = false;
-  try {
-    const rawStored = window.localStorage.getItem(PRIVACY_CONSENT_STORAGE_KEY);
+  const storageRecords = [
+    safeStorageGet(window.localStorage, PRIVACY_CONSENT_STORAGE_KEY),
+    safeStorageGet(window.sessionStorage, PRIVACY_CONSENT_SESSION_KEY),
+  ];
+  for (const rawStored of storageRecords) {
     const stored = parsePrivacyConsent(rawStored) || legacyPrivacyConsent(rawStored, now);
     if (stored) {
       persistLocalPrivacyConsent(stored);
       return stored;
     }
-    completedLocally = hasCompletedPrivacyStep(window.localStorage.getItem(PRIVACY_CONSENT_COMPLETED_STORAGE_KEY));
-  } catch {
-    // Some browsers or privacy modes can block localStorage; the cookie remains the durable fallback.
   }
 
   const cookieConsent = parsePrivacyConsentCookie(typeof document === "undefined" ? null : document.cookie);
@@ -164,11 +193,17 @@ export function readPrivacyConsent() {
     persistLocalPrivacyConsent(cookieConsent);
     return cookieConsent;
   }
+
+  const completedLocally =
+    hasCompletedPrivacyStep(safeStorageGet(window.localStorage, PRIVACY_CONSENT_COMPLETED_STORAGE_KEY))
+    || hasCompletedPrivacyStep(safeStorageGet(window.sessionStorage, PRIVACY_CONSENT_COMPLETED_SESSION_KEY));
   if (completedLocally || hasCompletedPrivacyStepCookie(typeof document === "undefined" ? null : document.cookie)) {
     const completed = createPrivacyConsent({}, now);
     persistLocalPrivacyConsent(completed);
     return completed;
   }
+  if (memoryPrivacyConsent) return memoryPrivacyConsent;
+  if (memoryPrivacyChoiceCompleted) return createPrivacyConsent({}, now);
   return null;
 }
 
