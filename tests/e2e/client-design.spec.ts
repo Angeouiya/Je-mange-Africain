@@ -1133,6 +1133,9 @@ test("privacy choices are granular, durable and equally easy to refuse", async (
   await expect(center).toBeHidden();
   expect(await page.evaluate(() => document.cookie)).toContain("jma_privacy_consent=v1.000");
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("jma-privacy-consent-v1") || "{}"))).toMatchObject({ analytics: false, personalization: false, marketing: false });
+  await page.evaluate(() => localStorage.removeItem("jma-privacy-consent-v1"));
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("privacy-preference-center")).toBeHidden();
 });
 
 test("the customer workspace edits identity and manages a persistent address book", async ({ page }) => {
