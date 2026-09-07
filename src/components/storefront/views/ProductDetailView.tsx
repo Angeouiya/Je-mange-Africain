@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { IconFunction } from "reicon/createIcon";
 import { Activity } from "reicon/icons/Activity";
 import { Barcode } from "reicon/icons/Barcode";
 import { CartAdd } from "reicon/icons/CartAdd";
@@ -119,6 +120,7 @@ export function ProductDetailView() {
       seller: { "@type": "Organization", "@id": `${absoluteUrl("/")}#organization`, name: "Je mange Africain" },
     },
   };
+  const productTabs = productTabDescriptors(locale);
 
   const handleAdd = () => {
     addToCart({
@@ -307,36 +309,54 @@ export function ProductDetailView() {
 
           {/* tabs */}
           <Tabs defaultValue="desc" className="mt-2 min-w-0">
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-              <TabsTrigger value="desc" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><ReiconGlyph icon={FileText} className="h-3.5 w-3.5" />{t.product.description}</TabsTrigger>
-              <TabsTrigger value="nutri" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><ReiconGlyph icon={Activity} className="h-3.5 w-3.5" />{t.product.nutrition}</TabsTrigger>
-              <TabsTrigger value="prep" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><ReiconGlyph icon={ChefHat} className="h-3.5 w-3.5" />{t.product.preparation}</TabsTrigger>
-              <TabsTrigger value="store" className="min-h-10 gap-1.5 px-2 text-[11px] sm:text-xs"><ReiconGlyph icon={Fridge} className="h-3.5 w-3.5" />{t.product.storage}</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-md border border-burgundy/10 bg-[#FBF7F5] p-1">
+              {productTabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="group min-h-[4.2rem] min-w-0 justify-start gap-2 overflow-hidden rounded-md px-2 py-2 text-left data-[state=active]:bg-white data-[state=active]:shadow-[0_10px_26px_-24px_rgba(90,38,50,0.75)]">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-terre/[0.08] text-terre transition-colors group-data-[state=active]:bg-terre group-data-[state=active]:text-white">
+                    <ReiconGlyph icon={tab.icon} className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block max-w-full whitespace-normal break-words text-[11px] font-black leading-3.5 text-charcoal sm:text-xs">{tab.label}</span>
+                    <span className="mt-0.5 block line-clamp-2 whitespace-normal text-[8px] font-semibold leading-3.5 text-muted-foreground sm:text-[9px]">{tab.detail}</span>
+                  </span>
+                </TabsTrigger>
+              ))}
             </TabsList>
-            <TabsContent value="desc" className="text-sm leading-relaxed text-charcoal">
-              <p>{product.description}</p>
-              {product.ingredients && <p className="mt-3"><span className="font-semibold">{t.product.ingredients} :</span> {product.ingredients}</p>}
-              {product.allergens && <p className="mt-1"><span className="font-semibold">{t.product.allergens} :</span> {product.allergens}</p>}
+            <TabsContent value="desc" className="mt-3">
+              <ProductInsightPanel icon={FileText} eyebrow={locale === "fr" ? "Lecture rapide" : "Quick read"} title={locale === "fr" ? "Comprendre le produit" : "Understand the product"}>
+                <p>{product.description || commercialLine}</p>
+                {product.ingredients && <p className="mt-3"><span className="font-semibold">{t.product.ingredients} :</span> {product.ingredients}</p>}
+                {product.allergens && <p className="mt-1"><span className="font-semibold">{t.product.allergens} :</span> {product.allergens}</p>}
+              </ProductInsightPanel>
             </TabsContent>
-            <TabsContent value="nutri">
-              {product.nutrition ? (
-                <div className="overflow-hidden rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <tbody>
-                      <tr className="border-b border-border bg-muted"><td className="px-3 py-2 font-semibold" colSpan={2}>{t.product.nutritionFacts}</td></tr>
-                      {Object.entries(product.nutrition).map(([k, v]: [string, any]) => (
-                        <tr key={k} className="border-b border-border last:border-0">
-                          <td className="px-3 py-1.5 capitalize text-muted-foreground">{nutriLabel(k, locale)}</td>
-                          <td className="px-3 py-1.5 text-right font-medium">{v}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : <p className="text-sm text-muted-foreground">—</p>}
+            <TabsContent value="nutri" className="mt-3">
+              <ProductInsightPanel icon={Activity} eyebrow={locale === "fr" ? "Repères alimentaires" : "Food markers"} title={t.product.nutritionFacts}>
+                {product.nutrition ? (
+                  <div className="overflow-hidden rounded-md border border-border bg-white">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {Object.entries(product.nutrition).map(([k, v]: [string, any]) => (
+                          <tr key={k} className="border-b border-border last:border-0">
+                            <td className="px-3 py-2 capitalize text-muted-foreground">{nutriLabel(k, locale)}</td>
+                            <td className="px-3 py-2 text-right font-medium text-charcoal">{v}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">—</p>}
+              </ProductInsightPanel>
             </TabsContent>
-            <TabsContent value="prep" className="text-sm text-charcoal">{product.preparation || "—"}</TabsContent>
-            <TabsContent value="store" className="text-sm text-charcoal">{product.storage || "—"} {product.storageTempC && `· ${product.storageTempC}`}</TabsContent>
+            <TabsContent value="prep" className="mt-3">
+              <ProductInsightPanel icon={ChefHat} eyebrow={locale === "fr" ? "En cuisine" : "In the kitchen"} title={locale === "fr" ? "Préparer sans hésiter" : "Prepare with confidence"}>
+                {product.preparation || "—"}
+              </ProductInsightPanel>
+            </TabsContent>
+            <TabsContent value="store" className="mt-3">
+              <ProductInsightPanel icon={Fridge} eyebrow={locale === "fr" ? "Qualité conservée" : "Quality preserved"} title={locale === "fr" ? "Stockage et chaîne thermique" : "Storage and thermal chain"}>
+                {product.storage || "—"} {product.storageTempC && `· ${product.storageTempC}`}
+              </ProductInsightPanel>
+            </TabsContent>
           </Tabs>
         </div>
       </div>
@@ -416,6 +436,40 @@ function ProductFact({ label, value, icon }: { label: string; value: string; ico
       <dd className="mt-1 break-words font-semibold leading-snug text-charcoal">{value}</dd>
     </div>
   );
+}
+
+function ProductInsightPanel({ icon, eyebrow, title, children }: { icon: IconFunction; eyebrow: string; title: string; children: React.ReactNode }) {
+  return (
+    <section className="min-w-0 border-y border-burgundy/12 bg-[linear-gradient(135deg,rgba(255,255,255,1),rgba(255,248,244,0.82),rgba(255,245,230,0.56))] px-3.5 py-4 text-sm leading-6 text-charcoal">
+      <div className="mb-3 flex items-start gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white shadow-[0_12px_24px_-18px_rgba(90,38,50,0.86)]">
+          <ReiconGlyph icon={icon} weight="Filled" className="h-4 w-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[9px] font-black uppercase text-terre">{eyebrow}</span>
+          <span className="mt-0.5 block break-words text-sm font-black leading-5 text-charcoal">{title}</span>
+        </span>
+      </div>
+      <div className="break-words text-muted-foreground">{children}</div>
+    </section>
+  );
+}
+
+function productTabDescriptors(locale: Locale) {
+  const t = dict[locale];
+  return locale === "fr"
+    ? [
+        { value: "desc", label: t.product.description, detail: "Origine, ingrédients et usages", icon: FileText },
+        { value: "nutri", label: t.product.nutrition, detail: "Valeurs, repères et équilibre", icon: Activity },
+        { value: "prep", label: t.product.preparation, detail: "Conseils cuisine et service", icon: ChefHat },
+        { value: "store", label: t.product.storage, detail: "Conservation et chaîne thermique", icon: Fridge },
+      ]
+    : [
+        { value: "desc", label: t.product.description, detail: "Origin, ingredients and uses", icon: FileText },
+        { value: "nutri", label: t.product.nutrition, detail: "Values, markers and balance", icon: Activity },
+        { value: "prep", label: t.product.preparation, detail: "Cooking and serving guidance", icon: ChefHat },
+        { value: "store", label: t.product.storage, detail: "Storage and thermal chain", icon: Fridge },
+      ];
 }
 
 function nutriLabel(k: string, locale: Locale) {

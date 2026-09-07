@@ -734,6 +734,10 @@ test("product details stay bounded and preserve real visual identification in th
   await expect(page.getByRole("tab", { name: /nutrition/i })).toBeVisible();
   await expect(page.getByRole("tab", { name: /préparation|preparation/i })).toBeVisible();
   await expect(page.getByRole("tab", { name: /conservation|storage/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /origine, ingrédients et usages|origin, ingredients and uses/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /valeurs, repères et équilibre|values, markers and balance/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /conseils cuisine et service|cooking and serving guidance/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /conservation et chaîne thermique|storage and thermal chain/i })).toBeVisible();
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   const purchaseDock = page.getByTestId("product-purchase-dock");
   if (isMobile) {
