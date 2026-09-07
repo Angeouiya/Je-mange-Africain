@@ -67,6 +67,9 @@ export async function authorizeAdminRequest(request: NextRequest, permission?: {
     return { ok: false as const, response: NextResponse.json({ error: "Votre rôle ne permet pas cette action." }, { status: 403 }) };
   }
 
+  const subjectLimited = await enforceRateLimit(request, policy, (user.id as string | undefined) || (user.email as string | undefined), { scopes: ["subject"] });
+  if (subjectLimited) return { ok: false as const, response: subjectLimited };
+
   return {
     ok: true as const,
     accessToken: authorization.slice("Bearer ".length),

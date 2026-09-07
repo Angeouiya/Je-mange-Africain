@@ -55,4 +55,19 @@ describe("enforceRateLimit", () => {
     expect(blocked?.headers.get("X-RateLimit-Scope")).toBe("route");
     expect(otherRoute).toBeNull();
   });
+
+  it("limits authenticated admin write bursts by subject", async () => {
+    const limit = rateLimitPolicyConfig["admin-write"].windows.find((window) => window.scope === "subject" && window.window === "1 m")!.requests;
+    for (let index = 0; index < limit; index += 1) {
+      await expect(enforceRateLimit(request("/api/admin/products"), "admin-write", "ops@example.fr", { scopes: ["subject"] })).resolves.toBeNull();
+    }
+
+    const blocked = await enforceRateLimit(request("/api/admin/products"), "admin-write", "ops@example.fr", { scopes: ["subject"] });
+    const otherAdmin = await enforceRateLimit(request("/api/admin/products"), "admin-write", "stock@example.fr", { scopes: ["subject"] });
+
+    expect(blocked?.status).toBe(429);
+    expect(blocked?.headers.get("X-RateLimit-Policy")).toBe("admin-write");
+    expect(blocked?.headers.get("X-RateLimit-Scope")).toBe("subject");
+    expect(otherAdmin).toBeNull();
+  });
 });

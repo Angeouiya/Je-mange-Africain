@@ -159,6 +159,8 @@ export const rateLimitPolicyConfig: Record<RateLimitPolicy, RateLimitPolicyConfi
     windows: [
       { scope: "ip", requests: 600, windowMs: 60_000, window: "1 m" },
       { scope: "route", requests: 240, windowMs: 60_000, window: "1 m" },
+      { scope: "subject", requests: 360, windowMs: 60_000, window: "1 m" },
+      { scope: "subject", requests: 2_400, windowMs: 60 * 60_000, window: "1 h" },
     ],
     messageFr: "Trop de requêtes administrateur. Veuillez patienter avant de recommencer.",
     messageEn: "Too many admin requests. Please wait before trying again.",
@@ -167,6 +169,8 @@ export const rateLimitPolicyConfig: Record<RateLimitPolicy, RateLimitPolicyConfi
     windows: [
       { scope: "ip", requests: 160, windowMs: 60_000, window: "1 m" },
       { scope: "route", requests: 80, windowMs: 60_000, window: "1 m" },
+      { scope: "subject", requests: 60, windowMs: 60_000, window: "1 m" },
+      { scope: "subject", requests: 300, windowMs: 60 * 60_000, window: "1 h" },
     ],
     messageFr: "Trop d'actions administrateur. Veuillez patienter avant de recommencer.",
     messageEn: "Too many admin actions. Please wait before trying again.",
