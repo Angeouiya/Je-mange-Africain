@@ -69,7 +69,8 @@ export function ProductImage({
             alt={alt}
             fill
             sizes={imageSizes[size]}
-            priority={priority}
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
             className="object-cover transition duration-500 group-hover:scale-[1.04]"
             onError={() => setFailedSources((current) => activeSource && !current.includes(activeSource) ? [...current, activeSource] : current)}
           />

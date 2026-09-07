@@ -28,6 +28,7 @@ type Props = {
   fallback?: StorefrontAdvertisementData;
   fallbackDestination?: { view: ViewId; params?: ViewParams };
   className?: string;
+  priority?: boolean;
 };
 
 const PLACEMENT_ICON = {
@@ -48,10 +49,11 @@ type ArtworkProps = {
   onActivate?: () => void;
   requiresSignIn?: boolean;
   actionDisabled?: boolean;
+  priority?: boolean;
   testId?: string;
 };
 
-export function StorefrontAdvertisementArtwork({ advertisement, placement, variant = "ribbon", locale, className = "", edgeToEdgeMobile = false, showAction = false, onActivate, requiresSignIn = false, actionDisabled = false, testId }: ArtworkProps) {
+export function StorefrontAdvertisementArtwork({ advertisement, placement, variant = "ribbon", locale, className = "", edgeToEdgeMobile = false, showAction = false, onActivate, requiresSignIn = false, actionDisabled = false, priority = false, testId }: ArtworkProps) {
   const headingId = useId();
   const isImmersive = variant === "immersive";
   const isCompact = variant === "compact";
@@ -91,6 +93,8 @@ export function StorefrontAdvertisementArtwork({ advertisement, placement, varia
         alt={advertisement.imageAlt || ""}
         fill
         sizes={isImmersive ? "(max-width: 768px) 100vw, 1200px" : "(max-width: 768px) 100vw, 960px"}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
         className={`object-cover ${isImmersive ? "object-center" : "object-right"}`}
       />
       <div className={`absolute inset-0 ${isImmersive ? "bg-gradient-to-r from-burgundy/94 via-burgundy/72 to-terre/20" : "bg-gradient-to-r from-white via-white/95 via-60% to-white/20"}`} />
@@ -108,7 +112,7 @@ export function StorefrontAdvertisementArtwork({ advertisement, placement, varia
   );
 }
 
-export function StorefrontAdvertisement({ placement, variant = "ribbon", fallback, fallbackDestination, className = "" }: Props) {
+export function StorefrontAdvertisement({ placement, variant = "ribbon", fallback, fallbackDestination, className = "", priority }: Props) {
   const locale = useStore((state) => state.locale);
   const navigate = useStore((state) => state.navigate);
   const customer = useStore((state) => state.customer);
@@ -139,5 +143,5 @@ export function StorefrontAdvertisement({ placement, variant = "ribbon", fallbac
     if (fallbackDestination) navigate(fallbackDestination.view, fallbackDestination.params);
   };
 
-  return <StorefrontAdvertisementArtwork advertisement={advertisement} placement={placement} variant={variant} locale={locale} className={className} edgeToEdgeMobile={variant === "immersive"} showAction={Boolean(advertisement.linkUrl || fallbackDestination)} onActivate={openDestination} requiresSignIn={!customer} actionDisabled={!hydrated} testId={`advertisement-${placement}`} />;
+  return <StorefrontAdvertisementArtwork advertisement={advertisement} placement={placement} variant={variant} locale={locale} className={className} edgeToEdgeMobile={variant === "immersive"} showAction={Boolean(advertisement.linkUrl || fallbackDestination)} onActivate={openDestination} requiresSignIn={!customer} actionDisabled={!hydrated} priority={priority ?? (placement === "home" && variant === "immersive")} testId={`advertisement-${placement}`} />;
 }

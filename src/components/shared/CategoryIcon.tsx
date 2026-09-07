@@ -1,32 +1,33 @@
 import type { IconFunction } from "reicon/createIcon";
+import { Bag } from "reicon/icons/Bag";
 import { Basket } from "reicon/icons/Basket";
 import { Bottle } from "reicon/icons/Bottle";
+import { Box } from "reicon/icons/Box";
+import { Cake } from "reicon/icons/Cake";
 import { ChefHat } from "reicon/icons/ChefHat";
 import { ChefHat2 } from "reicon/icons/ChefHat2";
-import { Coffee } from "reicon/icons/Coffee";
+import { CupHot } from "reicon/icons/CupHot";
+import { Fire } from "reicon/icons/Fire";
 import { FoodTray } from "reicon/icons/FoodTray";
 import { ForkKnife } from "reicon/icons/ForkKnife";
-import { Glass } from "reicon/icons/Glass";
 import { Leaf } from "reicon/icons/Leaf";
-import { Package } from "reicon/icons/Package";
-import { Plate } from "reicon/icons/Plate";
 import { cn } from "@/lib/utils";
 import { getBrandAccentColor } from "@/lib/market-media";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 const categoryIcons: Record<string, IconFunction> = {
   manioc: Leaf,
-  farines: Package,
+  farines: Box,
   feculents: Basket,
   viandes: FoodTray,
   poissons: ForkKnife,
   legumes: Leaf,
   sauces: ChefHat2,
-  epices: ChefHat,
-  legumineuses: Plate,
+  epices: Fire,
+  legumineuses: Bag,
   boissons: Bottle,
-  desserts: Glass,
-  cafe: Coffee,
+  desserts: Cake,
+  cafe: CupHot,
 };
 
 const categoryColors: Record<string, string> = {
@@ -44,6 +45,21 @@ const categoryColors: Record<string, string> = {
   cafe: "#8A3042",
 };
 
+const categoryMotifs: Record<string, { top: string; bottom: string }> = {
+  manioc: { top: "M", bottom: "01" },
+  farines: { top: "GR", bottom: "02" },
+  feculents: { top: "FX", bottom: "03" },
+  viandes: { top: "VT", bottom: "04" },
+  poissons: { top: "PM", bottom: "05" },
+  legumes: { top: "LF", bottom: "06" },
+  sauces: { top: "SC", bottom: "07" },
+  epices: { top: "EP", bottom: "08" },
+  legumineuses: { top: "LG", bottom: "09" },
+  boissons: { top: "BX", bottom: "10" },
+  desserts: { top: "DS", bottom: "11" },
+  cafe: { top: "CF", bottom: "12" },
+};
+
 export function categoryVisualKey(value?: string | null) {
   const key = (value || "")
     .normalize("NFD")
@@ -54,14 +70,14 @@ export function categoryVisualKey(value?: string | null) {
     .replace(/^-+|-+$/g, "");
   if (!key) return "";
   if (/(manioc|cassava|attieke|placali|tapioca)/.test(key)) return "manioc";
+  if (/(legumineuse|bean|haricot|arachide|peanut|graine|seed|(?:^|-)pois(?:-|$))/.test(key)) return "legumineuses";
   if (/(farine|cereal|cereale|grain|fonio|mil|sorgho)/.test(key)) return "farines";
   if (/(feculent|staple|riz|plantain|igname|patate)/.test(key)) return "feculents";
   if (/(viande|meat|boeuf|beef|poulet|chicken|agneau|goat|chevre)/.test(key)) return "viandes";
   if (/(poisson|fish|seafood|mer|thon|tilapia|crevette)/.test(key)) return "poissons";
   if (/(legume|vegetable|feuille|leaf|gombo|aubergine)/.test(key)) return "legumes";
-  if (/(epice|spice|condiment|piment|akpi|soumbala)/.test(key)) return "epices";
   if (/(sauce|mijote|stew|soupe|soup)/.test(key)) return "sauces";
-  if (/(legumineuse|bean|haricot|pois|arachide|peanut)/.test(key)) return "legumineuses";
+  if (/(epice|spice|condiment|piment|akpi|soumbala)/.test(key)) return "epices";
   if (/(boisson|drink|jus|juice|bissap|gingembre)/.test(key)) return "boissons";
   if (/(dessert|sucre|sweet|patisserie)/.test(key)) return "desserts";
   if (/(cafe|coffee|the|tea|infusion)/.test(key)) return "cafe";
@@ -84,29 +100,30 @@ export function CategoryIcon({
   const visualKey = categoryVisualKey(slug || label);
   const Icon = categoryIcons[visualKey] || ChefHat;
   const resolvedColor = getBrandAccentColor(categoryColors[visualKey] || color || "#D65A32");
+  const motif = categoryMotifs[visualKey] || { top: "JMA", bottom: "AF" };
   return (
     <span
       className={cn(
-        "relative isolate grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md border bg-white shadow-[0_12px_26px_-19px_rgba(90,38,50,0.72)] transition duration-200",
-        active && "ring-1 ring-white/70",
+        "relative isolate grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md border bg-white shadow-[0_12px_26px_-19px_rgba(90,38,50,0.72)] transition duration-200 before:absolute before:inset-y-1 before:left-1 before:w-px before:rounded-full before:bg-current/30 after:absolute after:inset-x-1.5 after:bottom-1 after:h-px after:rounded-full after:bg-current/25",
+        active && "scale-[1.04] ring-1 ring-white/70",
         className,
       )}
       style={{
         color: resolvedColor,
         borderColor: active ? "rgba(255,255,255,0.7)" : `color-mix(in srgb, ${resolvedColor} 28%, white)`,
         background: active
-          ? `linear-gradient(145deg, #fff 0%, #FFF8F4 58%, color-mix(in srgb, ${resolvedColor} 13%, white) 100%)`
-          : `linear-gradient(145deg, color-mix(in srgb, ${resolvedColor} 16%, white), #fff 50%, color-mix(in srgb, ${resolvedColor} 9%, white))`,
+          ? `linear-gradient(145deg, #fff 0%, #FFF8F4 54%, color-mix(in srgb, ${resolvedColor} 16%, white) 100%)`
+          : `linear-gradient(145deg, color-mix(in srgb, ${resolvedColor} 13%, white), #fff 46%, color-mix(in srgb, ${resolvedColor} 8%, white))`,
       }}
       aria-hidden="true"
       data-testid="category-icon"
       data-category-key={visualKey || "generic"}
     >
-      <span className="absolute inset-0 bg-[radial-gradient(circle_at_32%_22%,rgba(255,255,255,0.94),transparent_43%)]" />
-      <span className="absolute inset-x-1 top-1 h-px rounded-full bg-current opacity-60" />
-      <span className="absolute bottom-1 left-1 h-1.5 w-1.5 rounded-sm bg-current opacity-20" />
-      <span className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-current opacity-25" />
-      <ReiconGlyph icon={Icon} weight="Filled" className="relative h-[20px] w-[20px]" />
+      <span className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.82),transparent_44%),repeating-linear-gradient(135deg,currentColor_0_1px,transparent_1px_7px)] opacity-25" />
+      <span className="absolute right-1 top-1 text-[5px] font-black leading-none tracking-normal opacity-45">{motif.top}</span>
+      <span className="absolute bottom-1 left-1.5 text-[5px] font-black leading-none tracking-normal opacity-35">{motif.bottom}</span>
+      <span className="absolute inset-1.5 rounded-[6px] border border-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)]" />
+      <ReiconGlyph icon={Icon} weight="Filled" className="relative h-[19px] w-[19px] drop-shadow-[0_1px_0_rgba(255,255,255,0.82)]" />
     </span>
   );
 }

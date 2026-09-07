@@ -161,7 +161,7 @@ export function AdminGate() {
         </div>
 
         <section data-testid="admin-auth-visual" className="relative hidden min-h-dvh overflow-hidden text-white lg:flex lg:flex-col lg:justify-between lg:p-14 xl:p-16" aria-label={isFr ? "Univers professionnel Je mange Africain" : "Je mange Africain professional workspace"}>
-          <Image src="/recipe-library-hero.webp" alt="" fill priority sizes="62vw" className="object-cover object-[58%_center]" />
+          <Image src="/recipe-library-hero.webp" alt="" fill sizes="62vw" loading="eager" fetchPriority="high" className="object-cover object-[58%_center]" />
           <div data-testid="admin-auth-overlay" className="absolute inset-0 bg-burgundy/55" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(90,38,50,0.96),rgba(90,38,50,0.74),rgba(185,71,43,0.3))]" />
           <BrandLockup context="admin" size="large" inverse locale={locale} className="relative z-10" />

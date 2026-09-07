@@ -26,7 +26,7 @@ export function CustomerAuthVisualPanel({ locale, mode = "access" }: { locale: L
       aria-label={isFr ? "Univers culinaire Je mange Africain" : "Je mange Africain culinary world"}
       data-testid="customer-auth-visual"
     >
-      <Image src="/hero-feast-v2.webp" alt="" fill sizes="58vw" priority className="object-cover object-[64%_center]" />
+      <Image src="/hero-feast-v2.webp" alt="" fill sizes="58vw" loading="eager" fetchPriority="high" className="object-cover object-[64%_center]" />
       <div data-testid="customer-auth-overlay" className="absolute inset-0 bg-burgundy/45" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(90,38,50,0.82),rgba(185,71,43,0.38),rgba(242,169,0,0.08))]" />
       <BrandLockup size="large" inverse locale={locale} className="relative z-10" />

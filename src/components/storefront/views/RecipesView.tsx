@@ -76,7 +76,7 @@ export function RecipesView() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 md:px-7 md:py-6 lg:px-8">
       <section className="relative mb-4 min-h-[14.5rem] overflow-hidden rounded-lg border border-burgundy/10 bg-[#FFF8F4] md:min-h-[16.5rem]" data-testid="recipes-hero">
-        <Image src="/recipe-library-hero.webp" alt="" fill sizes="(max-width: 767px) 100vw, calc(100vw - 16rem)" className="object-cover object-center" priority />
+        <Image src="/recipe-library-hero.webp" alt="" fill sizes="(max-width: 767px) 100vw, calc(100vw - 16rem)" loading="eager" fetchPriority="high" className="object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/55 md:via-white/90 md:to-white/20" />
         <div className="relative flex min-h-[14.5rem] max-w-3xl flex-col justify-center p-4 md:min-h-[16.5rem] md:p-7">
           <p className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase text-terre"><ReiconGlyph icon={Sparkle} className="h-3.5 w-3.5" />{isFr ? "Cuisine africaine, panier intelligent" : "African cooking, smart basket"}</p>
