@@ -7,6 +7,24 @@ export type AdminPrefetchLocale = "fr" | "en";
 
 export const ADMIN_DATA_TTL_MS = 25_000;
 
+const ADMIN_SECTION_NEIGHBORS: Record<AdminSectionId, AdminSectionId[]> = {
+  overview: ["orders", "inventory", "finance"],
+  catalog: ["recipes", "promotions", "inventory"],
+  recipes: ["catalog", "inventory", "advertising"],
+  wholesaleQuotes: ["orders", "customers", "finance"],
+  orders: ["inventory", "logistics", "finance"],
+  inventory: ["orders", "logistics", "catalog"],
+  logistics: ["orders", "inventory", "settings"],
+  customers: ["wholesaleQuotes", "orders", "promotions"],
+  promotions: ["catalog", "advertising", "campaigns"],
+  campaigns: ["promotions", "advertising", "customers"],
+  advertising: ["promotions", "campaigns", "recipes"],
+  finance: ["overview", "orders", "wholesaleQuotes"],
+  governance: ["team", "settings", "overview"],
+  team: ["governance", "settings"],
+  settings: ["governance", "team", "logistics"],
+};
+
 export function adminPrefetchUrls(section: AdminSectionId, locale: AdminPrefetchLocale) {
   const encodedLocale = encodeURIComponent(locale);
   const urls: Partial<Record<AdminSectionId, string[]>> = {
@@ -31,4 +49,24 @@ export function adminPrefetchUrls(section: AdminSectionId, locale: AdminPrefetch
 
 export function prefetchAdminSectionData(section: AdminSectionId, locale: AdminPrefetchLocale) {
   return Promise.allSettled(adminPrefetchUrls(section, locale).map((url) => prefetchJSON(url, {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS })));
+}
+
+export function adminPredictiveSections(section: AdminSectionId, availableSections: AdminSectionId[] = []) {
+  const available = availableSections.length ? availableSections : [section];
+  const allowed = new Set(available);
+  const sections: AdminSectionId[] = [];
+  const add = (candidate: AdminSectionId | undefined) => {
+    if (!candidate || !allowed.has(candidate) || sections.includes(candidate)) return;
+    sections.push(candidate);
+  };
+
+  add(section);
+  for (const candidate of ADMIN_SECTION_NEIGHBORS[section]) add(candidate);
+
+  const index = available.indexOf(section);
+  add(index > 0 ? available[index - 1] : undefined);
+  add(index >= 0 && index < available.length - 1 ? available[index + 1] : undefined);
+  add("overview");
+
+  return sections;
 }

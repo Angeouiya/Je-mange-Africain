@@ -6,7 +6,7 @@ import { customerProtectedDestination, hydrateStore, useStore, type ViewId, type
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
-import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
+import { prefetchStorefrontData, storefrontPredictiveTargets, type StorefrontPrefetchTarget } from "@/lib/storefront-prefetch";
 import { PremiumLoadingFrame } from "@/components/shared/PremiumLoadingFrame";
 import {
   loadAccountView,
@@ -24,6 +24,18 @@ import {
   preloadStorefrontViewBundle,
   type StorefrontViewLoader,
 } from "@/components/storefront/view-loaders";
+
+type IdleWindow = Window & typeof globalThis & {
+  requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+type NetworkAwareNavigator = Navigator & {
+  connection?: {
+    effectiveType?: string;
+    saveData?: boolean;
+  };
+};
 
 const dynamicView = (loader: StorefrontViewLoader) => dynamic(loader, { loading: ViewLoading });
 
@@ -125,8 +137,7 @@ export function StorefrontApp() {
   }, [customer, mounted, params, requestCustomerAuth, view]);
 
   useEffect(() => {
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-    if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
+    if (shouldSkipStorefrontPreload()) return;
     const preloadPrimaryViews = () => {
       void prefetchStorefrontData("home", {}, locale);
       if (!customer) return;
@@ -156,24 +167,22 @@ export function StorefrontApp() {
       void prefetchStorefrontData("wholesale", {}, locale);
       void prefetchStorefrontData("checkout", {}, locale);
     };
-    const browser = window as typeof window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
     const cancelers: Array<() => void> = [];
-    const schedule = (task: () => void, timeout: number, delay: number) => {
-      if (browser.requestIdleCallback) {
-        const handle = browser.requestIdleCallback(task, { timeout });
-        cancelers.push(() => browser.cancelIdleCallback?.(handle));
-        return;
-      }
-      const timer = window.setTimeout(task, delay);
-      cancelers.push(() => window.clearTimeout(timer));
-    };
+    const schedule = (task: () => void, timeout: number, delay: number) => cancelers.push(scheduleStorefrontPreload(task, timeout, delay));
     schedule(preloadPrimaryViews, 1_200, 500);
     schedule(preloadSecondaryViews, 3_200, 1_800);
     return () => cancelers.forEach((cancel) => cancel());
   }, [customer, locale]);
+
+  useEffect(() => {
+    if (!mounted || shouldSkipStorefrontPreload()) return;
+    const authenticated = Boolean(customer);
+    const targets = storefrontPredictiveTargets(view, params);
+    warmStorefrontTargets(targets.slice(0, 3), locale, authenticated);
+    const deferredTargets = targets.slice(3, 7);
+    if (!deferredTargets.length) return;
+    return scheduleStorefrontPreload(() => warmStorefrontTargets(deferredTargets, locale, authenticated), 1_500, 700);
+  }, [customer, locale, mounted, params, view]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -305,4 +314,31 @@ function ViewLoading() {
       testId="storefront-view-loading"
     />
   );
+}
+
+function shouldSkipStorefrontPreload() {
+  if (typeof navigator === "undefined") return true;
+  const connection = (navigator as NetworkAwareNavigator).connection;
+  return Boolean(connection?.saveData || connection?.effectiveType?.includes("2g"));
+}
+
+function scheduleStorefrontPreload(callback: () => void, timeout: number, delay: number) {
+  const browser = window as IdleWindow;
+  if (browser.requestIdleCallback) {
+    const handle = browser.requestIdleCallback(callback, { timeout });
+    return () => browser.cancelIdleCallback?.(handle);
+  }
+  const timer = window.setTimeout(callback, delay);
+  return () => window.clearTimeout(timer);
+}
+
+function warmStorefrontTargets(targets: StorefrontPrefetchTarget[], locale: "fr" | "en", authenticated: boolean) {
+  for (const target of targets) {
+    const protectedDestination = customerProtectedDestination(target.view, target.params);
+    const bundleView = !authenticated && protectedDestination ? "account" : target.view;
+    void preloadStorefrontViewBundle(bundleView);
+    if (authenticated || !protectedDestination) {
+      void prefetchStorefrontData(target.view, target.params, locale);
+    }
+  }
 }

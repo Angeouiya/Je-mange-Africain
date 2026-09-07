@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { storefrontPrefetchUrls } from "./storefront-prefetch";
+import { storefrontPredictiveTargets, storefrontPrefetchUrls } from "./storefront-prefetch";
 
 describe("storefront prefetch map", () => {
   it("matches the first catalogue request emitted by the public catalogue view", () => {
@@ -29,5 +29,17 @@ describe("storefront prefetch map", () => {
     expect(storefrontPrefetchUrls("orders", {}, "fr")).toEqual(["/api/orders?locale=fr"]);
     expect(storefrontPrefetchUrls("order-tracking", { orderId: "order 1" }, "en")).toEqual(["/api/orders/order%201?locale=en"]);
     expect(storefrontPrefetchUrls("order-confirmation", {}, "fr")).toEqual([]);
+  });
+
+  it("predicts the next mobile shopping steps from each major surface", () => {
+    expect(storefrontPredictiveTargets("home").map((target) => target.view)).toEqual(["home", "catalog", "recipes", "wholesale", "info"]);
+    expect(storefrontPredictiveTargets("catalog").map((target) => target.view)).toEqual(["catalog", "product", "recipes", "wholesale", "cart"]);
+    expect(storefrontPredictiveTargets("cart").map((target) => target.view)).toEqual(["cart", "checkout", "catalog", "recipes"]);
+  });
+
+  it("preserves entity context for detail and recipe configurator warmups", () => {
+    expect(storefrontPredictiveTargets("product", { productId: "atti-1" })).toContainEqual({ view: "product", params: { productId: "atti-1" } });
+    expect(storefrontPredictiveTargets("recipes", { recipeId: "sauce-graine" })).toContainEqual({ view: "recipe-config", params: { recipeId: "sauce-graine" } });
+    expect(storefrontPredictiveTargets("order-confirmation", { orderId: "order-42" })).toContainEqual({ view: "order-tracking", params: { orderId: "order-42" } });
   });
 });

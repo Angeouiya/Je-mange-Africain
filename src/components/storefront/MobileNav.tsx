@@ -23,7 +23,7 @@ import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 import { clientPrimaryNavigationTarget, clientSidebarUtilityTarget } from "@/lib/client-navigation";
 import { COMPANY_PROFILE } from "@/lib/company-profile";
-import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
+import { prefetchStorefrontData, storefrontPredictiveTargets } from "@/lib/storefront-prefetch";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { preloadStorefrontViewBundle } from "@/components/storefront/view-loaders";
 
@@ -69,10 +69,12 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
   const desktopActiveTarget = clientPrimaryNavigationTarget(view, "desktop", Boolean(customer));
   const utilityActiveTarget = clientSidebarUtilityTarget(view, params);
   const warmDestination = (destination: ViewId) => {
-    const protectedDestination = customerProtectedDestination(destination);
-    void preloadStorefrontViewBundle(!customer && protectedDestination ? "account" : destination);
-    if (!customer && protectedDestination) return;
-    void prefetchStorefrontData(destination, {}, locale);
+    for (const target of storefrontPredictiveTargets(destination).slice(0, 4)) {
+      const protectedDestination = customerProtectedDestination(target.view, target.params);
+      void preloadStorefrontViewBundle(!customer && protectedDestination ? "account" : target.view);
+      if (!customer && protectedDestination) continue;
+      void prefetchStorefrontData(target.view, target.params, locale);
+    }
   };
 
   const renderMobileItem = (it: (typeof mobileItems)[number]) => {

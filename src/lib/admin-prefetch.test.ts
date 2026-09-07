@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminPrefetchUrls } from "./admin-prefetch";
+import { adminPredictiveSections, adminPrefetchUrls } from "./admin-prefetch";
 
 describe("admin prefetch map", () => {
   it("matches the first requests emitted by primary professional workspaces", () => {
@@ -21,5 +21,17 @@ describe("admin prefetch map", () => {
     expect(adminPrefetchUrls("settings", "fr")).toEqual(["/api/admin/settings"]);
     expect(adminPrefetchUrls("promotions", "fr")).toEqual(["/api/admin/promotions", "/api/admin/products", "/api/categories"]);
     expect(adminPrefetchUrls("campaigns", "fr")).toEqual(["/api/admin/push?type=system"]);
+  });
+
+  it("predicts operational neighbour sections for instant professional navigation", () => {
+    const available = ["overview", "catalog", "recipes", "orders", "inventory", "logistics", "finance"] as const;
+
+    expect(adminPredictiveSections("orders", [...available])).toEqual(["orders", "inventory", "logistics", "finance", "recipes", "overview"]);
+    expect(adminPredictiveSections("catalog", [...available])).toEqual(["catalog", "recipes", "inventory", "overview"]);
+  });
+
+  it("never preloads admin sections outside the operator permission set", () => {
+    expect(adminPredictiveSections("team", ["overview", "governance", "settings"])).toEqual(["governance", "settings", "overview"]);
+    expect(adminPredictiveSections("campaigns", ["campaigns"])).toEqual(["campaigns"]);
   });
 });
