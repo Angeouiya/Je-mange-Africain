@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { customerProtectedView, mergeCustomerSafePersistedState, publicFallbackForAuthTarget, useStore, type CartItem, type Customer } from "./store";
+import { customerProtectedDestination, customerProtectedView, mergeCustomerSafePersistedState, publicFallbackForAuthTarget, useStore, type CartItem, type Customer } from "./store";
 
 const customer: Customer = {
   id: "customer-1",
@@ -84,9 +84,14 @@ describe("customer auth guard", () => {
     expect(customerProtectedView("home")).toBe(false);
     expect(customerProtectedView("info")).toBe(false);
     expect(customerProtectedView("account")).toBe(false);
+    expect(customerProtectedDestination("info", { infoPage: "about" })).toBe(false);
+    expect(customerProtectedDestination("info", { infoPage: "privacy" })).toBe(false);
+    expect(customerProtectedDestination("info", { infoPage: "cgv" })).toBe(false);
+    expect(customerProtectedDestination("info", { infoPage: "contact" })).toBe(true);
 
     for (const view of ["catalog", "product", "recipes", "wholesale", "cart", "orders"] as const) {
       expect(customerProtectedView(view)).toBe(true);
+      expect(customerProtectedDestination(view)).toBe(true);
       expect(publicFallbackForAuthTarget({ view, params: {} })).toEqual({ view: "home", params: {} });
     }
     expect(publicFallbackForAuthTarget({ view: "info", params: { infoPage: "contact" } })).toEqual({ view: "home", params: {} });

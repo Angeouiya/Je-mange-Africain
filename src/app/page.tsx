@@ -2,25 +2,31 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { customerProtectedView, hydrateStore, useStore, type ViewId, type ViewParams } from "@/lib/store";
+import { Sparkles } from "reicon/icons/Sparkles";
+import { customerProtectedDestination, hydrateStore, useStore, type ViewId, type ViewParams } from "@/lib/store";
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
 import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
+import {
+  loadAccountView,
+  loadCartView,
+  loadCatalogView,
+  loadCheckoutView,
+  loadInfoView,
+  loadOrderConfirmationView,
+  loadOrdersView,
+  loadOrderTrackingView,
+  loadProductDetailView,
+  loadRecipeConfiguratorView,
+  loadRecipesView,
+  loadWholesaleView,
+  preloadStorefrontViewBundle,
+  type StorefrontViewLoader,
+} from "@/components/storefront/view-loaders";
 
-const dynamicView = (loader: () => Promise<any>) => dynamic(loader, { loading: ViewLoading });
-const loadCatalogView = () => import("@/components/storefront/views/CatalogView").then((module) => module.CatalogView);
-const loadWholesaleView = () => import("@/components/storefront/views/WholesaleView").then((module) => module.WholesaleView);
-const loadProductDetailView = () => import("@/components/storefront/views/ProductDetailView").then((module) => module.ProductDetailView);
-const loadRecipesView = () => import("@/components/storefront/views/RecipesView").then((module) => module.RecipesView);
-const loadRecipeConfiguratorView = () => import("@/components/storefront/views/RecipeConfiguratorView").then((module) => module.RecipeConfiguratorView);
-const loadCartView = () => import("@/components/storefront/views/CartView").then((module) => module.CartView);
-const loadCheckoutView = () => import("@/components/storefront/views/CheckoutView").then((module) => module.CheckoutView);
-const loadOrderConfirmationView = () => import("@/components/storefront/views/OrderConfirmationView").then((module) => module.OrderConfirmationView);
-const loadOrdersView = () => import("@/components/storefront/views/OrdersView").then((module) => module.OrdersView);
-const loadOrderTrackingView = () => import("@/components/storefront/views/OrderTrackingView").then((module) => module.OrderTrackingView);
-const loadAccountView = () => import("@/components/storefront/views/AccountView").then((module) => module.AccountView);
-const loadInfoView = () => import("@/components/storefront/views/InfoView").then((module) => module.InfoView);
+const dynamicView = (loader: StorefrontViewLoader) => dynamic(loader, { loading: ViewLoading });
 
 const CatalogView = dynamicView(loadCatalogView);
 const WholesaleView = dynamicView(loadWholesaleView);
@@ -115,7 +121,7 @@ export default function Page() {
   }, [navigate]);
 
   useEffect(() => {
-    if (!mounted || customer || !customerProtectedView(view)) return;
+    if (!mounted || customer || !customerProtectedDestination(view, params)) return;
     requestCustomerAuth({ view, params });
   }, [customer, mounted, params, requestCustomerAuth, view]);
 
@@ -126,27 +132,27 @@ export default function Page() {
       void prefetchStorefrontData("home", {}, locale);
       if (!customer) return;
       void Promise.allSettled([
-        loadCatalogView(),
-        loadProductDetailView(),
-        loadRecipesView(),
-        loadCartView(),
+        preloadStorefrontViewBundle("catalog"),
+        preloadStorefrontViewBundle("product"),
+        preloadStorefrontViewBundle("recipes"),
+        preloadStorefrontViewBundle("cart"),
       ]);
       void prefetchStorefrontData("catalog", {}, locale);
       void prefetchStorefrontData("recipes", {}, locale);
     };
     const preloadSecondaryViews = () => {
-      void loadInfoView();
+      void preloadStorefrontViewBundle("info");
       void prefetchStorefrontData("info", { infoPage: "about" }, locale);
       if (!customer) return;
       void Promise.allSettled([
-        loadWholesaleView(),
-        loadRecipeConfiguratorView(),
-        loadCheckoutView(),
-        loadOrderConfirmationView(),
-        loadOrdersView(),
-        loadOrderTrackingView(),
-        loadAccountView(),
-        loadInfoView(),
+        preloadStorefrontViewBundle("wholesale"),
+        preloadStorefrontViewBundle("recipe-config"),
+        preloadStorefrontViewBundle("checkout"),
+        preloadStorefrontViewBundle("order-confirmation"),
+        preloadStorefrontViewBundle("orders"),
+        preloadStorefrontViewBundle("order-tracking"),
+        preloadStorefrontViewBundle("account"),
+        preloadStorefrontViewBundle("info"),
       ]);
       void prefetchStorefrontData("wholesale", {}, locale);
       void prefetchStorefrontData("checkout", {}, locale);
@@ -292,10 +298,27 @@ function renderView(view: string) {
 function ViewLoading() {
   const locale = useStore((state) => state.locale);
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-6" role="status" aria-live="polite" aria-label={locale === "fr" ? "Chargement de la vue" : "Loading view"}>
-      <div className="h-7 w-48 animate-pulse rounded-md bg-muted" />
-      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-48 animate-pulse rounded-lg bg-muted" />)}
+    <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-7 md:py-8 lg:px-8" role="status" aria-live="polite" aria-label={locale === "fr" ? "Chargement de la vue" : "Loading view"} data-testid="storefront-view-loading">
+      <div className="flex items-center gap-3 border-b border-charcoal/8 pb-5">
+        <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.11),rgba(242,169,0,0.07))] text-terre shadow-[0_18px_34px_-28px_rgba(185,71,43,0.82)]">
+          <span className="absolute inset-2 rounded border border-terre/20" />
+          <ReiconGlyph icon={Sparkles} weight="Filled" className="h-4 w-4 animate-pulse" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block h-3 w-24 animate-pulse rounded bg-terre/16" />
+          <span className="mt-2 block h-6 w-full max-w-xs animate-pulse rounded bg-charcoal/8" />
+        </span>
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="overflow-hidden rounded-md border border-charcoal/8 bg-white shadow-[0_14px_34px_-30px_rgba(90,38,50,0.62)]">
+            <div className="aspect-[4/3] animate-pulse bg-[linear-gradient(115deg,#F8F4F3_0%,#FFF9F2_46%,#F7EEE9_100%)]" />
+            <div className="space-y-2 p-2.5">
+              <div className="h-3 w-4/5 animate-pulse rounded bg-charcoal/9" />
+              <div className="h-2.5 w-3/5 animate-pulse rounded bg-terre/13" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

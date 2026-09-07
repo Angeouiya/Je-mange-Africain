@@ -123,6 +123,7 @@ test("anonymous customer actions require sign-in before continuing", async ({ pa
   await expect(page.getByRole("heading", { name: /favoris du moment|popular favourites/i })).toBeVisible();
 
   const actions = [
+    page.getByRole("combobox", { name: /recherche globale|global search/i }).first(),
     page.getByTestId("home-hero").getByRole("button", { name: /découvrir le marché|discover the market/i }),
     page.getByTestId("home-hero").getByRole("button", { name: /composer une recette|compose a recipe/i }),
     page.getByRole("button", { name: /modifier la destination de livraison|change delivery destination/i }).first(),
@@ -137,6 +138,21 @@ test("anonymous customer actions require sign-in before continuing", async ({ pa
   for (const action of actions) {
     await expectAuthGateAfter(action, page);
   }
+});
+
+test("anonymous direct access to support contact is guarded while legal pages stay public", async ({ page }) => {
+  await seedAnonymousHome(page);
+
+  await page.goto("/?view=info&infoPage=contact", { waitUntil: "domcontentloaded" });
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByTestId("customer-auth-workspace")).toBeVisible();
+  await expect(dialog.getByTestId("auth-return-context")).toContainText(/connexion requise|sign-in required/i);
+  await dialog.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
+  await expect(page.getByRole("heading", { name: /favoris du moment|popular favourites/i })).toBeVisible();
+
+  await page.goto("/?view=info&infoPage=privacy", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByText(/politique de confidentialité|privacy policy/i).first()).toBeVisible();
 });
 
 test("the installable storefront exposes a safe app shell and public discovery map", async ({ page, request }) => {

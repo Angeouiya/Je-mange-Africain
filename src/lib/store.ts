@@ -195,6 +195,11 @@ export function customerProtectedView(view: ViewId) {
   return CUSTOMER_PROTECTED_VIEWS.has(view);
 }
 
+export function customerProtectedDestination(view: ViewId, params: ViewParams = {}) {
+  if (customerProtectedView(view)) return true;
+  return view === "info" && params.infoPage === "contact";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -228,8 +233,7 @@ function sanitizedAuthReturnTarget(view: ViewId, params: ViewParams = {}): AuthR
 
 export function publicFallbackForAuthTarget(target: AuthReturnTarget | null | undefined): AuthReturnTarget {
   if (!target || target.view === "account") return { view: "home", params: {} };
-  if (target.view === "info" && target.params.infoPage === "contact") return { view: "home", params: {} };
-  if (!customerProtectedView(target.view)) return target;
+  if (!customerProtectedDestination(target.view, target.params)) return target;
   return { view: "home", params: {} };
 }
 
@@ -250,7 +254,7 @@ export const useStore = create<AppState>()(
       navigationHistory: [],
       navigate: (view, params = {}) => {
         set((state) => {
-          const protectedTarget = !state.customer && customerProtectedView(view);
+          const protectedTarget = !state.customer && customerProtectedDestination(view, params);
           const guardedReturnTarget = protectedTarget ? sanitizedAuthReturnTarget(view, params) : null;
           const authReturnTarget = guardedReturnTarget || state.authReturnTarget;
           const nextView = protectedTarget ? "account" : view;

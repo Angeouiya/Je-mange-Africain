@@ -15,7 +15,7 @@ import { Logout } from "reicon/icons/Logout";
 import { Settings2 } from "reicon/icons/Settings2";
 import { Sliders } from "reicon/icons/Sliders";
 import { UserCircle } from "reicon/icons/UserCircle";
-import { useStore, ViewId, cartCount, customerProtectedView } from "@/lib/store";
+import { useStore, ViewId, cartCount, customerProtectedDestination } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
@@ -25,6 +25,7 @@ import { clientPrimaryNavigationTarget, clientSidebarUtilityTarget } from "@/lib
 import { COMPANY_PROFILE } from "@/lib/company-profile";
 import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
+import { preloadStorefrontViewBundle } from "@/components/storefront/view-loaders";
 
 export function MobileNav({ ready = true }: { ready?: boolean }) {
   const locale = useStore((s) => s.locale);
@@ -68,7 +69,9 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
   const desktopActiveTarget = clientPrimaryNavigationTarget(view, "desktop", Boolean(customer));
   const utilityActiveTarget = clientSidebarUtilityTarget(view, params);
   const warmDestination = (destination: ViewId) => {
-    if (!customer && customerProtectedView(destination)) return;
+    const protectedDestination = customerProtectedDestination(destination);
+    void preloadStorefrontViewBundle(!customer && protectedDestination ? "account" : destination);
+    if (!customer && protectedDestination) return;
     void prefetchStorefrontData(destination, {}, locale);
   };
 
