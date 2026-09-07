@@ -82,6 +82,32 @@ describe("customer password production flow", () => {
     });
   });
 
+  it("does not let a Vercel production URL control the recovery redirect", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://je-mange-africain.vercel.app");
+
+    const response = await POST(jsonRequest("https://je-mange-africain.vercel.app/api/auth/customer/password", {
+      email: "ezechielouiya@gmail.com",
+    }));
+
+    expect(response.status).toBe(200);
+    expect(sentBody()).toMatchObject({
+      redirect_to: "https://je-mange-africain.com/auth/reset",
+    });
+  });
+
+  it("normalizes the www storefront reset redirect to the official apex domain", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.je-mange-africain.com");
+
+    const response = await POST(jsonRequest("https://www.je-mange-africain.com/api/auth/customer/password", {
+      email: "ezechielouiya@gmail.com",
+    }));
+
+    expect(response.status).toBe(200);
+    expect(sentBody()).toMatchObject({
+      redirect_to: "https://je-mange-africain.com/auth/reset",
+    });
+  });
+
   it("updates the password only with the recovery access token", async () => {
     const accessToken = "reset-token-with-enough-length";
     const request = jsonRequest("https://je-mange-africain.com/api/auth/customer/password", {

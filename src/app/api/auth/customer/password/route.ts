@@ -6,6 +6,7 @@ import { enforceRateLimit } from "@/lib/redis";
 export const dynamic = "force-dynamic";
 
 const PRODUCTION_RESET_URL = "https://je-mange-africain.com/auth/reset";
+const PRODUCTION_RESET_HOSTS = new Set(["je-mange-africain.com", "www.je-mange-africain.com"]);
 const Recovery = z.object({ email: z.string().trim().email().max(254) });
 const Reset = z.object({ accessToken: z.string().min(20), password: z.string().min(8).max(256) });
 
@@ -13,7 +14,8 @@ function passwordResetRedirectUrl() {
   const publicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://je-mange-africain.com";
   try {
     const url = new URL("/auth/reset", publicSiteUrl);
-    if (url.protocol !== "https:") return PRODUCTION_RESET_URL;
+    if (url.protocol !== "https:" || !PRODUCTION_RESET_HOSTS.has(url.hostname.toLowerCase())) return PRODUCTION_RESET_URL;
+    url.hostname = "je-mange-africain.com";
     url.search = "";
     url.hash = "";
     return url.toString();
