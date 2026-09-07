@@ -34,11 +34,10 @@ export function PrivacyPreferenceCenter() {
   const selectedCount = optionalConsentCount(draft);
 
   useEffect(() => {
-    if (window.location.pathname !== "/") return;
     const stored = readPrivacyConsent();
     setConsent(stored);
     setDraft(preferencesFrom(stored));
-    if (!stored) {
+    if (window.location.pathname === "/" && !stored) {
       setPanel("summary");
       setOpen(true);
     }
@@ -51,7 +50,8 @@ export function PrivacyPreferenceCenter() {
       setOpen(true);
     };
     const syncConsent = (event: Event) => {
-      const next = (event as CustomEvent<PrivacyConsent>).detail;
+      const next = (event as CustomEvent<PrivacyConsent>).detail || readPrivacyConsent();
+      if (!next) return;
       setConsent(next);
       setDraft(preferencesFrom(next));
     };

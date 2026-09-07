@@ -1111,6 +1111,8 @@ test("privacy choices are granular, durable and equally easy to refuse", async (
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("jma-privacy-consent-v1") || "{}"));
   expect(stored).toMatchObject({ version: 1, necessary: true, analytics: true, personalization: true, marketing: false });
   expect(await page.evaluate(() => document.cookie)).toContain("jma_privacy_consent=v1.110");
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(center).toBeHidden();
 
   if (viewport === "mobile") {
     await page.getByRole("button", { name: "Menu" }).click();
