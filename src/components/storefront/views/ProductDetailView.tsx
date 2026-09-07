@@ -42,6 +42,7 @@ export function ProductDetailView() {
   const addToCart = useStore((s) => s.addToCart);
   const favorites = useStore((s) => s.favorites);
   const toggleFavorite = useStore((s) => s.toggleFavorite);
+  const requestCustomerAuth = useStore((s) => s.requestCustomerAuth);
   const pushRecentlyViewed = useStore((s) => s.pushRecentlyViewed);
   const customer = useStore((s) => s.customer);
   const t = dict[locale];
@@ -123,6 +124,10 @@ export function ProductDetailView() {
   const productTabs = productTabDescriptors(locale);
 
   const handleAdd = () => {
+    if (!customer) {
+      requestCustomerAuth({ view: "product", params: { productId: product.id } });
+      return;
+    }
     addToCart({
       productId: product.id,
       variantId: variant?.id,
@@ -139,6 +144,13 @@ export function ProductDetailView() {
       qty,
       maxStock: product.stockQty,
     });
+  };
+  const handleToggleFavourite = () => {
+    if (!customer) {
+      requestCustomerAuth({ view: "product", params: { productId: product.id } });
+      return;
+    }
+    toggleFavorite(product.id);
   };
 
   return (
@@ -262,7 +274,7 @@ export function ProductDetailView() {
             addLabel={t.product.addToCart}
             lineTotal={lineTotal}
             isFavourite={isFav}
-            onToggleFavourite={() => toggleFavorite(product.id)}
+            onToggleFavourite={handleToggleFavourite}
             isAuthenticated={Boolean(customer)}
             locale={locale}
           />
@@ -277,7 +289,7 @@ export function ProductDetailView() {
             addLabel={t.product.addToCart}
             lineTotal={lineTotal}
             isFavourite={isFav}
-            onToggleFavourite={() => toggleFavorite(product.id)}
+            onToggleFavourite={handleToggleFavourite}
             isAuthenticated={Boolean(customer)}
             locale={locale}
           />

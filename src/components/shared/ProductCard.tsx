@@ -76,6 +76,7 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
   const addToCart = useStore((s) => s.addToCart);
   const favorites = useStore((s) => s.favorites);
   const toggleFavorite = useStore((s) => s.toggleFavorite);
+  const requestCustomerAuth = useStore((s) => s.requestCustomerAuth);
   const customer = useStore((s) => s.customer);
   const isFav = favorites.includes(product.id);
   const photoUrl = product.imageUrl || product.photoUrl || getProductPhoto(product);
@@ -91,6 +92,10 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (outOfStock) return;
+    if (!customer) {
+      requestCustomerAuth({ view: "product", params: { productId: product.id } });
+      return;
+    }
     addToCart({
       productId: product.id,
       variantId: defaultVariant?.id,
@@ -110,6 +115,10 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
 
   const handleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!customer) {
+      requestCustomerAuth({ view: "product", params: { productId: product.id } });
+      return;
+    }
     toggleFavorite(product.id);
   };
 

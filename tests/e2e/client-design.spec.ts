@@ -357,6 +357,145 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expectNoHorizontalOverflow(page);
 });
 
+test("public product actions require sign-in before mutating basket or favourites", async ({ page }) => {
+  const product = {
+    id: "product-public-auth",
+    sku: "JMA-PUBLIC-AUTH",
+    traditionalName: "Attiéké",
+    name: "Attiéké public",
+    nameFr: "Attiéké public",
+    nameEn: "Public attieke",
+    price: 5.9,
+    promoPrice: 4.9,
+    pricePerKg: 9.8,
+    stockQty: 24,
+    alertThreshold: 5,
+    country: "Côte d'Ivoire",
+    brandName: "Je mange Africain",
+    category: { id: "cassava", slug: "manioc", name: "Manioc & dérivés", color: "#B9472B" },
+    description: "Semoule de manioc préparée pour accompagner poissons, sauces et grillades.",
+    preparation: "Réchauffer doucement à la vapeur puis égrainer avant de servir.",
+    storage: "À conserver au frais après ouverture.",
+    imageUrl: "/products/attieke.webp",
+    photoUrl: "/products/attieke.webp",
+    imageColor: "#B9472B",
+    imageEmoji: "🍚",
+    isBestseller: true,
+    isRecommended: true,
+    isNew: false,
+    isOnSale: true,
+    thermalClass: "REFRIGERATED",
+    packaging: "Barquette 500 g",
+    unit: "barquette",
+    netWeightGrams: 500,
+    aliases: ["attiéké", "cassava couscous"],
+    ingredients: "Manioc fermenté, eau.",
+    allergens: "",
+    nutrition: { energy: "620 kJ", carbs: "34 g", protein: "1 g", salt: "0.2 g" },
+    variants: [
+      { id: "variant-public-500", label: "Barquette 500 g", weightGrams: 500, price: 4.9, pricePerKg: 9.8, isDefault: true },
+    ],
+    related: [],
+    relatedRecipes: [],
+  };
+  const recipe = {
+    id: "recipe-public-auth",
+    slug: "garba-public",
+    country: "Côte d'Ivoire",
+    category: "Street food",
+    difficulty: "medium",
+    timeMinutes: 35,
+    baseServings: 4,
+    imageColor: "#8A3042",
+    imageEmoji: "🍽️",
+    imageUrl: "/recipes/attieke-poisson.webp",
+    isPopular: true,
+    isRecommended: true,
+    isNew: false,
+    title: "Garba public",
+    description: "Thon, attiéké, oignons et piment pour une assiette ivoirienne généreuse.",
+    ingredientCount: 7,
+  };
+  const customer = { id: "customer-public-resume", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 120, walletCredit: 0 };
+  let signedIn = false;
+
+  await page.route("**/api/auth/customer/session", async (route) => {
+    if (route.request().method() === "POST") {
+      signedIn = true;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer: signedIn ? customer : null, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) });
+  });
+  await page.route("**/api/catalog?*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get("section") === "home") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ categories: [], bestsellers: [product], news: [], onSale: [], popularRecipes: [recipe] }),
+      });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [product], total: 1, page: 1, pages: 1, filters: { categories: [], brands: [], countries: [] } }) });
+  });
+  await page.route("**/api/products/product-public-auth?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(product) }));
+  await page.route("**/api/advertisements?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ advertisements: [] }) }));
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const productRail = page.getByTestId("home-bestseller-rail");
+  await expect(productRail.getByText("Attiéké public", { exact: true })).toBeVisible();
+
+  await productRail.getByRole("button", { name: /connectez-vous pour ajouter au panier/i }).first().click();
+  await expect(page.getByTestId("auth-return-context")).toBeVisible();
+  await expect(page).toHaveURL(/view=account/);
+  await expect(page).toHaveURL(/returnView=product/);
+  await expect(page.getByRole("form", { name: /formulaire de connexion|sign-in form/i })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("jma-store") || "{\"state\":{}}").state || {};
+    return { cart: state.cart || [], favorites: state.favorites || [], savedRecipes: state.savedRecipes || [] };
+  })).toEqual({ cart: [], favorites: [], savedRecipes: [] });
+
+  await page.getByRole("button", { name: /fermer la connexion/i }).click();
+  await expect(page.getByTestId("home-bestseller-rail").getByText("Attiéké public", { exact: true })).toBeVisible();
+
+  const recipeRail = page.getByTestId("home-recipe-rail");
+  await recipeRail.getByRole("button", { name: /connectez-vous pour configurer la recette garba public/i }).click();
+  await expect(page.getByTestId("auth-return-context")).toBeVisible();
+  await expect(page).toHaveURL(/returnView=recipe-config/);
+  await expect.poll(() => page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("jma-store") || "{\"state\":{}}").state || {};
+    return { cart: state.cart || [], favorites: state.favorites || [], savedRecipes: state.savedRecipes || [] };
+  })).toEqual({ cart: [], favorites: [], savedRecipes: [] });
+
+  await page.getByRole("button", { name: /fermer la connexion/i }).click();
+  await expect(page.getByTestId("home-recipe-rail").getByText("Garba public", { exact: true })).toBeVisible();
+  await page.getByTestId("home-recipe-rail").getByRole("button", { name: /connectez-vous pour sauvegarder garba public/i }).click();
+  await expect(page.getByTestId("auth-return-context")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("jma-store") || "{\"state\":{}}").state || {};
+    return { cart: state.cart || [], favorites: state.favorites || [], savedRecipes: state.savedRecipes || [] };
+  })).toEqual({ cart: [], favorites: [], savedRecipes: [] });
+
+  await page.getByRole("button", { name: /fermer la connexion/i }).click();
+  await expect(page.getByTestId("home-bestseller-rail").getByText("Attiéké public", { exact: true })).toBeVisible();
+  await page.getByTestId("home-bestseller-rail").getByRole("button", { name: /connectez-vous pour enregistrer attiéké public/i }).first().click();
+  await expect(page.getByTestId("auth-return-context")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("jma-store") || "{\"state\":{}}").state || {};
+    return { cart: state.cart || [], favorites: state.favorites || [], savedRecipes: state.savedRecipes || [] };
+  })).toEqual({ cart: [], favorites: [], savedRecipes: [] });
+
+  const loginForm = page.getByRole("form", { name: /formulaire de connexion|sign-in form/i });
+  await loginForm.getByLabel(/e-mail ou numéro de téléphone|email or phone number/i).fill("+33 6 12 34 56 78");
+  await loginForm.getByRole("textbox", { name: /^(mot de passe|password)$/i }).fill("motdepasse-solide");
+  await loginForm.getByRole("button", { name: /connexion|sign in/i }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Attiéké public" })).toBeVisible();
+  await expect(page).toHaveURL(/view=product/);
+  await expect(page).toHaveURL(/productId=product-public-auth/);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("authenticated discovery workspaces recover without losing the customer journey", async ({ page }) => {
   await seedAuthenticatedCustomer(page);
   let homeAttempts = 0;

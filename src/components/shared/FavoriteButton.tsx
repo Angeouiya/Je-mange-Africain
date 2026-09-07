@@ -15,6 +15,7 @@ interface FavoriteButtonProps {
 export function FavoriteButton({ productId, className, size = "md" }: FavoriteButtonProps) {
   const fav = useStore((s) => s.favorites.includes(productId));
   const toggle = useStore((s) => s.toggleFavorite);
+  const requestCustomerAuth = useStore((s) => s.requestCustomerAuth);
   const customer = useStore((s) => s.customer);
   const locale = useStore((s) => s.locale);
   const isAuthenticated = Boolean(customer);
@@ -35,6 +36,10 @@ export function FavoriteButton({ productId, className, size = "md" }: FavoriteBu
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!customer) {
+          requestCustomerAuth({ view: "product", params: { productId } });
+          return;
+        }
         toggle(productId);
       }}
     >

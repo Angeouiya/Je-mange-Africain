@@ -453,8 +453,23 @@ function RecipeShelf({ recipes }: { recipes: RecipeListItem[] }) {
   const navigate = useStore((state) => state.navigate);
   const savedRecipes = useStore((state) => state.savedRecipes);
   const toggleSavedRecipe = useStore((state) => state.toggleSavedRecipe);
+  const requestCustomerAuth = useStore((state) => state.requestCustomerAuth);
   const customer = useStore((state) => state.customer);
   const isAuthenticated = Boolean(customer);
+  const openRecipe = (recipeId: string) => {
+    if (!customer) {
+      requestCustomerAuth({ view: "recipe-config", params: { recipeId } });
+      return;
+    }
+    navigate("recipe-config", { recipeId });
+  };
+  const saveRecipe = (recipeId: string) => {
+    if (!customer) {
+      requestCustomerAuth({ view: "recipe-config", params: { recipeId } });
+      return;
+    }
+    toggleSavedRecipe(recipeId);
+  };
 
   return (
     <div className="-mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-3 md:px-0 lg:grid-cols-6" data-testid="home-recipe-rail">
@@ -462,7 +477,7 @@ function RecipeShelf({ recipes }: { recipes: RecipeListItem[] }) {
         const saved = savedRecipes.includes(recipe.id);
         return (
           <motion.article key={recipe.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.04 }} className="relative w-[10.75rem] shrink-0 snap-start overflow-hidden rounded-md border border-charcoal/10 bg-white md:w-auto">
-            <button type="button" onClick={() => navigate("recipe-config", { recipeId: recipe.id })} className="group block w-full text-left" aria-label={isAuthenticated ? (locale === "fr" ? `Configurer la recette ${recipe.title}` : `Configure the ${recipe.title} recipe`) : (locale === "fr" ? `Connectez-vous pour configurer la recette ${recipe.title}` : `Sign in to configure the ${recipe.title} recipe`)}>
+            <button type="button" onClick={() => openRecipe(recipe.id)} className="group block w-full text-left" aria-label={isAuthenticated ? (locale === "fr" ? `Configurer la recette ${recipe.title}` : `Configure the ${recipe.title} recipe`) : (locale === "fr" ? `Connectez-vous pour configurer la recette ${recipe.title}` : `Sign in to configure the ${recipe.title} recipe`)}>
               <span className="relative block aspect-[4/3] overflow-hidden bg-muted">
                 <ProductImage src={getRecipePhoto(recipe)} fallbackSrc="/hero-feast-v2.webp" alt="" emoji={recipe.imageEmoji} color={recipe.imageColor} size="md" className="h-full w-full transition duration-300 group-hover:scale-[1.035]" rounded="rounded-none" />
                 <span className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-burgundy/65 to-transparent" />
@@ -478,7 +493,7 @@ function RecipeShelf({ recipes }: { recipes: RecipeListItem[] }) {
             </button>
             <button
               type="button"
-              onClick={() => toggleSavedRecipe(recipe.id)}
+              onClick={() => saveRecipe(recipe.id)}
               aria-pressed={saved}
               aria-label={!isAuthenticated ? (locale === "fr" ? `Connectez-vous pour sauvegarder ${recipe.title}` : `Sign in to save ${recipe.title}`) : saved ? (locale === "fr" ? `Retirer ${recipe.title} des recettes sauvegardées` : `Remove ${recipe.title} from saved recipes`) : (locale === "fr" ? `Sauvegarder ${recipe.title}` : `Save ${recipe.title}`)}
               className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md border border-charcoal/10 bg-white/94 text-charcoal shadow-sm hover:text-terre"

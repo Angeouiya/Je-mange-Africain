@@ -57,9 +57,27 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
   const navigate = useStore((s) => s.navigate);
   const savedRecipes = useStore((s) => s.savedRecipes);
   const toggleSavedRecipe = useStore((s) => s.toggleSavedRecipe);
+  const requestCustomerAuth = useStore((s) => s.requestCustomerAuth);
   const customer = useStore((s) => s.customer);
   const isSaved = savedRecipes.includes(recipe.id);
-  const warmRecipe = () => { void prefetchStorefrontData("recipe-config", { recipeId: recipe.id }, locale); };
+  const warmRecipe = () => {
+    if (!customer) return;
+    void prefetchStorefrontData("recipe-config", { recipeId: recipe.id }, locale);
+  };
+  const openRecipe = () => {
+    if (!customer) {
+      requestCustomerAuth({ view: "recipe-config", params: { recipeId: recipe.id } });
+      return;
+    }
+    navigate("recipe-config", { recipeId: recipe.id });
+  };
+  const saveRecipe = () => {
+    if (!customer) {
+      requestCustomerAuth({ view: "recipe-config", params: { recipeId: recipe.id } });
+      return;
+    }
+    toggleSavedRecipe(recipe.id);
+  };
 
   return (
     <motion.div
@@ -71,7 +89,7 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
       onTouchStart={warmRecipe}
       className={recipeCardFrame(compact)}
     >
-      <RecipeCardSurface recipe={recipe} locale={locale} compact={compact} index={index} isSaved={isSaved} isAuthenticated={Boolean(customer)} onSave={() => toggleSavedRecipe(recipe.id)} onConfigure={() => navigate("recipe-config", { recipeId: recipe.id })} />
+      <RecipeCardSurface recipe={recipe} locale={locale} compact={compact} index={index} isSaved={isSaved} isAuthenticated={Boolean(customer)} onSave={saveRecipe} onConfigure={openRecipe} />
     </motion.div>
   );
 }
