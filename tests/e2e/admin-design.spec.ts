@@ -1344,7 +1344,7 @@ test("the operations home turns live signals into clear decisions", async ({ pag
 
   await expect(page.getByRole("heading", { name: "Sept jours d'encaissement" })).toBeVisible();
   await expect(page.getByTestId("dashboard-pulse-bar")).toHaveCount(7);
-  await expect(page.getByText("97,4 %", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Indicateurs de décision").getByText("97,4 %", { exact: true })).toBeVisible();
   await expect(page.getByText("+12,4 %", { exact: true })).toBeVisible();
   const storefrontMirror = page.getByTestId("storefront-mirror");
   await expect(storefrontMirror.getByRole("heading", { name: "Ce que la boutique montre maintenant" })).toBeVisible();
@@ -1352,6 +1352,10 @@ test("the operations home turns live signals into clear decisions", async ({ pag
   await expect(storefrontMirror.getByRole("button", { name: "Recettes composables: 22/24" })).toBeVisible();
   await expect(storefrontMirror.getByRole("button", { name: "Avantages actifs: 3" })).toBeVisible();
   await expect(storefrontMirror.getByRole("button", { name: "Campagnes visibles: 4" })).toBeVisible();
+  await expect(storefrontMirror).toContainText("Catalogue client");
+  await expect(storefrontMirror).toContainText("Corriger image, prix ou stock");
+  await expect(storefrontMirror).toContainText("Relier ingrédients et préparation");
+  await expect(storefrontMirror).toContainText("Piloter visuel et destination");
   await expect(page.getByRole("heading", { name: "Décisions à prendre maintenant" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Livraisons hors délai/ })).toContainText("2");
   await expect(page.getByText("JMA-260902-0142", { exact: true })).toBeVisible();

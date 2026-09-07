@@ -152,16 +152,19 @@ function StorefrontMirror({ data, locale, onNavigate }: { data: DashboardPayload
   const isFr = locale === "fr";
   const productIssues = data.storefront.productsMissingImages + Math.max(0, data.storefront.publishedProducts - data.storefront.availableProducts);
   const recipeIssues = data.storefront.recipesMissingImages + Math.max(0, data.storefront.publishedRecipes - data.storefront.purchasableRecipes);
-  const channels: Array<{ id: string; target: AdminSectionId; icon: IconFunction; value: string; label: string; detail: string; issues: number; tone: string }> = [
+  const channels: Array<{ id: string; target: AdminSectionId; icon: IconFunction; value: string; label: string; signal: string; detail: string; operatorAction: string; issues: number; tone: string; accent: string }> = [
     {
       id: "products",
       target: "catalog",
       icon: Store,
       value: `${formatNumber(data.storefront.availableProducts, locale)}/${formatNumber(data.storefront.publishedProducts, locale)}`,
       label: isFr ? "Produits achetables" : "Purchasable products",
+      signal: isFr ? "Catalogue client" : "Customer catalogue",
       detail: isFr ? `${data.storefront.productsMissingImages} visuel(s) à compléter` : `${data.storefront.productsMissingImages} image(s) to complete`,
+      operatorAction: isFr ? "Corriger image, prix ou stock" : "Fix image, price or stock",
       issues: productIssues,
       tone: "bg-terre/10 text-terre",
+      accent: "#B9472B",
     },
     {
       id: "recipes",
@@ -169,9 +172,12 @@ function StorefrontMirror({ data, locale, onNavigate }: { data: DashboardPayload
       icon: ChefHat,
       value: `${formatNumber(data.storefront.purchasableRecipes, locale)}/${formatNumber(data.storefront.publishedRecipes, locale)}`,
       label: isFr ? "Recettes composables" : "Basket-ready recipes",
+      signal: isFr ? "Cuisine achetable" : "Shoppable kitchen",
       detail: isFr ? "image et ingrédients liés" : "image and linked ingredients",
+      operatorAction: isFr ? "Relier ingrédients et préparation" : "Link ingredients and method",
       issues: recipeIssues,
       tone: "bg-gold/20 text-charcoal",
+      accent: "#F2A900",
     },
     {
       id: "promotions",
@@ -179,9 +185,12 @@ function StorefrontMirror({ data, locale, onNavigate }: { data: DashboardPayload
       icon: BadgePercent,
       value: formatNumber(data.storefront.activePromotions, locale),
       label: isFr ? "Avantages actifs" : "Active offers",
+      signal: isFr ? "Panier client" : "Customer basket",
       detail: isFr ? "applicables dans le panier" : "applicable in the basket",
+      operatorAction: isFr ? "Vérifier cible, quota, date" : "Check target, quota, date",
       issues: 0,
       tone: "bg-burgundy/[0.08] text-burgundy",
+      accent: "#8A3042",
     },
     {
       id: "advertising",
@@ -189,9 +198,12 @@ function StorefrontMirror({ data, locale, onNavigate }: { data: DashboardPayload
       icon: Bullhorn,
       value: formatNumber(data.storefront.liveAdvertisements, locale),
       label: isFr ? "Campagnes visibles" : "Visible campaigns",
+      signal: isFr ? "Vitrine mobile" : "Mobile storefront",
       detail: isFr ? "diffusées dans la boutique" : "live across the storefront",
+      operatorAction: isFr ? "Piloter visuel et destination" : "Control artwork and destination",
       issues: 0,
       tone: "bg-terre/[0.07] text-terre",
+      accent: "#D65A32",
     },
   ];
   const issueCount = channels.reduce((sum, channel) => sum + channel.issues, 0);
@@ -205,7 +217,32 @@ function StorefrontMirror({ data, locale, onNavigate }: { data: DashboardPayload
       <div className="grid grid-cols-2 lg:grid-cols-4">
         {channels.map((channel, index) => {
           const Icon = channel.icon;
-          return <button key={channel.id} type="button" onClick={() => onNavigate(channel.target)} className={`group min-w-0 p-4 text-left transition hover:bg-terre/[0.025] sm:p-5 ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "lg:border-r" : "lg:border-r-0"} lg:border-b-0`} aria-label={`${channel.label}: ${channel.value}`}><span className="flex items-start justify-between gap-2"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${channel.tone}`}><ReiconGlyph icon={Icon} weight="Filled" className="h-4 w-4" /></span><ReiconGlyph icon={ArrowRight} className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-terre" /></span><strong className="mt-3 block text-xl font-black tabular-nums text-charcoal">{channel.value}</strong><span className="mt-1 block text-[11px] font-extrabold text-charcoal">{channel.label}</span><span className="mt-1 block text-[9px] leading-4 text-muted-foreground">{channel.detail}</span></button>;
+          return (
+            <button
+              key={channel.id}
+              type="button"
+              onClick={() => onNavigate(channel.target)}
+              className={`group relative min-w-0 overflow-hidden p-3.5 text-left transition hover:bg-terre/[0.025] sm:p-5 ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "lg:border-r" : "lg:border-r-0"} lg:border-b-0`}
+              aria-label={`${channel.label}: ${channel.value}`}
+            >
+              <span className="absolute inset-x-0 top-0 h-0.5 opacity-85 transition-opacity group-hover:opacity-100" style={{ backgroundColor: channel.accent }} />
+              <span className="flex items-start justify-between gap-2">
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${channel.tone}`}><ReiconGlyph icon={Icon} weight="Filled" className="h-4 w-4" /></span>
+                <span className="inline-flex min-h-6 items-center gap-1 rounded-md border border-burgundy/10 bg-[#FFFCFA] px-2 text-[8px] font-black uppercase text-burgundy">
+                  {channel.issues ? <ReiconGlyph icon={AlertTriangle} weight="Filled" className="h-3 w-3" /> : <ReiconGlyph icon={CheckCircle} weight="Filled" className="h-3 w-3" />}
+                  {channel.issues ? (isFr ? "Action" : "Action") : (isFr ? "Actif" : "Live")}
+                </span>
+              </span>
+              <span className="mt-3 block truncate text-[8px] font-black uppercase text-terre">{channel.signal}</span>
+              <strong className="mt-0.5 block text-xl font-black tabular-nums text-charcoal">{channel.value}</strong>
+              <span className="mt-1 block text-[11px] font-extrabold text-charcoal">{channel.label}</span>
+              <span className="mt-1 block min-h-8 text-[9px] leading-4 text-muted-foreground">{channel.detail}</span>
+              <span className="mt-3 flex min-h-7 items-center justify-between gap-2 border-t border-charcoal/8 pt-2">
+                <span className="min-w-0 truncate text-[9px] font-black text-burgundy">{channel.operatorAction}</span>
+                <ReiconGlyph icon={ArrowRight} className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-terre" />
+              </span>
+            </button>
+          );
         })}
       </div>
     </section>
