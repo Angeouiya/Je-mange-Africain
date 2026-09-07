@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assessCheckoutRisk } from "@/lib/fraud";
+import { assessCheckoutRisk, normalizeRiskScore, requiresServerFraudReview } from "@/lib/fraud";
 
 describe("assessCheckoutRisk", () => {
   it("keeps an ordinary grocery order at low risk", () => {
@@ -26,5 +26,14 @@ describe("assessCheckoutRisk", () => {
     expect(result.level).toBe("high");
     expect(result.requiresReview).toBe(true);
     expect(result.signals).toEqual(expect.arrayContaining(["high_value", "large_quantity", "concentrated_cart", "payment_velocity"]));
+  });
+
+  it("normalizes provider risk metadata before a server decision", () => {
+    expect(normalizeRiskScore("68")).toBe(68);
+    expect(normalizeRiskScore("not-a-score")).toBe(0);
+    expect(requiresServerFraudReview({ score: "60" })).toBe(true);
+    expect(requiresServerFraudReview({ score: 20, level: "high" })).toBe(true);
+    expect(requiresServerFraudReview({ score: 20, requiresReview: true })).toBe(true);
+    expect(requiresServerFraudReview({ score: 29, level: "medium" })).toBe(false);
   });
 });

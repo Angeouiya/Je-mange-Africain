@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { requiresServerFraudReview } from "@/lib/fraud";
 
 export const FULFILLMENT_TARGETS = [
   "preparing",
@@ -15,7 +16,6 @@ export type FulfillmentStatus = (typeof FULFILLMENT_TARGETS)[number];
 const NEXT_STATUS: Record<string, FulfillmentStatus | undefined> = {
   paymentConfirmed: "preparing",
   stockReserved: "preparing",
-  fraudCheck: "preparing",
   preparing: "packed",
   packed: "controlDone",
   controlDone: "shipped",
@@ -73,6 +73,11 @@ export type FulfillmentShipmentSnapshot = {
 };
 
 export type FulfillmentReadinessIssue = "parcel_required" | "carrier_required" | "tracking_required" | "code_required" | "proof_required";
+export type FulfillmentSecurityIssue = "captured_payment_required" | "fraud_review_required";
+
+export type FulfillmentPaymentSnapshot = {
+  status: string;
+};
 
 export function nextFulfillmentStatus(currentStatus: string) {
   return NEXT_STATUS[currentStatus] || null;
@@ -84,6 +89,19 @@ export function canTransitionOrder(currentStatus: string, targetStatus: string) 
 
 export function fulfillmentStatusLabel(status: FulfillmentStatus, locale: "fr" | "en") {
   return STATUS_LABELS[status][locale];
+}
+
+export function fulfillmentSecurityIssue(input: {
+  currentStatus: string;
+  targetStatus: FulfillmentStatus;
+  fraudScore?: unknown;
+  payments?: FulfillmentPaymentSnapshot[];
+}): FulfillmentSecurityIssue | null {
+  if (input.currentStatus === "fraudCheck" || requiresServerFraudReview({ score: input.fraudScore, requiresReview: input.currentStatus === "fraudCheck" })) {
+    return "fraud_review_required";
+  }
+  if (!input.payments?.some((payment) => payment.status === "captured")) return "captured_payment_required";
+  return null;
 }
 
 export function shipmentStatusForOrder(status: FulfillmentStatus) {

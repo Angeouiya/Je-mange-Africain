@@ -20,6 +20,7 @@ vi.mock("@/lib/stripe", () => ({
 }));
 
 import { CHECKOUT_DELAYED_PAYMENT_METHODS } from "@/lib/checkout-payment-policy";
+import { CHECKOUT_SERVER_VERIFICATION } from "@/lib/checkout-security";
 import { POST } from "./route";
 
 const session = { id: "customer-auth-eu", email: "awa@example.fr" };
@@ -83,6 +84,11 @@ describe("POST /api/payments/intent European payment policy", () => {
       excluded_payment_method_types: [...CHECKOUT_DELAYED_PAYMENT_METHODS],
       payment_method_options: { paypal: { preferred_locale: "fr-FR" } },
       receipt_email: session.email,
+      metadata: expect.objectContaining({
+        server_verification: CHECKOUT_SERVER_VERIFICATION,
+        customer_auth_id: session.id,
+        risk_requires_review: "false",
+      }),
     }), { idempotencyKey: `jma:${session.id}:${body.checkoutAttemptId}` });
 
     const params = mocks.createIntent.mock.calls[0][0];
@@ -116,6 +122,32 @@ describe("POST /api/payments/intent European payment policy", () => {
 
     expect(response.status).toBe(400);
     expect(mocks.priceCheckout).not.toHaveBeenCalled();
+    expect(mocks.createIntent).not.toHaveBeenCalled();
+  });
+
+  it("blocks high-risk checkout before any payment intent is created", async () => {
+    mocks.priceCheckout.mockResolvedValueOnce({
+      validatedItems: [{ qty: 40, unitsPerPack: 1 }],
+      total: 320,
+      subtotal: 300,
+      promoDiscount: 0,
+      shipping: 20,
+      vat: 45,
+      thermalClasses: ["AMBIANT"],
+      fingerprint: "risky-cart",
+      shippingQuote: { carrier: "DPD Europe", service: "standard", minDelayHours: 48, maxDelayHours: 72 },
+    });
+    const request = new NextRequest("http://localhost/api/payments/intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload).toMatchObject({ securityReviewRequired: true, riskLevel: "high" });
     expect(mocks.createIntent).not.toHaveBeenCalled();
   });
 });

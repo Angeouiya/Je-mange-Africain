@@ -58,10 +58,12 @@ describe("admin order parcel orchestration", () => {
       id: "order-1",
       number: "JMA-260905-001",
       status: "preparing",
+      fraudScore: 0,
       notes: null,
       carrierId: "carrier-fresh",
       items: [{ thermalClass: "REFRIGERATED" }],
       shipments: [existingShipment],
+      payments: [{ status: "captured" }],
       customer: { userId: null },
     });
     mocks.findCarrier.mockResolvedValue({ id: "carrier-ambient", name: "DPD Europe" });
@@ -101,5 +103,29 @@ describe("admin order parcel orchestration", () => {
       trackingNumber: "JMA-AMBIENT-002",
     }) });
     expect(await response.json()).toMatchObject({ updatedShipmentId: "shipment-ambient", order: { shipments: [{ id: "shipment-fresh" }, { id: "shipment-ambient" }] } });
+  });
+
+  it("blocks fulfillment while the order is held by server-side fraud verification", async () => {
+    mocks.findOrder.mockResolvedValueOnce({
+      id: "order-1",
+      number: "JMA-260905-001",
+      status: "fraudCheck",
+      fraudScore: 72,
+      notes: null,
+      carrierId: "carrier-fresh",
+      items: [{ thermalClass: "REFRIGERATED" }],
+      shipments: [existingShipment],
+      payments: [{ status: "captured" }],
+      customer: { userId: null },
+    });
+    const response = await PATCH(new NextRequest("http://localhost/api/admin/orders/order-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale: "fr", status: "preparing" }),
+    }), { params: Promise.resolve({ id: "order-1" }) });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({ error: "Cette commande reste bloquée par la vérification antifraude serveur." });
+    expect(mocks.transaction).not.toHaveBeenCalled();
   });
 });

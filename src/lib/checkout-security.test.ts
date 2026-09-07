@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deliveryContactFingerprint } from "./checkout-security";
+import { CHECKOUT_SERVER_VERIFICATION, deliveryContactFingerprint, isVerifiedCheckoutPaymentIntent } from "./checkout-security";
 
 const contact = {
   firstName: "Awa",
@@ -19,5 +19,11 @@ describe("checkout delivery contact fingerprint", () => {
 
   it("changes when the delivery identity changes after payment", () => {
     expect(deliveryContactFingerprint(contact)).not.toBe(deliveryContactFingerprint({ ...contact, phone: "+33 6 00 00 00 00" }));
+  });
+
+  it("requires the JMA server verification marker on checkout payment intents", () => {
+    expect(isVerifiedCheckoutPaymentIntent({ server_verification: CHECKOUT_SERVER_VERIFICATION })).toBe(true);
+    expect(isVerifiedCheckoutPaymentIntent({ server_verification: "external" })).toBe(false);
+    expect(isVerifiedCheckoutPaymentIntent(null)).toBe(false);
   });
 });

@@ -8,6 +8,20 @@ export interface FraudAssessmentInput {
   recentAttempts?: number;
 }
 
+export const CHECKOUT_FRAUD_REVIEW_THRESHOLD = 60;
+
+export function normalizeRiskScore(value: unknown) {
+  const score = typeof value === "number" ? value : typeof value === "string" ? Number(value) : 0;
+  if (!Number.isFinite(score)) return 0;
+  return Math.max(0, Math.min(100, score));
+}
+
+export function requiresServerFraudReview(input: { score?: unknown; level?: string | null; requiresReview?: boolean | null }) {
+  return Boolean(input.requiresReview)
+    || normalizeRiskScore(input.score) >= CHECKOUT_FRAUD_REVIEW_THRESHOLD
+    || input.level?.toLowerCase() === "high";
+}
+
 export function assessCheckoutRisk(input: FraudAssessmentInput) {
   const signals: string[] = [];
   let score = 0;
@@ -24,8 +38,8 @@ export function assessCheckoutRisk(input: FraudAssessmentInput) {
   score = Math.min(100, score);
   return {
     score,
-    level: score >= 60 ? "high" : score >= 30 ? "medium" : "low",
-    requiresReview: score >= 60,
+    level: score >= CHECKOUT_FRAUD_REVIEW_THRESHOLD ? "high" : score >= 30 ? "medium" : "low",
+    requiresReview: score >= CHECKOUT_FRAUD_REVIEW_THRESHOLD,
     signals,
   } as const;
 }

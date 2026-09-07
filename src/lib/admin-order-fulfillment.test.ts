@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canTransitionOrder,
   fulfillmentReadinessIssue,
+  fulfillmentSecurityIssue,
   nextFulfillmentStatus,
   orderFulfillmentInput,
   shipmentStatusForOrder,
@@ -19,8 +20,10 @@ describe("admin order fulfillment contract", () => {
   it("only exposes the next safe operational stage", () => {
     expect(nextFulfillmentStatus("preparing")).toBe("packed");
     expect(nextFulfillmentStatus("packed")).toBe("controlDone");
+    expect(nextFulfillmentStatus("fraudCheck")).toBeNull();
     expect(nextFulfillmentStatus("paymentPending")).toBeNull();
     expect(canTransitionOrder("preparing", "shipped")).toBe(false);
+    expect(canTransitionOrder("fraudCheck", "preparing")).toBe(false);
   });
 
   it("maps customer order stages to carrier parcel stages", () => {
@@ -39,6 +42,27 @@ describe("admin order fulfillment contract", () => {
     expect(fulfillmentReadinessIssue("out_for_delivery", [{ ...completeParcel, confirmCode: null }])).toBe("code_required");
     expect(fulfillmentReadinessIssue("delivered", [{ ...completeParcel, proofPhoto: null, signature: null }])).toBe("proof_required");
     expect(fulfillmentReadinessIssue("delivered", [completeParcel])).toBeNull();
+  });
+
+  it("blocks fulfillment without a captured payment or after a fraud hold", () => {
+    expect(fulfillmentSecurityIssue({
+      currentStatus: "paymentConfirmed",
+      targetStatus: "preparing",
+      fraudScore: 0,
+      payments: [{ status: "pending" }],
+    })).toBe("captured_payment_required");
+    expect(fulfillmentSecurityIssue({
+      currentStatus: "fraudCheck",
+      targetStatus: "preparing",
+      fraudScore: 72,
+      payments: [{ status: "captured" }],
+    })).toBe("fraud_review_required");
+    expect(fulfillmentSecurityIssue({
+      currentStatus: "paymentConfirmed",
+      targetStatus: "preparing",
+      fraudScore: 12,
+      payments: [{ status: "captured" }],
+    })).toBeNull();
   });
 
   it("validates an auditable logistics update", () => {

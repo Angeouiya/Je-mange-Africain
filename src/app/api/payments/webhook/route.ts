@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { isFullRefund, providerRefundStatus, refundAmounts } from "@/lib/admin-refunds";
 import { sendPushToUser } from "@/lib/push-server";
+import { requiresServerFraudReview } from "@/lib/fraud";
 
 export const dynamic = "force-dynamic";
 
@@ -124,11 +125,14 @@ async function notifyRefund(userId: string, orderId: string, amount: number, ful
 async function updatePayment(reference: string, paymentStatus: string, orderStatus: string, label: string) {
   const payment = await db.payment.findFirst({ where: { reference }, include: { order: true } });
   if (!payment) return;
-  const existingEvent = await db.orderEvent.findFirst({ where: { orderId: payment.orderId, status: orderStatus, actor: "stripe" } });
-  const preserveRiskReview = orderStatus === "paymentConfirmed" && payment.order.status === "fraudCheck";
+  const fraudReviewRequired = orderStatus === "paymentConfirmed"
+    && requiresServerFraudReview({ score: payment.order.fraudScore, requiresReview: payment.order.status === "fraudCheck" });
+  const nextOrderStatus = fraudReviewRequired ? "fraudCheck" : orderStatus;
+  const nextEventLabel = fraudReviewRequired ? "Vérification antifraude serveur" : label;
+  const existingEvent = await db.orderEvent.findFirst({ where: { orderId: payment.orderId, status: nextOrderStatus, actor: "stripe" } });
   await db.$transaction(async (tx) => {
     if (payment.status !== paymentStatus) await tx.payment.update({ where: { id: payment.id }, data: { status: paymentStatus } });
-    if (!preserveRiskReview && payment.order.status !== orderStatus) await tx.order.update({ where: { id: payment.orderId }, data: { status: orderStatus } });
-    if (!existingEvent) await tx.orderEvent.create({ data: { orderId: payment.orderId, status: orderStatus, label, actor: "stripe" } });
+    if (payment.order.status !== nextOrderStatus) await tx.order.update({ where: { id: payment.orderId }, data: { status: nextOrderStatus } });
+    if (!existingEvent) await tx.orderEvent.create({ data: { orderId: payment.orderId, status: nextOrderStatus, label: nextEventLabel, actor: "stripe" } });
   });
 }

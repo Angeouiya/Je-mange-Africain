@@ -40,7 +40,7 @@ describe("Stripe refund webhook", () => {
       amount: 48.7,
       status: "captured",
       reference: "pi_jma_1",
-      order: { id: "order-1", status: "delivered", refunds: [{ id: "request-1", amount: 12.5, status: "pending", reason: "Incident" }], customer: { userId: null } },
+      order: { id: "order-1", status: "delivered", fraudScore: 0, refunds: [{ id: "request-1", amount: 12.5, status: "pending", reason: "Incident" }], customer: { userId: null } },
     });
     mocks.transaction.mockImplementation(async (work: (transaction: unknown) => Promise<void>) => work({
       refund: { upsert: mocks.upsertRefund },
@@ -71,7 +71,7 @@ describe("Stripe refund webhook", () => {
       amount: 48.7,
       status: "captured",
       reference: "pi_jma_1",
-      order: { id: "order-1", status: "delivered", refunds: [{ id: "request-1", amount: 48.7, status: "pending", reason: "Client" }], customer: { userId: null } },
+      order: { id: "order-1", status: "delivered", fraudScore: 0, refunds: [{ id: "request-1", amount: 48.7, status: "pending", reason: "Client" }], customer: { userId: null } },
     });
     mocks.constructEvent.mockReturnValue({
       type: "refund.updated",
@@ -82,5 +82,28 @@ describe("Stripe refund webhook", () => {
     expect(mocks.updatePayment).toHaveBeenCalledWith({ where: { id: "payment-1" }, data: { status: "refunded" } });
     expect(mocks.updateOrder).toHaveBeenCalledWith({ where: { id: "order-1" }, data: { status: "refunded" } });
     expect(mocks.createAudit).toHaveBeenCalledWith({ data: expect.objectContaining({ action: "payment_refund_provider_update" }) });
+  });
+
+  it("does not confirm an order held by server-side fraud verification", async () => {
+    mocks.findPayment.mockResolvedValue({
+      id: "payment-1",
+      orderId: "order-1",
+      amount: 320,
+      status: "pending",
+      reference: "pi_jma_risky",
+      order: { id: "order-1", status: "paymentPending", fraudScore: 74, refunds: [], customer: { userId: null } },
+    });
+    mocks.findEvent.mockResolvedValue(null);
+    mocks.constructEvent.mockReturnValue({
+      type: "payment_intent.succeeded",
+      data: { object: { id: "pi_jma_risky" } },
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    expect(mocks.updatePayment).toHaveBeenCalledWith({ where: { id: "payment-1" }, data: { status: "captured" } });
+    expect(mocks.updateOrder).toHaveBeenCalledWith({ where: { id: "order-1" }, data: { status: "fraudCheck" } });
+    expect(mocks.createEvent).toHaveBeenCalledWith({ data: expect.objectContaining({ status: "fraudCheck", label: "Vérification antifraude serveur", actor: "stripe" }) });
   });
 });

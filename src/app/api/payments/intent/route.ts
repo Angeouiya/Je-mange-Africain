@@ -5,7 +5,7 @@ import { CheckoutPricingError, priceCheckout } from "@/lib/checkout-pricing";
 import { assessCheckoutRisk } from "@/lib/fraud";
 import { enforceRateLimit, redis } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
-import { deliveryContactFingerprint } from "@/lib/checkout-security";
+import { CHECKOUT_SERVER_VERIFICATION, deliveryContactFingerprint } from "@/lib/checkout-security";
 import { europeanCountryCode, europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { CHECKOUT_DELAYED_PAYMENT_METHODS, paypalPreferredLocale } from "@/lib/checkout-payment-policy";
 
@@ -81,6 +81,15 @@ export async function POST(request: NextRequest) {
       postalCode: deliveryAddress.postalCode,
       recentAttempts,
     });
+    if (risk.requiresReview) {
+      return NextResponse.json({
+        error: parsed.data.locale === "fr"
+          ? "Cette tentative nécessite une vérification de sécurité par notre équipe avant paiement. Aucun paiement n'a été lancé."
+          : "This attempt needs a security review by our team before payment. No payment has been started.",
+        securityReviewRequired: true,
+        riskLevel: risk.level,
+      }, { status: 409 });
+    }
 
     const addressFingerprint = deliveryContactFingerprint(deliveryAddress);
     const intent = await stripe.paymentIntents.create({
@@ -94,10 +103,13 @@ export async function POST(request: NextRequest) {
       receipt_email: deliveryAddress.email,
       description: "Commande Je mange Africain",
       metadata: {
+        server_verification: CHECKOUT_SERVER_VERIFICATION,
         customer_auth_id: customer.id,
         cart_fingerprint: pricing.fingerprint,
         risk_score: String(risk.score),
         risk_level: risk.level,
+        risk_requires_review: String(risk.requiresReview),
+        recent_attempts: String(recentAttempts),
         delivery_service: pricing.shippingQuote.service,
         address_fingerprint: addressFingerprint,
         checkout_attempt_id: parsed.data.checkoutAttemptId,

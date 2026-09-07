@@ -5,10 +5,12 @@ import { sendPushToUser } from "@/lib/push-server";
 import {
   canTransitionOrder,
   fulfillmentReadinessIssue,
+  fulfillmentSecurityIssue,
   fulfillmentStatusLabel,
   orderFulfillmentInput,
   shipmentStatusForOrder,
   type FulfillmentReadinessIssue,
+  type FulfillmentSecurityIssue,
   type FulfillmentShipmentSnapshot,
 } from "@/lib/admin-order-fulfillment";
 
@@ -20,6 +22,17 @@ const readinessMessages: Record<FulfillmentReadinessIssue, { fr: string; en: str
   tracking_required: { fr: "Attribuez un numéro de suivi à chaque colis avant l'expédition.", en: "Assign a tracking number to every parcel before shipping." },
   code_required: { fr: "Attribuez un code de remise à chaque colis avant la tournée.", en: "Assign a handover code to every parcel before delivery." },
   proof_required: { fr: "Ajoutez une photo de remise ou une signature pour chaque colis livré.", en: "Add a delivery photo or signature for every delivered parcel." },
+};
+
+const securityMessages: Record<FulfillmentSecurityIssue, { fr: string; en: string }> = {
+  captured_payment_required: {
+    fr: "Cette commande ne peut pas avancer : aucun paiement capturé n'a été confirmé côté serveur.",
+    en: "This order cannot move forward: no captured payment has been confirmed server-side.",
+  },
+  fraud_review_required: {
+    fr: "Cette commande reste bloquée par la vérification antifraude serveur.",
+    en: "This order is still blocked by server-side fraud verification.",
+  },
 };
 
 function nullable(value: string | null | undefined) {
@@ -43,10 +56,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     include: {
       items: { select: { thermalClass: true } },
       shipments: { include: { carrier: true } },
+      payments: { select: { status: true } },
       customer: { select: { userId: true } },
     },
   });
   if (!order) return NextResponse.json({ error: input.locale === "fr" ? "Commande introuvable." : "Order not found." }, { status: 404 });
+
+  if (input.status) {
+    const securityIssue = fulfillmentSecurityIssue({
+      currentStatus: order.status,
+      targetStatus: input.status,
+      fraudScore: order.fraudScore,
+      payments: order.payments,
+    });
+    if (securityIssue) return NextResponse.json({ error: securityMessages[securityIssue][input.locale] }, { status: 409 });
+  }
 
   if (input.status && !canTransitionOrder(order.status, input.status)) {
     const expected = order.status === input.status ? null : input.status;

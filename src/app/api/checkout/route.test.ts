@@ -31,6 +31,7 @@ vi.mock("@/lib/checkout-pricing", async (importOriginal) => {
 });
 
 import { CheckoutPricingError } from "@/lib/checkout-pricing";
+import { CHECKOUT_SERVER_VERIFICATION, deliveryContactFingerprint } from "@/lib/checkout-security";
 import { POST } from "./route";
 
 const session = { id: "customer-auth-1", email: "awa@example.fr" };
@@ -39,7 +40,13 @@ const paymentIntent = {
   status: "succeeded",
   amount_received: 4200,
   currency: "eur",
-  metadata: { customer_auth_id: session.id },
+  metadata: {
+    server_verification: CHECKOUT_SERVER_VERIFICATION,
+    customer_auth_id: session.id,
+    risk_score: "0",
+    risk_level: "low",
+    risk_requires_review: "false",
+  },
   payment_method_types: ["card"],
   payment_method: null,
   latest_charge: null,
@@ -138,5 +145,55 @@ describe("POST /api/checkout payment recovery", () => {
     expect(response.status).toBe(403);
     expect(mocks.paymentFindUnique).not.toHaveBeenCalled();
     expect(mocks.createRefund).not.toHaveBeenCalled();
+  });
+
+  it("rejects a payment intent that was not prepared by server verification", async () => {
+    mocks.retrieveIntent.mockResolvedValue({ ...paymentIntent, metadata: { customer_auth_id: session.id } });
+
+    const response = await POST(request());
+    const payload = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(payload).toMatchObject({ securityReviewRequired: true });
+    expect(mocks.paymentFindUnique).not.toHaveBeenCalled();
+    expect(mocks.createRefund).not.toHaveBeenCalled();
+  });
+
+  it("refunds a captured payment when server-side fraud verification blocks finalization", async () => {
+    mocks.retrieveIntent.mockResolvedValue({
+      ...paymentIntent,
+      metadata: {
+        ...paymentIntent.metadata,
+        cart_fingerprint: "risky-cart",
+        delivery_service: "standard",
+        address_fingerprint: deliveryContactFingerprint(body.address),
+        risk_score: "72",
+        risk_level: "high",
+        risk_requires_review: "true",
+      },
+    });
+    mocks.priceCheckout.mockResolvedValue({
+      validatedItems: [{ productId: "product-1", qty: 40, unitsPerPack: 1, salesChannel: "retail" }],
+      total: 42,
+      subtotal: 35,
+      promoDiscount: 0,
+      shipping: 7,
+      vat: 6,
+      weightGrams: 1_200,
+      thermalClasses: ["AMBIANT"],
+      shippingQuote: { carrier: "DPD Europe", service: "standard", minDelayHours: 48, maxDelayHours: 72 },
+      fingerprint: "risky-cart",
+      promotionId: null,
+    });
+
+    const response = await POST(request());
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload).toMatchObject({ paymentRecovery: { status: "refund_submitted", reference: "re_checkout_42" } });
+    expect(mocks.createRefund).toHaveBeenCalledWith({
+      payment_intent: paymentIntent.id,
+      metadata: { source: "checkout_recovery", cause: "order_not_created" },
+    }, { idempotencyKey: `jma:checkout-recovery:${paymentIntent.id}` });
   });
 });

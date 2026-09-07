@@ -7,7 +7,8 @@ import { db } from "@/lib/db";
 import { sendPushToSubscriptionId } from "@/lib/push-server";
 import { enforceRateLimit } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
-import { deliveryContactFingerprint } from "@/lib/checkout-security";
+import { deliveryContactFingerprint, isVerifiedCheckoutPaymentIntent } from "@/lib/checkout-security";
+import { assessCheckoutRisk, normalizeRiskScore, requiresServerFraudReview } from "@/lib/fraud";
 import { paymentMethodUsed } from "@/lib/stripe-payment-method";
 import { europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
 import type Stripe from "stripe";
@@ -73,6 +74,14 @@ export async function POST(request: NextRequest) {
     if (intent.metadata.customer_auth_id !== session.id) {
       return NextResponse.json({ error: body.locale === "fr" ? "Ce paiement n'appartient pas à cette session client." : "This payment does not belong to this customer session." }, { status: 403 });
     }
+    if (!isVerifiedCheckoutPaymentIntent(intent.metadata)) {
+      return NextResponse.json({
+        error: body.locale === "fr"
+          ? "Ce paiement n'a pas été préparé par la vérification serveur de Je mange Africain."
+          : "This payment was not prepared by Je mange Africain server verification.",
+        securityReviewRequired: true,
+      }, { status: 403 });
+    }
 
     paidIntent = intent;
     const idempotencyKey = `stripe:${intent.id}`;
@@ -91,6 +100,26 @@ export async function POST(request: NextRequest) {
     ) {
       throw new CheckoutPricingError(body.locale === "fr" ? "Le paiement ne correspond plus au panier actuel." : "The payment no longer matches the current basket.", 409);
     }
+    const itemCount = pricing.validatedItems.reduce((sum, item) => sum + item.qty * item.unitsPerPack, 0);
+    const reassessedRisk = assessCheckoutRisk({
+      total: pricing.total,
+      itemCount,
+      uniqueProducts: pricing.validatedItems.length,
+      email: session.email,
+      phone: body.address.phone,
+      postalCode: body.address.postalCode,
+      recentAttempts: normalizeRiskScore(intent.metadata.recent_attempts),
+    });
+    const fraudScore = Math.max(normalizeRiskScore(intent.metadata.risk_score), reassessedRisk.score);
+    if (
+      requiresServerFraudReview({ score: intent.metadata.risk_score, level: intent.metadata.risk_level, requiresReview: intent.metadata.risk_requires_review === "true" })
+      || reassessedRisk.requiresReview
+      || requiresServerFraudReview({ score: fraudScore, level: reassessedRisk.level })
+    ) {
+      throw new CheckoutPricingError(body.locale === "fr"
+        ? "La vérification antifraude serveur bloque cette commande. Aucun dossier commande ne sera validé ; si le paiement a déjà été capturé, un remboursement automatique est lancé."
+        : "Server fraud verification blocks this order. No order record will be validated; if payment has already been captured, an automatic refund is started.", 409);
+    }
 
     const user = await db.user.findUnique({ where: { email: session.email.toLowerCase() } });
     if (!user || user.role !== "customer" || !user.isActive) {
@@ -104,7 +133,6 @@ export async function POST(request: NextRequest) {
     }) || await db.carrier.findFirst({ orderBy: { rating: "desc" } });
     const number = `JMA-${new Date().getUTCFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
     const paymentMethod = paymentMethodUsed(intent);
-    const fraudScore = Math.max(0, Math.min(100, Number(intent.metadata.risk_score) || 0));
     const wholesalePackages = pricing.validatedItems.filter((item) => item.salesChannel === "wholesale").reduce((sum, item) => sum + item.qty, 0);
     const retailPackages = new Set(pricing.validatedItems.filter((item) => item.salesChannel === "retail").map((item) => item.thermalClass)).size;
     const packageCount = Math.max(1, wholesalePackages + retailPackages);
@@ -126,7 +154,7 @@ export async function POST(request: NextRequest) {
         data: {
           number,
           customerId: customer.id,
-          status: fraudScore >= 60 ? "fraudCheck" : "paymentConfirmed",
+          status: "paymentConfirmed",
           subtotal: pricing.subtotal,
           promoDiscount: pricing.promoDiscount,
           vatAmount: pricing.vat,
@@ -151,7 +179,6 @@ export async function POST(request: NextRequest) {
             create: [
               { status: "paymentConfirmed", label: body.locale === "fr" ? "Paiement confirmé" : "Payment confirmed" },
               { status: "stockReserved", label: body.locale === "fr" ? "Stock réservé" : "Stock reserved" },
-              ...(fraudScore >= 60 ? [{ status: "fraudCheck", label: body.locale === "fr" ? "Vérification de sécurité" : "Security review" }] : []),
             ],
           },
         },

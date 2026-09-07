@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+export const CHECKOUT_SERVER_VERIFICATION = "jma_checkout_server_v1";
+
 export type CheckoutDeliveryContact = {
   firstName: string;
   lastName: string;
@@ -23,4 +25,8 @@ export function deliveryContactFingerprint(contact: CheckoutDeliveryContact) {
     country: contact.country.trim(),
   };
   return createHash("sha256").update(JSON.stringify(canonicalContact)).digest("hex").slice(0, 16);
+}
+
+export function isVerifiedCheckoutPaymentIntent(metadata: Record<string, string> | null | undefined) {
+  return metadata?.server_verification === CHECKOUT_SERVER_VERIFICATION;
 }
