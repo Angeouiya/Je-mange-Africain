@@ -83,6 +83,8 @@ const POPULAR_SEARCHES = ["Attiéké", "Gombo", "Mafé", "Kplô", "Placali"];
 export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: boolean; compact?: boolean }) {
   const locale = useStore((state) => state.locale);
   const navigate = useStore((state) => state.navigate);
+  const customer = useStore((state) => state.customer);
+  const requestCustomerAuth = useStore((state) => state.requestCustomerAuth);
   const t = dict[locale];
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -123,10 +125,27 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
   const showPanel = open && (!query.trim() || Boolean(debounced));
   const counts = { products: data?.results.length || 0, recipes: data?.recipes.length || 0, dishes: data?.dishes.length || 0 };
   const kitchenCount = kitchenResultCount(counts);
+  const isAuthenticated = Boolean(customer);
+
+  const requireSearchAuth = (collection: SearchCollection = "products", value = query) => {
+    if (customer) return true;
+    const normalized = value.trim();
+    requestCustomerAuth({
+      view: collection === "products" ? "catalog" : "recipes",
+      params: {
+        ...(normalized ? { query: normalized } : {}),
+        ...(collection === "products" ? {} : { recipeMode: collection }),
+      },
+    });
+    setOpen(false);
+    inputRef.current?.blur();
+    return false;
+  };
 
   const navigateToCollection = (collection: SearchCollection, value = query) => {
     const normalized = value.trim();
     if (!normalized) return;
+    if (!requireSearchAuth(collection, normalized)) return;
     if (collection === "products") navigate("catalog", { query: normalized });
     else navigate("recipes", { query: normalized, recipeMode: collection });
     setOpen(false);
@@ -135,6 +154,15 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
   const submit = (value = query) => navigateToCollection(preferredSearchCollection(counts), value);
 
   const selectOption = (option: SearchOption) => {
+    if (!customer) {
+      if (option.kind === "product") requestCustomerAuth({ view: "product", params: { productId: option.id } });
+      else if (option.kind === "recipe") requestCustomerAuth({ view: "recipe-config", params: { recipeId: option.id } });
+      else requestCustomerAuth({ view: "recipes", params: { query: option.name, recipeMode: "library" } });
+      setOpen(false);
+      setQuery("");
+      inputRef.current?.blur();
+      return;
+    }
     if (option.kind === "product") navigate("product", { productId: option.id });
     else if (option.kind === "recipe") navigate("recipe-config", { recipeId: option.id });
     else navigate("recipes", { query: option.name, recipeMode: "library" });
@@ -168,6 +196,7 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
   };
 
   const setPopularSearch = (value: string) => {
+    if (!requireSearchAuth("products", value)) return;
     setQuery(value);
     setDebounced(value);
     setOpen(true);
@@ -189,10 +218,18 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
           ref={inputRef}
           autoFocus={autoFocus}
           value={query}
-          onChange={(event) => { setQuery(event.target.value); setActiveIndex(-1); setOpen(true); }}
+          onChange={(event) => {
+            if (!requireSearchAuth("products", event.target.value)) return;
+            setQuery(event.target.value);
+            setActiveIndex(-1);
+            setOpen(true);
+          }}
           onKeyDown={handleKeyDown}
-          onFocus={() => setOpen(true)}
-          placeholder={compact ? (locale === "fr" ? "Produit, recette ou ingrédient..." : "Product, recipe or ingredient...") : t.header.searchPlaceholder}
+          onFocus={() => {
+            if (!requireSearchAuth()) return;
+            setOpen(true);
+          }}
+          placeholder={!isAuthenticated ? (locale === "fr" ? "Connectez-vous pour rechercher" : "Sign in to search") : compact ? (locale === "fr" ? "Produit, recette ou ingrédient..." : "Product, recipe or ingredient...") : t.header.searchPlaceholder}
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           role="combobox"
           aria-label={locale === "fr" ? "Recherche globale" : "Global search"}

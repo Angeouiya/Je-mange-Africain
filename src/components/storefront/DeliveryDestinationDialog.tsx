@@ -32,6 +32,10 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
   const country = useStore((state) => state.country);
   const postalCode = useStore((state) => state.postalCode);
   const setDeliveryContext = useStore((state) => state.setDeliveryContext);
+  const customer = useStore((state) => state.customer);
+  const view = useStore((state) => state.view);
+  const params = useStore((state) => state.params);
+  const requestCustomerAuth = useStore((state) => state.requestCustomerAuth);
   const [open, setOpen] = useState(false);
   const [draftCountry, setDraftCountry] = useState(country);
   const [draftPostalCode, setDraftPostalCode] = useState(postalCode);
@@ -43,6 +47,10 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
   const isFr = locale === "fr";
 
   const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen && !customer) {
+      requestCustomerAuth({ view, params });
+      return;
+    }
     setOpen(nextOpen);
     if (nextOpen) {
       setDraftCountry(europeanCountryValue(country) || "France");
@@ -85,6 +93,10 @@ export function DeliveryDestinationDialog({ children, weightGrams, thermalClasse
 
   const applyDestination = (event: FormEvent) => {
     event.preventDefault();
+    if (!customer) {
+      requestCustomerAuth({ view, params });
+      return;
+    }
     if (status !== "ready" || !postalValidation.valid) return;
     setDeliveryContext(europeanCountryValue(draftCountry) || draftCountry, normalizedPostalCode);
     setOpen(false);

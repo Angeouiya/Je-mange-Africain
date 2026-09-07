@@ -83,7 +83,10 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
 
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
   const { price } = resolveProductPricing(product, defaultVariant?.price);
-  const warmProduct = () => { void prefetchStorefrontData("product", { productId: product.id }, locale); };
+  const warmProduct = () => {
+    if (!customer) return;
+    void prefetchStorefrontData("product", { productId: product.id }, locale);
+  };
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();

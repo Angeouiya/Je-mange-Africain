@@ -72,7 +72,19 @@ describe("customer auth guard", () => {
     expect(state.view).toBe("account");
     expect(state.params).toEqual({ returnView: "recipe-config" });
     expect(state.authReturnTarget).toEqual({ view: "recipe-config", params: { recipeId: "recipe-garba" } });
-    expect(publicFallbackForAuthTarget(state.authReturnTarget)).toEqual({ view: "recipes", params: {} });
+    expect(publicFallbackForAuthTarget(state.authReturnTarget)).toEqual({ view: "home", params: {} });
+  });
+
+  it("treats shopping, product, recipe and wholesale spaces as private client workspaces", () => {
+    expect(customerProtectedView("home")).toBe(false);
+    expect(customerProtectedView("info")).toBe(false);
+    expect(customerProtectedView("account")).toBe(false);
+
+    for (const view of ["catalog", "product", "recipes", "wholesale", "cart", "orders"] as const) {
+      expect(customerProtectedView(view)).toBe(true);
+      expect(publicFallbackForAuthTarget({ view, params: {} })).toEqual({ view: "home", params: {} });
+    }
+    expect(publicFallbackForAuthTarget({ view: "info", params: { infoPage: "contact" } })).toEqual({ view: "home", params: {} });
   });
 
   it("allows connected customers to interact and clears private state on logout", () => {

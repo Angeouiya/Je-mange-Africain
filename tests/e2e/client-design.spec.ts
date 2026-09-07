@@ -2,6 +2,16 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const privacyConsentFixture = JSON.stringify({ version: 1, necessary: true, analytics: false, personalization: false, marketing: false, updatedAt: "2026-09-05T12:00:00.000Z" });
+const authenticatedCustomerFixture = {
+  id: "customer-e2e-auth",
+  email: "awa@example.fr",
+  phone: "+33612345678",
+  firstName: "Awa",
+  lastName: "Traore",
+  role: "customer",
+  loyaltyPoints: 120,
+  walletCredit: 0,
+};
 
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.title.includes("privacy choices are granular")) return;
@@ -30,6 +40,17 @@ async function expectLoadedProductImages(images: Locator, maximum = 4) {
     await expect(image).toBeVisible();
     await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0);
   }
+}
+
+async function seedAuthenticatedCustomer(page: Page, customer = authenticatedCustomerFixture) {
+  await page.addInitScript(({ persistedCustomer }) => {
+    localStorage.setItem("jma-store", JSON.stringify({
+      state: { locale: "fr", cart: [], favorites: [], savedRecipes: [], savedOwnerId: persistedCustomer.id, recentlyViewed: [], customer: persistedCustomer, addresses: [], country: "France", postalCode: "75011", coupon: null },
+      version: 0,
+    }));
+  }, { persistedCustomer: customer });
+  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) }));
+  return customer;
 }
 
 async function expectClientNavigationTarget(page: Page, isMobile: boolean, label: RegExp) {
@@ -71,6 +92,7 @@ async function expectBrandSafeUiColors(page: Page) {
 }
 
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
+  await seedAuthenticatedCustomer(page);
   const deliveryRequests: Array<Record<string, unknown>> = [];
   const catalogRequests: string[] = [];
   await page.route("**/api/catalog?*", async (route) => {
@@ -311,20 +333,15 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(dishDialog).toBeHidden();
 
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
-  const authDialog = page.getByRole("dialog");
-  await expect(authDialog.getByTestId("customer-auth-workspace")).toBeVisible();
-  await expect(authDialog.getByTestId("auth-return-context")).toContainText(/connexion requise|sign-in required/i);
-  const storedState = await page.evaluate(() => JSON.parse(localStorage.getItem("jma-store") || "{}").state || {});
-  expect(storedState.cart || []).toEqual([]);
-  await authDialog.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
-  await expect(page.getByRole("heading", { name: /marché je mange africain|je mange africain market/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /votre panier est vide|your cart is empty/i })).toBeVisible();
   if (process.env.CLIENT_SCREENSHOTS) {
     await page.screenshot({ path: `output/playwright/audit/cart-auth-gate-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   }
   await expectNoHorizontalOverflow(page);
 });
 
-test("public discovery workspaces recover without losing the customer journey", async ({ page }) => {
+test("authenticated discovery workspaces recover without losing the customer journey", async ({ page }) => {
+  await seedAuthenticatedCustomer(page);
   let homeAttempts = 0;
   let catalogAttempts = 0;
   let recipeAttempts = 0;
@@ -399,6 +416,7 @@ test("public discovery workspaces recover without losing the customer journey", 
 });
 
 test("the adaptive client navigation keeps every destination clear and touch friendly", async ({ page }) => {
+  await seedAuthenticatedCustomer(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const isMobile = (page.viewportSize()?.width || 0) < 768;
   const navigation = page.getByTestId(isMobile ? "mobile-navigation" : "client-sidebar");
@@ -1355,6 +1373,7 @@ test("account settings synchronize language and protect session actions", async 
 });
 
 test("the help center leads to a contextual and usable contact request", async ({ page }) => {
+  await seedAuthenticatedCustomer(page);
   const captured: { contactRequest: Record<string, string> | null } = { contactRequest: null };
   await page.route("**/api/platform", (route) => route.fulfill({
     status: 200,
@@ -1419,9 +1438,9 @@ test("the help center leads to a contextual and usable contact request", async (
   await page.waitForTimeout(300); // Let the 200 ms workspace transition finish before simulating typing.
   const contactName = page.getByLabel(/nom complet|full name/i);
   const contactEmail = page.getByLabel(/e-mail/i);
-  await contactName.pressSequentially("Awa Traoré");
+  await contactName.fill("Awa Traoré");
   await expect(contactName).toHaveValue("Awa Traoré");
-  await contactEmail.pressSequentially("awa@example.fr");
+  await contactEmail.fill("awa@example.fr");
   await expect(contactEmail).toHaveValue("awa@example.fr");
   await expect(contactName).toHaveValue("Awa Traoré");
   await expect(contactEmail).toHaveValue("awa@example.fr");
@@ -1864,6 +1883,7 @@ test("the confirmation receipt survives a direct link and leads into delivery tr
 });
 
 test("product and recipe details recover without duplicating navigation", async ({ page }) => {
+  await seedAuthenticatedCustomer(page);
   let productAttempts = 0;
   let productAvailable = false;
   await page.route("**/api/products/*", async (route) => {
@@ -1924,6 +1944,7 @@ test("product and recipe details recover without duplicating navigation", async 
 });
 
 test("the recipe configurator recalculates, removes and restores an ingredient", async ({ page }) => {
+  await seedAuthenticatedCustomer(page);
   let calculationAvailable = false;
   await page.route(/\/api\/recipes\/[^/?]+\?/, async (route) => {
     const response = await route.fetch();

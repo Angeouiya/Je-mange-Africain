@@ -108,8 +108,8 @@ const SUPPORT_FAQS: SupportFaq[] = [
     topic: "order",
     questionFr: "Puis-je commander sans compte ?",
     questionEn: "Can I order without an account?",
-    answerFr: "Vous pouvez explorer le catalogue et composer votre panier librement. La connexion devient obligatoire avant le paiement afin de sécuriser l'adresse, la facture et le suivi de livraison.",
-    answerEn: "You can browse the catalogue and build your basket freely. Sign-in is required before payment to secure the address, invoice and delivery tracking.",
+    answerFr: "Vous pouvez consulter l'accueil, l'aide et les documents légaux librement. La connexion est obligatoire pour ouvrir le catalogue, les recettes, le panier, les devis, le paiement, les commandes et le suivi.",
+    answerEn: "You can freely view the home page, help and legal documents. Sign-in is required to open the catalogue, recipes, basket, quotes, checkout, orders and tracking.",
     keywords: "compte connexion invité paiement adresse facture account guest sign in checkout",
   },
   {
@@ -185,12 +185,19 @@ export function InfoView() {
   const locale = useStore((state) => state.locale);
   const params = useStore((state) => state.params);
   const navigate = useStore((state) => state.navigate);
+  const requestCustomerAuth = useStore((state) => state.requestCustomerAuth);
   const customer = useStore((state) => state.customer);
   const t = dict[locale];
   const page = params.infoPage || "about";
   const isLegalPage = ["cgv", "privacy", "cookies", "delivery"].includes(page);
   const { data: platformData } = useFetch<{ configuration: PublicPlatformConfiguration }>("/api/platform", [], {}, { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS });
   const responseHours = platformData?.configuration.support.responseHours || 48;
+  const needsContactAuth = page === "contact" && !customer;
+
+  useEffect(() => {
+    if (!needsContactAuth) return;
+    requestCustomerAuth({ view: "info", params: { infoPage: "contact", contactReason: params.contactReason } });
+  }, [needsContactAuth, params.contactReason, requestCustomerAuth]);
 
   const legalContent = {
     cgv: <LegalDocument kind="terms" locale={locale} />,
@@ -236,6 +243,13 @@ export function InfoView() {
     { id: "help" as const, label: locale === "fr" ? "Aide" : "Help", icon: CircleHelp },
     { id: "contact" as const, label: locale === "fr" ? "Contact" : "Contact", icon: MessageSquare },
   ];
+  const openInfoTab = (tabId: (typeof tabs)[number]["id"]) => {
+    if (tabId === "contact" && !customer) {
+      requestCustomerAuth({ view: "info", params: { infoPage: "contact", contactReason: params.contactReason } });
+      return;
+    }
+    navigate("info", { infoPage: tabId });
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-5 md:px-7 md:py-8 lg:px-8" data-testid="information-workspace">
@@ -247,7 +261,7 @@ export function InfoView() {
       <nav className="mt-3 grid grid-cols-3 overflow-hidden rounded-md border border-burgundy/10 bg-[#FFFCFA] p-1" aria-label={locale === "fr" ? "Information et assistance" : "Information and support"}>
         {tabs.map((tab) => {
           const active = page === tab.id;
-          return <button key={tab.id} type="button" onClick={() => navigate("info", { infoPage: tab.id })} aria-current={active ? "page" : undefined} className={`relative flex min-h-11 items-center justify-center gap-2 rounded-md px-2 text-[11px] font-extrabold transition ${active ? "border border-terre/15 bg-white text-terre shadow-[0_9px_24px_-20px_rgba(185,71,43,0.8)]" : "text-muted-foreground hover:bg-white/70 hover:text-charcoal"}`}><tab.icon className={`h-4 w-4 ${active ? "stroke-[2.5]" : ""}`} /><span className="truncate">{tab.label}</span>{active ? <span className="absolute inset-x-5 bottom-0 h-0.5 rounded-full bg-gold" aria-hidden="true" /> : null}</button>;
+          return <button key={tab.id} type="button" onClick={() => openInfoTab(tab.id)} aria-current={active ? "page" : undefined} className={`relative flex min-h-11 items-center justify-center gap-2 rounded-md px-2 text-[11px] font-extrabold transition ${active ? "border border-terre/15 bg-white text-terre shadow-[0_9px_24px_-20px_rgba(185,71,43,0.8)]" : "text-muted-foreground hover:bg-white/70 hover:text-charcoal"}`}><tab.icon className={`h-4 w-4 ${active ? "stroke-[2.5]" : ""}`} /><span className="truncate">{tab.label}</span>{active ? <span className="absolute inset-x-5 bottom-0 h-0.5 rounded-full bg-gold" aria-hidden="true" /> : null}</button>;
         })}
       </nav>
 
@@ -260,9 +274,21 @@ export function InfoView() {
       </header>
 
       {page === "about" ? <AboutStory locale={locale} promise={t.promise} onCatalog={() => navigate("catalog")} onRecipes={() => navigate("recipes")} /> : null}
-      {page === "help" ? <HelpCenter locale={locale} isAuthenticated={Boolean(customer)} onTrackOrders={() => navigate(customer ? "orders" : "account", customer ? undefined : { returnView: "orders" })} onContact={(contactReason) => navigate("info", { infoPage: "contact", contactReason })} /> : null}
-      {page === "contact" ? <ContactForm locale={locale} initialReason={params.contactReason} configuration={platformData?.configuration} /> : null}
+      {page === "help" ? <HelpCenter locale={locale} isAuthenticated={Boolean(customer)} onTrackOrders={() => customer ? navigate("orders") : requestCustomerAuth({ view: "orders", params: {} })} onContact={(contactReason) => customer ? navigate("info", { infoPage: "contact", contactReason }) : requestCustomerAuth({ view: "info", params: { infoPage: "contact", contactReason } })} /> : null}
+      {page === "contact" ? customer ? <ContactForm locale={locale} initialReason={params.contactReason} configuration={platformData?.configuration} /> : <ContactAuthGate locale={locale} onSignIn={() => requestCustomerAuth({ view: "info", params: { infoPage: "contact", contactReason: params.contactReason } })} /> : null}
     </div>
+  );
+}
+
+function ContactAuthGate({ locale, onSignIn }: { locale: "fr" | "en"; onSignIn: () => void }) {
+  const isFr = locale === "fr";
+  return (
+    <section className="my-6 border-y border-gold/35 bg-gold/[0.06] px-4 py-8 text-center" aria-labelledby="contact-auth-title">
+      <ShieldCheck className="mx-auto h-7 w-7 text-burgundy" />
+      <h2 id="contact-auth-title" className="mt-3 font-display text-2xl font-semibold text-charcoal">{isFr ? "Connexion requise" : "Sign-in required"}</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{isFr ? "Connectez-vous pour ouvrir un dossier d'assistance lié à votre identité, vos commandes et vos livraisons." : "Sign in to open a support file connected to your identity, orders and deliveries."}</p>
+      <Button type="button" onClick={onSignIn} className="mt-5 bg-terre text-white hover:bg-terre-dark"><MessageSquare className="mr-2 h-4 w-4" />{isFr ? "Se connecter" : "Sign in"}</Button>
+    </section>
   );
 }
 

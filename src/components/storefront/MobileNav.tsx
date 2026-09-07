@@ -15,7 +15,7 @@ import { Logout } from "reicon/icons/Logout";
 import { Settings2 } from "reicon/icons/Settings2";
 import { Sliders } from "reicon/icons/Sliders";
 import { UserCircle } from "reicon/icons/UserCircle";
-import { useStore, ViewId, cartCount } from "@/lib/store";
+import { useStore, ViewId, cartCount, customerProtectedView } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
@@ -67,7 +67,10 @@ export function MobileNav() {
   const mobileActiveTarget = clientPrimaryNavigationTarget(view, "mobile", Boolean(customer));
   const desktopActiveTarget = clientPrimaryNavigationTarget(view, "desktop", Boolean(customer));
   const utilityActiveTarget = clientSidebarUtilityTarget(view, params);
-  const warmDestination = (destination: ViewId) => { void prefetchStorefrontData(destination, {}, locale); };
+  const warmDestination = (destination: ViewId) => {
+    if (!customer && customerProtectedView(destination)) return;
+    void prefetchStorefrontData(destination, {}, locale);
+  };
 
   const renderMobileItem = (it: (typeof mobileItems)[number]) => {
     const active = mobileActiveTarget === it.id;

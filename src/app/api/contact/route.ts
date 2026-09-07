@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
 import { enforceRateLimit } from "@/lib/redis";
 
@@ -12,9 +13,11 @@ const ContactRequest = z.object({
   message: z.string().trim().min(10).max(5_000),
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const limited = await enforceRateLimit(request, "account");
   if (limited) return limited;
+  const session = await authorizeCustomerRequest(request);
+  if (!session) return NextResponse.json({ error: "Connexion client requise." }, { status: 401 });
   const parsed = ContactRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Veuillez compléter correctement tous les champs." }, { status: 400 });
   const saved = await db.contactMessage.create({ data: parsed.data });

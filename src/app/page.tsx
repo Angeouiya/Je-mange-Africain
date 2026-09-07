@@ -74,7 +74,8 @@ export default function Page() {
       const hydratedState = useStore.getState();
       if (!hydratedState.customer) hydratedState.setCustomer(null);
       const sessionSubject = useStore.getState().customer?.id || null;
-      applyLocation();
+      const userAlreadyNavigated = useStore.getState().navigationHistory.length > 0;
+      if (!userAlreadyNavigated) applyLocation();
       setMounted(true);
       fetch("/api/auth/customer/session", { cache: "no-store" })
         .then(async (response) => {
@@ -95,10 +96,15 @@ export default function Page() {
             }
             return;
           }
+          const pendingTarget = state.authReturnTarget;
           if (sessionSubject && sessionSubject !== responseSubject) state.logout();
           state.setCustomer(payload.customer);
           if (Array.isArray(payload.addresses)) state.setAddresses(payload.addresses);
           state.mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
+          if (pendingTarget && state.view === "account") {
+            state.consumeAuthReturnTarget();
+            state.navigate(pendingTarget.view, pendingTarget.params);
+          }
         })
         .catch(() => undefined);
     };

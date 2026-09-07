@@ -17,8 +17,11 @@ test("the catalogue and authentication entry are interactive", async ({ page }) 
   const catalogue = page.getByRole("button", { name: /catégories|categories|acheter les produits|shop products/i }).first();
   await expect(catalogue).toBeVisible();
   await catalogue.click();
-  await expect(page.getByRole("heading", { name: /marché je mange africain|african market/i }).first()).toBeVisible();
-  await expect(page.locator("main img").first()).toBeVisible();
+  const authDialog = page.getByRole("dialog");
+  await expect(authDialog.getByTestId("customer-auth-workspace")).toBeVisible();
+  await expect(authDialog.getByTestId("auth-return-context")).toContainText(/connexion requise|sign-in required/i);
+  await authDialog.getByRole("button", { name: /fermer la connexion|close sign-in/i }).click();
+  await expect(page.getByRole("heading", { name: /favoris du moment|popular favourites/i })).toBeVisible();
 });
 
 test("the installable storefront exposes a safe app shell and public discovery map", async ({ page, request }) => {

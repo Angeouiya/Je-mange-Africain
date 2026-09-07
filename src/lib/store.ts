@@ -166,7 +166,18 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 let savedSyncTimer: ReturnType<typeof setTimeout> | null = null;
 let savedStateRevision = 0;
 
-const CUSTOMER_PROTECTED_VIEWS = new Set<ViewId>(["cart", "checkout", "order-confirmation", "orders", "order-tracking", "recipe-config"]);
+const CUSTOMER_PROTECTED_VIEWS = new Set<ViewId>([
+  "catalog",
+  "wholesale",
+  "product",
+  "recipes",
+  "recipe-config",
+  "cart",
+  "checkout",
+  "order-confirmation",
+  "orders",
+  "order-tracking",
+]);
 
 export function customerProtectedView(view: ViewId) {
   return CUSTOMER_PROTECTED_VIEWS.has(view);
@@ -179,9 +190,8 @@ function sanitizedAuthReturnTarget(view: ViewId, params: ViewParams = {}): AuthR
 
 export function publicFallbackForAuthTarget(target: AuthReturnTarget | null | undefined): AuthReturnTarget {
   if (!target || target.view === "account") return { view: "home", params: {} };
+  if (target.view === "info" && target.params.infoPage === "contact") return { view: "home", params: {} };
   if (!customerProtectedView(target.view)) return target;
-  if (target.view === "recipe-config") return { view: "recipes", params: {} };
-  if (target.view === "cart" || target.view === "checkout") return { view: "catalog", params: {} };
   return { view: "home", params: {} };
 }
 
