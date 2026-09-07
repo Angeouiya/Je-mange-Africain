@@ -2,6 +2,7 @@
 
 import { useDeferredValue, useState } from "react";
 import Image from "next/image";
+import type { IconFunction } from "reicon/createIcon";
 import { BookOpen } from "reicon/icons/BookOpen";
 import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
 import { ForkKnife } from "reicon/icons/ForkKnife";
@@ -100,6 +101,12 @@ export function RecipesView() {
         </div>
       </section>
 
+      <ol className="mb-4 flex gap-1.5 overflow-x-auto border-y border-burgundy/10 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={t.recipes.title} tabIndex={0} data-testid="storefront-workspace-flow">
+        <RecipeFlowStep icon={Search} label={isFr ? "Explorer" : "Explore"} detail={isFr ? "Plat, pays, ingrédient" : "Dish, country, ingredient"} active={Boolean(deferredSearch || country || category)} tone="burgundy" />
+        <RecipeFlowStep icon={ForkKnife} label={isFr ? "Adapter" : "Adjust"} detail={isFr ? "Personnes et quantités" : "People and quantities"} active={mode === "recipes"} tone="earth" />
+        <RecipeFlowStep icon={BookOpen} label={isFr ? "Comprendre" : "Understand"} detail={isFr ? "Origine et détails" : "Origin and details"} active={mode === "library"} tone="gold" />
+      </ol>
+
       <StorefrontAdvertisement placement="recipes" className="mb-4" />
 
       <Tabs value={mode} onValueChange={changeMode} className="gap-3">
@@ -146,6 +153,28 @@ export function RecipesView() {
 
 function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-md border px-2.5 py-1.5 text-[10px] font-bold transition ${active ? "border-terre bg-terre text-white" : "border-charcoal/10 bg-white text-charcoal hover:border-burgundy/25 hover:text-burgundy"}`}>{children}</button>;
+}
+
+function RecipeFlowStep({ icon, label, detail, active, tone }: { icon: IconFunction; label: string; detail: string; active: boolean; tone: "burgundy" | "earth" | "gold" }) {
+  const styles = {
+    burgundy: { item: "border-burgundy/14 bg-burgundy/[0.035]", icon: "border-burgundy/14 bg-burgundy/[0.07] text-burgundy", marker: "bg-burgundy" },
+    earth: { item: "border-terre/14 bg-terre/[0.04]", icon: "border-terre/15 bg-terre/[0.075] text-terre", marker: "bg-terre" },
+    gold: { item: "border-gold/35 bg-gold/[0.10]", icon: "border-gold/40 bg-gold/[0.18] text-charcoal", marker: "bg-gold" },
+  }[tone];
+
+  return (
+    <li
+      data-testid="storefront-workspace-flow-step"
+      className={`relative flex min-h-12 min-w-[9.75rem] shrink-0 items-center gap-2 rounded-md border px-2 py-1.5 ${styles.item} ${active ? "border-burgundy/28 bg-white shadow-[0_14px_34px_-30px_rgba(138,48,66,0.65)]" : ""}`}
+    >
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md border ${styles.icon}`}><ReiconGlyph icon={icon} weight="Filled" className="h-3.5 w-3.5" /></span>
+      <span className="min-w-0">
+        <span className="block truncate text-[10px] font-black leading-3.5 text-charcoal">{label}</span>
+        <span className="mt-0.5 block truncate text-[8px] font-semibold leading-3 text-muted-foreground">{detail}</span>
+      </span>
+      <span className={`absolute right-2 top-2 h-1.5 w-1.5 rounded-full ${active ? styles.marker : "bg-charcoal/18"}`} aria-hidden="true" />
+    </li>
+  );
 }
 
 function ResultSkeleton() {

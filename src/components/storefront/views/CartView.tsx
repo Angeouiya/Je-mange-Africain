@@ -202,6 +202,11 @@ export function CartView() {
             { icon: ReTruck, value: shipLoading ? "..." : shipFee === 0 ? (locale === "fr" ? "Offerte" : "Free") : formatPrice(shipFee, locale), label: locale === "fr" ? "livraison" : "delivery", tone: "gold" },
             { icon: ReCard, value: formatPrice(total, locale), label: locale === "fr" ? "total estimé" : "estimated total", tone: "burgundy" },
           ]}
+          flow={[
+            { icon: ReBasketShopping, label: locale === "fr" ? "Vérifier" : "Review", detail: locale === "fr" ? "Images, lignes, quantités" : "Images, lines, quantities", tone: "burgundy", active: cart.length > 0 },
+            { icon: ReTruck, label: locale === "fr" ? "Livrer" : "Deliver", detail: locale === "fr" ? "Pays, poids, frais" : "Country, weight, fee", tone: "earth", active: Boolean(shipQuote) },
+            { icon: ReCard, label: locale === "fr" ? "Payer" : "Pay", detail: locale === "fr" ? "Total avant validation" : "Total before validation", tone: "gold" },
+          ]}
           action={(
             <AlertDialog>
               <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="h-10 px-2 text-destructive hover:text-destructive sm:px-3" aria-label={t.cart.clear} title={t.cart.clear}><Trash2 className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{t.cart.clear}</span></Button></AlertDialogTrigger>
@@ -318,7 +323,7 @@ function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string;
   const t = dict[locale as "fr" | "en"];
   const localizedName = (locale === "en" ? c.nameEn : c.nameFr) || c.name;
   return (
-    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 sm:flex sm:gap-3">
+    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 sm:flex sm:gap-3" data-testid="cart-line">
       <ProductImage src={c.imageUrl} alt={localizedName} emoji={c.imageEmoji} color={c.imageColor} size="sm" className="row-span-2 h-14 w-14 shrink-0 sm:row-auto" rounded="rounded-md" />
       <div className="min-w-0 sm:flex-1">
         <p className="truncate text-sm font-bold text-charcoal">{localizedName}</p>
@@ -326,7 +331,7 @@ function CartLine({ c, locale, onQty, onRemove }: { c: CartItem; locale: string;
       </div>
       <div className="col-start-2 row-start-2 inline-flex w-fit items-center rounded-full border border-border sm:col-auto sm:row-auto">
         <button type="button" onClick={() => onQty(c.qty - 1)} disabled={c.salesChannel === "wholesale" && c.qty <= (c.minimumQty || 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted disabled:cursor-not-allowed disabled:opacity-35" aria-label={locale === "fr" ? `Diminuer la quantité de ${localizedName}` : `Decrease ${localizedName} quantity`}><span className="text-xs">−</span></button>
-        <span className="min-w-7 text-center text-sm font-semibold">{c.qty}</span>
+        <span className="min-w-7 text-center text-sm font-semibold" data-testid="cart-line-qty">{c.qty}</span>
         <button type="button" onClick={() => onQty(Math.min(c.maxStock || 99, c.qty + 1))} className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted" aria-label={locale === "fr" ? `Augmenter la quantité de ${localizedName}` : `Increase ${localizedName} quantity`}><span className="text-xs">+</span></button>
       </div>
       <span className="col-start-3 row-start-2 whitespace-nowrap text-right text-sm font-bold text-terre sm:col-auto sm:row-auto sm:w-20">{formatPrice(c.unitPrice * c.qty, locale as any)}</span>

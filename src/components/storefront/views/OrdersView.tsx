@@ -165,6 +165,11 @@ export function OrdersView() {
             { icon: ReCheckCircle, value: loading ? "..." : String(portfolio.delivered), label: locale === "fr" ? "livrées" : "delivered", tone: "earth" },
             { icon: ReCard, value: loading ? "..." : formatPrice(portfolio.orderedValue, locale), label: locale === "fr" ? "historique" : "history", tone: "gold" },
           ]}
+          flow={[
+            { icon: ReClipboardList, label: locale === "fr" ? "Lire" : "Read", detail: locale === "fr" ? "Historique et statut" : "History and status", tone: "burgundy", active: filter === "all" },
+            { icon: ReAlertCircle, label: locale === "fr" ? "Surveiller" : "Watch", detail: locale === "fr" ? "Retards ou action" : "Delays or action", tone: portfolio.attention > 0 ? "gold" : "earth", active: filter === "attention" || portfolio.attention > 0 },
+            { icon: ReCheckCircle, label: locale === "fr" ? "Racheter" : "Reorder", detail: locale === "fr" ? "Produits encore dispo" : "Still available items", tone: "gold" },
+          ]}
           action={<Button type="button" variant="outline" onClick={() => navigate("catalog")} className="h-10 border-burgundy/20 bg-white px-3 text-burgundy hover:bg-burgundy/[0.04] hover:text-burgundy" aria-label={locale === "fr" ? "Racheter des produits" : "Shop again"} title={locale === "fr" ? "Racheter des produits" : "Shop again"}><ShoppingBag className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{locale === "fr" ? "Racheter" : "Shop again"}</span></Button>}
         />
       </div>

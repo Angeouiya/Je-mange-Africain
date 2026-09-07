@@ -12,6 +12,14 @@ export type StorefrontWorkspaceSignal = {
   tone?: "burgundy" | "earth" | "gold";
 };
 
+export type StorefrontWorkspaceFlowStep = {
+  label: string;
+  detail: string;
+  icon: IconFunction;
+  tone?: "burgundy" | "earth" | "gold";
+  active?: boolean;
+};
+
 type StorefrontWorkspaceHeaderProps = {
   icon: IconFunction;
   eyebrow: string;
@@ -19,6 +27,8 @@ type StorefrontWorkspaceHeaderProps = {
   description: string;
   signals?: StorefrontWorkspaceSignal[];
   signalsMobile?: boolean;
+  flow?: StorefrontWorkspaceFlowStep[];
+  flowDensity?: "comfortable" | "compact";
   action?: ReactNode;
   switcher?: ReactNode;
   variant?: "band" | "hero";
@@ -31,8 +41,27 @@ const signalToneClasses: Record<NonNullable<StorefrontWorkspaceSignal["tone"]>, 
   gold: "border-gold/35 bg-gold/[0.12] text-charcoal",
 };
 
-export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, signals = [], signalsMobile = true, action, switcher, variant = "band", className }: StorefrontWorkspaceHeaderProps) {
+const flowToneClasses: Record<NonNullable<StorefrontWorkspaceFlowStep["tone"]>, { item: string; icon: string; marker: string }> = {
+  burgundy: {
+    item: "border-burgundy/14 bg-burgundy/[0.035]",
+    icon: "border-burgundy/14 bg-burgundy/[0.07] text-burgundy",
+    marker: "bg-burgundy",
+  },
+  earth: {
+    item: "border-terre/14 bg-terre/[0.04]",
+    icon: "border-terre/15 bg-terre/[0.075] text-terre",
+    marker: "bg-terre",
+  },
+  gold: {
+    item: "border-gold/35 bg-gold/[0.10]",
+    icon: "border-gold/40 bg-gold/[0.18] text-charcoal",
+    marker: "bg-gold",
+  },
+};
+
+export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, signals = [], signalsMobile = true, flow = [], flowDensity = "comfortable", action, switcher, variant = "band", className }: StorefrontWorkspaceHeaderProps) {
   const band = variant === "band";
+  const compactFlow = variant === "hero" || flowDensity === "compact";
 
   return (
     <section
@@ -85,6 +114,45 @@ export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, s
             ) : null}
             {switcher ? <div className="min-w-0">{switcher}</div> : null}
           </div>
+        ) : null}
+
+        {flow.length ? (
+          <ol
+            className={cn(
+              "-mx-1 flex min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              compactFlow ? "mt-2" : "mt-3",
+            )}
+            aria-label={title}
+            tabIndex={0}
+            data-testid="storefront-workspace-flow"
+          >
+            {flow.map((step, index) => {
+              const tone = flowToneClasses[step.tone || "burgundy"];
+              return (
+                <li
+                  key={`${step.label}-${index}`}
+                  className={cn(
+                    "relative flex shrink-0 items-center rounded-md border transition-colors",
+                    compactFlow
+                      ? "min-h-10 min-w-[8.75rem] gap-2 px-2 py-1.5 sm:min-w-[9.5rem]"
+                      : "min-h-[4.25rem] min-w-[10rem] gap-2.5 px-2.5 py-2 sm:min-w-[11.5rem]",
+                    tone.item,
+                    step.active && "border-burgundy/28 bg-white shadow-[0_14px_34px_-30px_rgba(138,48,66,0.65)]",
+                  )}
+                  data-testid="storefront-workspace-flow-step"
+                >
+                  <span className={cn("grid shrink-0 place-items-center rounded-md border", compactFlow ? "h-7 w-7" : "h-9 w-9", tone.icon)}>
+                    <ReiconGlyph icon={step.icon} weight="Filled" className={compactFlow ? "h-3.5 w-3.5" : "h-4 w-4"} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className={cn("block truncate font-black text-charcoal", compactFlow ? "text-[10px] leading-3.5" : "text-[11px] leading-4")}>{step.label}</span>
+                    <span className={cn("mt-0.5 block font-semibold text-muted-foreground", compactFlow ? "truncate text-[8px] leading-3" : "line-clamp-2 text-[9px] leading-3.5")}>{step.detail}</span>
+                  </span>
+                  <span className={cn("absolute right-2 top-2 h-1.5 w-1.5 rounded-full", step.active ? tone.marker : "bg-charcoal/18")} aria-hidden="true" />
+                </li>
+              );
+            })}
+          </ol>
         ) : null}
       </div>
     </section>

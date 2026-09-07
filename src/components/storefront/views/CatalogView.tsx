@@ -181,6 +181,11 @@ export function CatalogView() {
             { icon: CheckCircle, value: locale === "fr" ? "Stock" : "Stock", label: locale === "fr" ? "temps réel" : "live", tone: "earth" },
             { icon: BadgePercent, value: locale === "fr" ? "Promos" : "Deals", label: locale === "fr" ? "prix visibles" : "visible prices", tone: "gold" },
           ]}
+          flow={[
+            { icon: SearchIcon, label: locale === "fr" ? "Chercher" : "Search", detail: locale === "fr" ? "Nom, pays ou ingrédient" : "Name, country or ingredient", tone: "burgundy", active: Boolean(search) },
+            { icon: Sliders, label: locale === "fr" ? "Filtrer" : "Filter", detail: locale === "fr" ? "Rayon, prix, origine" : "Aisle, price, origin", tone: "earth", active: activeFilterCount > 0 },
+            { icon: CheckCircle, label: locale === "fr" ? "Choisir" : "Choose", detail: locale === "fr" ? "Image, stock et remise" : "Image, stock and deal", tone: "gold" },
+          ]}
           switcher={<MarketChannelSwitch channel="retail" />}
         />
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">

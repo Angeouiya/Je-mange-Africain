@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useDeferredValue, useState } from "react";
-import type { IconFunction } from "reicon/createIcon";
 import { Box } from "reicon/icons/Box";
 import { BoxTick } from "reicon/icons/BoxTick";
 import { ChartTrend } from "reicon/icons/ChartTrend";
@@ -97,30 +96,30 @@ export function WholesaleView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-7 md:py-10 lg:px-8">
-      <PageBackButton fallbackView="catalog" className="mb-2" />
+    <div className="mx-auto w-full max-w-7xl px-4 pb-5 pt-3 md:px-7 md:py-10 lg:px-8">
+      <PageBackButton fallbackView="catalog" className="mb-1" />
       <StorefrontWorkspaceHeader
         icon={Box}
         eyebrow={isFr ? "Distribution professionnelle" : "Professional distribution"}
         title={isFr ? "Marché de gros" : "Wholesale market"}
-        description={isFr ? "Commandez par carton ou par lot, profitez de prix dégressifs et conservez la traçabilité de la chaîne du froid." : "Order by case or lot, access tiered pricing and preserve cold-chain traceability."}
+        description={isFr ? "Lots, paliers pro et livraison suivie en Europe." : "Cases, pro tiers and tracked European delivery."}
         signalsMobile={false}
         signals={[
           { icon: BoxTick, value: loading ? "..." : String(data?.total ?? 0), label: isFr ? "offres pro" : "pro offers", tone: "burgundy" },
           { icon: ShieldCheck, value: isFr ? "FEFO" : "FEFO", label: isFr ? "lots tracés" : "tracked lots", tone: "earth" },
           { icon: Truck, value: "EU", label: isFr ? "multi-zone" : "multi-zone", tone: "gold" },
         ]}
+        flow={[
+          { icon: Search, label: isFr ? "Sourcer" : "Source", detail: isFr ? "Rayon, lot, origine" : "Aisle, lot, origin", tone: "burgundy", active: Boolean(deferredQuery || category) },
+          { icon: ChartTrend, label: isFr ? "Optimiser" : "Optimise", detail: isFr ? "Paliers et marge" : "Tiers and margin", tone: "earth" },
+          { icon: FilePlus, label: isFr ? "Devis" : "Quote", detail: isFr ? "Colis et exigences" : "Cases and needs", tone: "gold", active: quoteLines.length > 0 },
+        ]}
+        flowDensity="compact"
         action={<Button type="button" variant="outline" onClick={() => { if (ensureWholesaleAuth()) setQuoteOpen(true); }} className="h-10 px-3 sm:px-4" aria-label={!customer ? (isFr ? "Connectez-vous pour demander un devis" : "Sign in to request a quote") : quoteLines.length ? (isFr ? `Ouvrir le devis, ${quoteLines.length} produit(s) et ${quotePackCount} colis` : `Open quote, ${quoteLines.length} product(s) and ${quotePackCount} cases`) : (isFr ? "Demander un devis" : "Request a quote")}><ReiconGlyph icon={Box} className="mr-1.5 h-4 w-4 sm:mr-2" /><span className="sm:hidden">{customer ? (isFr ? "Devis" : "Quote") : (isFr ? "Connexion" : "Sign in")}</span><span className="hidden sm:inline">{customer ? (isFr ? "Demander un devis" : "Request a quote") : (isFr ? "Se connecter pour un devis" : "Sign in for quote")}</span>{quoteLines.length ? <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded bg-burgundy px-1 text-[9px] font-black text-white" aria-hidden="true">{quoteLines.length}</span> : null}</Button>}
         switcher={<MarketChannelSwitch channel="wholesale" />}
       />
 
-      <section className="hidden grid-cols-3 divide-x divide-charcoal/10 border-b border-charcoal/10 sm:grid" aria-label={isFr ? "Services du marché de gros" : "Wholesale services"}>
-        <WholesalePromise icon={BoxTick} title={isFr ? "Prix par volume" : "Volume pricing"} detail={isFr ? "Le meilleur palier s'applique automatiquement." : "The best tier applies automatically."} />
-        <WholesalePromise icon={ShieldCheck} title={isFr ? "Lots traçables" : "Traceable batches"} detail={isFr ? "Réservation FEFO sur le stock réel." : "FEFO reservation against live stock."} />
-        <WholesalePromise icon={Truck} title={isFr ? "Livraison Europe" : "European delivery"} detail={isFr ? "Ambiant, frais et surgelé séparés." : "Ambient, chilled and frozen separated."} />
-      </section>
-
-      <section className="py-3 sm:py-5" aria-labelledby="wholesale-products-title">
+      <section className="pb-3 pt-2 sm:py-5" aria-labelledby="wholesale-products-title">
         <div className="relative">
           <ReiconGlyph icon={Search} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 bg-white pl-9" placeholder={isFr ? "Rechercher un produit de gros" : "Search wholesale products"} aria-label={isFr ? "Rechercher dans le marché de gros" : "Search the wholesale market"} />
@@ -242,10 +241,6 @@ function WholesaleProductCard({ product, index, selectedPacks, onQuote, isAuthen
       </div>
     </article>
   );
-}
-
-function WholesalePromise({ icon, title, detail }: { icon: IconFunction; title: string; detail: string }) {
-  return <div className="flex min-w-0 flex-col items-center px-1.5 py-2 text-center sm:flex-row sm:items-start sm:gap-3 sm:px-5 sm:py-4 sm:text-left"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-burgundy/10 text-burgundy sm:h-9 sm:w-9"><ReiconGlyph icon={icon} className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></span><div className="min-w-0"><h2 className="mt-1 break-words text-[9px] font-extrabold leading-3 text-charcoal sm:mt-0 sm:text-xs sm:leading-normal">{title}</h2><p className="mt-0.5 hidden text-[10px] leading-4 text-muted-foreground sm:block">{detail}</p></div></div>;
 }
 
 function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {

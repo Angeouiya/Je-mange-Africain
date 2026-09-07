@@ -71,6 +71,11 @@ export function OrderTrackingView() {
             { icon: ReTruck, value: primaryShipment?.carrierName || primaryShipment?.carrier || (locale === "fr" ? "À attribuer" : "Pending"), label: locale === "fr" ? "transporteur" : "carrier", tone: "gold" },
             { icon: ReCard, value: payment?.status ? paymentStatusLabel(payment.status, locale) : (locale === "fr" ? "À confirmer" : "To confirm"), label: locale === "fr" ? "paiement" : "payment", tone: "burgundy" },
           ]}
+          flow={[
+            { icon: ReCheckCircle, label: locale === "fr" ? "Valider" : "Confirm", detail: locale === "fr" ? "Commande et paiement" : "Order and payment", tone: isInterrupted ? "gold" : "burgundy", active: stageIndex === 0 || isInterrupted },
+            { icon: RePackage, label: locale === "fr" ? "Préparer" : "Pack", detail: locale === "fr" ? "Colis et température" : "Parcels and thermal", tone: "earth", active: stageIndex === 1 },
+            { icon: ReTruck, label: locale === "fr" ? "Acheminer" : "Transit", detail: locale === "fr" ? "Transporteur et preuve" : "Carrier and proof", tone: "gold", active: stageIndex >= 2 },
+          ]}
           action={(
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Badge className={`max-w-[9rem] truncate border text-center ${orderStatusColor(order.status)}`}>{t.orders.statuses[orderStatusKey(order.status) as keyof typeof t.orders.statuses] || order.status}</Badge>

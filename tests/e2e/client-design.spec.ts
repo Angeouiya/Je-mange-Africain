@@ -229,6 +229,11 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   }
   await expect(page.getByLabel(/rechercher dans le catalogue|search the catalogue/i)).toBeVisible();
   await expect(page.getByLabel(/trier les produits|sort products/i)).toBeVisible();
+  const catalogFlow = page.getByTestId("storefront-workspace-flow");
+  await expect(catalogFlow.getByTestId("storefront-workspace-flow-step")).toHaveCount(3);
+  await expect(catalogFlow).toContainText(/chercher|search/i);
+  await expect(catalogFlow).toContainText(/filtrer|filter/i);
+  await expect(catalogFlow).toContainText(/choisir|choose/i);
   const quickSelections = page.getByRole("group", { name: /sélections rapides du catalogue|catalog quick selections/i });
   await expect(quickSelections.getByRole("button", { name: /^(tout|all)$/i })).toHaveAttribute("aria-pressed", "true");
   await expect(quickSelections).toContainText(/Toute l'offre|Whole offer/i);
@@ -282,6 +287,11 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.getByRole("tab", { name: /atlas des plats|dish atlas/i })).toBeVisible();
   await expect(page.getByText(/personnaliser puis créer le panier|customise then build the basket/i)).toBeVisible();
   await expect(page.getByText(/explorer les cuisines par origine|explore cuisines by origin/i)).toBeVisible();
+  const recipesFlow = page.getByTestId("storefront-workspace-flow");
+  await expect(recipesFlow.getByTestId("storefront-workspace-flow-step")).toHaveCount(3);
+  await expect(recipesFlow).toContainText(/explorer|explore/i);
+  await expect(recipesFlow).toContainText(/adapter|adjust/i);
+  await expect(recipesFlow).toContainText(/comprendre|understand/i);
   const recipeSearch = page.getByLabel(/rechercher une recette ou un plat|search for a recipe or dish/i);
   await expect(recipeSearch).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
@@ -661,6 +671,11 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   await page.goto("/?view=wholesale", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { level: 1, name: /marché de gros|wholesale market/i })).toBeVisible();
   await expect(page.getByText(/semoule de manioc fraîche|fresh cassava semolina/i)).toBeVisible();
+  const wholesaleFlow = page.getByTestId("storefront-workspace-flow");
+  await expect(wholesaleFlow.getByTestId("storefront-workspace-flow-step")).toHaveCount(3);
+  await expect(wholesaleFlow).toContainText(/sourcer|source/i);
+  await expect(wholesaleFlow).toContainText(/optimiser|optimise/i);
+  await expect(wholesaleFlow).toContainText(/devis|quote/i);
   const wholesaleFilters = page.getByRole("group", { name: /filtrer par rayon|filter by category/i });
   await expect(wholesaleFilters.getByTestId("category-icon").first()).toBeVisible();
   const grid = page.getByTestId("wholesale-product-grid");
@@ -728,7 +743,8 @@ test("the wholesale market applies volume pricing and preserves case quantities 
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
   await expect(page.getByText("Professional attieke", { exact: true })).toBeVisible();
   await expect(page.getByText(/^(gros|wholesale)$/i)).toBeVisible();
-  await expect(page.locator("#main-content").getByText("5", { exact: true })).toBeVisible();
+  const cartLine = page.getByTestId("cart-line").filter({ hasText: "Professional attieke" });
+  await expect(cartLine.getByTestId("cart-line-qty")).toHaveText("5");
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousA11yViolations(page);
 });
