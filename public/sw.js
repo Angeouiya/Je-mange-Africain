@@ -1,11 +1,13 @@
 const DEFAULT_ICON = "/brand/notification-icon-burgundy.png";
 const DEFAULT_BADGE = "/brand/notification-badge.png";
-const CACHE_NAME = "jma-shell-v4";
+const CACHE_NAME = "jma-shell-v5";
 const PUBLIC_API_CACHE_NAME = "jma-public-api-v1";
 const PUBLIC_API_CACHE_MAX_ENTRIES = 80;
 const PUBLIC_API_DEFAULT_MAX_AGE_MS = 30 * 1000;
+const OFFLINE_URL = "/offline.html";
 const APP_SHELL = [
   "/",
+  OFFLINE_URL,
   "/manifest.json",
   "/brand/app-icon-192-burgundy.png",
   "/brand/app-icon-512-burgundy.png",
@@ -49,13 +51,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) return;
 
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).then(async (response) => {
-      if (response.ok) {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.put("/", response.clone());
-      }
-      return response;
-    }).catch(() => caches.match("/").then((cached) => cached || Response.error())));
+    event.respondWith(navigationResponse(request));
     return;
   }
 
@@ -75,6 +71,25 @@ self.addEventListener("fetch", (event) => {
 
 function isPublicApiRequest(url) {
   return PUBLIC_API_ROUTES.some((pattern) => pattern.test(url.pathname));
+}
+
+async function navigationResponse(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put("/", response.clone());
+    }
+    return response;
+  } catch {
+    return await caches.match(request)
+      || await caches.match("/")
+      || await caches.match(OFFLINE_URL)
+      || new Response("Je mange Africain offline", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+  }
 }
 
 function isLocalDevelopmentHost(url) {
@@ -185,7 +200,10 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   if (event.action === "dismiss") return;
-  const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  const notificationUrl = new URL(event.notification.data?.url || "/", self.location.origin);
+  const targetUrl = notificationUrl.origin === self.location.origin
+    ? notificationUrl.href
+    : new URL("/", self.location.origin).href;
 
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });

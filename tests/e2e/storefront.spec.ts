@@ -196,12 +196,23 @@ test("the installable storefront exposes a safe app shell and public discovery m
   const workerResponse = await request.get("/sw.js");
   expect(workerResponse.ok()).toBeTruthy();
   const workerSource = await workerResponse.text();
-  expect(workerSource).toContain('const CACHE_NAME = "jma-shell-v4"');
+  expect(workerSource).toContain('const CACHE_NAME = "jma-shell-v5"');
   expect(workerSource).toContain('const PUBLIC_API_CACHE_NAME = "jma-public-api-v1"');
+  expect(workerSource).toContain('const OFFLINE_URL = "/offline.html"');
+  expect(workerSource).toContain("navigationResponse(request)");
+  expect(workerSource).toContain("await caches.match(OFFLINE_URL)");
   expect(workerSource).toContain("/^\\/api\\/catalog$/");
   expect(workerSource).toContain("/^\\/api\\/products\\/[^/]+$/");
   expect(workerSource).toContain('if (url.pathname.startsWith("/api/")) return;');
   expect(workerSource).toContain('/brand/notification-icon-burgundy.png');
+  expect(workerSource).toContain("notificationUrl.origin === self.location.origin");
+
+  const offlineResponse = await request.get("/offline.html");
+  expect(offlineResponse.ok()).toBeTruthy();
+  const offlineShell = await offlineResponse.text();
+  expect(offlineShell).toContain("Je mange Africain");
+  expect(offlineShell).toContain("Promise Corporation");
+  expect(offlineShell).not.toMatch(/admin|dashboard/i);
 
   const sitemapResponse = await request.get("/sitemap.xml");
   expect(sitemapResponse.ok()).toBeTruthy();
