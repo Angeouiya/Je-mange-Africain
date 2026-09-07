@@ -231,6 +231,9 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(page.getByLabel(/trier les produits|sort products/i)).toBeVisible();
   const quickSelections = page.getByRole("group", { name: /sélections rapides du catalogue|catalog quick selections/i });
   await expect(quickSelections.getByRole("button", { name: /^(tout|all)$/i })).toHaveAttribute("aria-pressed", "true");
+  await expect(quickSelections).toContainText(/Toute l'offre|Whole offer/i);
+  await expect(quickSelections).toContainText(/Prix remisés|Marked down/i);
+  await expect(quickSelections).toContainText(/Plus achetés|Most bought/i);
   await quickSelections.getByRole("button", { name: /recommandés|recommended/i }).click();
   await expect.poll(() => catalogRequests.some((url) => new URL(url).searchParams.get("highlight") === "recommended")).toBe(true);
   await expect(quickSelections.getByRole("button", { name: /recommandés|recommended/i })).toHaveAttribute("aria-pressed", "true");

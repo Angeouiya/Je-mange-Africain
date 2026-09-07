@@ -99,12 +99,12 @@ export function CatalogView() {
     popular: locale === "fr" ? "Populaires" : "Popular",
   };
   const quickSelections = [
-    { id: "all" as const, label: highlightLabels.all, icon: Sparkle },
-    { id: "available" as const, label: highlightLabels.available, icon: CheckCircle },
-    { id: "sale" as const, label: highlightLabels.sale, icon: BadgePercent },
-    { id: "new" as const, label: highlightLabels.new, icon: Star },
-    { id: "recommended" as const, label: highlightLabels.recommended, icon: Sparkle },
-    { id: "popular" as const, label: highlightLabels.popular, icon: CupTrophy },
+    { id: "all" as const, label: highlightLabels.all, detail: locale === "fr" ? "Toute l'offre" : "Whole offer", icon: Sparkle },
+    { id: "available" as const, label: highlightLabels.available, detail: locale === "fr" ? "Prêt à livrer" : "Ready to ship", icon: CheckCircle },
+    { id: "sale" as const, label: highlightLabels.sale, detail: locale === "fr" ? "Prix remisés" : "Marked down", icon: BadgePercent },
+    { id: "new" as const, label: highlightLabels.new, detail: locale === "fr" ? "Dernières entrées" : "Latest arrivals", icon: Star },
+    { id: "recommended" as const, label: highlightLabels.recommended, detail: locale === "fr" ? "Choix maison" : "House picks", icon: Sparkle },
+    { id: "popular" as const, label: highlightLabels.popular, detail: locale === "fr" ? "Plus achetés" : "Most bought", icon: CupTrophy },
   ];
   const activeFilters = [
     highlight !== "all" ? { key: "highlight", label: highlightLabels[highlight], onClear: () => setHighlight("all") } : null,
@@ -229,6 +229,7 @@ export function CatalogView() {
               key={selection.id}
               active={highlight === selection.id}
               icon={selection.icon}
+              detail={selection.detail}
               onClick={() => setHighlight(selection.id)}
             >
               {selection.label}
@@ -320,18 +321,22 @@ function FilterChip({ active, onClick, children, layout = "full" }: { active?: b
   );
 }
 
-function QuickSelectionButton({ active, icon, onClick, children }: { active: boolean; icon: IconFunction; onClick: () => void; children: React.ReactNode }) {
+function QuickSelectionButton({ active, icon, detail, onClick, children }: { active: boolean; icon: IconFunction; detail: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-[11px] font-black transition ${
-        active ? "border-burgundy bg-burgundy text-white shadow-sm" : "border-charcoal/10 bg-white text-charcoal hover:border-terre/30 hover:bg-terre/[0.035]"
+      aria-label={typeof children === "string" ? children : undefined}
+      className={`inline-flex min-h-12 min-w-[5.65rem] shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition sm:min-w-[7.2rem] ${
+        active ? "border-burgundy bg-[linear-gradient(135deg,#8A3042,#B9472B)] text-white shadow-[0_14px_28px_-22px_rgba(90,38,50,0.88)]" : "border-charcoal/10 bg-white text-charcoal hover:border-terre/30 hover:bg-terre/[0.035]"
       }`}
     >
       <ReiconGlyph icon={icon} weight={active ? "Filled" : "Outline"} className="h-4 w-4" />
-      <span>{children}</span>
+      <span className="min-w-0">
+        <span className="block truncate text-[10px] font-black leading-3">{children}</span>
+        <span aria-hidden="true" className={`mt-0.5 block truncate text-[7.5px] font-bold leading-3 ${active ? "text-white/70" : "text-muted-foreground"}`}>{detail}</span>
+      </span>
     </button>
   );
 }
