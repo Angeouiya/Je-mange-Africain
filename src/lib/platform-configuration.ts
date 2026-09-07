@@ -109,7 +109,7 @@ export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_RE
 export const PRODUCTION_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_AUIg2aOqbAJKzAvkEFdG8A_qYZiGd7D";
 export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12bc";
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
-export const CLOUDFLARE_PUBLICATION_MODE = "Worker created, public domain deferred";
+export const CLOUDFLARE_PUBLICATION_MODE = "Cloudflare Workers custom-domain deployment";
 
 export type DeploymentRequirementGroup = "database" | "identity" | "payments" | "cache" | "push" | "hosting";
 
@@ -380,10 +380,10 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
     {
       id: "cloudflare-domain",
       group: "hosting",
-      labelFr: "Domaine public différé",
-      labelEn: "Deferred public domain",
-      detailFr: `Le Worker Cloudflare est prêt sans route workers.dev publique. Rattachez ${PRODUCTION_SITE_URL}, puis passez CLOUDFLARE_DOMAIN_STATUS à attached.`,
-      detailEn: `The Cloudflare Worker is ready without a public workers.dev route. Attach ${PRODUCTION_SITE_URL}, then set CLOUDFLARE_DOMAIN_STATUS to attached.`,
+      labelFr: "Domaine public Cloudflare",
+      labelEn: "Cloudflare public domain",
+      detailFr: `Le Worker Cloudflare doit servir ${PRODUCTION_SITE_URL} avec le domaine personnalisé attaché.`,
+      detailEn: `The Cloudflare Worker must serve ${PRODUCTION_SITE_URL} with the custom domain attached.`,
       envKeys: ["NEXT_PUBLIC_SITE_URL", "CLOUDFLARE_DOMAIN_STATUS"],
       satisfied: domainAttached,
       severity: "recommended",

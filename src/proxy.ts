@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const ADMIN_DOMAIN = "admin.je-mange-africain.com";
+const CUSTOMER_DOMAIN = "je-mange-africain.com";
+const WWW_CUSTOMER_DOMAIN = "www.je-mange-africain.com";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
 
 function requestHost(request: NextRequest) {
@@ -27,6 +29,14 @@ export function proxy(request: NextRequest) {
     adminUrl.hostname = ADMIN_DOMAIN;
     adminUrl.port = "";
     return NextResponse.redirect(adminUrl);
+  }
+
+  if (host === WWW_CUSTOMER_DOMAIN) {
+    const customerUrl = request.nextUrl.clone();
+    customerUrl.protocol = "https";
+    customerUrl.hostname = CUSTOMER_DOMAIN;
+    customerUrl.port = "";
+    return NextResponse.redirect(customerUrl);
   }
 
   return NextResponse.next();

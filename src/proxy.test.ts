@@ -27,6 +27,20 @@ describe("platform proxy separation", () => {
     expect(response.headers.get("location")).toBe("https://admin.je-mange-africain.com/api/admin/session");
   });
 
+  it("keeps the public storefront canonical on the root domain", () => {
+    const response = proxy(makeRequest("https://www.je-mange-africain.com/recettes?country=CI", "www.je-mange-africain.com"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://je-mange-africain.com/recettes?country=CI");
+  });
+
+  it("keeps admin paths on the admin domain even when they arrive from www", () => {
+    const response = proxy(makeRequest("https://www.je-mange-africain.com/admin/orders", "www.je-mange-africain.com"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://admin.je-mange-africain.com/admin/orders");
+  });
+
   it("keeps local admin routes available for development and tests", () => {
     const response = proxy(makeRequest("http://127.0.0.1:3000/admin", "127.0.0.1:3000"));
 

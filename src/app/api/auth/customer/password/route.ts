@@ -5,8 +5,22 @@ import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
+const PRODUCTION_RESET_URL = "https://je-mange-africain.com/auth/reset";
 const Recovery = z.object({ email: z.string().trim().email().max(254) });
 const Reset = z.object({ accessToken: z.string().min(20), password: z.string().min(8).max(256) });
+
+function passwordResetRedirectUrl() {
+  const publicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://je-mange-africain.com";
+  try {
+    const url = new URL("/auth/reset", publicSiteUrl);
+    if (url.protocol !== "https:") return PRODUCTION_RESET_URL;
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return PRODUCTION_RESET_URL;
+  }
+}
 
 export async function POST(request: Request) {
   const limited = await enforceRateLimit(request, "password-reset", undefined, { scopes: ["ip", "global"] });
@@ -26,7 +40,7 @@ export async function POST(request: Request) {
       headers: { apikey: key, "Content-Type": "application/json" },
       body: JSON.stringify({
         email: parsed.data.email,
-        redirect_to: `${process.env.NEXT_PUBLIC_SITE_URL || "https://je-mange-africain.com"}/auth/reset`,
+        redirect_to: passwordResetRedirectUrl(),
       }),
       signal: AbortSignal.timeout(10_000),
     });

@@ -8,6 +8,20 @@
   ],
   "main": "vinext/server/fetch-handler",
   "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "je-mange-africain.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.je-mange-africain.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "admin.je-mange-africain.com",
+      "custom_domain": true
+    }
+  ],
   "placement": {
     "mode": "smart"
   },
