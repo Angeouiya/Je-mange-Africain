@@ -2,12 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { Archive, BookOpen, BookOpenCheck, Boxes, ChefHat, ChevronRight, Clock3, Package, PackageX, PencilLine, Sparkles, UsersRound, type LucideIcon } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { ArrowSwapHorizontal as ReArrowSwapHorizontal } from "reicon/icons/ArrowSwapHorizontal";
+import { BasketShopping as ReBasketShopping } from "reicon/icons/BasketShopping";
+import { BookOpen as ReBookOpen } from "reicon/icons/BookOpen";
+import { BoxTick as ReBoxTick } from "reicon/icons/BoxTick";
+import { ChefHatHeart as ReChefHatHeart } from "reicon/icons/ChefHatHeart";
+import { Image as ReImage } from "reicon/icons/Image";
+import { MagicWand as ReMagicWand } from "reicon/icons/MagicWand";
+import { ShieldCheck as ReShieldCheck } from "reicon/icons/ShieldCheck";
 import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { ProductCreateDialog } from "@/components/admin/ProductCreateDialog";
 import { RecipeCreateDialog } from "@/components/admin/RecipeCreateDialog";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useFetch } from "@/lib/use-fetch";
 import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { formatPrice, normalize, thermalColor, thermalLabel } from "@/lib/format";
@@ -21,6 +31,7 @@ type RecipeDetails = Recipe & { steps: string[]; ingredients: Array<{ recipeIngr
 type ProductFilter = "all" | "published" | "depleted" | "draft" | "archived" | "wholesale";
 type RecipeFilter = "all" | "published" | "draft" | "archived" | "attention";
 type OfferPilotAction = { key: string; label: string; detail: string; value: number; icon: LucideIcon; tone: "burgundy" | "terre" | "gold" | "destructive"; active: boolean; onClick: () => void };
+type RecipeStats = { published: number; draft: number; archived: number; ready: number; attention: number };
 
 export default function OfferSection({ locale, workspace }: { locale: "fr" | "en"; workspace: "products" | "recipes" }) {
   const isFr = locale === "fr";
@@ -48,7 +59,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
       || (productFilter === "depleted" ? productAvailableQty(product) <= 0 : productFilter === "wholesale" ? Boolean(product.isWholesale) : product.status === productFilter);
     return matchesQuery && matchesFilter;
   }), [products, normalizedQuery, productFilter]);
-  const recipeStats = useMemo(() => ({
+  const recipeStats = useMemo<RecipeStats>(() => ({
     published: recipes.filter((recipe) => recipe.status === "published").length,
     draft: recipes.filter((recipe) => recipe.status === "draft").length,
     archived: recipes.filter((recipe) => recipe.status === "archived").length,
@@ -136,6 +147,10 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         <RegisterFilterButton active={recipeFilter === "attention"} onClick={() => setRecipeFilter("attention")}>{isFr ? "À vérifier" : "Review"} · {recipeStats.attention}</RegisterFilterButton>
       </div> : null}
 
+      {workspace === "recipes" ? (
+        <RecipeClientMirror locale={locale} recipes={recipes} stats={recipeStats} onFilter={setRecipeFilter} />
+      ) : null}
+
       <OfferPilotStrip
         locale={locale}
         title={workspace === "products" ? (isFr ? "Pilotage marchand" : "Commerce cockpit") : (isFr ? "Pilotage culinaire" : "Culinary cockpit")}
@@ -193,6 +208,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
           {recipeDetailsRequest.loading && !recipeDetailsRequest.data ? <AdminSectionLoading label={isFr ? "Lecture de la recette" : "Reading recipe"} /> : recipeDetailsRequest.data ? (
             <>
               {recipeDetailsRequest.error ? <div className="px-5 pt-5 sm:px-6"><AdminRefreshNotice locale={locale} message={recipeDetailsRequest.error} onRetry={recipeDetailsRequest.refetch} /></div> : null}
+              <RecipeDetailReadiness recipe={recipeDetailsRequest.data} locale={locale} />
               <div className="grid gap-6 px-5 py-6 md:grid-cols-[0.82fr_1.18fr] sm:px-6">
               <section><h4 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Ingrédients liés" : "Linked ingredients"}</h4><div className="mt-3 divide-y divide-border border-y border-border">{recipeDetailsRequest.data.ingredients.map((ingredient) => { const available = ingredient.product.availableQty ?? ingredient.product.stockQty; const published = ingredient.product.status === "published"; return <div key={ingredient.recipeIngredientId} className="flex items-center gap-3 py-3"><ProductImage src={ingredient.product.imageUrl} alt={isFr ? ingredient.product.nameFr : ingredient.product.nameEn} emoji={ingredient.product.emoji} color={ingredient.product.color} size="sm" className="h-9 w-9 shrink-0" rounded="rounded-md" /><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-charcoal">{isFr ? ingredient.product.nameFr : ingredient.product.nameEn}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{ingredient.quantityPerBase} {ingredient.unit}{ingredient.optional ? ` · ${isFr ? "optionnel" : "optional"}` : ""}</p></div><span className={`text-right text-[10px] font-bold ${published && available > 0 ? "text-burgundy" : "text-destructive"}`}>{published ? `${available} ${isFr ? "dispo." : "avail."}` : (isFr ? "À publier" : "Publish first")}</span></div>; })}</div></section>
               <section><h4 className="text-xs font-extrabold uppercase text-muted-foreground">{recipeDetailsRequest.data.status === "published" ? (isFr ? "Préparation publiée" : "Published preparation") : (isFr ? "Préparation enregistrée" : "Recorded preparation")}</h4><ol className="mt-3 space-y-3">{recipeDetailsRequest.data.steps.map((step, index) => <li key={`${index}-${step}`} className="flex gap-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-terre text-[10px] font-black text-white">{index + 1}</span><p className="pt-1 text-xs leading-5 text-charcoal">{step}</p></li>)}</ol></section>
@@ -280,6 +296,119 @@ function OfferPilotButton({ action, locale }: { action: OfferPilotAction; locale
       </span>
     </button>
   );
+}
+
+function RecipeClientMirror({ locale, recipes, stats, onFilter }: { locale: "fr" | "en"; recipes: Recipe[]; stats: RecipeStats; onFilter: (filter: RecipeFilter) => void }) {
+  const isFr = locale === "fr";
+  const total = recipes.length;
+  const averageCoverage = total
+    ? Math.round(recipes.reduce((sum, recipe) => {
+      const required = recipe.requiredIngredientCount ?? recipe.ingredientCount;
+      const available = recipe.availableIngredientCount ?? required;
+      return sum + (recipe.stockCoverageRate ?? (required > 0 ? Math.round((available / required) * 100) : 0));
+    }, 0) / total)
+    : 0;
+  const averageSteps = total ? Math.round(recipes.reduce((sum, recipe) => sum + Number(recipe.stepCount || 0), 0) / total) : 0;
+  const missingImages = recipes.filter((recipe) => !recipe.imageUrl).length;
+  const cards = [
+    {
+      icon: ReShieldCheck,
+      label: isFr ? "Prêtes client" : "Customer ready",
+      value: `${stats.ready}/${total}`,
+      detail: stats.attention > 0 ? (isFr ? "corriger avant vitrine" : "fix before storefront") : (isFr ? "vitrine exploitable" : "storefront usable"),
+      tone: stats.attention > 0 ? "gold" : "burgundy",
+      onClick: () => onFilter(stats.attention > 0 ? "attention" : "all"),
+    },
+    {
+      icon: ReBoxTick,
+      label: isFr ? "Stock lié" : "Linked stock",
+      value: `${averageCoverage}%`,
+      detail: isFr ? "ingrédients achetables" : "shoppable ingredients",
+      tone: averageCoverage < 100 ? "gold" : "terre",
+      onClick: () => onFilter("attention"),
+    },
+    {
+      icon: ReMagicWand,
+      label: isFr ? "Préparation enrichie" : "Enriched method",
+      value: String(averageSteps),
+      detail: isFr ? "étapes moyennes" : "average steps",
+      tone: "burgundy",
+      onClick: () => onFilter("published"),
+    },
+    {
+      icon: ReBasketShopping,
+      label: isFr ? "Panier modifiable" : "Editable basket",
+      value: String(stats.published),
+      detail: missingImages > 0 ? (isFr ? `${missingImages} visuel(s) à charger` : `${missingImages} image(s) to upload`) : (isFr ? "photos prêtes partout" : "images ready everywhere"),
+      tone: missingImages > 0 ? "gold" : "terre",
+      onClick: () => onFilter("published"),
+    },
+  ] as const;
+
+  return (
+    <section className="overflow-hidden border-y border-burgundy/10 bg-[linear-gradient(118deg,#FFFFFF_0%,#FFF8F4_55%,#FFF3E5_100%)]" aria-labelledby="recipe-client-mirror-title" data-testid="admin-recipe-client-mirror">
+      <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-terre text-white shadow-[0_14px_28px_-20px_rgba(214,90,50,0.95)]"><ReiconGlyph icon={ReChefHatHeart} weight="Filled" className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black uppercase text-terre">{isFr ? "Miroir client" : "Customer mirror"}</p>
+          <h3 id="recipe-client-mirror-title" className="mt-0.5 text-sm font-black leading-5 text-charcoal">{isFr ? "Ce que l'application client pourra vraiment vendre" : "What the customer app can actually sell"}</h3>
+          <p className="mt-1 max-w-3xl text-[10px] leading-4 text-muted-foreground">{isFr ? "Le registre relie publication, stock, visuels, préparation et panier généré. Une alerte ici bloque la promesse client avant mise en avant." : "The register links publication, stock, imagery, cooking guidance and generated basket. Alerts here protect the customer promise before promotion."}</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 divide-x divide-y divide-burgundy/8 border-t border-burgundy/10 bg-white/72 md:grid-cols-4 md:divide-y-0">
+        {cards.map((card) => <RecipeClientMirrorTile key={card.label} {...card} />)}
+      </div>
+    </section>
+  );
+}
+
+function RecipeClientMirrorTile({ icon, label, value, detail, tone, onClick }: { icon: IconFunction; label: string; value: string; detail: string; tone: "burgundy" | "terre" | "gold"; onClick: () => void }) {
+  const toneClass = tone === "gold" ? "bg-gold/18 text-charcoal" : tone === "terre" ? "bg-terre/[0.08] text-terre" : "bg-burgundy/[0.07] text-burgundy";
+  return (
+    <button type="button" onClick={onClick} className="group flex min-h-[4.85rem] min-w-0 items-center gap-2.5 px-3 py-3 text-left transition hover:bg-terre/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/35">
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md ${toneClass}`}><ReiconGlyph icon={icon} weight="Filled" className="h-4 w-4" /></span>
+      <span className="min-w-0">
+        <span className="block truncate text-[8px] font-black uppercase text-muted-foreground">{label}</span>
+        <strong className="mt-0.5 block truncate text-sm font-black tabular-nums text-charcoal">{value}</strong>
+        <span className="mt-0.5 block line-clamp-2 text-[9px] font-semibold leading-3 text-muted-foreground">{detail}</span>
+      </span>
+    </button>
+  );
+}
+
+function RecipeDetailReadiness({ recipe, locale }: { recipe: RecipeDetails; locale: "fr" | "en" }) {
+  const isFr = locale === "fr";
+  const ingredientCount = recipe.ingredients.length;
+  const publishedIngredients = recipe.ingredients.filter((ingredient) => ingredient.product.status === "published").length;
+  const availableIngredients = recipe.ingredients.filter((ingredient) => {
+    const available = ingredient.product.availableQty ?? ingredient.product.stockQty;
+    return ingredient.product.status === "published" && available > 0;
+  }).length;
+  const blockers = recipe.ingredients.filter((ingredient) => ingredient.product.status !== "published" || (ingredient.product.availableQty ?? ingredient.product.stockQty) <= 0).length;
+  const ready = recipe.status === "published" && blockers === 0 && recipe.steps.length > 0;
+  return (
+    <section className={`border-b px-5 py-4 sm:px-6 ${ready ? "border-burgundy/12 bg-burgundy/[0.025]" : "border-gold/35 bg-gold/[0.075]"}`} aria-labelledby="recipe-detail-readiness-title" data-testid="recipe-client-readiness">
+      <div className="flex items-start gap-3">
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md text-white ${ready ? "bg-burgundy" : "bg-terre"}`}><ReiconGlyph icon={ready ? ReShieldCheck : ReMagicWand} weight="Filled" className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black uppercase text-terre">{isFr ? "Miroir client" : "Customer mirror"}</p>
+          <h4 id="recipe-detail-readiness-title" className="mt-0.5 text-sm font-black text-charcoal">{ready ? (isFr ? "Recette prête pour la vitrine et le panier" : "Recipe ready for storefront and basket") : (isFr ? "Points à régler avant mise en avant" : "Resolve before promotion")}</h4>
+          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{isFr ? "Cette synthèse montre exactement ce que la plateforme client pourra afficher, calculer et vendre." : "This summary shows exactly what the customer app can display, calculate and sell."}</p>
+        </div>
+        <Badge variant="outline" className={ready ? "border-burgundy/25 bg-white text-burgundy" : "border-gold/45 bg-white text-charcoal"}>{ready ? (isFr ? "Prête" : "Ready") : (isFr ? `${blockers} alerte(s)` : `${blockers} alert(s)`)}</Badge>
+      </div>
+      <div className="mt-3 grid grid-cols-2 divide-x divide-y divide-burgundy/8 border-y border-burgundy/10 bg-white text-center sm:grid-cols-4 sm:divide-y-0">
+        <RecipeReadinessMetric icon={ReImage} label={isFr ? "Visuel" : "Visual"} value={recipe.imageUrl ? (isFr ? "chargé" : "uploaded") : (isFr ? "à charger" : "missing")} />
+        <RecipeReadinessMetric icon={ReBoxTick} label={isFr ? "Produits liés" : "Linked products"} value={`${availableIngredients}/${ingredientCount}`} />
+        <RecipeReadinessMetric icon={ReBookOpen} label={isFr ? "Méthode guidée" : "Guided method"} value={`${recipe.steps.length} ${isFr ? "étapes" : "steps"}`} />
+        <RecipeReadinessMetric icon={ReBasketShopping} label={isFr ? "Panier client" : "Client basket"} value={publishedIngredients === ingredientCount ? (isFr ? "modifiable" : "editable") : (isFr ? `${ingredientCount - publishedIngredients} produit à publier` : `${ingredientCount - publishedIngredients} product to publish`)} />
+      </div>
+    </section>
+  );
+}
+
+function RecipeReadinessMetric({ icon, label, value }: { icon: IconFunction; label: string; value: string }) {
+  return <div className="min-w-0 px-2 py-2.5"><ReiconGlyph icon={icon} weight="Filled" className="mx-auto h-4 w-4 text-terre" /><p className="mt-1 truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className="mt-0.5 truncate text-[10px] font-black text-charcoal">{value}</p></div>;
 }
 
 function RecipeStatusBadge({ recipe, locale, compact = false }: { recipe: Recipe; locale: "fr" | "en"; compact?: boolean }) {

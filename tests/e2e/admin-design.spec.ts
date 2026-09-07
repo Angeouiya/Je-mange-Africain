@@ -2110,6 +2110,12 @@ test("the recipe register stays compact and exposes operational readiness", asyn
   await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("heading", { name: "Construire des recettes achetables" })).toBeVisible();
+  const clientMirror = page.getByTestId("admin-recipe-client-mirror");
+  await expect(clientMirror).toContainText("Miroir client");
+  await expect(clientMirror).toContainText("Prêtes client");
+  await expect(clientMirror).toContainText("Stock lié");
+  await expect(clientMirror).toContainText("Préparation enrichie");
+  await expect(clientMirror).toContainText("Panier modifiable");
   const register = page.getByTestId("admin-recipe-register");
   const row = register.getByTestId("admin-recipe-row").filter({ visible: true }).first();
   await expect(row).toContainText("Attiéké poisson braisé");
@@ -2205,6 +2211,9 @@ test("the recipe workspace exposes linked product publication blockers before st
   const pilot = page.getByTestId("offer-pilot-strip");
   await expect(pilot).toContainText("Pilotage culinaire");
   await expect(pilot).toContainText("0%");
+  const clientMirror = page.getByTestId("admin-recipe-client-mirror");
+  await expect(clientMirror).toContainText("Miroir client");
+  await expect(clientMirror).toContainText("corriger avant vitrine");
   await expect(pilot.getByTestId("offer-pilot-action-attention")).toContainText("Stock, produit ou préparation à corriger");
   await pilot.getByTestId("offer-pilot-action-attention").click();
   await expect(pilot.getByTestId("offer-pilot-action-attention")).toHaveAttribute("aria-pressed", "true");
@@ -2212,6 +2221,9 @@ test("the recipe workspace exposes linked product publication blockers before st
   await expect(row).toContainText("Produit à publier");
   await row.getByRole("button", { name: "Inspecter Placali sauce gombo" }).click();
   const details = page.getByRole("dialog", { name: "Placali sauce gombo" });
+  await expect(details.getByTestId("recipe-client-readiness")).toContainText("Miroir client");
+  await expect(details.getByTestId("recipe-client-readiness")).toContainText("Points à régler avant mise en avant");
+  await expect(details.getByTestId("recipe-client-readiness")).toContainText("1 produit à publier");
   await expect(details).toContainText("À publier");
   await expect(details).toContainText("Préparation enregistrée");
 
