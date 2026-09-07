@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
     root: projectRoot,
   },
   allowedDevOrigins: ["127.0.0.1"],
+  devIndicators: false,
   outputFileTracingIncludes: {
     "/api/**/*": ["./db/custom.db"],
   },

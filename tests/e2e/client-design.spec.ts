@@ -134,6 +134,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/dashboard admin|administration/i);
+  await expect(page.locator("body")).not.toContainText(/application premium d'|premium african grocery app/i);
   const accentColors = await page.evaluate(() => {
     const styles = getComputedStyle(document.documentElement);
     return ["--terre", "--gold", "--burgundy", "--burgundy-dark"].map((token) => styles.getPropertyValue(token).trim());

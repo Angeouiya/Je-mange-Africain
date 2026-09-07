@@ -552,7 +552,7 @@ export const dict = {
     },
 
     home: {
-      heroBadge: "Premium African grocery app",
+      heroBadge: "African food in Europe",
       heroTitle: "Je mange Africain\ndelivered with excellence.",
       heroSubtitle: "A demanding selection of African groceries, smart recipes, calculated baskets and tracked delivery to cook with precision, speed and pride.",
       heroCtaCatalog: "Discover the market",
