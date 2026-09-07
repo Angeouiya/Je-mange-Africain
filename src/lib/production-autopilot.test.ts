@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "node:fs";
 import {
   CLOUDFLARE_PUBLICATION_MODE,
   cloudflareSecretNames,
@@ -245,8 +246,9 @@ describe("production autopilot", () => {
   });
 
   it("reports remote blockers when Cloudflare secrets are empty and JMA is not visible in Supabase", () => {
+    const { DATABASE_URL: _databaseUrl, ...valuesWithoutDirectDatabase } = readyValues;
     const report = remoteProductionReadiness({
-      environment: environment(readyValues),
+      environment: environment(valuesWithoutDirectDatabase),
       linkedProjectRef: "",
       runner: (command, args) => {
         const joined = `${command} ${args.join(" ")}`;
@@ -266,11 +268,49 @@ describe("production autopilot", () => {
     expect(report.cloudflare.workerDeploymentsReadable).toBe(true);
     expect(report.cloudflare.missingRemoteSecretKeys).toEqual(REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS);
     expect(report.supabase.targetProject).toBeNull();
+    expect(report.supabase.hasRemoteAccess).toBe(false);
     expect(report.blockers).toEqual(expect.arrayContaining([
       expect.objectContaining({ key: "CLOUDFLARE_SECRETS" }),
       expect.objectContaining({ key: "SUPABASE_PROJECT" }),
       expect.objectContaining({ key: "SUPABASE_LINK" }),
     ]));
+  });
+
+  it("accepts direct JMA database access when migrations are aligned", () => {
+    const migrationRows = readdirSync("supabase/migrations")
+      .map((name) => name.match(/^(\d{14})_/)?.[1])
+      .filter(Boolean)
+      .map((version) => ({ local: version, remote: version }));
+    const report = remoteProductionReadiness({
+      environment: environment({
+        ...readyValues,
+        DIRECT_URL: readyValues.DATABASE_URL,
+      }),
+      linkedProjectRef: "",
+      runner: (command, args) => {
+        const joined = `${command} ${args.join(" ")}`;
+        if (joined.includes("wrangler deployments list")) return cliResult("Version(s): prod");
+        if (joined.includes("wrangler secret list")) return cliResult(JSON.stringify(REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS.map((name) => ({ name }))));
+        if (joined.includes("supabase projects list")) return {
+          status: 0,
+          stdout: JSON.stringify({ projects: [{ ref: "umockhnaabuxdmeeyszy", name: "Angeouiya's Project" }] }),
+          stderr: "",
+          error: "",
+        };
+        if (joined.includes("supabase migration list")) return cliResult(JSON.stringify({ migrations: migrationRows }));
+        return { status: 1, stdout: "", stderr: "unexpected", error: "" };
+      },
+    });
+    const lines: string[] = [];
+
+    printRemoteProductionReadiness(report, (line) => lines.push(line));
+
+    expect(report.ready).toBe(true);
+    expect(report.supabase.targetProject).toBeNull();
+    expect(report.supabase.hasRemoteAccess).toBe(true);
+    expect(report.supabase.directMigrationAligned).toBe(true);
+    expect(lines.join("\n")).toContain("direct database verified");
+    expect(lines.join("\n")).not.toContain(readyValues.STRIPE_SECRET_KEY);
   });
 
   it("accepts remote production wiring when the worker secrets and JMA project are visible", () => {

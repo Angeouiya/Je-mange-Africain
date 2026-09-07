@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -346,16 +346,14 @@ function bin(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
 }
 
-function windowsCmdArg(value) {
-  const text = String(value);
-  if (/^[A-Za-z0-9_/:=.,@+-]+$/.test(text)) return text;
-  return `"${text.replace(/(["^&|<>])/g, "^$1")}"`;
+function windowsPowerShellArg(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
 }
 
 function commandInvocation(command, args) {
   if (process.platform !== "win32") return { command: bin(command), args };
-  const line = [bin(command), ...args].map(windowsCmdArg).join(" ");
-  return { command: "cmd.exe", args: ["/d", "/s", "/c", line] };
+  const line = `& ${[bin(command), ...args].map(windowsPowerShellArg).join(" ")}`;
+  return { command: "powershell.exe", args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", line] };
 }
 
 function run(command, args, env) {
@@ -423,6 +421,37 @@ function supabaseProjectsFromPayload(payload) {
     .filter((project) => project.ref);
 }
 
+function localSupabaseMigrationVersions(cwd = process.cwd()) {
+  const migrationsDir = resolve(cwd, "supabase", "migrations");
+  if (!existsSync(migrationsDir)) return [];
+  return readdirSync(migrationsDir)
+    .map((name) => {
+      const match = name.match(/^(\d{14})_/);
+      return match?.[1] || "";
+    })
+    .filter(Boolean)
+    .sort();
+}
+
+function directSupabaseMigrationAudit(result, cwd = process.cwd()) {
+  const payload = parseJsonPayload(`${result?.stdout || ""}\n${result?.stderr || ""}`);
+  const migrations = Array.isArray(payload?.migrations) ? payload.migrations : [];
+  const remoteVersions = migrations
+    .map((migration) => String(migration?.remote || ""))
+    .filter(Boolean)
+    .sort();
+  const localVersions = localSupabaseMigrationVersions(cwd);
+  const missingRemoteVersions = localVersions.filter((version) => !remoteVersions.includes(version));
+
+  return {
+    readable: result?.status === 0 && Array.isArray(payload?.migrations),
+    localVersions,
+    remoteVersions,
+    missingRemoteVersions,
+    aligned: result?.status === 0 && Array.isArray(payload?.migrations) && missingRemoteVersions.length === 0,
+  };
+}
+
 export function remoteProductionReadiness({
   environment = loadProductionEnvironment(),
   linkedProjectRef = readSupabaseLinkedProjectRef(environment.cwd),
@@ -444,14 +473,42 @@ export function remoteProductionReadiness({
   const supabaseProjectsReadable = supabaseResult.status === 0 && visibleProjects.length > 0;
   const targetProject = visibleProjects.find((project) => project.ref === PRODUCTION_SUPABASE_PROJECT_REF) || null;
   const linkedToTarget = linkedProjectRef === PRODUCTION_SUPABASE_PROJECT_REF;
+  const supabaseCli = supabaseCliReadiness(environment, linkedProjectRef);
+  const directDatabaseUrl = supabaseCli.hasDirectDatabaseUrl && supabaseCli.directDatabaseUrlKey
+    ? environment.values[supabaseCli.directDatabaseUrlKey]
+    : "";
+  const needsDirectMigrationAudit = Boolean(directDatabaseUrl && (!targetProject || !linkedToTarget));
+  const directMigrationResult = needsDirectMigrationAudit
+    ? runner("npx", ["supabase", "migration", "list", "--db-url", directDatabaseUrl])
+    : null;
+  const directMigrationAudit = directMigrationResult
+    ? directSupabaseMigrationAudit(directMigrationResult, environment.cwd)
+    : {
+        readable: false,
+        localVersions: localSupabaseMigrationVersions(environment.cwd),
+        remoteVersions: [],
+        missingRemoteVersions: [],
+        aligned: false,
+      };
+  const directDatabaseTargetsJma = supabaseCli.directDatabaseProjectRef === PRODUCTION_SUPABASE_PROJECT_REF;
+  const directDatabaseVerified = directDatabaseTargetsJma && directMigrationAudit.aligned;
+  const hasSupabaseRemoteAccess = Boolean(targetProject && linkedToTarget) || directDatabaseVerified;
 
   const blockers = [];
   if (!workerDeploymentsReadable) blockers.push({ key: "CLOUDFLARE_WORKER", problem: "deployments are not readable for the configured Worker" });
   if (!cloudflareSecretsReadable) blockers.push({ key: "CLOUDFLARE_SECRETS", problem: "remote Worker secrets cannot be listed" });
   else if (missingRemoteSecretKeys.length) blockers.push({ key: "CLOUDFLARE_SECRETS", problem: `${missingRemoteSecretKeys.length} required secret(s) missing` });
-  if (!supabaseProjectsReadable) blockers.push({ key: "SUPABASE_PROJECTS", problem: "Supabase CLI projects are not readable" });
-  else if (!targetProject) blockers.push({ key: "SUPABASE_PROJECT", problem: `project ${PRODUCTION_SUPABASE_PROJECT_REF} is not visible to the current CLI session` });
-  if (!linkedToTarget) blockers.push({ key: "SUPABASE_LINK", problem: linkedProjectRef ? `linked to ${linkedProjectRef}` : "missing local project link" });
+  if (!hasSupabaseRemoteAccess) {
+    if (directDatabaseTargetsJma && needsDirectMigrationAudit && !directMigrationAudit.readable) {
+      blockers.push({ key: "SUPABASE_MIGRATIONS", problem: "remote migrations cannot be verified through DIRECT_URL" });
+    } else if (directDatabaseTargetsJma && directMigrationAudit.missingRemoteVersions.length) {
+      blockers.push({ key: "SUPABASE_MIGRATIONS", problem: `${directMigrationAudit.missingRemoteVersions.length} local migration(s) missing remotely` });
+    } else {
+      if (!supabaseProjectsReadable) blockers.push({ key: "SUPABASE_PROJECTS", problem: "Supabase CLI projects are not readable" });
+      else if (!targetProject) blockers.push({ key: "SUPABASE_PROJECT", problem: `project ${PRODUCTION_SUPABASE_PROJECT_REF} is not visible to the current CLI session` });
+      if (!linkedToTarget) blockers.push({ key: "SUPABASE_LINK", problem: linkedProjectRef ? `linked to ${linkedProjectRef}` : "missing local project link" });
+    }
+  }
 
   return {
     ready: blockers.length === 0,
@@ -472,6 +529,11 @@ export function remoteProductionReadiness({
       visibleProjects,
       linkedProjectRef,
       linkedToTarget,
+      directDatabaseProjectRef: supabaseCli.directDatabaseProjectRef,
+      directMigrationReadable: directMigrationAudit.readable,
+      directMigrationAligned: directMigrationAudit.aligned,
+      directMigrationMissingRemoteVersions: directMigrationAudit.missingRemoteVersions,
+      hasRemoteAccess: hasSupabaseRemoteAccess,
     },
   };
 }
@@ -488,9 +550,12 @@ export function printRemoteProductionReadiness(report, writer = console.log) {
   const visible = report.supabase.visibleProjects.length
     ? report.supabase.visibleProjects.map((project) => `${project.name || "Sans nom"} (${project.ref})`).join(", ")
     : "none";
-  writer(`${report.supabase.targetProject ? "OK" : "BLOCKED"} Supabase CLI target visibility - visible: ${visible}`);
+  const directAccess = report.supabase.directDatabaseProjectRef === PRODUCTION_SUPABASE_PROJECT_REF
+    ? (report.supabase.directMigrationAligned ? "direct database verified" : "direct database needs migration verification")
+    : "no direct JMA database URL";
+  writer(`${report.supabase.hasRemoteAccess ? "OK" : "BLOCKED"} Supabase production target access - visible: ${visible}; ${directAccess}`);
   const linkDetail = report.supabase.linkedProjectRef ? report.supabase.linkedProjectRef : "missing";
-  writer(`${report.supabase.linkedToTarget ? "OK" : "BLOCKED"} Local Supabase project link (${linkDetail})`);
+  writer(`${report.supabase.linkedToTarget || report.supabase.directMigrationAligned ? "OK" : "BLOCKED"} Supabase migration path (${report.supabase.linkedToTarget ? linkDetail : directAccess})`);
   writer(report.ready ? "Remote production wiring is ready." : `${report.blockers.length} remote production blocker(s) remain.`);
 }
 
