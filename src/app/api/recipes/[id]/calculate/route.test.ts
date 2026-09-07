@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
+  enforceRateLimit: vi.fn(),
   recipeFindFirst: vi.fn(),
   productFindMany: vi.fn(),
   computeRecipe: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/customer-auth", () => ({ authorizeCustomerRequest: mocks.authorize }));
+vi.mock("@/lib/redis", () => ({ enforceRateLimit: mocks.enforceRateLimit }));
 vi.mock("@/lib/db", () => ({ db: { recipe: { findFirst: mocks.recipeFindFirst }, product: { findMany: mocks.productFindMany } } }));
 vi.mock("@/lib/recipe-engine", () => ({ computeRecipe: mocks.computeRecipe }));
 vi.mock("@/lib/market-media", () => ({ getProductPhoto: mocks.getProductPhoto }));
@@ -60,6 +62,7 @@ describe("POST /api/recipes/[id]/calculate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.authorize.mockResolvedValue({ id: "customer-auth-1", email: "awa@example.fr", role: "customer" });
+    mocks.enforceRateLimit.mockResolvedValue(null);
     mocks.getProductPhoto.mockReturnValue("/products/attieke.webp");
     mocks.parseRecipeSteps.mockReturnValue([{ instruction: "Réchauffer l'attiéké à la vapeur." }]);
     mocks.recipeFindFirst.mockResolvedValue({
@@ -92,6 +95,18 @@ describe("POST /api/recipes/[id]/calculate", () => {
     });
   });
 
+  it("rate limits recipe recalculations before loading the catalogue", async () => {
+    mocks.enforceRateLimit.mockResolvedValueOnce(new Response(JSON.stringify({ code: "RATE_LIMITED" }), { status: 429 }));
+
+    const response = await POST(request(validBody), { params: Promise.resolve({ id: "recipe-1" }) });
+
+    expect(response.status).toBe(429);
+    expect(mocks.enforceRateLimit).toHaveBeenCalledWith(expect.any(NextRequest), "recipe-configurator", undefined, { scopes: ["ip", "route"] });
+    expect(mocks.authorize).not.toHaveBeenCalled();
+    expect(mocks.recipeFindFirst).not.toHaveBeenCalled();
+    expect(mocks.computeRecipe).not.toHaveBeenCalled();
+  });
+
   it("requires a connected customer before calculating a recipe basket", async () => {
     mocks.authorize.mockResolvedValue(null);
 
@@ -110,6 +125,7 @@ describe("POST /api/recipes/[id]/calculate", () => {
 
     expect(response.status).toBe(200);
     expect(payload.locale).toBe("fr");
+    expect(mocks.enforceRateLimit).toHaveBeenCalledWith(expect.any(NextRequest), "recipe-configurator", "customer-auth-1", { scopes: ["subject"] });
     expect(mocks.recipeFindFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: "recipe-1", status: "published" }) }));
     expect(mocks.productFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: { status: "published" } }));
     expect(mocks.computeRecipe).toHaveBeenCalledWith(expect.objectContaining({ servings: 4 }), expect.objectContaining({ recipeId: "recipe-1", baseServings: 4 }));

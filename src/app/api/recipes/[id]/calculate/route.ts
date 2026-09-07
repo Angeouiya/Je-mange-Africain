@@ -6,6 +6,7 @@ import { computeRecipe, type RecipeConfigInput } from "@/lib/recipe-engine";
 import { getProductPhoto } from "@/lib/market-media";
 import { parseRecipeSteps } from "@/lib/recipe-step-storage";
 import { PUBLIC_RECIPE_WHERE } from "@/lib/recipe-publication";
+import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +30,13 @@ const RecipeConfiguration = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const limited = await enforceRateLimit(req, "recipe-configurator", undefined, { scopes: ["ip", "route"] });
+  if (limited) return limited;
+
   const customer = await authorizeCustomerRequest(req);
   if (!customer) return NextResponse.json({ error: "Authentification client requise." }, { status: 401 });
+  const customerLimited = await enforceRateLimit(req, "recipe-configurator", customer.id, { scopes: ["subject"] });
+  if (customerLimited) return customerLimited;
 
   const { id } = await params;
   const payload = await req.json().catch(() => null);

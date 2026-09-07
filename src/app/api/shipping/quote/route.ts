@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
+import { enforceRateLimit } from "@/lib/redis";
 import { calculateShippingOptions, DELIVERY_SERVICES } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +18,13 @@ const ShippingQuoteRequest = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const limited = await enforceRateLimit(req, "shipping-quote", undefined, { scopes: ["ip", "route"] });
+  if (limited) return limited;
+
   const authorization = await authorizeShippingQuoteRequest(req);
   if (!authorization.ok) return authorization.response;
+  const subjectLimited = await enforceRateLimit(req, "shipping-quote", authorization.subject, { scopes: ["subject"] });
+  if (subjectLimited) return subjectLimited;
 
   const parsed = ShippingQuoteRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Paramètres de livraison invalides." }, { status: 400 });
@@ -42,10 +48,10 @@ export async function POST(req: NextRequest) {
 
 async function authorizeShippingQuoteRequest(request: NextRequest) {
   const customer = await authorizeCustomerRequest(request);
-  if (customer) return { ok: true as const };
+  if (customer) return { ok: true as const, subject: customer.id };
 
   const admin = await authorizeAdminRequest(request, { module: "logistics", action: "read" });
-  if (admin.ok) return { ok: true as const };
+  if (admin.ok) return { ok: true as const, subject: admin.user.id || admin.user.email };
   if (admin.response.status === 403 || admin.response.status === 503) return admin;
 
   return {

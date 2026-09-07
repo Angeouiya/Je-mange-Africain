@@ -7,8 +7,10 @@ export type RateLimitPolicy =
   | "register"
   | "password-reset"
   | "checkout"
+  | "shipping-quote"
   | "payment-intent"
   | "checkout-finalize"
+  | "recipe-configurator"
   | "search"
   | "account"
   | "saved-library"
@@ -51,8 +53,10 @@ const remoteRequiredPolicies = new Set<RateLimitPolicy>([
   "register",
   "password-reset",
   "checkout",
+  "shipping-quote",
   "payment-intent",
   "checkout-finalize",
+  "recipe-configurator",
   "account",
   "saved-library",
   "admin-auth",
@@ -100,6 +104,16 @@ export const rateLimitPolicyConfig: Record<RateLimitPolicy, RateLimitPolicyConfi
     messageFr: "Trop de tentatives de commande. Veuillez patienter avant de recommencer.",
     messageEn: "Too many checkout attempts. Please wait before trying again.",
   },
+  "shipping-quote": {
+    windows: [
+      { scope: "ip", requests: 30, windowMs: 60_000, window: "1 m" },
+      { scope: "route", requests: 40, windowMs: 60_000, window: "1 m" },
+      { scope: "subject", requests: 24, windowMs: 60_000, window: "1 m" },
+      { scope: "subject", requests: 180, windowMs: 60 * 60_000, window: "1 h" },
+    ],
+    messageFr: "Trop de simulations de livraison. Veuillez patienter avant de recommencer.",
+    messageEn: "Too many delivery simulations. Please wait before trying again.",
+  },
   "payment-intent": {
     windows: [
       { scope: "ip", requests: 10, windowMs: 60_000, window: "1 m" },
@@ -119,6 +133,16 @@ export const rateLimitPolicyConfig: Record<RateLimitPolicy, RateLimitPolicyConfi
     ],
     messageFr: "Trop de finalisations de commande. Veuillez patienter avant de recommencer.",
     messageEn: "Too many order finalization attempts. Please wait before trying again.",
+  },
+  "recipe-configurator": {
+    windows: [
+      { scope: "ip", requests: 36, windowMs: 60_000, window: "1 m" },
+      { scope: "route", requests: 48, windowMs: 60_000, window: "1 m" },
+      { scope: "subject", requests: 24, windowMs: 60_000, window: "1 m" },
+      { scope: "subject", requests: 160, windowMs: 60 * 60_000, window: "1 h" },
+    ],
+    messageFr: "Trop de recalculs de recette. Veuillez patienter avant de recommencer.",
+    messageEn: "Too many recipe recalculations. Please wait before trying again.",
   },
   search: {
     windows: [

@@ -3,11 +3,13 @@ import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
+  enforceRateLimit: vi.fn(),
   loadIdentity: vi.fn(),
   findMany: vi.fn(),
 }));
 
 vi.mock("@/lib/customer-auth", () => ({ authorizeCustomerRequest: mocks.authorize }));
+vi.mock("@/lib/redis", () => ({ enforceRateLimit: mocks.enforceRateLimit }));
 vi.mock("@/lib/customer-account", () => ({ loadCustomerIdentity: mocks.loadIdentity }));
 vi.mock("@/lib/db", () => ({ db: { wholesaleQuote: { findMany: mocks.findMany } } }));
 
@@ -40,6 +42,7 @@ describe("GET /api/customer/wholesale-quotes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.authorize.mockResolvedValue({ id: "supabase-user", email: "awa@example.fr", role: "customer" });
+    mocks.enforceRateLimit.mockResolvedValue(null);
     mocks.loadIdentity.mockResolvedValue({ userId: "user-1", customerId: "customer-1" });
     mocks.findMany.mockResolvedValue([quote]);
   });
@@ -49,6 +52,8 @@ describe("GET /api/customer/wholesale-quotes", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
+    expect(mocks.enforceRateLimit).toHaveBeenCalledWith(expect.any(NextRequest), "account", undefined, { scopes: ["ip", "route"] });
+    expect(mocks.enforceRateLimit).toHaveBeenCalledWith(expect.any(NextRequest), "account", "supabase-user", { scopes: ["subject"] });
     expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { customerId: "customer-1" } }));
     expect(payload.quotes[0]).toMatchObject({ reference: quote.reference, estimatedSubtotal: 180, items: [expect.objectContaining({ productNameFr: "Attiéké pro", lineTotal: 180 })] });
     expect(payload.quotes[0]).not.toHaveProperty("adminNote");
@@ -61,6 +66,16 @@ describe("GET /api/customer/wholesale-quotes", () => {
     const response = await GET(new NextRequest("http://localhost/api/customer/wholesale-quotes"));
 
     expect(response.status).toBe(401);
+    expect(mocks.findMany).not.toHaveBeenCalled();
+  });
+
+  it("rate limits private quote history before authentication and database access", async () => {
+    mocks.enforceRateLimit.mockResolvedValueOnce(new Response(JSON.stringify({ code: "RATE_LIMITED" }), { status: 429 }));
+
+    const response = await GET(new NextRequest("http://localhost/api/customer/wholesale-quotes"));
+
+    expect(response.status).toBe(429);
+    expect(mocks.authorize).not.toHaveBeenCalled();
     expect(mocks.findMany).not.toHaveBeenCalled();
   });
 });

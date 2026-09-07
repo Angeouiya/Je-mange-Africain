@@ -4,11 +4,13 @@ import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   authorizeCustomer: vi.fn(),
   authorizeAdmin: vi.fn(),
+  enforceRateLimit: vi.fn(),
   calculateShippingOptions: vi.fn(),
 }));
 
 vi.mock("@/lib/customer-auth", () => ({ authorizeCustomerRequest: mocks.authorizeCustomer }));
 vi.mock("@/lib/admin-auth", () => ({ authorizeAdminRequest: mocks.authorizeAdmin }));
+vi.mock("@/lib/redis", () => ({ enforceRateLimit: mocks.enforceRateLimit }));
 vi.mock("@/lib/shipping", () => ({
   DELIVERY_SERVICES: ["standard", "express", "relay"],
   calculateShippingOptions: mocks.calculateShippingOptions,
@@ -29,10 +31,22 @@ describe("POST /api/shipping/quote", () => {
     vi.clearAllMocks();
     mocks.authorizeCustomer.mockResolvedValue({ id: "customer-auth-1", email: "awa@example.fr", role: "customer" });
     mocks.authorizeAdmin.mockResolvedValue({ ok: false, response: new Response(JSON.stringify({ error: "Authentification requise." }), { status: 401 }) });
+    mocks.enforceRateLimit.mockResolvedValue(null);
     mocks.calculateShippingOptions.mockResolvedValue([
       { service: "standard", fee: 8.5, carrier: "DPD Europe", available: true },
       { service: "express", fee: 12.9, carrier: "DHL Express", available: true },
     ]);
+  });
+
+  it("rate limits delivery simulations before authentication or carrier calculation", async () => {
+    mocks.enforceRateLimit.mockResolvedValueOnce(new Response(JSON.stringify({ code: "RATE_LIMITED" }), { status: 429 }));
+
+    const response = await POST(request({ country: "France", postalCode: "75011", locale: "fr" }));
+
+    expect(response.status).toBe(429);
+    expect(mocks.enforceRateLimit).toHaveBeenCalledWith(expect.any(NextRequest), "shipping-quote", undefined, { scopes: ["ip", "route"] });
+    expect(mocks.authorizeCustomer).not.toHaveBeenCalled();
+    expect(mocks.calculateShippingOptions).not.toHaveBeenCalled();
   });
 
   it("requires a connected customer or logistics admin before quoting", async () => {
@@ -61,6 +75,7 @@ describe("POST /api/shipping/quote", () => {
     const response = await POST(request({ country: "Netherlands", postalCode: "1012ab", locale: "en", weightGrams: 2_000 }));
 
     expect(response.status).toBe(200);
+    expect(mocks.enforceRateLimit).toHaveBeenCalledWith(expect.any(NextRequest), "shipping-quote", "customer-auth-1", { scopes: ["subject"] });
     expect(mocks.calculateShippingOptions).toHaveBeenCalledWith(expect.objectContaining({ country: "Pays-Bas", postalCode: "1012 AB", weightGrams: 2_000 }));
   });
 

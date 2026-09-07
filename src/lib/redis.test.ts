@@ -70,4 +70,25 @@ describe("enforceRateLimit", () => {
     expect(blocked?.headers.get("X-RateLimit-Scope")).toBe("subject");
     expect(otherAdmin).toBeNull();
   });
+
+  it("protects delivery quotes and recipe recalculations with dedicated policies", async () => {
+    for (const policy of ["shipping-quote", "recipe-configurator"] as const) {
+      const subjectWindow = rateLimitPolicyConfig[policy].windows.find((window) => window.scope === "subject" && window.window === "1 m")!;
+      const routeWindow = rateLimitPolicyConfig[policy].windows.find((window) => window.scope === "route")!;
+
+      expect(subjectWindow.requests).toBeLessThanOrEqual(24);
+      expect(routeWindow.requests).toBeLessThanOrEqual(48);
+
+      clearLocalRateLimitBuckets();
+      for (let index = 0; index < subjectWindow.requests; index += 1) {
+        await expect(enforceRateLimit(request(`/api/${policy}`), policy, "customer-auth-1", { scopes: ["subject"] })).resolves.toBeNull();
+      }
+
+      const blocked = await enforceRateLimit(request(`/api/${policy}`), policy, "customer-auth-1", { scopes: ["subject"] });
+
+      expect(blocked?.status).toBe(429);
+      expect(blocked?.headers.get("X-RateLimit-Policy")).toBe(policy);
+      expect(blocked?.headers.get("X-RateLimit-Scope")).toBe("subject");
+    }
+  });
 });

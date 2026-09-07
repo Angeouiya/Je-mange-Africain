@@ -85,4 +85,21 @@ describe("production rate limiting safety", () => {
     expect(blocked?.status).toBe(429);
     await expect(blocked?.json()).resolves.toMatchObject({ code: "RATE_LIMITED", policy: "search" });
   });
+
+  it("requires remote throttling for delivery quotes and recipe recalculations in production", async () => {
+    vi.resetModules();
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+
+    const { enforceRateLimit, remoteRateLimitRequired } = await import("./redis");
+
+    for (const policy of ["shipping-quote", "recipe-configurator"] as const) {
+      const blocked = await enforceRateLimit(request(`/api/${policy}`), policy, undefined, { scopes: ["ip"] });
+
+      expect(remoteRateLimitRequired(policy)).toBe(true);
+      expect(blocked?.status).toBe(503);
+      await expect(blocked?.json()).resolves.toMatchObject({ code: "RATE_LIMIT_UNAVAILABLE", policy });
+    }
+  });
 });
