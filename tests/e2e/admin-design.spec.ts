@@ -1216,6 +1216,9 @@ test("the logistics cockpit publishes a route and mirrors the customer delivery 
   await page.goto("/admin#logistics", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("heading", { name: "Promesse de livraison" })).toBeVisible();
+  const commandRail = page.getByTestId("logistics-command-rail");
+  await expect(commandRail).toContainText("Ce que le paiement peut promettre maintenant");
+  await expect(commandRail).toContainText("couverture froid");
   await expect(page.getByRole("heading", { name: "Routes proposées au paiement" })).toBeVisible();
   await expect(page.getByTestId("delivery-route-list")).toContainText("Chrono Frais");
   await expect(page.getByText("3", { exact: true }).filter({ visible: true }).first()).toBeVisible();
