@@ -114,14 +114,59 @@ export function parsePrivacyConsentCookie(rawCookie: string | null | undefined, 
   return null;
 }
 
-function hasCompletedPrivacyStep(raw: string | null | undefined) {
+function hasCompletedPrivacyStep(raw: string | null | undefined, now = new Date()) {
   if (!raw) return false;
-  return raw === `v${PRIVACY_CONSENT_VERSION}`;
+  const value = raw.trim();
+  if (!value) return false;
+  if (
+    value === `v${PRIVACY_CONSENT_VERSION}`
+    || value === String(PRIVACY_CONSENT_VERSION)
+    || value === "true"
+    || value === "accepted"
+    || value === "refused"
+    || value === "rejected"
+    || value === "declined"
+  ) return true;
+
+  if (new RegExp(`^v${PRIVACY_CONSENT_VERSION}\\.[01]{3}$`).test(value)) return true;
+  if (parsePrivacyConsent(value) || legacyPrivacyConsent(value, now)) return true;
+
+  try {
+    const parsed = JSON.parse(value) as {
+      version?: unknown;
+      completed?: unknown;
+      dismissed?: unknown;
+      accepted?: unknown;
+      refused?: unknown;
+      rejected?: unknown;
+      choice?: unknown;
+      status?: unknown;
+    };
+    if (!parsed || typeof parsed !== "object") return false;
+    const explicitVersion = parsed.version === undefined
+      || parsed.version === PRIVACY_CONSENT_VERSION
+      || parsed.version === `v${PRIVACY_CONSENT_VERSION}`;
+    if (!explicitVersion) return false;
+    return parsed.completed === true
+      || parsed.dismissed === true
+      || typeof parsed.accepted === "boolean"
+      || parsed.refused === true
+      || parsed.rejected === true
+      || parsed.choice === "accepted"
+      || parsed.choice === "refused"
+      || parsed.choice === "rejected"
+      || parsed.choice === "custom"
+      || parsed.status === "accepted"
+      || parsed.status === "refused"
+      || parsed.status === "rejected";
+  } catch {
+    return false;
+  }
 }
 
-function hasCompletedPrivacyStepCookie(rawCookie: string | null | undefined) {
+function hasCompletedPrivacyStepCookie(rawCookie: string | null | undefined, now = new Date()) {
   return privacyCookieValues(rawCookie, PRIVACY_CONSENT_COMPLETED_COOKIE_NAME)
-    .some((value) => hasCompletedPrivacyStep(decodePrivacyCookieValue(value)));
+    .some((value) => hasCompletedPrivacyStep(decodePrivacyCookieValue(value), now));
 }
 
 function safeStorageGet(storage: Storage | undefined, key: string) {
@@ -195,9 +240,9 @@ export function readPrivacyConsent() {
   }
 
   const completedLocally =
-    hasCompletedPrivacyStep(safeStorageGet(window.localStorage, PRIVACY_CONSENT_COMPLETED_STORAGE_KEY))
-    || hasCompletedPrivacyStep(safeStorageGet(window.sessionStorage, PRIVACY_CONSENT_COMPLETED_SESSION_KEY));
-  if (completedLocally || hasCompletedPrivacyStepCookie(typeof document === "undefined" ? null : document.cookie)) {
+    hasCompletedPrivacyStep(safeStorageGet(window.localStorage, PRIVACY_CONSENT_COMPLETED_STORAGE_KEY), now)
+    || hasCompletedPrivacyStep(safeStorageGet(window.sessionStorage, PRIVACY_CONSENT_COMPLETED_SESSION_KEY), now);
+  if (completedLocally || hasCompletedPrivacyStepCookie(typeof document === "undefined" ? null : document.cookie, now)) {
     const completed = createPrivacyConsent({}, now);
     persistLocalPrivacyConsent(completed);
     return completed;
@@ -227,4 +272,9 @@ export function requestPrivacyPreferences() {
 
 export function optionalConsentCount(consent: Pick<PrivacyConsent, OptionalPrivacyPreference>) {
   return Number(consent.analytics) + Number(consent.personalization) + Number(consent.marketing);
+}
+
+export function resetPrivacyConsentMemoryForTests() {
+  memoryPrivacyConsent = null;
+  memoryPrivacyChoiceCompleted = false;
 }

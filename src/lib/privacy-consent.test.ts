@@ -11,11 +11,13 @@ import {
   PRIVACY_CONSENT_STORAGE_KEY,
   PRIVACY_CONSENT_VERSION,
   readPrivacyConsent,
+  resetPrivacyConsentMemoryForTests,
   savePrivacyConsent,
 } from "@/lib/privacy-consent";
 
 describe("privacy consent", () => {
   afterEach(() => {
+    resetPrivacyConsentMemoryForTests();
     vi.unstubAllGlobals();
   });
 
@@ -80,6 +82,70 @@ describe("privacy consent", () => {
     expect(consent).toMatchObject({ necessary: true, analytics: false, personalization: false, marketing: false });
     expect(stored[PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]).toBe("v1");
     expect(JSON.parse(stored[PRIVACY_CONSENT_STORAGE_KEY] || "{}")).toMatchObject({ analytics: false, personalization: false, marketing: false });
+  });
+
+  it("keeps the European privacy step dismissed after accepted or refused legacy markers", () => {
+    const markers = [
+      "accepted",
+      "refused",
+      "rejected",
+      "v1.000",
+      JSON.stringify({ version: 1, completed: true }),
+      JSON.stringify({ version: "v1", accepted: false }),
+      JSON.stringify({ version: 1, status: "refused" }),
+    ];
+
+    for (const marker of markers) {
+      const stored: Record<string, string | null> = {
+        [PRIVACY_CONSENT_STORAGE_KEY]: null,
+        [PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]: marker,
+      };
+      vi.stubGlobal("document", { cookie: "" });
+      vi.stubGlobal("window", {
+        localStorage: {
+          getItem: vi.fn((key: string) => stored[key] ?? null),
+          setItem: vi.fn((key: string, value: string) => { stored[key] = value; }),
+        },
+        sessionStorage: {
+          getItem: vi.fn(() => null),
+          setItem: vi.fn(),
+        },
+        location: { protocol: "https:", hostname: "je-mange-africain.com" },
+        dispatchEvent: vi.fn(),
+      });
+
+      expect(readPrivacyConsent()).toMatchObject({
+        necessary: true,
+        analytics: false,
+        personalization: false,
+        marketing: false,
+      });
+      expect(stored[PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]).toBe("v1");
+      resetPrivacyConsentMemoryForTests();
+    }
+  });
+
+  it("keeps the European privacy step dismissed from a completed cookie marker", () => {
+    const stored: Record<string, string | null> = {
+      [PRIVACY_CONSENT_STORAGE_KEY]: null,
+      [PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]: null,
+    };
+    vi.stubGlobal("document", { cookie: `${PRIVACY_CONSENT_COMPLETED_COOKIE_NAME}=refused` });
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: vi.fn((key: string) => stored[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => { stored[key] = value; }),
+      },
+      sessionStorage: {
+        getItem: vi.fn(() => null),
+        setItem: vi.fn(),
+      },
+      location: { protocol: "https:", hostname: "je-mange-africain.com" },
+      dispatchEvent: vi.fn(),
+    });
+
+    expect(readPrivacyConsent()).toMatchObject({ necessary: true, analytics: false, personalization: false, marketing: false });
+    expect(stored[PRIVACY_CONSENT_COMPLETED_STORAGE_KEY]).toBe("v1");
   });
 
   it("keeps the refusal cookie even when localStorage is blocked", () => {
