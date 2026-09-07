@@ -43,6 +43,7 @@ import {
 import { AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import type { AdminSectionId, DashboardPayload } from "@/components/admin/admin-types";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS, prefetchAdminSectionData } from "@/lib/admin-prefetch";
 import { hasAdminPermission, type AdminModule } from "@/lib/admin-permissions";
 import { BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
 
@@ -113,6 +114,11 @@ function preloadAdminSectionBundle(section: AdminSectionId) {
   const loader = ADMIN_SECTION_PRELOADERS[section];
   preloadedAdminSections.add(section);
   void loader().catch(() => preloadedAdminSections.delete(section));
+}
+
+function preloadAdminSection(section: AdminSectionId, locale: "fr" | "en") {
+  preloadAdminSectionBundle(section);
+  void prefetchAdminSectionData(section, locale);
 }
 
 function shouldSkipAdminPreload() {
@@ -231,7 +237,7 @@ export function AdminView({
   const [isDesktop, setIsDesktop] = useState(false);
   const sectionTitleRef = useRef<HTMLHeadingElement>(null);
   const focusSectionTitleRef = useRef(false);
-  const { data: dashboardData } = useFetch<DashboardPayload>(`/api/admin/dashboard?locale=${locale}`, [locale]);
+  const { data: dashboardData } = useFetch<DashboardPayload>(`/api/admin/dashboard?locale=${locale}`, [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const availableGroups = useMemo(() => NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => hasAdminPermission(adminRole, item.module, "read")) })).filter((group) => group.items.length), [adminRole]);
   const availableItems = useMemo(() => availableGroups.flatMap((group) => group.items), [availableGroups]);
   const quickItems = useMemo(() => {
@@ -282,8 +288,8 @@ export function AdminView({
 
     const prioritySectionIds = Array.from(new Set<AdminSectionId>([section, ...quickItems.map((item) => item.id)]));
     const restSectionIds = availableItems.map((item) => item.id).filter((id) => !prioritySectionIds.includes(id));
-    const cancelPriority = scheduleAdminPreload(() => prioritySectionIds.forEach(preloadAdminSectionBundle), 500);
-    const cancelRest = scheduleAdminPreload(() => restSectionIds.forEach(preloadAdminSectionBundle), 1800);
+    const cancelPriority = scheduleAdminPreload(() => prioritySectionIds.forEach((id) => preloadAdminSection(id, locale)), 500);
+    const cancelRest = scheduleAdminPreload(() => restSectionIds.forEach((id) => preloadAdminSection(id, locale)), 1800);
 
     return () => {
       cancelPriority();
@@ -295,10 +301,10 @@ export function AdminView({
   const currentGroup = useMemo(() => availableGroups.find((group) => group.items.some((item) => item.id === current.id)) || availableGroups[0], [availableGroups, current.id]);
   const moreActive = !quickItems.some((item) => item.id === section);
   const isFr = locale === "fr";
-  const preloadAvailableSections = () => availableItems.forEach((item) => preloadAdminSectionBundle(item.id));
+  const preloadAvailableSections = () => availableItems.forEach((item) => preloadAdminSection(item.id, locale));
 
   const selectSection = (next: AdminSectionId) => {
-    preloadAdminSectionBundle(next);
+    preloadAdminSection(next, locale);
     focusSectionTitleRef.current = next !== section;
     setSection(next);
     setSidebarOpen(false);
@@ -349,9 +355,9 @@ export function AdminView({
                       key={item.id}
                       type="button"
                       onClick={() => selectSection(item.id)}
-                      onPointerEnter={() => preloadAdminSectionBundle(item.id)}
-                      onFocus={() => preloadAdminSectionBundle(item.id)}
-                      onTouchStart={() => preloadAdminSectionBundle(item.id)}
+                      onPointerEnter={() => preloadAdminSection(item.id, locale)}
+                      onFocus={() => preloadAdminSection(item.id, locale)}
+                      onTouchStart={() => preloadAdminSection(item.id, locale)}
                       aria-current={active ? "page" : undefined}
                       data-active={active ? "true" : "false"}
                       className={`group relative isolate flex min-h-[3.1rem] w-full items-center gap-2.5 overflow-hidden rounded-md px-2.5 py-2 text-left transition-all ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.72)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}
@@ -448,7 +454,7 @@ export function AdminView({
           const active = section === item.id;
           const count = badgeFor(item.id);
           return (
-            <button key={item.id} type="button" onClick={() => selectSection(item.id)} onPointerEnter={() => preloadAdminSectionBundle(item.id)} onFocus={() => preloadAdminSectionBundle(item.id)} onTouchStart={() => preloadAdminSectionBundle(item.id)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-terre" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
+            <button key={item.id} type="button" onClick={() => selectSection(item.id)} onPointerEnter={() => preloadAdminSection(item.id, locale)} onFocus={() => preloadAdminSection(item.id, locale)} onTouchStart={() => preloadAdminSection(item.id, locale)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-terre" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
               {active ? <motion.span layoutId="admin-mobile-nav-active" className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-terre/15 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.07))] shadow-[0_8px_22px_-18px_rgba(185,71,43,0.85)]" transition={{ type: "spring", stiffness: 460, damping: 38 }} /> : null}
               <span className="relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95" style={{ color: active ? item.accent : undefined }}><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" />{count > 0 ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">{count > 99 ? "99+" : count}</span> : null}</span>
               <span className="block max-w-full leading-[1.05]">{isFr ? item.mobileFr : item.mobileEn}</span>

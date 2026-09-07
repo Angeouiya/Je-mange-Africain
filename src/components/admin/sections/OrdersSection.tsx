@@ -11,6 +11,7 @@ import type { AdminOrder } from "@/components/admin/admin-types";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { formatDate, formatDateTime, formatPrice, formatWeight, normalize, orderStatusColor, thermalLabel } from "@/lib/format";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
@@ -69,7 +70,7 @@ function orderSecurityWarning(order: AdminOrder, isFr: boolean) {
 
 export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "en"; canUpdate: boolean }) {
   const isFr = locale === "fr";
-  const { data, loading, error, refetch } = useFetch<{ orders: AdminOrder[] }>(`/api/orders?locale=${locale}`, [locale]);
+  const { data, loading, error, refetch } = useFetch<{ orders: AdminOrder[] }>(`/api/orders?locale=${locale}`, [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const [flow, setFlow] = useState<FlowId>("all");
   const [query, setQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
@@ -118,6 +119,11 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
         eyebrow={isFr ? "Exécution des commandes" : "Order execution"}
         title={isFr ? "Du paiement jusqu'à la porte" : "From payment to the doorstep"}
         description={isFr ? "Chaque commande avance dans un flux explicite. Ouvrez une fiche pour contrôler ses articles, son paiement, ses colis et sa chronologie." : "Every order moves through an explicit workflow. Open a record to inspect items, payment, parcels and timeline."}
+        signals={[
+          { label: isFr ? "À valider" : "To validate", value: String(counts.validate), icon: <Clock3 className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: isFr ? "Préparation" : "Packing", value: String(counts.prepare), icon: <PackageCheck className="h-3.5 w-3.5" />, tone: "gold" },
+          { label: isFr ? "Livraison" : "Delivery", value: String(counts.deliver), icon: <Truck className="h-3.5 w-3.5" />, tone: "burgundy" },
+        ]}
       />
 
       {error && data ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}

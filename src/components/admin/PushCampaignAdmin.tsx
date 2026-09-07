@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { aggregatePushDelivery, pushCampaignReadiness, pushDeliveryPerformance, type PushAudience, type PushAudienceCounts } from "@/lib/push-audience";
 import {
   AlertDialog,
@@ -68,7 +69,7 @@ const initialCampaign: CampaignDraft = {
 
 export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
   const [campaign, setCampaign] = useState(initialCampaign);
-  const { data, loading, error, refetch } = useFetch<PushDashboard>(`/api/admin/push?type=${campaign.type}`, [campaign.type]);
+  const { data, loading, error, refetch } = useFetch<PushDashboard>(`/api/admin/push?type=${campaign.type}`, [campaign.type], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const [editorLocale, setEditorLocale] = useState<"fr" | "en">(locale);
   const [previewLocale, setPreviewLocale] = useState<"fr" | "en">(locale);
   const [sending, setSending] = useState(false);
@@ -146,6 +147,12 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
         eyebrow={locale === "fr" ? "Engagement mobile" : "Mobile engagement"}
         title={locale === "fr" ? "Composer, vérifier, diffuser" : "Compose, verify, deliver"}
         description={locale === "fr" ? "Préparez un message bilingue, contrôlez son rendu mobile et confirmez explicitement la diffusion vers les appareils consentants." : "Prepare a bilingual message, review its mobile rendering and explicitly confirm delivery to consenting devices."}
+        signals={[
+          { label: locale === "fr" ? "Actifs" : "Active", value: String(data?.activeSubscriptions || 0), icon: <Smartphone className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: locale === "fr" ? "Consentants" : "Eligible", value: String(data?.eligibleSubscriptions || 0), icon: <UsersRound className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: locale === "fr" ? "Performance" : "Performance", value: `${Math.round(recentPerformance.deliveryRate)} %`, icon: <TrendingUp className="h-3.5 w-3.5" />, tone: "gold" },
+        ]}
+        signalsMobile={false}
         action={<Badge variant="outline" className="h-9 border-burgundy/30 bg-burgundy/5 px-3 text-burgundy"><Smartphone className="mr-1.5 h-3.5 w-3.5" /> {loading || data?.type !== campaign.type ? "…" : data?.eligibleSubscriptions || 0} {locale === "fr" ? "consentants" : "consenting"}</Badge>}
       />
 

@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { normalize } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 
 type CustomerSegment = "all" | AdminCustomer["segment"];
 type CustomerSort = "priority" | "value" | "recent" | "orders";
 
 export default function CustomersSection({ locale, canUpdate = false }: { locale: "fr" | "en"; canUpdate?: boolean }) {
   const isFr = locale === "fr";
-  const { data, loading, error, refetch } = useFetch<AdminCustomerPortfolioPayload>(`/api/admin/customers?locale=${locale}`, [locale]);
+  const { data, loading, error, refetch } = useFetch<AdminCustomerPortfolioPayload>(`/api/admin/customers?locale=${locale}`, [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const [segment, setSegment] = useState<CustomerSegment>("all");
   const [sort, setSort] = useState<CustomerSort>("priority");
   const [query, setQuery] = useState("");
@@ -51,6 +52,11 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
         eyebrow={isFr ? "Relation client" : "Customer relationship"}
         title={isFr ? "Piloter chaque relation" : "Steer every relationship"}
         description={isFr ? "Mesurez la fidélité, traitez les demandes et ouvrez chaque dossier avec une prochaine action explicite." : "Measure loyalty, resolve requests and open every profile with an explicit next action."}
+        signals={[
+          { label: isFr ? "Clients" : "Customers", value: String(data.summary.total), icon: <UsersRound className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: isFr ? "Ambassadeurs" : "Ambassadors", value: String(data.summary.segments.ambassador), icon: <UserRound className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "À traiter" : "Actionable", value: String(data.summary.actionable), icon: <UserRound className="h-3.5 w-3.5" />, tone: data.summary.actionable ? "gold" : "earth" },
+        ]}
       />
 
       {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}

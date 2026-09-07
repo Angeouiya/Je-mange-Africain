@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { formatPrice, normalize, thermalColor, thermalLabel } from "@/lib/format";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { getProductPhoto, getRecipePhoto } from "@/lib/market-media";
@@ -27,9 +28,9 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [productFilter, setProductFilter] = useState<ProductFilter>("all");
   const [recipeFilter, setRecipeFilter] = useState<RecipeFilter>("all");
-  const productsRequest = useFetch<{ products: Product[]; total: number }>(workspace === "products" ? `/api/admin/products?locale=${locale}` : null, [locale, workspace]);
-  const recipesRequest = useFetch<{ recipes: Recipe[] }>(workspace === "recipes" ? `/api/admin/recipes?locale=${locale}` : null, [locale, workspace]);
-  const recipeDetailsRequest = useFetch<RecipeDetails>(selectedRecipe ? `/api/admin/recipes/${selectedRecipe.id}?locale=${locale}` : null, [selectedRecipe?.id, locale]);
+  const productsRequest = useFetch<{ products: Product[]; total: number }>(workspace === "products" ? `/api/admin/products?locale=${locale}` : null, [locale, workspace], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
+  const recipesRequest = useFetch<{ recipes: Recipe[] }>(workspace === "recipes" ? `/api/admin/recipes?locale=${locale}` : null, [locale, workspace], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
+  const recipeDetailsRequest = useFetch<RecipeDetails>(selectedRecipe ? `/api/admin/recipes/${selectedRecipe.id}?locale=${locale}` : null, [selectedRecipe?.id, locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
 
   const products = productsRequest.data?.products || [];
   const recipes = recipesRequest.data?.recipes || [];
@@ -88,6 +89,16 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         eyebrow={workspace === "products" ? (isFr ? "Référentiel marchand" : "Commerce master data") : (isFr ? "Atelier culinaire" : "Culinary workshop")}
         title={workspace === "products" ? (isFr ? "Ce qui est réellement vendu" : "What is actually sold") : (isFr ? "Construire des recettes achetables" : "Build shoppable recipes")}
         description={workspace === "products" ? (isFr ? "Gérez chaque produit publié, son prix calculé, sa marge interne et sa disponibilité sans mélanger la logique éditoriale des recettes." : "Manage every published product, calculated price, internal margin and availability without mixing in recipe editorial work.") : (isFr ? "Ordonnez la préparation, reliez chaque ingrédient à un produit disponible et définissez précisément les portions proposées au client." : "Sequence preparation, link every ingredient to available stock and define the exact servings offered to customers.")}
+        signals={workspace === "products" ? [
+          { label: isFr ? "Publiés" : "Published", value: String(productStats.published), icon: <BookOpenCheck className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "Ruptures" : "Stock outs", value: String(productStats.depleted), icon: <PackageX className="h-3.5 w-3.5" />, tone: productStats.depleted ? "gold" : "earth" },
+          { label: isFr ? "Gros" : "Wholesale", value: String(productStats.wholesale), icon: <Boxes className="h-3.5 w-3.5" />, tone: "earth" },
+        ] : [
+          { label: isFr ? "Publiées" : "Published", value: String(recipeStats.published), icon: <BookOpenCheck className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "Prêtes" : "Ready", value: String(recipeStats.ready), icon: <ChefHat className="h-3.5 w-3.5" />, tone: "gold" },
+          { label: isFr ? "À vérifier" : "Review", value: String(recipeStats.attention), icon: <PackageX className="h-3.5 w-3.5" />, tone: recipeStats.attention ? "gold" : "earth" },
+        ]}
+        signalsMobile={false}
         action={workspace === "products" ? <ProductCreateDialog locale={locale} onCreated={productsRequest.refetch} /> : <RecipeCreateDialog locale={locale} onCreated={recipesRequest.refetch} />}
       />
 

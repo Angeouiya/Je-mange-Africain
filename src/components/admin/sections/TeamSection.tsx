@@ -8,13 +8,14 @@ import { TeamMemberWorkspace } from "@/components/admin/TeamMemberWorkspace";
 import { TeamRoleWorkspace } from "@/components/admin/TeamRoleWorkspace";
 import type { TeamPayload, TeamRole, TeamSummary } from "@/components/admin/team-types";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 
 type TeamTab = "members" | "roles";
 
 export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
   const isFr = locale === "fr";
   const [tab, setTab] = useState<TeamTab>("members");
-  const request = useFetch<TeamPayload>("/api/admin/team", [locale]);
+  const request = useFetch<TeamPayload>("/api/admin/team", [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const data = request.data;
   const roleCatalog = data ? completeRoleCatalog(data) : [];
   const summary = data ? data.summary || fallbackSummary(data) : null;
@@ -23,7 +24,21 @@ export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
   if (request.error && !data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
 
   return <div className="space-y-6">
-    <AdminPageHeader variant="control" accent="#C92A3E" icon={<UserRoundCog className="h-5 w-5" />} eyebrow={isFr ? "Identités et autorisations" : "Identity and authorisation"} title={isFr ? "Équipe professionnelle" : "Professional team"} description={isFr ? "Mesurez la couverture opérationnelle, attribuez le rôle strictement nécessaire et documentez chaque changement d'accès." : "Measure operational coverage, grant only the required role and document every access change."} action={data ? <InviteMemberDialog locale={locale} roles={data.roles} onInvited={request.refetch} /> : undefined} />
+    <AdminPageHeader
+      variant="control"
+      accent="#C92A3E"
+      icon={<UserRoundCog className="h-5 w-5" />}
+      eyebrow={isFr ? "Identités et autorisations" : "Identity and authorisation"}
+      title={isFr ? "Équipe professionnelle" : "Professional team"}
+      description={isFr ? "Mesurez la couverture opérationnelle, attribuez le rôle strictement nécessaire et documentez chaque changement d'accès." : "Measure operational coverage, grant only the required role and document every access change."}
+      signals={summary ? [
+        { label: isFr ? "Identités" : "Identities", value: String(summary.total), icon: <UsersRound className="h-3.5 w-3.5" />, tone: "earth" },
+        { label: isFr ? "Actifs" : "Active", value: String(summary.active), icon: <UserCheck className="h-3.5 w-3.5" />, tone: "burgundy" },
+        { label: isFr ? "Délégation" : "Delegation", value: `${summary.coveredModules}/${summary.totalModules}`, icon: <ShieldCheck className="h-3.5 w-3.5" />, tone: "gold" },
+      ] : []}
+      signalsMobile={false}
+      action={data ? <InviteMemberDialog locale={locale} roles={data.roles} onInvited={request.refetch} /> : undefined}
+    />
 
     {request.error && data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}
 

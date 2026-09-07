@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { formatDateTime } from "@/lib/format";
 import { advertisementLifecycle, type AdvertisementLifecycle } from "@/lib/advertising";
 import { StorefrontAdvertisementArtwork, type StorefrontAdvertisementVariant } from "@/components/storefront/StorefrontAdvertisement";
@@ -43,7 +44,7 @@ export default function AdvertisingSection({ locale }: { locale: "fr" | "en" }) 
   const isFr = locale === "fr";
   const [lifecycleFilter, setLifecycleFilter] = useState<"all" | AdvertisementLifecycle>("all");
   const [placementFilter, setPlacementFilter] = useState<"all" | Advertisement["placement"]>("all");
-  const request = useFetch<{ advertisements: Advertisement[] }>("/api/admin/advertisements", [locale]);
+  const request = useFetch<{ advertisements: Advertisement[] }>("/api/admin/advertisements", [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const advertisements = request.data?.advertisements || [];
   const lifecycles = useMemo(() => new Map(advertisements.map((advertisement) => [advertisement.id, advertisementLifecycle(advertisement)])), [advertisements]);
   const metrics = useMemo(() => ({
@@ -62,7 +63,21 @@ export default function AdvertisingSection({ locale }: { locale: "fr" | "en" }) 
   if (request.error && !request.data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;
 
   return <div className="space-y-6">
-    <AdminPageHeader variant="workspace" accent="#D65A32" icon={<Megaphone className="h-5 w-5" />} eyebrow={isFr ? "Visibilité commerciale" : "Commercial visibility"} title={isFr ? "Régie publicitaire" : "Advertising desk"} description={isFr ? "Créez des affiches bilingues, choisissez leur emplacement et leur calendrier, puis contrôlez exactement ce qui est visible dans l'application client." : "Create bilingual artwork, choose its placement and schedule, then control exactly what appears in the customer app."} action={<AdvertisementEditor locale={locale} onSaved={request.refetch} />} />
+    <AdminPageHeader
+      variant="workspace"
+      accent="#D65A32"
+      icon={<Megaphone className="h-5 w-5" />}
+      eyebrow={isFr ? "Visibilité commerciale" : "Commercial visibility"}
+      title={isFr ? "Régie publicitaire" : "Advertising desk"}
+      description={isFr ? "Créez des affiches bilingues, choisissez leur emplacement et leur calendrier, puis contrôlez exactement ce qui est visible dans l'application client." : "Create bilingual artwork, choose its placement and schedule, then control exactly what appears in the customer app."}
+      signals={[
+        { label: isFr ? "En cours" : "Live", value: String(metrics.active), icon: <Radio className="h-3.5 w-3.5" />, tone: "earth" },
+        { label: isFr ? "Planifiées" : "Scheduled", value: String(metrics.scheduled), icon: <CalendarRange className="h-3.5 w-3.5" />, tone: "gold" },
+        { label: isFr ? "Emplacements" : "Placements", value: String(metrics.placements), icon: <LayoutTemplate className="h-3.5 w-3.5" />, tone: "burgundy" },
+      ]}
+      signalsMobile={false}
+      action={<AdvertisementEditor locale={locale} onSaved={request.refetch} />}
+    />
 
     {request.error && request.data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}
 

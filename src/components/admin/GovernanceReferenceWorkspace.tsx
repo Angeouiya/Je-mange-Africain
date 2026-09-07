@@ -4,11 +4,12 @@ import { BookOpenCheck, Fingerprint, Languages, ShieldCheck, Tags, UserCog } fro
 import { AdminErrorState, AdminRefreshNotice, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { Badge } from "@/components/ui/badge";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 
 export function GovernanceReferenceWorkspace({ locale, adminEmail, adminRole }: { locale: "fr" | "en"; adminEmail: string; adminRole: string }) {
   const isFr = locale === "fr";
-  const categoriesRequest = useFetch<{ categories: Array<{ id: string; name: string }> }>(`/api/categories?locale=${locale}`, [locale]);
-  const brandsRequest = useFetch<{ brands: Array<{ id: string; name: string }> }>(`/api/brands?locale=${locale}`, [locale]);
+  const categoriesRequest = useFetch<{ categories: Array<{ id: string; name: string }> }>(`/api/categories?locale=${locale}`, [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
+  const brandsRequest = useFetch<{ brands: Array<{ id: string; name: string }> }>(`/api/brands?locale=${locale}`, [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   if ((categoriesRequest.loading || brandsRequest.loading) && !categoriesRequest.data && !brandsRequest.data) return <AdminSectionLoading label={isFr ? "Lecture des référentiels publiés" : "Reading published reference data"} />;
   if (categoriesRequest.error && brandsRequest.error && !categoriesRequest.data && !brandsRequest.data) return <AdminErrorState locale={locale} message={categoriesRequest.error} onRetry={() => { categoriesRequest.refetch(); brandsRequest.refetch(); }} />;
   const categories = categoriesRequest.data?.categories || [];

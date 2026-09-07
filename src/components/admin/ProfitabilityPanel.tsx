@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 
 type Period = "30d" | "month" | "year" | "all";
 type Analysis = "general" | "category" | "batch";
@@ -80,7 +81,7 @@ export function ProfitabilityPanel({ locale, onNavigate }: { locale: "fr" | "en"
   const isFr = locale === "fr";
   const [period, setPeriod] = useState<Period>("30d");
   const [analysis, setAnalysis] = useState<Analysis>("general");
-  const request = useFetch<ProfitabilityData>(`/api/admin/profitability?locale=${locale}&period=${period}`, [locale, period]);
+  const request = useFetch<ProfitabilityData>(`/api/admin/profitability?locale=${locale}&period=${period}`, [locale, period], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
 
   if (request.loading && !request.data) return <AdminSectionLoading label={isFr ? "Calcul de la rentabilité réelle" : "Calculating actual profitability"} />;
   if (request.error && !request.data) return <AdminErrorState locale={locale} message={request.error} onRetry={request.refetch} />;

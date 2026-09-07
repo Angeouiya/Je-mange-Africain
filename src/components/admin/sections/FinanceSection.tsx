@@ -25,6 +25,11 @@ export default function FinanceSection({ locale, canUpdate, onNavigate }: { loca
         eyebrow={isFr ? "Pilotage financier" : "Financial steering"}
         title={isFr ? "Rentabilité et encaissements" : "Profitability and payments"}
         description={isFr ? "Comprenez chaque euro vendu, arbitrez les familles et les lots, puis rapprochez les paiements dans un registre traçable." : "Understand every sales euro, manage families and batches, then reconcile payments in a traceable ledger."}
+        signals={[
+          { label: isFr ? "Coût brut" : "Gross cost", value: isFr ? "lots" : "batches", icon: <ReiconGlyph icon={ChartBarTrendUp} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "Encaissements" : "Payments", value: isFr ? "rapprochés" : "reconciled", icon: <ReiconGlyph icon={Bank} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: isFr ? "Europe" : "Europe", value: isFr ? "multi-moyens" : "multi-method", icon: <ReiconGlyph icon={DollarCircle} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold" },
+        ]}
       />
 
       <SectionTabs variant="workspace" value={view} onChange={setView} label={isFr ? "Espaces financiers" : "Finance workspaces"} items={[

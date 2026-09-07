@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDateTime, normalize } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 
 type AuditPeriod = "24h" | "7d" | "30d" | "all";
 type RiskFilter = "all" | NonNullable<AuditEntry["risk"]>;
@@ -41,7 +42,7 @@ export function AuditControlCenter({ locale }: { locale: "fr" | "en" }) {
   const [domain, setDomain] = useState<DomainFilter>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<AuditEntry | null>(null);
-  const request = useFetch<AuditPayload>(`/api/admin/audit?locale=${locale}&period=${period}`, [locale, period]);
+  const request = useFetch<AuditPayload>(`/api/admin/audit?locale=${locale}&period=${period}`, [locale, period], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const logs = request.data?.logs ?? EMPTY_LOGS;
   const filtered = useMemo(() => logs.filter((log) => {
     const matchesRisk = risk === "all" || log.risk === risk;

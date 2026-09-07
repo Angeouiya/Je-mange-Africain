@@ -29,6 +29,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { Badge } from "@/components/ui/badge";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { formatDateTime, formatPrice, orderStatusColor } from "@/lib/format";
 
 type Locale = "fr" | "en";
@@ -233,7 +234,7 @@ function TopProducts({ products, locale, onNavigate }: { products: DashboardPayl
 }
 
 export default function OverviewSection({ locale, onNavigate }: { locale: Locale; onNavigate: (section: AdminSectionId) => void }) {
-  const { data, loading, error, refetch } = useFetch<DashboardPayload>(`/api/admin/dashboard?locale=${locale}`, [locale]);
+  const { data, loading, error, refetch } = useFetch<DashboardPayload>(`/api/admin/dashboard?locale=${locale}`, [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const isFr = locale === "fr";
   if (loading && !data) return <AdminSectionLoading label={isFr ? "Lecture de l'activité" : "Reading business activity"} />;
   if (error && !data) return <AdminErrorState locale={locale} message={error} onRetry={refetch} />;
@@ -248,6 +249,12 @@ export default function OverviewSection({ locale, onNavigate }: { locale: Locale
         eyebrow={isFr ? "Centre d'opérations" : "Operations centre"}
         title={isFr ? "Ce qui demande votre attention" : "What needs your attention"}
         description={isFr ? "Commencez par les signaux prioritaires, puis suivez le commerce, les commandes et le stock depuis une seule vue de décision." : "Start with priority signals, then follow commerce, orders and stock from one decision view."}
+        signals={[
+          { label: isFr ? "CA jour" : "Today", value: formatPrice(data.kpis.revenueToday, locale), icon: <ReiconGlyph icon={DollarCircle} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: isFr ? "Commandes actives" : "Active orders", value: formatNumber(data.kpis.activeOrders, locale), icon: <ReiconGlyph icon={ClipboardCheck} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "Catalogue prêt" : "Ready catalog", value: `${formatNumber(data.kpis.stockCoverageRate, locale, 1)} %`, icon: <ReiconGlyph icon={Store} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold" },
+        ]}
+        signalsMobile={false}
         action={<div className="inline-flex h-9 items-center gap-2 rounded-md border border-charcoal/10 bg-white px-3 text-[9px] font-bold text-muted-foreground"><ReiconGlyph icon={Activity} weight="Filled" className="h-3.5 w-3.5 text-terre" /><span><span className="block text-charcoal">{isFr ? "Données synchronisées" : "Data synchronised"}</span>{formatDateTime(data.generatedAt, locale)}</span></div>}
       />
 

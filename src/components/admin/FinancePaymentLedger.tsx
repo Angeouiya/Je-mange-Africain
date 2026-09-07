@@ -29,6 +29,7 @@ import { formatDateTime, formatPrice } from "@/lib/format";
 import { paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodLabel, paymentStatusLabel, type PaymentMethodSummary } from "@/lib/payment-methods";
 import { refundAmounts } from "@/lib/admin-refunds";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 
 type PaymentFilter = "all" | "captured" | "pending" | "refunds" | "exceptions";
 type PaymentPeriod = "7d" | "30d" | "90d" | "all";
@@ -86,7 +87,7 @@ export function FinancePaymentLedger({ locale, canUpdate, onNavigate }: { locale
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query.trim());
   const endpoint = `/api/admin/payments?locale=${locale}&period=${period}&filter=${filter}&query=${encodeURIComponent(deferredQuery)}&page=${page}&pageSize=24`;
-  const request = useFetch<PaymentLedgerResponse>(endpoint, [locale, period, filter, deferredQuery, page]);
+  const request = useFetch<PaymentLedgerResponse>(endpoint, [locale, period, filter, deferredQuery, page], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const payments = request.data?.rows ?? EMPTY_ROWS;
   const summary = request.data?.summary ?? EMPTY_SUMMARY;
   const counts = request.data?.counts ?? EMPTY_COUNTS;

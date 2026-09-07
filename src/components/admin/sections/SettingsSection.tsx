@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { BRAND_COLORS } from "@/lib/brand-colors";
 import { EUROPEAN_COUNTRIES } from "@/lib/european-countries";
 import { formatDateTime } from "@/lib/format";
@@ -80,7 +81,7 @@ const DEPLOYMENT_GROUP_ICONS: Record<DeploymentRequirementGroup, IconFunction> =
 
 export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | "en"; canUpdate: boolean }) {
   const isFr = locale === "fr";
-  const { data, loading, error, refetch } = useFetch<SettingsPayload>("/api/admin/settings", []);
+  const { data, loading, error, refetch } = useFetch<SettingsPayload>("/api/admin/settings", [], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const [draft, setDraft] = useState<Configuration | null>(null);
   const [saved, setSaved] = useState<Configuration | null>(null);
   const [metadata, setMetadata] = useState<SettingsPayload["metadata"] | null>(null);
@@ -141,6 +142,12 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
         icon={<ReiconGlyph icon={Settings2} weight="Filled" className="h-5 w-5" />}
         variant="control"
         accent={BRAND_COLORS.burgundy}
+        signals={[
+          { label: isFr ? "Services prêts" : "Ready services", value: `${readyCount}/${data?.integrations.length || 0}`, icon: <ReiconGlyph icon={ShieldCheck} weight="Filled" className="h-3.5 w-3.5" />, tone: readiness.productionReady ? "burgundy" : "gold" },
+          { label: "Cloudflare", value: data?.deploymentReadiness?.ready ? (isFr ? "prêt" : "ready") : (isFr ? "à finaliser" : "pending"), icon: <ReiconGlyph icon={Cloud} weight="Filled" className="h-3.5 w-3.5" />, tone: data?.deploymentReadiness?.ready ? "earth" : "gold" },
+          { label: isFr ? "Paiements" : "Payments", value: data?.paymentReadiness.state === "ready" ? "LIVE" : (isFr ? "à vérifier" : "check"), icon: <ReiconGlyph icon={Card} weight="Filled" className="h-3.5 w-3.5" />, tone: data?.paymentReadiness.state === "ready" ? "burgundy" : "gold" },
+        ]}
+        signalsMobile={false}
       />
 
       {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}

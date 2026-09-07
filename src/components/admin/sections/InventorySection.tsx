@@ -9,6 +9,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { formatDate, formatDateTime, formatPrice, normalize } from "@/lib/format";
 
 type InventoryFilter = "all" | "priority" | "healthy";
@@ -39,7 +40,7 @@ function movementLabel(type: string, locale: "fr" | "en") {
 
 export default function InventorySection({ locale, canCreate = false, canUpdate = false }: { locale: "fr" | "en"; canCreate?: boolean; canUpdate?: boolean }) {
   const isFr = locale === "fr";
-  const request = useFetch<InventoryPayload>(`/api/admin/stock?locale=${locale}`, [locale]);
+  const request = useFetch<InventoryPayload>(`/api/admin/stock?locale=${locale}`, [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const [filter, setFilter] = useState<InventoryFilter>("all");
   const [query, setQuery] = useState("");
   const batches = request.data?.batches ?? EMPTY_BATCHES;
@@ -73,6 +74,12 @@ export default function InventorySection({ locale, canCreate = false, canUpdate 
         eyebrow={isFr ? "Disponibilité et traçabilité" : "Availability and traceability"}
         title={isFr ? "Inventaire piloté par les lots" : "Batch-led inventory"}
         description={isFr ? "Réceptionnez, valorisez et arbitrez chaque lot selon sa disponibilité réelle, sa chaîne thermique et son échéance FEFO." : "Receive, value and manage every batch using live availability, thermal class and FEFO expiry."}
+        signals={[
+          { label: isFr ? "Vendable" : "Sellable", value: String(availableUnits), icon: <PackageCheck className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: isFr ? "Réservé" : "Reserved", value: String(reservedUnits), icon: <Boxes className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "À traiter" : "Action", value: String(priorityIds.size), icon: <AlertTriangle className="h-3.5 w-3.5" />, tone: priorityIds.size ? "gold" : "earth" },
+        ]}
+        signalsMobile={false}
         action={canCreate ? <BatchReceiptDialog locale={locale} products={products} warehouses={warehouses} disabled={request.loading} onCreated={request.refetch} /> : undefined}
       />
 

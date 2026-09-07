@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import { europeanCountryLabel, europeanCountryOptions, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { formatPrice } from "@/lib/format";
 import { BRAND_COLORS } from "@/lib/brand-colors";
@@ -83,7 +84,7 @@ const SERVICE_PRESENTATION: Record<DeliveryService, { icon: LucideIcon; fr: stri
 
 export default function LogisticsSection({ locale, canCreate, canUpdate, canDelete }: { locale: "fr" | "en"; canCreate: boolean; canUpdate: boolean; canDelete: boolean }) {
   const isFr = locale === "fr";
-  const { data, loading, error, refetch } = useFetch<LogisticsPayload>("/api/admin/logistics", []);
+  const { data, loading, error, refetch } = useFetch<LogisticsPayload>("/api/admin/logistics", [], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const [tab, setTab] = useState<LogisticsTab>("routes");
   const [message, setMessage] = useState("");
   const [messageKind, setMessageKind] = useState<"success" | "error">("success");
@@ -128,6 +129,11 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
         icon={<Route className="h-5 w-5" />}
         variant="flow"
         accent={BRAND_COLORS.earth}
+        signals={[
+          { label: isFr ? "Pays" : "Countries", value: String(data.summary.countries), icon: <MapPin className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: isFr ? "Routes" : "Routes", value: String(data.summary.routes), icon: <Route className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "Froid" : "Cold chain", value: String(data.summary.coldChainRoutes), icon: <Snowflake className="h-3.5 w-3.5" />, tone: "gold" },
+        ]}
       />
 
       {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}

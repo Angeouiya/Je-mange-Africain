@@ -15,13 +15,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { europeanCountryLabel } from "@/lib/european-countries";
 import { formatDateTime, formatPrice, normalize } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 import type { WholesaleQuoteStatus } from "@/lib/wholesale-quote";
 
 type QuoteFilter = "all" | "new" | "active" | "closed";
 
 export default function WholesaleQuotesSection({ locale, canUpdate }: { locale: "fr" | "en"; canUpdate: boolean }) {
   const isFr = locale === "fr";
-  const request = useFetch<{ quotes: AdminWholesaleQuote[]; generatedAt: string }>(`/api/admin/wholesale-quotes?locale=${locale}`, [locale]);
+  const request = useFetch<{ quotes: AdminWholesaleQuote[]; generatedAt: string }>(`/api/admin/wholesale-quotes?locale=${locale}`, [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const [filter, setFilter] = useState<QuoteFilter>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<AdminWholesaleQuote | null>(null);
@@ -52,6 +53,11 @@ export default function WholesaleQuotesSection({ locale, canUpdate }: { locale: 
         eyebrow={isFr ? "Développement professionnel" : "Professional growth"}
         title={isFr ? "Qualifier les demandes de gros" : "Qualify wholesale requests"}
         description={isFr ? "Transformez chaque sélection client en dossier commercial traçable, du premier contact jusqu'à l'accord final." : "Turn each customer selection into a traceable commercial file, from first contact to final agreement."}
+        signals={[
+          { label: isFr ? "Nouveaux" : "New", value: String(metrics.new), icon: <Clock3 className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: isFr ? "Actifs" : "Active", value: String(metrics.active), icon: <Handshake className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "Pipeline" : "Pipeline", value: formatPrice(metrics.pipeline, locale), icon: <BadgeEuro className="h-3.5 w-3.5" />, tone: "gold" },
+        ]}
       />
 
       {request.error && request.data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}

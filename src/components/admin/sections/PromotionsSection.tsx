@@ -14,6 +14,7 @@ import { europeanCountryLabel, europeanCountryOptions } from "@/lib/european-cou
 import { formatDateTime, formatPrice, normalize } from "@/lib/format";
 import { promotionLifecycle, type PromotionLifecycle, type PromotionTarget, type PromotionType } from "@/lib/promotion-policy";
 import { useFetch } from "@/lib/use-fetch";
+import { ADMIN_DATA_TTL_MS } from "@/lib/admin-prefetch";
 
 type Promotion = {
   id: string;
@@ -37,9 +38,9 @@ type PromotionFilter = "all" | "active" | "scheduled" | "attention";
 
 export default function PromotionsSection({ locale, canCreate, canUpdate, canDelete }: { locale: "fr" | "en"; canCreate: boolean; canUpdate: boolean; canDelete: boolean }) {
   const isFr = locale === "fr";
-  const request = useFetch<{ promotions: Promotion[] }>("/api/admin/promotions", [locale]);
-  const productRequest = useFetch<{ products: ProductOption[] }>("/api/admin/products", [locale]);
-  const categoryRequest = useFetch<{ categories: CategoryOption[] }>("/api/categories", [locale]);
+  const request = useFetch<{ promotions: Promotion[] }>("/api/admin/promotions", [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
+  const productRequest = useFetch<{ products: ProductOption[] }>("/api/admin/products", [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
+  const categoryRequest = useFetch<{ categories: CategoryOption[] }>("/api/categories", [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const [filter, setFilter] = useState<PromotionFilter>("all");
   const [query, setQuery] = useState("");
   const promotions = request.data?.promotions || [];
@@ -72,6 +73,12 @@ export default function PromotionsSection({ locale, canCreate, canUpdate, canDel
         eyebrow={isFr ? "Activation commerciale" : "Commercial activation"}
         title={isFr ? "Piloter les promotions" : "Promotion control"}
         description={isFr ? "Planifiez les codes, protégez les marges par des seuils et vérifiez leur consommation dans l'application client." : "Schedule codes, protect margin with thresholds and monitor redemption in the customer app."}
+        signals={[
+          { label: isFr ? "Actives" : "Active", value: String(metrics.active), icon: <CheckCircle2 className="h-3.5 w-3.5" />, tone: "earth" },
+          { label: isFr ? "Planifiées" : "Scheduled", value: String(metrics.scheduled), icon: <Clock3 className="h-3.5 w-3.5" />, tone: "gold" },
+          { label: isFr ? "Utilisées" : "Redemptions", value: String(metrics.uses), icon: <Gauge className="h-3.5 w-3.5" />, tone: "burgundy" },
+        ]}
+        signalsMobile={false}
         action={canCreate ? <PromotionEditor locale={locale} products={products} categories={categories} onSaved={request.refetch} /> : null}
       />
 
