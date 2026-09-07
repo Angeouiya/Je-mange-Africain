@@ -1,19 +1,21 @@
 ALTER TABLE "Product"
-  ADD COLUMN "isWholesale" BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN "wholesalePackLabel" TEXT,
-  ADD COLUMN "wholesaleUnitsPerPack" INTEGER NOT NULL DEFAULT 1,
-  ADD COLUMN "wholesaleMinPacks" INTEGER NOT NULL DEFAULT 1,
-  ADD COLUMN "wholesalePrice" DECIMAL(65,30),
-  ADD COLUMN "wholesaleTier2MinPacks" INTEGER,
-  ADD COLUMN "wholesaleTier2Price" DECIMAL(65,30),
-  ADD COLUMN "wholesaleTier3MinPacks" INTEGER,
-  ADD COLUMN "wholesaleTier3Price" DECIMAL(65,30);
+  ADD COLUMN IF NOT EXISTS "costPrice" DECIMAL(65,30),
+  ADD COLUMN IF NOT EXISTS "profitMargin" DECIMAL(65,30),
+  ADD COLUMN IF NOT EXISTS "isWholesale" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "wholesalePackLabel" TEXT,
+  ADD COLUMN IF NOT EXISTS "wholesaleUnitsPerPack" INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS "wholesaleMinPacks" INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS "wholesalePrice" DECIMAL(65,30),
+  ADD COLUMN IF NOT EXISTS "wholesaleTier2MinPacks" INTEGER,
+  ADD COLUMN IF NOT EXISTS "wholesaleTier2Price" DECIMAL(65,30),
+  ADD COLUMN IF NOT EXISTS "wholesaleTier3MinPacks" INTEGER,
+  ADD COLUMN IF NOT EXISTS "wholesaleTier3Price" DECIMAL(65,30);
 
 ALTER TABLE "OrderItem"
-  ADD COLUMN "salesChannel" TEXT NOT NULL DEFAULT 'retail',
-  ADD COLUMN "unitsPerPack" INTEGER NOT NULL DEFAULT 1;
+  ADD COLUMN IF NOT EXISTS "salesChannel" TEXT NOT NULL DEFAULT 'retail',
+  ADD COLUMN IF NOT EXISTS "unitsPerPack" INTEGER NOT NULL DEFAULT 1;
 
-CREATE INDEX "Product_status_isWholesale_idx" ON "Product"("status", "isWholesale");
+CREATE INDEX IF NOT EXISTS "Product_status_isWholesale_idx" ON "Product"("status", "isWholesale");
 
 UPDATE "Product"
 SET
