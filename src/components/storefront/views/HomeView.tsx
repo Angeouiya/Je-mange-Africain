@@ -8,7 +8,9 @@ import { AngleRight } from "reicon/icons/AngleRight";
 import { ArrowRight } from "reicon/icons/ArrowRight";
 import { Bookmark } from "reicon/icons/Bookmark";
 import { BoxSearch } from "reicon/icons/BoxSearch";
+import { ChartBarTrendUp } from "reicon/icons/ChartBarTrendUp";
 import { ChefHat } from "reicon/icons/ChefHat";
+import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
 import { Clock } from "reicon/icons/Clock";
 import { CreditCard } from "reicon/icons/CreditCard";
 import { Globe2 } from "reicon/icons/Globe2";
@@ -16,11 +18,14 @@ import { Headphones } from "reicon/icons/Headphones";
 import { Heart } from "reicon/icons/Heart";
 import { Login } from "reicon/icons/Login";
 import { MapPoint } from "reicon/icons/MapPoint";
+import { RouteTrack } from "reicon/icons/RouteTrack";
 import { ShieldCheck } from "reicon/icons/ShieldCheck";
 import { Snowflake } from "reicon/icons/Snowflake";
 import { Sparkles } from "reicon/icons/Sparkles";
 import { Truck } from "reicon/icons/Truck";
+import { TruckFast } from "reicon/icons/TruckFast";
 import { Users } from "reicon/icons/Users";
+import { UsersNearby } from "reicon/icons/UsersNearby";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -134,16 +139,16 @@ export function HomeView() {
   ];
   const quickActions: HomeQuickAction[] = locale === "fr"
     ? [
-        { view: "catalog", label: "Marché", detail: "Produits, prix et disponibilité", icon: BoxSearch, accent: "#B9472B" },
-        { view: "recipes", label: "Recettes", detail: "Panier ajusté automatiquement", icon: ChefHat, accent: "#8A3042" },
-        { view: "wholesale", label: "Gros", detail: "Lots, cartons et volumes", icon: Users, accent: "#D65A32" },
-        { view: "orders", label: "Suivi", detail: "Commandes et livraison", icon: Truck, accent: "#F2A900" },
+        { view: "catalog", label: "Marché", detail: "Stock, prix, origine", icon: ChartBarTrendUp, accent: "#B9472B", signal: "Catalogue" },
+        { view: "recipes", label: "Recettes", detail: "Panier recalculé", icon: ChefHatHeart, accent: "#8A3042", signal: "Cuisine" },
+        { view: "wholesale", label: "Gros", detail: "Lots et volumes", icon: UsersNearby, accent: "#D65A32", signal: "Marché pro" },
+        { view: "orders", label: "Suivi", detail: "Livraison Europe", icon: RouteTrack, accent: "#F2A900", signal: "Traçabilité" },
       ]
     : [
-        { view: "catalog", label: "Market", detail: "Products, prices and availability", icon: BoxSearch, accent: "#B9472B" },
-        { view: "recipes", label: "Recipes", detail: "Automatically adjusted basket", icon: ChefHat, accent: "#8A3042" },
-        { view: "wholesale", label: "Wholesale", detail: "Lots, cases and volume", icon: Users, accent: "#D65A32" },
-        { view: "orders", label: "Tracking", detail: "Orders and delivery", icon: Truck, accent: "#F2A900" },
+        { view: "catalog", label: "Market", detail: "Stock, price, origin", icon: ChartBarTrendUp, accent: "#B9472B", signal: "Catalogue" },
+        { view: "recipes", label: "Recipes", detail: "Basket recalculated", icon: ChefHatHeart, accent: "#8A3042", signal: "Cooking" },
+        { view: "wholesale", label: "Wholesale", detail: "Lots and volume", icon: UsersNearby, accent: "#D65A32", signal: "Trade" },
+        { view: "orders", label: "Tracking", detail: "Europe delivery", icon: RouteTrack, accent: "#F2A900", signal: "Traceability" },
       ];
   const warmDestination = (view: ViewId, params: ViewParams = {}) => {
     void preloadStorefrontViewBundle(view);
@@ -304,12 +309,17 @@ type HomeQuickAction = {
   detail: string;
   icon: IconFunction;
   accent: string;
+  signal: string;
 };
 
 function HomeQuickLaunch({ actions, onSelect, onWarm, locale }: { actions: HomeQuickAction[]; onSelect: (view: ViewId, params?: ViewParams) => void; onWarm: (view: ViewId, params?: ViewParams) => void; locale: "fr" | "en" }) {
   return (
-    <section data-testid="home-quick-launch" aria-label={locale === "fr" ? "Actions principales" : "Primary actions"} className="border-y border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(255,249,242,0.92),rgba(242,169,0,0.055))] py-2">
-      <div className="grid grid-cols-4 gap-1.5 md:gap-2">
+    <section data-testid="home-quick-launch" aria-label={locale === "fr" ? "Actions principales" : "Primary actions"} className="border-y border-burgundy/10 bg-[linear-gradient(110deg,rgba(255,255,255,1),rgba(255,249,242,0.94),rgba(242,169,0,0.07))] px-1.5 py-2 shadow-[0_18px_50px_-42px_rgba(138,48,66,0.65)] sm:px-2 md:px-3 md:py-3">
+      <div className="mb-2 hidden items-center justify-between gap-3 px-1 sm:flex">
+        <p className="truncate text-[9px] font-black uppercase tracking-[0.16em] text-burgundy">{locale === "fr" ? "Parcours rapides" : "Fast paths"}</p>
+        <span className="inline-flex min-h-6 shrink-0 items-center gap-1 rounded-md border border-terre/15 bg-white px-2 text-[8px] font-black uppercase text-terre"><ReiconGlyph icon={TruckFast} weight="Filled" className="h-3 w-3" />{locale === "fr" ? "Europe" : "Europe"}</span>
+      </div>
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2 md:gap-2.5">
         {actions.map((action, index) => (
           <button
             key={action.view}
@@ -318,14 +328,24 @@ function HomeQuickLaunch({ actions, onSelect, onWarm, locale }: { actions: HomeQ
             onPointerEnter={() => onWarm(action.view, action.params)}
             onFocus={() => onWarm(action.view, action.params)}
             onTouchStart={() => onWarm(action.view, action.params)}
-            className="group min-w-0 border-l px-1.5 py-2 text-left transition first:border-l-0 hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/45"
-            style={{ borderLeftColor: index ? `${action.accent}24` : "transparent" }}
+            className="group relative min-h-[4.9rem] min-w-0 overflow-hidden rounded-md border bg-white px-1 py-1.5 text-center shadow-[0_16px_36px_-34px_rgba(138,48,66,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-34px_rgba(138,48,66,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/45 sm:min-h-[5.5rem] sm:px-2.5 sm:py-2 sm:text-left"
+            style={{ borderColor: `${action.accent}22` }}
           >
-            <span className="mx-auto grid h-9 w-9 place-items-center rounded-md border transition-transform duration-200 group-hover:scale-[1.04]" style={{ color: action.accent, borderColor: `${action.accent}24`, backgroundColor: `${action.accent}0F` }}>
-              <ReiconGlyph icon={action.icon} weight="Filled" className="h-4.5 w-4.5" />
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: action.accent }} />
+            <span className="flex flex-col items-center gap-1 sm:flex-row sm:items-start sm:gap-2">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border transition-transform duration-200 group-hover:scale-[1.04] sm:h-10 sm:w-10" style={{ color: action.accent, borderColor: `${action.accent}24`, backgroundColor: `${action.accent}0F` }}>
+                <ReiconGlyph icon={action.icon} weight="Filled" className="h-4 w-4 sm:h-5 sm:w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{action.signal}</span>
+                <span className="block truncate text-[9px] font-black leading-3 text-charcoal sm:mt-0.5 sm:text-[11px] sm:leading-4">{action.label}</span>
+              </span>
             </span>
-            <span className="mt-1.5 block truncate text-center text-[10px] font-black leading-3 text-charcoal">{action.label}</span>
-            <span className="mx-auto mt-0.5 hidden max-w-[8rem] text-center text-[8px] font-semibold leading-3 text-muted-foreground sm:block">{action.detail}</span>
+            <span className="mt-1 block min-h-4 text-[7px] font-semibold leading-[0.65rem] text-muted-foreground sm:mt-2 sm:min-h-[1.75rem] sm:text-[9px] sm:leading-3.5">{action.detail}</span>
+            <span className="mt-2 hidden items-center justify-between gap-2 sm:flex">
+              <span className="h-1 flex-1 rounded-full bg-burgundy/8"><span className="block h-full rounded-full" style={{ width: `${56 + index * 10}%`, backgroundColor: action.accent }} /></span>
+              <ReiconGlyph icon={AngleRight} className="h-3.5 w-3.5 shrink-0 text-terre transition-transform group-hover:translate-x-0.5" />
+            </span>
           </button>
         ))}
       </div>

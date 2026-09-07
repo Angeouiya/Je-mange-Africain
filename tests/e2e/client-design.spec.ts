@@ -155,6 +155,9 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expect(quickLaunch.getByRole("button")).toHaveCount(4);
   await expect(quickLaunch).toContainText(/Marché|Market/i);
   await expect(quickLaunch).toContainText(/Recettes|Recipes/i);
+  await expect(quickLaunch).toContainText(/Stock, prix, origine|Stock, price, origin/i);
+  await expect(quickLaunch).toContainText(/Panier recalculé|Basket recalculated/i);
+  await expect(quickLaunch).toContainText(/Livraison Europe|Europe delivery/i);
   await expectNoHorizontalOverflow(page, quickLaunch);
   const quickTargets = await quickLaunch.getByRole("button").evaluateAll((buttons) => buttons.map((button) => {
     const box = button.getBoundingClientRect();
