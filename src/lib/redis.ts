@@ -46,6 +46,23 @@ const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 export const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
 
+const remoteRequiredPolicies = new Set<RateLimitPolicy>([
+  "auth",
+  "register",
+  "password-reset",
+  "checkout",
+  "payment-intent",
+  "checkout-finalize",
+  "account",
+  "saved-library",
+  "admin-auth",
+  "admin-read",
+  "admin-write",
+  "admin-sensitive",
+  "media-upload",
+  "push",
+]);
+
 export const rateLimitPolicyConfig: Record<RateLimitPolicy, RateLimitPolicyConfig> = {
   auth: {
     windows: [
@@ -201,6 +218,11 @@ const localBuckets = new Map<string, { count: number; resetAt: number }>();
 export async function enforceRateLimit(request: Request, policy: RateLimitPolicy, subject?: string, options: RateLimitOptions = {}) {
   const config = rateLimitPolicyConfig[policy];
   const activeScopes = options.scopes ? new Set(options.scopes) : null;
+  const remoteRequired = remoteRateLimitRequired(policy);
+
+  if (remoteRequired && !remoteLimiters) {
+    return rateLimitUnavailableResponse(request, policy);
+  }
 
   for (let index = 0; index < config.windows.length; index += 1) {
     const window = config.windows[index];
@@ -215,6 +237,7 @@ export async function enforceRateLimit(request: Request, policy: RateLimitPolicy
         ? await remoteLimiters[`${policy}:${index}`].limit(windowIdentifier)
         : limitLocally(windowIdentifier, window);
     } catch {
+      if (remoteRequired) return rateLimitUnavailableResponse(request, policy);
       result = limitLocally(windowIdentifier, window);
     }
 
@@ -226,6 +249,15 @@ export async function enforceRateLimit(request: Request, policy: RateLimitPolicy
 
 export function clearLocalRateLimitBuckets() {
   localBuckets.clear();
+}
+
+export function remoteRateLimitRequired(policy: RateLimitPolicy, environment: Record<string, string | undefined> = process.env) {
+  if (!remoteRequiredPolicies.has(policy)) return false;
+  if (environment.JMA_REQUIRE_REMOTE_RATE_LIMITS === "true") return true;
+  return environment.NODE_ENV === "production"
+    || environment.CLOUDFLARE_ENV === "production"
+    || environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers"
+    || environment.CF_PAGES === "1";
 }
 
 function rateLimitResponse(request: Request, policy: RateLimitPolicy, scope: RateLimitScope, result: RateLimitResult) {
@@ -242,6 +274,28 @@ function rateLimitResponse(request: Request, policy: RateLimitPolicy, scope: Rat
         "X-RateLimit-Limit": String(result.limit),
         "X-RateLimit-Remaining": String(result.remaining),
         "X-RateLimit-Reset": String(result.reset),
+      },
+    },
+  );
+}
+
+function rateLimitUnavailableResponse(request: Request, policy: RateLimitPolicy) {
+  const acceptsEnglish = request.headers.get("accept-language")?.toLowerCase().startsWith("en");
+  return NextResponse.json(
+    {
+      error: acceptsEnglish
+        ? "This protected action is temporarily unavailable while security throttling is offline."
+        : "Cette action protégée est momentanément indisponible pendant que la limitation de sécurité est hors ligne.",
+      code: "RATE_LIMIT_UNAVAILABLE",
+      policy,
+    },
+    {
+      status: 503,
+      headers: {
+        "Cache-Control": "no-store",
+        "Retry-After": "30",
+        "X-RateLimit-Policy": policy,
+        "X-RateLimit-Mode": "required",
       },
     },
   );

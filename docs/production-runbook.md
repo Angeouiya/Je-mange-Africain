@@ -6,7 +6,7 @@
 - Cloudflare Workers is the frontend runtime for production builds, generated with vinext and deployed through Wrangler on account `82164eca9557f63e18984230deac12bc`.
 - Supabase Auth owns customer and administrator sessions; the two applications keep separate cookies and authorization flows.
 - PostgreSQL is selected automatically when `DATABASE_URL` starts with `postgres://` or `postgresql://`. SQLite remains a local fixture fallback only.
-- Upstash Redis provides distributed rate limiting and payment-attempt velocity. The app falls back to a local limiter if Redis is unavailable.
+- Upstash Redis provides distributed rate limiting and payment-attempt velocity. In production, identity, account, admin, media, push, checkout and payment actions fail closed if Redis is unavailable; only catalogue search keeps a local emergency bucket.
 - Stripe Payment Element collects payment details. The server creates and verifies PaymentIntents, and the signed webhook reconciles asynchronous events.
 
 ## Required environment
@@ -92,6 +92,12 @@ Create a webhook endpoint at `/api/payments/webhook` and subscribe to:
 - `charge.refunded`
 
 Store its signing secret in `STRIPE_WEBHOOK_SECRET`. Payment is intentionally unavailable when Stripe keys are absent; the platform never fabricates a successful payment.
+
+## Rate limiting
+
+Production requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for protected actions. If Redis is missing or unreachable, sign-in, registration, password reset, account changes, admin APIs, media uploads, push operations, payment intent creation and order finalization return `503 RATE_LIMIT_UNAVAILABLE`.
+
+Catalogue search remains available with a local emergency limiter so browsing can degrade gracefully while protected actions stay closed.
 
 ## Release checks
 
