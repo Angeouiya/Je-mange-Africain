@@ -858,6 +858,7 @@ test("registration requires legal consent and two independently visible password
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByTestId("customer-auth-workspace")).toBeVisible();
+  await expect(dialog.getByTestId("customer-auth-signal-rail")).toContainText(/Compte privé|Private account/);
   await expect(dialog.getByText(/commandes|orders/i).last()).toBeVisible();
   await expect(dialog.getByText(/favoris|saved/i).last()).toBeVisible();
   await expect(dialog.getByText(/adresses|addresses/i).last()).toBeVisible();
@@ -1201,6 +1202,9 @@ test("the customer workspace edits identity and manages a persistent address boo
   await expect(accountSummary).toContainText(/commandes\s*0|orders\s*0/i);
   await expect(accountSummary).toContainText(/adresses\s*1|addresses\s*1/i);
   await expect(accountSummary).toContainText(/devis\s*1|quotes\s*1/i);
+  const accountCommandRail = page.getByTestId("account-command-rail");
+  await expect(accountCommandRail).toContainText(/session/i);
+  await expect(accountCommandRail).toContainText(/europe/i);
   if (narrowMobile) {
     const summaryLabelGeometry = await accountSummary.locator("[data-summary-label]").evaluateAll((labels) => labels.map((label) => ({
       horizontalOverflow: label.scrollWidth - label.clientWidth,

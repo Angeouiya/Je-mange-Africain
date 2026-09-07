@@ -1,27 +1,26 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  AtSign,
-  BookHeart,
-  Check,
-  CheckCircle2,
-  ClipboardList,
-  Eye,
-  EyeOff,
-  KeyRound,
-  LockKeyhole,
-  MailCheck,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  ShoppingBag,
-  User,
-  X,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { ArrowLeft } from "reicon/icons/ArrowLeft";
+import { ArrowRight } from "reicon/icons/ArrowRight";
+import { AtSign } from "reicon/icons/AtSign";
+import { BookBookmark } from "reicon/icons/BookBookmark";
+import { Check } from "reicon/icons/Check";
+import { CheckCircle } from "reicon/icons/CheckCircle";
+import { ClipboardList } from "reicon/icons/ClipboardList";
+import { Envelope } from "reicon/icons/Envelope";
+import { Eye } from "reicon/icons/Eye";
+import { EyeOff } from "reicon/icons/EyeOff";
+import { Key } from "reicon/icons/Key";
+import { LockKeyhole } from "reicon/icons/LockKeyhole";
+import { MapPoint } from "reicon/icons/MapPoint";
+import { Phone } from "reicon/icons/Phone";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
+import { ShoppingBag } from "reicon/icons/ShoppingBag";
+import { User } from "reicon/icons/User";
+import { UserAdd } from "reicon/icons/UserAdd";
+import { X } from "reicon/icons/X";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -34,6 +33,7 @@ import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LanguageSwitch } from "@/components/shared/LanguageSwitch";
 import { AccountWorkspace } from "@/components/storefront/account/AccountWorkspace";
 import { CustomerAuthVisualPanel } from "@/components/storefront/CustomerAuthVisualPanel";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 type AuthMode = "login" | "register" | "forgot";
 type AuthStatus = "idle" | "busy" | "error" | "success";
@@ -220,7 +220,7 @@ export function AccountView() {
         <div className="fixed left-4 top-4 z-30 sm:left-6 sm:top-6 lg:left-auto lg:right-20"><LanguageSwitch compact /></div>
         <DialogClose asChild>
           <button type="button" disabled={authStatus === "busy"} className="fixed right-4 top-4 z-30 grid h-11 w-11 place-items-center rounded-full border border-burgundy/10 bg-white text-charcoal shadow-[0_10px_28px_-22px_rgba(90,38,50,0.7)] transition hover:border-terre/30 hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={isFr ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
-            <X className="h-5 w-5" />
+            <ReiconGlyph icon={X} className="h-5 w-5" />
           </button>
         </DialogClose>
 
@@ -236,7 +236,7 @@ export function AccountView() {
 
                 <div className="flex items-start gap-3.5">
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border border-terre/10 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre">
-                    {authMode === "register" ? <User className="h-5 w-5" /> : authMode === "forgot" ? <KeyRound className="h-5 w-5" /> : <LockKeyhole className="h-5 w-5" />}
+                    <ReiconGlyph icon={authMode === "register" ? UserAdd : authMode === "forgot" ? Key : LockKeyhole} weight="Filled" className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
                     <p className="mb-1 text-[9px] font-black uppercase text-terre">{isFr ? "Espace client privé" : "Private customer space"}</p>
@@ -245,9 +245,11 @@ export function AccountView() {
                   </div>
                 </div>
 
+                <AuthSignalRail locale={locale} mode={authMode} completedSteps={completedRegistrationSteps} />
+
                 {params.returnView === "checkout" || authReturnTarget ? (
                   <div className="mt-5 flex items-start gap-3 rounded-md border border-gold/35 bg-gold/[0.08] p-3 text-charcoal" data-testid="auth-return-context">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-terre"><ShoppingBag className="h-4 w-4" /></span>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-terre"><ReiconGlyph icon={ShoppingBag} weight="Filled" className="h-4 w-4" /></span>
                     <div><p className="text-xs font-black">{isFr ? "Connexion requise" : "Sign-in required"}</p><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{isFr ? "Connectez-vous pour continuer cette action dans votre espace sécurisé." : "Sign in to continue this action in your secure space."}</p></div>
                   </div>
                 ) : null}
@@ -264,9 +266,9 @@ export function AccountView() {
                     <form onSubmit={submitLogin} className="space-y-4" aria-label={isFr ? "Formulaire de connexion" : "Sign-in form"}>
                       <AuthTextField id="customer-identifier" label={isFr ? "E-mail ou numéro de téléphone" : "Email or phone number"} icon={AtSign} autoFocus autoComplete="username" value={identifier} onChange={updateIdentifier} placeholder={isFr ? "vous@exemple.fr ou +33..." : "you@example.com or +44..."} />
                       <PasswordInput id="customer-password" label={isFr ? "Mot de passe" : "Password"} autoComplete="current-password" value={password} onChange={updatePassword} locale={locale} />
-                      <div className="flex min-h-9 items-center justify-between gap-3"><span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5 text-burgundy" />{isFr ? "Accès chiffré" : "Encrypted access"}</span><button type="button" onClick={() => changeAuthMode("forgot")} className="min-h-9 text-xs font-bold text-terre hover:underline">{isFr ? "Mot de passe oublié ?" : "Forgot password?"}</button></div>
+                      <div className="flex min-h-9 items-center justify-between gap-3"><span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><ReiconGlyph icon={ShieldCheck} weight="Filled" className="h-3.5 w-3.5 text-burgundy" />{isFr ? "Accès chiffré" : "Encrypted access"}</span><button type="button" onClick={() => changeAuthMode("forgot")} className="min-h-9 text-xs font-bold text-terre hover:underline">{isFr ? "Mot de passe oublié ?" : "Forgot password?"}</button></div>
                       <AuthMessage status={authStatus} message={authMessage} />
-                      <Button type="submit" disabled={authStatus === "busy"} className="min-h-12 w-full justify-between bg-terre px-4 text-white shadow-[0_16px_34px_-24px_rgba(185,71,43,0.9)] hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Connexion..." : "Signing in...") : t.nav.login}</span><ArrowRight className="h-4 w-4" /></Button>
+                      <Button type="submit" disabled={authStatus === "busy"} className="min-h-12 w-full justify-between bg-terre px-4 text-white shadow-[0_16px_34px_-24px_rgba(185,71,43,0.9)] hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Connexion..." : "Signing in...") : t.nav.login}</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></Button>
                       <AuthCapabilityRail locale={locale} />
                     </form>
                   </div>
@@ -296,7 +298,7 @@ export function AccountView() {
                         <PasswordInput id="register-confirm-password" label={isFr ? "Confirmer le mot de passe" : "Confirm password"} autoComplete="new-password" value={registration.confirmPassword} onChange={(value) => updateRegistration("confirmPassword", value)} locale={locale} />
                       </div>
                       <PasswordStrength password={registration.password} locale={locale} />
-                      {registration.confirmPassword ? <p aria-live="polite" className={`mt-2 flex min-h-6 items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-burgundy" : "text-destructive"}`}>{passwordsMatch ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}{passwordsMatch ? (isFr ? "Les mots de passe correspondent." : "Passwords match.") : (isFr ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
+                      {registration.confirmPassword ? <p aria-live="polite" className={`mt-2 flex min-h-6 items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-burgundy" : "text-destructive"}`}>{passwordsMatch ? <ReiconGlyph icon={CheckCircle} weight="Filled" className="h-3.5 w-3.5" /> : <ReiconGlyph icon={X} className="h-3.5 w-3.5" />}{passwordsMatch ? (isFr ? "Les mots de passe correspondent." : "Passwords match.") : (isFr ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
                     </fieldset>
 
                     <fieldset className="min-w-0 rounded-md border border-burgundy/12 bg-[linear-gradient(145deg,rgba(138,48,66,0.045),rgba(242,169,0,0.035))] p-3.5">
@@ -309,7 +311,7 @@ export function AccountView() {
                     </fieldset>
 
                       <AuthMessage status={authStatus} message={authMessage} />
-                      <Button type="submit" disabled={authStatus === "busy" || !registrationReady} className="min-h-12 w-full justify-between bg-terre px-4 text-white shadow-[0_16px_34px_-24px_rgba(185,71,43,0.9)] hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Création..." : "Creating...") : (isFr ? "Créer mon compte" : "Create my account")}</span><span className="flex items-center gap-2 text-[10px] font-black"><span>{completedRegistrationSteps}/3</span><ArrowRight className="h-4 w-4" /></span></Button>
+                      <Button type="submit" disabled={authStatus === "busy" || !registrationReady} className="min-h-12 w-full justify-between bg-terre px-4 text-white shadow-[0_16px_34px_-24px_rgba(185,71,43,0.9)] hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Création..." : "Creating...") : (isFr ? "Créer mon compte" : "Create my account")}</span><span className="flex items-center gap-2 text-[10px] font-black"><span>{completedRegistrationSteps}/3</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></span></Button>
                     </form>
                   </div>
                 ) : (
@@ -317,8 +319,8 @@ export function AccountView() {
                     <RecoverySteps locale={locale} />
                     <AuthTextField id="recovery-email" label="E-mail" icon={AtSign} type="email" autoFocus autoComplete="email" value={identifier} onChange={updateIdentifier} placeholder={isFr ? "vous@exemple.fr" : "you@example.com"} />
                     <AuthMessage status={authStatus} message={authMessage} successIcon />
-                    <Button type="submit" disabled={authStatus === "busy" || authStatus === "success"} className="min-h-12 w-full justify-between bg-terre px-4 text-white hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Envoi..." : "Sending...") : (isFr ? "Envoyer le lien sécurisé" : "Send secure link")}</span><ArrowRight className="h-4 w-4" /></Button>
-                    <button type="button" onClick={() => changeAuthMode("login")} className="inline-flex min-h-10 items-center gap-1.5 text-xs font-bold text-charcoal hover:text-terre"><ArrowLeft className="h-3.5 w-3.5" />{isFr ? "Retour à la connexion" : "Back to sign in"}</button>
+                    <Button type="submit" disabled={authStatus === "busy" || authStatus === "success"} className="min-h-12 w-full justify-between bg-terre px-4 text-white hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Envoi..." : "Sending...") : (isFr ? "Envoyer le lien sécurisé" : "Send secure link")}</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></Button>
+                    <button type="button" onClick={() => changeAuthMode("login")} className="inline-flex min-h-10 items-center gap-1.5 text-xs font-bold text-charcoal hover:text-terre"><ReiconGlyph icon={ArrowLeft} className="h-3.5 w-3.5" />{isFr ? "Retour à la connexion" : "Back to sign in"}</button>
                   </form>
                 )}
 
@@ -337,12 +339,32 @@ export function AccountView() {
   );
 }
 
-function AuthTab({ selected, label, icon: Icon, controls, onClick }: { selected: boolean; label: string; icon: LucideIcon; controls: string; onClick: () => void }) {
-  return <button id={`${controls}-tab`} type="button" role="tab" aria-selected={selected} aria-controls={controls} onClick={onClick} className={`relative flex min-h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-bold transition ${selected ? "border border-terre/12 bg-white text-charcoal shadow-[0_8px_22px_-20px_rgba(90,38,50,0.7)]" : "text-muted-foreground hover:bg-white/55 hover:text-charcoal"}`}><Icon className={`h-4 w-4 ${selected ? "text-terre" : ""}`} />{label}{selected ? <span className="absolute inset-x-8 bottom-0 h-0.5 rounded-full bg-gold" aria-hidden="true" /> : null}</button>;
+function AuthSignalRail({ locale, mode, completedSteps }: { locale: "fr" | "en"; mode: AuthMode; completedSteps: number }) {
+  const isFr = locale === "fr";
+  const items = [
+    { icon: ShieldCheck, label: isFr ? "Compte privé" : "Private account", value: isFr ? "protégé" : "protected" },
+    { icon: ShoppingBag, label: isFr ? "Panier" : "Basket", value: isFr ? "synchronisé" : "synced" },
+    { icon: mode === "register" ? CheckCircle : Envelope, label: isFr ? "Parcours" : "Flow", value: mode === "register" ? `${completedSteps}/3` : (isFr ? "clair" : "clear") },
+  ];
+  return (
+    <div className="mt-5 grid grid-cols-3 divide-x divide-burgundy/8 border-y border-burgundy/8 bg-[#FFFCFA]" data-testid="customer-auth-signal-rail" aria-label={isFr ? "Repères de l'espace client" : "Customer space signals"}>
+      {items.map((item) => (
+        <div key={item.label} className="min-w-0 px-2.5 py-3">
+          <ReiconGlyph icon={item.icon} weight="Filled" className="h-4 w-4 text-terre" />
+          <span className="mt-1.5 block truncate text-[9px] font-black uppercase text-burgundy">{item.label}</span>
+          <span className="mt-0.5 block truncate text-[10px] font-bold text-charcoal">{item.value}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function AuthTextField({ id, label, icon: Icon, type = "text", autoComplete, value, onChange, placeholder, autoFocus = false }: { id: string; label: string; icon: LucideIcon; type?: string; autoComplete?: string; value: string; onChange: (value: string) => void; placeholder?: string; autoFocus?: boolean }) {
-  return <div className="min-w-0"><Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label><div className="relative"><Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" /><Input id={id} type={type} autoFocus={autoFocus} autoComplete={autoComplete} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-11 rounded-md border-charcoal/10 bg-white pl-9 focus:border-terre" required /></div></div>;
+function AuthTab({ selected, label, icon: Icon, controls, onClick }: { selected: boolean; label: string; icon: IconFunction; controls: string; onClick: () => void }) {
+  return <button id={`${controls}-tab`} type="button" role="tab" aria-selected={selected} aria-controls={controls} onClick={onClick} className={`relative flex min-h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-bold transition ${selected ? "border border-terre/12 bg-white text-charcoal shadow-[0_8px_22px_-20px_rgba(90,38,50,0.7)]" : "text-muted-foreground hover:bg-white/55 hover:text-charcoal"}`}><ReiconGlyph icon={Icon} weight={selected ? "Filled" : "Outline"} className={`h-4 w-4 ${selected ? "text-terre" : ""}`} />{label}{selected ? <span className="absolute inset-x-8 bottom-0 h-0.5 rounded-full bg-gold" aria-hidden="true" /> : null}</button>;
+}
+
+function AuthTextField({ id, label, icon: Icon, type = "text", autoComplete, value, onChange, placeholder, autoFocus = false }: { id: string; label: string; icon: IconFunction; type?: string; autoComplete?: string; value: string; onChange: (value: string) => void; placeholder?: string; autoFocus?: boolean }) {
+  return <div className="min-w-0"><Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label><div className="relative"><ReiconGlyph icon={Icon} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" /><Input id={id} type={type} autoFocus={autoFocus} autoComplete={autoComplete} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-11 rounded-md border-charcoal/10 bg-white pl-9 focus:border-terre" required /></div></div>;
 }
 
 function LegalCheckbox({ id, checked, onCheckedChange, label, linkLabel, href }: { id: string; checked: boolean; onCheckedChange: (checked: boolean) => void; label: string; linkLabel: string; href: string }) {
@@ -364,9 +386,9 @@ function PasswordInput({ id, label, autoComplete, value, onChange, locale }: { i
     <div className="min-w-0">
       <Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label>
       <div className="relative">
-        <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" />
+        <ReiconGlyph icon={LockKeyhole} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" />
         <Input id={id} type={visible ? "text" : "password"} autoComplete={autoComplete} minLength={8} value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-md border-charcoal/10 bg-white pl-9 pr-11 focus:border-terre" required />
-        <button type="button" onClick={() => setVisible((current) => !current)} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground transition hover:text-terre" aria-label={actionLabel} title={actionLabel}>{visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+        <button type="button" onClick={() => setVisible((current) => !current)} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground transition hover:text-terre" aria-label={actionLabel} title={actionLabel}><ReiconGlyph icon={visible ? EyeOff : Eye} className="h-4 w-4" /></button>
       </div>
     </div>
   );
@@ -381,7 +403,7 @@ function RegistrationProgress({ locale, steps }: { locale: "fr" | "en"; steps: b
     <section className="rounded-md border border-burgundy/10 bg-[#FFFCFA] p-3" aria-labelledby="registration-progress-title" data-testid="registration-progress">
       <div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Ouverture du compte" : "Account setup"}</p><h2 id="registration-progress-title" className="mt-0.5 text-xs font-black text-charcoal">{completed === 3 ? (isFr ? "Votre dossier est prêt" : "Your details are ready") : (isFr ? `${completed} étape(s) sur 3` : `${completed} of 3 steps`)}</h2></div><span className="text-sm font-black tabular-nums text-burgundy">{progress}%</span></div>
       <div className="mt-3 grid grid-cols-3 gap-1.5" role="progressbar" aria-label={isFr ? "Progression de l'inscription" : "Registration progress"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
-        {steps.map((complete, index) => <div key={labels[index]} className={`min-w-0 rounded-md border px-2 py-2 ${complete ? "border-burgundy/15 bg-burgundy/[0.065]" : "border-charcoal/8 bg-white"}`}><span className={`grid h-5 w-5 place-items-center rounded-md ${complete ? "bg-burgundy text-white" : "bg-muted text-muted-foreground"}`}>{complete ? <Check className="h-3 w-3" /> : <span className="text-[9px] font-black">{index + 1}</span>}</span><span className="mt-1.5 block truncate text-[9px] font-black text-charcoal">{labels[index]}</span></div>)}
+        {steps.map((complete, index) => <div key={labels[index]} className={`min-w-0 rounded-md border px-2 py-2 ${complete ? "border-burgundy/15 bg-burgundy/[0.065]" : "border-charcoal/8 bg-white"}`}><span className={`grid h-5 w-5 place-items-center rounded-md ${complete ? "bg-burgundy text-white" : "bg-muted text-muted-foreground"}`}>{complete ? <ReiconGlyph icon={Check} className="h-3 w-3" /> : <span className="text-[9px] font-black">{index + 1}</span>}</span><span className="mt-1.5 block truncate text-[9px] font-black text-charcoal">{labels[index]}</span></div>)}
       </div>
     </section>
   );
@@ -398,26 +420,26 @@ function AuthCapabilityRail({ locale }: { locale: "fr" | "en" }) {
   const isFr = locale === "fr";
   const items = [
     { icon: ClipboardList, label: isFr ? "Commandes" : "Orders" },
-    { icon: BookHeart, label: isFr ? "Favoris" : "Saved" },
-    { icon: MapPin, label: isFr ? "Adresses" : "Addresses" },
+    { icon: BookBookmark, label: isFr ? "Favoris" : "Saved" },
+    { icon: MapPoint, label: isFr ? "Adresses" : "Addresses" },
   ];
-  return <div className="grid grid-cols-3 divide-x divide-charcoal/8 border-y border-charcoal/8 py-3" aria-label={isFr ? "Services liés au compte" : "Account services"}>{items.map((item) => <div key={item.label} className="min-w-0 px-2 text-center"><item.icon className="mx-auto h-4 w-4 text-terre" /><span className="mt-1 block truncate text-[9px] font-black text-charcoal">{item.label}</span></div>)}</div>;
+  return <div className="grid grid-cols-3 divide-x divide-charcoal/8 border-y border-charcoal/8 py-3" aria-label={isFr ? "Services liés au compte" : "Account services"}>{items.map((item) => <div key={item.label} className="min-w-0 px-2 text-center"><ReiconGlyph icon={item.icon} weight="Filled" className="mx-auto h-4 w-4 text-terre" /><span className="mt-1 block truncate text-[9px] font-black text-charcoal">{item.label}</span></div>)}</div>;
 }
 
 function RecoverySteps({ locale }: { locale: "fr" | "en" }) {
   const isFr = locale === "fr";
   const steps = [
     { icon: AtSign, title: isFr ? "Indiquez votre e-mail" : "Enter your email", detail: isFr ? "Adresse du compte" : "Account address" },
-    { icon: MailCheck, title: isFr ? "Ouvrez le lien" : "Open the link", detail: isFr ? "Lien personnel" : "Personal link" },
+    { icon: Envelope, title: isFr ? "Ouvrez le lien" : "Open the link", detail: isFr ? "Lien personnel" : "Personal link" },
     { icon: ShieldCheck, title: isFr ? "Choisissez le mot de passe" : "Choose the password", detail: isFr ? "Accès renouvelé" : "Access restored" },
   ];
-  return <div className="grid grid-cols-3 gap-2" aria-label={isFr ? "Étapes de récupération" : "Recovery steps"}>{steps.map((step, index) => <div key={step.title} className="min-w-0 rounded-md border border-charcoal/8 bg-[#FFFCFA] p-2.5"><span className="flex items-center justify-between"><step.icon className="h-4 w-4 text-terre" /><span className="text-[9px] font-black text-burgundy">0{index + 1}</span></span><span className="mt-2 block text-[10px] font-black leading-4 text-charcoal">{step.title}</span><span className="mt-0.5 block text-[8px] leading-3 text-muted-foreground">{step.detail}</span></div>)}</div>;
+  return <div className="grid grid-cols-3 gap-2" aria-label={isFr ? "Étapes de récupération" : "Recovery steps"}>{steps.map((step, index) => <div key={step.title} className="min-w-0 rounded-md border border-charcoal/8 bg-[#FFFCFA] p-2.5"><span className="flex items-center justify-between"><ReiconGlyph icon={step.icon} weight="Filled" className="h-4 w-4 text-terre" /><span className="text-[9px] font-black text-burgundy">0{index + 1}</span></span><span className="mt-2 block text-[10px] font-black leading-4 text-charcoal">{step.title}</span><span className="mt-0.5 block text-[8px] leading-3 text-muted-foreground">{step.detail}</span></div>)}</div>;
 }
 
 function AuthMessage({ status, message, successIcon = false }: { status: AuthStatus; message: string; successIcon?: boolean }) {
   if (!message || status === "idle" || status === "busy") return null;
   const success = status === "success";
-  return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-md border p-3 text-xs leading-5 ${success ? "border-burgundy/25 bg-burgundy/5 text-burgundy" : "border-destructive/25 bg-destructive/[0.06] text-destructive"}`}>{success && successIcon ? <MailCheck className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
+  return <div role={success ? "status" : "alert"} className={`flex gap-2 rounded-md border p-3 text-xs leading-5 ${success ? "border-burgundy/25 bg-burgundy/5 text-burgundy" : "border-destructive/25 bg-destructive/[0.06] text-destructive"}`}>{success && successIcon ? <ReiconGlyph icon={Envelope} weight="Filled" className="mt-0.5 h-4 w-4 shrink-0" /> : null}<span>{message}</span></div>;
 }
 
 function resolveAuthError(error: unknown, locale: "fr" | "en", fallbackFr: string, fallbackEn: string) {

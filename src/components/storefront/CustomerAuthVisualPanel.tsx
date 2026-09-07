@@ -1,6 +1,10 @@
 import Image from "next/image";
-import { ChefHat, PackageCheck, ShieldCheck } from "lucide-react";
+import type { IconFunction } from "reicon/createIcon";
+import { BoxTick } from "reicon/icons/BoxTick";
+import { ChefHatHeart } from "reicon/icons/ChefHatHeart";
+import { ShieldCheck } from "reicon/icons/ShieldCheck";
 import { BrandLockup } from "@/components/shared/BrandLockup";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import type { Locale } from "@/lib/i18n";
 
 export function CustomerAuthVisualPanel({ locale, mode = "access" }: { locale: Locale; mode?: "access" | "reset" }) {
@@ -8,15 +12,15 @@ export function CustomerAuthVisualPanel({ locale, mode = "access" }: { locale: L
   const headline = mode === "reset"
     ? (isFr ? "Vos repères restent les vôtres." : "Everything you value stays yours.")
     : (isFr ? "Le goût voyage avec vous." : "Taste travels with you.");
-  const signals = isFr
+  const signals: Array<{ icon: IconFunction; label: string }> = isFr
     ? [
-        { icon: PackageCheck, label: "Commandes suivies" },
-        { icon: ChefHat, label: "Recettes synchronisées" },
+        { icon: BoxTick, label: "Commandes suivies" },
+        { icon: ChefHatHeart, label: "Recettes synchronisées" },
         { icon: ShieldCheck, label: "Accès protégé" },
       ]
     : [
-        { icon: PackageCheck, label: "Tracked orders" },
-        { icon: ChefHat, label: "Synced recipes" },
+        { icon: BoxTick, label: "Tracked orders" },
+        { icon: ChefHatHeart, label: "Synced recipes" },
         { icon: ShieldCheck, label: "Protected access" },
       ];
 
@@ -35,7 +39,7 @@ export function CustomerAuthVisualPanel({ locale, mode = "access" }: { locale: L
         <p className="mt-5 max-w-lg font-display text-5xl font-semibold leading-[1.06] xl:text-6xl">{headline}</p>
       </div>
       <div className="relative z-10 grid grid-cols-3 divide-x divide-white/20 border-t border-white/22 pt-5 text-cream/88">
-        {signals.map((signal) => <div key={signal.label} className="min-w-0 px-3 first:pl-0 last:pr-0"><signal.icon className="h-4 w-4 text-gold" /><p className="mt-2 text-[10px] font-bold leading-4">{signal.label}</p></div>)}
+        {signals.map((signal) => <div key={signal.label} className="min-w-0 px-3 first:pl-0 last:pr-0"><ReiconGlyph icon={signal.icon} weight="Filled" className="h-4 w-4 text-gold" /><p className="mt-2 text-[10px] font-bold leading-4">{signal.label}</p></div>)}
       </div>
     </section>
   );

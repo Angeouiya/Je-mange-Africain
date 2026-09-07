@@ -1,6 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import type { IconFunction as ReiconIconFunction } from "reicon/createIcon";
+import { BoxTick as ReBoxTick } from "reicon/icons/BoxTick";
+import { Card as ReCard } from "reicon/icons/Card";
+import { ShieldCheck as ReShieldCheck } from "reicon/icons/ShieldCheck";
+import { TruckFast as ReTruckFast } from "reicon/icons/TruckFast";
 import {
   AtSign,
   ArrowUpDown,
@@ -48,10 +53,12 @@ import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog
 import { dict } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import { useStore, type Address } from "@/lib/store";
-import { useFetch } from "@/lib/use-fetch";
+import { clearFetchCache, useFetch } from "@/lib/use-fetch";
 import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
+import { STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
+import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 
 type AccountSection = "profile" | "addresses" | "quotes" | "saved" | "settings";
 type RequestStatus = "idle" | "busy" | "success" | "error";
@@ -63,6 +70,8 @@ type AccountResponse = {
   favoriteProductIds?: string[];
   savedRecipeIds?: string[];
 };
+
+const ACCOUNT_FETCH_OPTIONS = { cache: true, ttlMs: STOREFRONT_DATA_TTL_MS };
 
 export function AccountWorkspace() {
   const locale = useStore((state) => state.locale);
@@ -91,9 +100,9 @@ export function AccountWorkspace() {
   const [addressStatus, setAddressStatus] = useState<RequestStatus>("idle");
   const [addressMessage, setAddressMessage] = useState("");
   const contentRef = useRef<HTMLElement>(null);
-  const { data: accountData, loading: accountLoading } = useFetch<AccountResponse>(`/api/customer/account`, [customer.id]);
-  const { data: orderData } = useFetch(customer ? `/api/orders?locale=${locale}` : null, [customer.id, locale]);
-  const quoteRequest = useFetch<CustomerWholesaleQuotesResponse>(customer ? "/api/customer/wholesale-quotes" : null, [customer.id]);
+  const { data: accountData, loading: accountLoading } = useFetch<AccountResponse>(`/api/customer/account`, [customer.id], {}, ACCOUNT_FETCH_OPTIONS);
+  const { data: orderData } = useFetch(customer ? `/api/orders?locale=${locale}` : null, [customer.id, locale], {}, ACCOUNT_FETCH_OPTIONS);
+  const quoteRequest = useFetch<CustomerWholesaleQuotesResponse>(customer ? "/api/customer/wholesale-quotes" : null, [customer.id], {}, ACCOUNT_FETCH_OPTIONS);
 
   useEffect(() => {
     if (!params.accountSection) return;
@@ -140,6 +149,7 @@ export function AccountWorkspace() {
     setProfileMessage("");
     try {
       const response = await requestJSON<AccountResponse>("/api/customer/account", "PATCH", { ...profile, preferredLang: locale });
+      clearFetchCache("/api/customer/account");
       setCustomer(response.customer);
       setAddresses(response.addresses || []);
       setProfileStatus("success");
@@ -181,6 +191,7 @@ export function AccountWorkspace() {
     try {
       const endpoint = editingAddressId ? `/api/customer/account/addresses/${editingAddressId}` : "/api/customer/account/addresses";
       const response = await requestJSON<AccountResponse>(endpoint, editingAddressId ? "PATCH" : "POST", { ...addressForm, country: europeanCountryValue(addressForm.country) || addressForm.country, postalCode: postalValidation.normalized, locale });
+      clearFetchCache("/api/customer/account");
       setAddresses(response.addresses || []);
       setAddressStatus("success");
       setAddressOpen(false);
@@ -195,6 +206,7 @@ export function AccountWorkspace() {
     setAddressMessage("");
     try {
       const response = await requestJSON<AccountResponse>(`/api/customer/account/addresses/${addressId}?locale=${locale}`, "DELETE");
+      clearFetchCache("/api/customer/account");
       setAddresses(response.addresses || []);
       setAddressStatus("success");
     } catch (error) {
@@ -208,6 +220,7 @@ export function AccountWorkspace() {
     setAddressMessage("");
     try {
       const response = await requestJSON<AccountResponse>(`/api/customer/account/addresses/${address.id}`, "PATCH", { ...address, phone: address.phone || customer.phone, isDefault: true, locale });
+      clearFetchCache("/api/customer/account");
       setAddresses(response.addresses || []);
       setAddressStatus("success");
     } catch (error) {
@@ -239,6 +252,7 @@ export function AccountWorkspace() {
     setLocale(nextLocale);
     try {
       const response = await requestJSON<AccountResponse>("/api/customer/account", "PATCH", { preferredLang: nextLocale });
+      clearFetchCache("/api/customer/account");
       setCustomer(response.customer);
     } catch {
       // The local preference remains usable if remote synchronization is temporarily unavailable.
@@ -262,6 +276,7 @@ export function AccountWorkspace() {
           <AccountSummaryFact icon={MapPin} label={locale === "fr" ? "Adresses" : "Addresses"} value={String(addresses.length)} />
           <AccountSummaryFact icon={BriefcaseBusiness} label={locale === "fr" ? "Devis" : "Quotes"} value={String(quoteCount)} />
         </div>
+        <AccountCommandRail locale={locale} orderCount={orderCount} addressCount={addresses.length} quoteCount={quoteCount} loading={accountLoading || quoteRequest.loading} />
       </header>
 
       <nav className="sticky top-[6.65rem] z-30 -mx-4 mt-4 grid grid-cols-5 gap-1 border-y border-border bg-white/[0.97] px-4 py-2 shadow-[0_14px_30px_-30px_rgba(90,38,50,0.72)] backdrop-blur-xl md:top-[4.4rem] md:-mx-7 md:px-7 lg:-mx-8 lg:px-8" aria-label={locale === "fr" ? "Rubriques du compte" : "Account sections"} data-testid="account-section-navigation">
@@ -357,6 +372,31 @@ function AccountSummaryFact({ icon: Icon, label, value }: { icon: LucideIcon; la
   return <div className="min-w-0 px-1.5 py-3 first:pl-0 last:pr-0 min-[390px]:px-3 sm:px-5 sm:py-4"><p className="flex min-w-0 flex-col items-start gap-0.5 text-[7px] font-black uppercase text-muted-foreground min-[390px]:flex-row min-[390px]:items-center min-[390px]:gap-1.5 min-[390px]:text-[8px] sm:text-[9px]"><Icon className="h-3 w-3 shrink-0 text-terre min-[390px]:h-3.5 min-[390px]:w-3.5" /> <span data-summary-label className="min-w-0 whitespace-nowrap">{label}</span></p><p className="mt-1 truncate text-xs font-black text-charcoal sm:text-sm">{value}</p></div>;
 }
 
+function AccountCommandRail({ locale, orderCount, addressCount, quoteCount, loading }: { locale: "fr" | "en"; orderCount: number; addressCount: number; quoteCount: number; loading: boolean }) {
+  const isFr = locale === "fr";
+  const items: Array<{ icon: ReiconIconFunction; label: string; value: string; accent: string }> = [
+    { icon: ReShieldCheck, label: isFr ? "Session" : "Session", value: loading ? (isFr ? "synchro" : "syncing") : (isFr ? "active" : "active"), accent: BRAND_COLORS.burgundy },
+    { icon: ReTruckFast, label: isFr ? "Europe" : "Europe", value: addressCount ? `${addressCount} ${isFr ? "adresse(s)" : "address(es)"}` : (isFr ? "à définir" : "to set"), accent: BRAND_COLORS.terracotta },
+    { icon: ReBoxTick, label: isFr ? "Achats" : "Shopping", value: `${orderCount} ${isFr ? "commande(s)" : "order(s)"}`, accent: BRAND_COLORS.earth },
+    { icon: ReCard, label: isFr ? "Gros" : "Wholesale", value: quoteCount ? `${quoteCount} ${isFr ? "devis" : "quote(s)"}` : (isFr ? "prêt" : "ready"), accent: BRAND_COLORS.gold },
+  ];
+  return (
+    <div className="grid grid-cols-2 divide-x divide-y divide-burgundy/8 border-t border-burgundy/10 bg-white/55 sm:grid-cols-4 sm:divide-y-0" data-testid="account-command-rail" aria-label={isFr ? "Pilotage du compte client" : "Customer account command rail"}>
+      {items.map((item) => (
+        <div key={item.label} className="flex min-w-0 items-center gap-2 px-2 py-3 min-[390px]:px-3 sm:px-4">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border bg-white" style={{ borderColor: `${item.accent}24`, color: item.accent }}>
+            <ReiconGlyph icon={item.icon} weight="Filled" className="h-4 w-4" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[8px] font-black uppercase text-muted-foreground">{item.label}</span>
+            <span className="mt-0.5 block truncate text-[10px] font-black text-charcoal">{item.value}</span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TextField({ id, label, value, onChange, autoComplete, required }: { id: string; label: string; value: string; onChange: (value: string) => void; autoComplete?: string; required?: boolean }) {
   return <div><Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label><Input id={id} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} required={required} /></div>;
 }
@@ -401,8 +441,8 @@ function SavedSection({ locale, savedTab, setSavedTab, favorites, savedRecipes }
   const syncSavedItems = useStore((state) => state.syncSavedItems);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"recent" | "name" | "country">("recent");
-  const { data: catalogue, loading: productsLoading, error: productsError, refetch: refetchProducts } = useFetch<{ products: ProductListItem[] }>(`/api/catalog?locale=${locale}&pageSize=100`, [locale]);
-  const { data: recipeData, loading: recipesLoading, error: recipesError, refetch: refetchRecipes } = useFetch<{ recipes: RecipeListItem[] }>(`/api/recipes?locale=${locale}`, [locale]);
+  const { data: catalogue, loading: productsLoading, error: productsError, refetch: refetchProducts } = useFetch<{ products: ProductListItem[] }>(`/api/catalog?locale=${locale}&pageSize=100`, [locale], {}, ACCOUNT_FETCH_OPTIONS);
+  const { data: recipeData, loading: recipesLoading, error: recipesError, refetch: refetchRecipes } = useFetch<{ recipes: RecipeListItem[] }>(`/api/recipes?locale=${locale}`, [locale], {}, ACCOUNT_FETCH_OPTIONS);
   const normalizedQuery = query.trim().toLocaleLowerCase(locale);
   const products = useMemo(() => orderSavedItems(
     (catalogue?.products || []).filter((product) => favorites.includes(product.id) && savedItemMatches(product.name, product.traditionalName, product.country, normalizedQuery, locale)),
