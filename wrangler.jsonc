@@ -34,7 +34,7 @@
   "vars": {
     "CLOUDFLARE_ACCOUNT_ID": "82164eca9557f63e18984230deac12bc",
     "CLOUDFLARE_DEPLOYMENT_TARGET": "workers",
-    "CLOUDFLARE_DOMAIN_STATUS": "deferred",
+    "CLOUDFLARE_DOMAIN_STATUS": "attached",
     "NEXT_PUBLIC_SITE_URL": "https://je-mange-africain.com",
     "NEXT_PUBLIC_SUPABASE_URL": "https://ahigidhuhqcmxzjxetnw.supabase.co",
     "SUPABASE_URL": "https://ahigidhuhqcmxzjxetnw.supabase.co"

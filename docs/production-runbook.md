@@ -27,7 +27,7 @@ npm run production:open-dashboards
 ## Frontend deployment
 
 The production frontend is Cloudflare Workers, not Vercel. Keep the root `wrangler.jsonc` committed as the source of truth for account, Worker name, assets and observability.
-The Worker can be created before the domain is ready, but `workers_dev` stays disabled so no unrelated Cloudflare subdomain is exposed. `je-mange-africain.com` is the only public storefront URL and will be attached later once DNS is ready.
+The Worker custom domains are attached for `je-mange-africain.com`, `www.je-mange-africain.com` and `admin.je-mange-africain.com`. `workers_dev` stays disabled so no unrelated Cloudflare subdomain is exposed. Public traffic switches to the Worker only after the registrar delegates the zone to `anton.ns.cloudflare.com` and `kallie.ns.cloudflare.com`.
 The deploy command refuses to publish when production secrets are incomplete or when Supabase points to a project other than `JMA` (`ahigidhuhqcmxzjxetnw`). The Worker itself reaches PostgreSQL through the `jma-supabase-db` Hyperdrive configuration.
 
 ```bash
