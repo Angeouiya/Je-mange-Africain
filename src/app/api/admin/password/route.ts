@@ -22,12 +22,15 @@ export async function POST(request: Request) {
   if (!url || !key) return NextResponse.json({ error: "Le service de récupération professionnel est momentanément indisponible." }, { status: 503 });
 
   try {
-    await fetch(`${url}/auth/v1/recover`, {
+    const response = await fetch(`${url}/auth/v1/recover`, {
       method: "POST",
       headers: { apikey: key, "Content-Type": "application/json" },
       body: JSON.stringify({ email: parsed.data.email, redirect_to: ADMIN_RESET_URL }),
       signal: AbortSignal.timeout(10_000),
     });
+    if (!response.ok) {
+      return NextResponse.json({ error: "Le service de récupération professionnel est momentanément indisponible." }, { status: 503 });
+    }
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Le service de récupération professionnel est momentanément indisponible." }, { status: 503 });

@@ -37,6 +37,7 @@
     "CLOUDFLARE_DOMAIN_STATUS": "attached",
     "NEXT_PUBLIC_SITE_URL": "https://je-mange-africain.com",
     "NEXT_PUBLIC_SUPABASE_URL": "https://ahigidhuhqcmxzjxetnw.supabase.co",
+    "PAYMENTS_ENABLED": "false",
     "SUPABASE_URL": "https://ahigidhuhqcmxzjxetnw.supabase.co"
   },
   "observability": {

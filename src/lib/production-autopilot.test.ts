@@ -39,6 +39,7 @@ describe("production autopilot", () => {
     NEXT_PUBLIC_SUPABASE_URL: PRODUCTION_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
     SUPABASE_SECRET_KEY: "sb_secret_example",
+    PAYMENTS_ENABLED: "true",
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
     STRIPE_SECRET_KEY: "sk_live_example",
     STRIPE_WEBHOOK_SECRET: "whsec_example",
@@ -75,6 +76,30 @@ describe("production autopilot", () => {
 
     expect(report.ready).toBe(true);
     expect(report.blockers).toEqual([]);
+  });
+
+  it("accepts an explicit payment shutdown without requiring Stripe credentials", () => {
+    const {
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: _publishableKey,
+      STRIPE_SECRET_KEY: _secretKey,
+      STRIPE_WEBHOOK_SECRET: _webhookSecret,
+      ...valuesWithoutStripe
+    } = readyValues;
+
+    const report = productionReadiness(environment({
+      ...valuesWithoutStripe,
+      PAYMENTS_ENABLED: "false",
+    }));
+
+    expect(report.ready).toBe(true);
+    expect(report.requirements.map((item) => item.key)).not.toContain("STRIPE_SECRET_KEY");
+  });
+
+  it("refuses an ambiguous payment switch", () => {
+    const report = productionReadiness(environment({ ...readyValues, PAYMENTS_ENABLED: "maybe" }));
+
+    expect(report.ready).toBe(false);
+    expect(report.blockers).toContainEqual(expect.objectContaining({ key: "PAYMENTS_ENABLED" }));
   });
 
   it("refuses any unrelated workers.dev URL as the public storefront", () => {

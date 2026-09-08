@@ -58,6 +58,19 @@ describe("customer password production flow", () => {
     });
   });
 
+  it("does not claim success when Supabase rejects recovery delivery", async () => {
+    mocks.fetch.mockResolvedValue(new Response("{}", { status: 429 }));
+
+    const response = await POST(jsonRequest("https://je-mange-africain.com/api/auth/customer/password", {
+      email: "ezechielouiya@gmail.com",
+    }));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "Le service de récupération est momentanément indisponible.",
+    });
+  });
+
   it("does not let an untrusted request host control the recovery redirect", async () => {
     const response = await POST(jsonRequest("https://malicious.example/api/auth/customer/password", {
       email: "ezechielouiya@gmail.com",

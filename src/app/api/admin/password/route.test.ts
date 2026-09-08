@@ -49,6 +49,17 @@ describe("admin password recovery", () => {
     });
   });
 
+  it("does not claim success when Supabase rejects recovery delivery", async () => {
+    mocks.fetch.mockResolvedValue(new Response("{}", { status: 500 }));
+
+    const response = await POST(request({ email: "ezechielouiya@gmail.com" }));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "Le service de récupération professionnel est momentanément indisponible.",
+    });
+  });
+
   it("updates only an authorized professional identity", async () => {
     mocks.fetch
       .mockResolvedValueOnce(Response.json({ app_metadata: { role: "super_admin" } }))

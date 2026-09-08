@@ -17,14 +17,17 @@ export const CLOUDFLARE_PUBLICATION_MODE = "Cloudflare Workers custom-domain dep
 export const SUPABASE_OPERATIONAL_KEYS = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "DIRECT_URL"];
 
 const DOTENV_FILES = [".env", ".env.local", ".env.production.local"];
+const STRIPE_REQUIRED_ENV = [
+  ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "Stripe publishable key"],
+  ["STRIPE_SECRET_KEY", "Stripe server key"],
+  ["STRIPE_WEBHOOK_SECRET", "Stripe webhook signing secret"],
+];
 const REQUIRED_ENV = [
   ["CLOUDFLARE_HYPERDRIVE_ID", `Cloudflare Hyperdrive connection for ${PRODUCTION_SUPABASE_PROJECT_NAME}`],
   ["NEXT_PUBLIC_SUPABASE_URL", `Supabase URL must target ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF})`],
   ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "Supabase publishable key"],
   ["SUPABASE_SECRET_KEY", "Supabase server secret key"],
-  ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "Stripe publishable key"],
-  ["STRIPE_SECRET_KEY", "Stripe server key"],
-  ["STRIPE_WEBHOOK_SECRET", "Stripe webhook signing secret"],
+  ["PAYMENTS_ENABLED", "Explicit server-side payment switch"],
   ["UPSTASH_REDIS_REST_URL", "Upstash Redis REST URL"],
   ["UPSTASH_REDIS_REST_TOKEN", "Upstash Redis REST token"],
   ["NEXT_PUBLIC_VAPID_PUBLIC_KEY", "Web Push public VAPID key"],
@@ -64,6 +67,8 @@ export const REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS = [
   "VAPID_PRIVATE_KEY",
   "VAPID_SUBJECT",
 ];
+const REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS_WITHOUT_PAYMENTS = REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS
+  .filter((key) => !["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"].includes(key));
 
 function parseDotenvFile(filePath) {
   if (!existsSync(filePath)) return {};
@@ -241,6 +246,9 @@ function evaluateRequirement(key, label, values, sources) {
   if (key === "NEXT_PUBLIC_SITE_URL" && normalizedUrl(value) !== PRODUCTION_SITE_URL) {
     return { key, label, ok: false, source, problem: `must be ${PRODUCTION_SITE_URL}` };
   }
+  if (key === "PAYMENTS_ENABLED" && !["true", "false"].includes(value.toLowerCase())) {
+    return { key, label, ok: false, source, problem: "must be true or false" };
+  }
   if (key === "CLOUDFLARE_DOMAIN_STATUS" && !["deferred", "attached"].includes(value)) {
     return { key, label, ok: false, source, problem: "must be deferred or attached" };
   }
@@ -260,8 +268,11 @@ export function productionReadiness(environment = loadProductionEnvironment()) {
   const optionalRequirements = OPTIONAL_ENV
     .filter(([key]) => Boolean(environment.values[key]))
     .map(([key, label]) => evaluateRequirement(key, label, environment.values, environment.sources));
+  const requiredEnvironment = environment.values.PAYMENTS_ENABLED === "true"
+    ? [...REQUIRED_ENV, ...STRIPE_REQUIRED_ENV]
+    : REQUIRED_ENV;
   const requirements = [
-    ...REQUIRED_ENV.map(([key, label]) => evaluateRequirement(key, label, environment.values, environment.sources)),
+    ...requiredEnvironment.map(([key, label]) => evaluateRequirement(key, label, environment.values, environment.sources)),
     ...optionalRequirements,
   ];
   const blockers = requirements.filter((item) => !item.ok);
@@ -518,7 +529,10 @@ export function remoteProductionReadiness({
   const secretResult = runner("npx", ["wrangler", "secret", "list", "--config", "wrangler.jsonc", "--name", PRODUCTION_WORKER_NAME]);
   const secretPayload = parseJsonPayload(`${secretResult.stdout || ""}\n${secretResult.stderr || ""}`);
   const remoteSecrets = cloudflareSecretNames(secretPayload);
-  const missingRemoteSecretKeys = REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS.filter((key) => !remoteSecrets.includes(key));
+  const requiredRemoteSecretKeys = environment.values.PAYMENTS_ENABLED === "true"
+    ? REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS
+    : REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS_WITHOUT_PAYMENTS;
+  const missingRemoteSecretKeys = requiredRemoteSecretKeys.filter((key) => !remoteSecrets.includes(key));
   const cloudflareSecretsReadable = secretResult.status === 0 && Array.isArray(secretPayload);
 
   const supabaseResult = runner("npx", ["supabase", "projects", "list"]);
@@ -573,7 +587,7 @@ export function remoteProductionReadiness({
       cloudflareSecretsReadable,
       secretStatus: secretResult.status,
       remoteSecrets,
-      requiredRemoteSecretKeys: REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS,
+      requiredRemoteSecretKeys,
       missingRemoteSecretKeys,
     },
     supabase: {
