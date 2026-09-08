@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/redis";
 
 const ADMIN_DOMAIN = "admin.je-mange-africain.com";
 const CUSTOMER_DOMAIN = "je-mange-africain.com";
@@ -15,7 +16,11 @@ function isAdminSurfacePath(pathname: string) {
   return pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/api/admin" || pathname.startsWith("/api/admin/");
 }
 
-export function proxy(request: NextRequest) {
+function isApiSurfacePath(pathname: string) {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
+export async function proxy(request: NextRequest) {
   const host = requestHost(request);
   const { pathname } = request.nextUrl;
 
@@ -37,6 +42,11 @@ export function proxy(request: NextRequest) {
     customerUrl.hostname = CUSTOMER_DOMAIN;
     customerUrl.port = "";
     return NextResponse.redirect(customerUrl);
+  }
+
+  if (isApiSurfacePath(pathname) && request.method !== "OPTIONS") {
+    const limited = await enforceRateLimit(request, "api-gateway", undefined, { scopes: ["ip", "route", "global"] });
+    if (limited) return limited;
   }
 
   return NextResponse.next();

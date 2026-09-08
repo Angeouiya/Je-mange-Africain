@@ -3,6 +3,7 @@ import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
 
 export type RateLimitPolicy =
+  | "api-gateway"
   | "auth"
   | "register"
   | "password-reset"
@@ -68,6 +69,16 @@ const remoteRequiredPolicies = new Set<RateLimitPolicy>([
 ]);
 
 export const rateLimitPolicyConfig: Record<RateLimitPolicy, RateLimitPolicyConfig> = {
+  "api-gateway": {
+    windows: [
+      { scope: "ip", requests: 240, windowMs: 60_000, window: "1 m" },
+      { scope: "route", requests: 90, windowMs: 60_000, window: "1 m" },
+      { scope: "ip", requests: 1_800, windowMs: 60 * 60_000, window: "1 h" },
+      { scope: "global", requests: 12_000, windowMs: 60_000, window: "1 m" },
+    ],
+    messageFr: "La plateforme reçoit trop de requêtes depuis cet accès. Veuillez patienter avant de recommencer.",
+    messageEn: "The platform is receiving too many requests from this access. Please wait before trying again.",
+  },
   auth: {
     windows: [
       { scope: "ip", requests: 12, windowMs: 60_000, window: "1 m" },

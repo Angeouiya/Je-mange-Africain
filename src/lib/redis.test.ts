@@ -12,6 +12,21 @@ describe("enforceRateLimit", () => {
     clearLocalRateLimitBuckets();
   });
 
+  it("applies a platform gateway shield before route handlers", async () => {
+    const routeWindow = rateLimitPolicyConfig["api-gateway"].windows.find((window) => window.scope === "route")!;
+    expect(routeWindow.requests).toBeLessThanOrEqual(90);
+
+    for (let index = 0; index < routeWindow.requests; index += 1) {
+      await expect(enforceRateLimit(request("/api/catalog"), "api-gateway", undefined, { scopes: ["route"] })).resolves.toBeNull();
+    }
+
+    const blocked = await enforceRateLimit(request("/api/catalog"), "api-gateway", undefined, { scopes: ["route"] });
+
+    expect(blocked?.status).toBe(429);
+    expect(blocked?.headers.get("X-RateLimit-Policy")).toBe("api-gateway");
+    expect(blocked?.headers.get("X-RateLimit-Scope")).toBe("route");
+  });
+
   it("blocks repeated authentication attempts by IP", async () => {
     const limit = rateLimitPolicyConfig.auth.windows.find((window) => window.scope === "ip" && window.window === "1 m")!.requests;
     for (let index = 0; index < limit; index += 1) {

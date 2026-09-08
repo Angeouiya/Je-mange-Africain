@@ -86,6 +86,26 @@ describe("production rate limiting safety", () => {
     await expect(blocked?.json()).resolves.toMatchObject({ code: "RATE_LIMITED", policy: "search" });
   });
 
+  it("keeps the coarse API gateway shield available while production Redis is being wired", async () => {
+    vi.resetModules();
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+
+    const { enforceRateLimit, rateLimitPolicyConfig, remoteRateLimitRequired } = await import("./redis");
+    const limit = rateLimitPolicyConfig["api-gateway"].windows.find((window) => window.scope === "route")!.requests;
+
+    expect(remoteRateLimitRequired("api-gateway")).toBe(false);
+    for (let index = 0; index < limit; index += 1) {
+      await expect(enforceRateLimit(request("/api/catalog"), "api-gateway", undefined, { scopes: ["route"] })).resolves.toBeNull();
+    }
+
+    const blocked = await enforceRateLimit(request("/api/catalog"), "api-gateway", undefined, { scopes: ["route"] });
+
+    expect(blocked?.status).toBe(429);
+    await expect(blocked?.json()).resolves.toMatchObject({ code: "RATE_LIMITED", policy: "api-gateway" });
+  });
+
   it("requires remote throttling for delivery quotes and recipe recalculations in production", async () => {
     vi.resetModules();
     vi.stubEnv("NODE_ENV", "production");
