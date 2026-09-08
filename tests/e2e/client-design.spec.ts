@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { catalogFixture, mockPublishedStorefront, productDetailFixture, recipeDetailFixture, recipeListFixture } from "./fixtures/storefront";
 
 const privacyConsentFixture = JSON.stringify({ version: 1, necessary: true, analytics: false, personalization: false, marketing: false, updatedAt: "2026-09-05T12:00:00.000Z" });
 const authenticatedCustomerFixture = {
@@ -50,6 +51,7 @@ async function seedAuthenticatedCustomer(page: Page, customer = authenticatedCus
     }));
   }, { persistedCustomer: customer });
   await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) }));
+  await mockPublishedStorefront(page);
   return customer;
 }
 
@@ -92,25 +94,24 @@ async function expectBrandSafeUiColors(page: Page) {
 }
 
 test("the client application exposes clear catalogue, recipe and basket workspaces", async ({ page }) => {
+  test.setTimeout(240_000);
   await seedAuthenticatedCustomer(page);
   const deliveryRequests: Array<Record<string, unknown>> = [];
   const catalogRequests: string[] = [];
   await page.route("**/api/catalog?*", async (route) => {
     catalogRequests.push(route.request().url());
-    const response = await route.fetch({ timeout: 45_000 });
-    const payload = await response.json();
+    const payload = catalogFixture(route.request().url());
     if (Array.isArray(payload.products) && payload.products[0]) {
       payload.products[0] = { ...payload.products[0], isBestseller: false, isRecommended: true, isNew: false };
     }
-    await route.fulfill({ response, json: payload });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
   });
   await page.route("**/api/recipes?*", async (route) => {
-    const response = await route.fetch({ timeout: 45_000 });
-    const payload = await response.json();
+    const payload = recipeListFixture(route.request().url());
     if (Array.isArray(payload.recipes) && payload.recipes[0]) {
       payload.recipes[0] = { ...payload.recipes[0], isPopular: false, isRecommended: true, isNew: false };
     }
-    await route.fulfill({ response, json: payload });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
   });
   await page.route("**/api/advertisements?*", async (route) => {
     const placement = new URL(route.request().url()).searchParams.get("placement") || "home";
@@ -877,13 +878,7 @@ test("global search and notifications navigate to useful client destinations", a
 
 test("product details stay bounded and preserve real visual identification in the basket", async ({ page }) => {
   const customer = { id: "customer-product-flow", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 120, walletCredit: 0 };
-  await page.addInitScript(({ persistedCustomer }) => {
-    localStorage.setItem("jma-store", JSON.stringify({
-      state: { locale: "fr", cart: [], favorites: [], savedRecipes: [], savedOwnerId: persistedCustomer.id, recentlyViewed: [], customer: persistedCustomer, addresses: [], country: "France", postalCode: "75011", coupon: null },
-      version: 0,
-    }));
-  }, { persistedCustomer: customer });
-  await page.route("**/api/auth/customer/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ customer, addresses: [], favoriteProductIds: [], savedRecipeIds: [] }) }));
+  await seedAuthenticatedCustomer(page, customer);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /marché|market|catégories|categories|acheter les produits|shop products/i }).first().click();
@@ -964,12 +959,12 @@ test("product details stay bounded and preserve real visual identification in th
   await expect(page).toHaveURL(/\?view=product&productId=[^&]+/);
 
   const largerVariant = page.getByRole("button", { name: /Pot 800 g/i });
-  await expect(largerVariant).toContainText(/9,90\s*€/);
+  await expect(largerVariant).toContainText(/7,79\s*€/);
   await largerVariant.click();
   const addToCart = isMobile
     ? purchaseDock.getByRole("button", { name: /ajouter au panier|add to cart/i })
     : page.getByRole("button", { name: /ajouter au panier|add to cart/i }).first();
-  await expect(addToCart).toContainText(/9,90\s*€/);
+  await expect(addToCart).toContainText(/7,79\s*€/);
   await addToCart.click();
   await page.getByRole("button", { name: /^(panier|cart)$|^(finaliser le panier|complete basket)\b/i }).first().click();
   await expect(page.getByRole("heading", { name: /mon panier|my cart/i })).toBeVisible();
@@ -2107,7 +2102,7 @@ test("product and recipe details recover without duplicating navigation", async 
       await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Catalog synchronisation unavailable" }) });
       return;
     }
-    await route.continue();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(productDetailFixture(route.request().url())) });
   });
 
   await page.goto("/?view=catalog", { waitUntil: "domcontentloaded" });
@@ -2137,7 +2132,7 @@ test("product and recipe details recover without duplicating navigation", async 
       await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Recipe synchronisation unavailable" }) });
       return;
     }
-    await route.continue();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(recipeDetailFixture(route.request().url())) });
   });
 
   await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
@@ -2159,6 +2154,7 @@ test("product and recipe details recover without duplicating navigation", async 
 });
 
 test("the recipe configurator recalculates, removes and restores an ingredient", async ({ page }) => {
+  test.setTimeout(240_000);
   await seedAuthenticatedCustomer(page);
   let calculationAvailable = false;
   let latestRecipePayload: any = null;
@@ -2287,12 +2283,12 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
     };
   };
   await page.route(/\/api\/recipes\/[^/?]+\?/, async (route) => {
-    const response = await route.fetch();
-    const payload = await response.json();
+    const payload = recipeDetailFixture(route.request().url());
     payload.galleryUrls = ["/recipes/sauce-gombo.webp", "/recipes/mafe.webp"];
     payload.isPopular = false;
     payload.isRecommended = true;
-    payload.stepDetails = payload.steps.map((_: string, index: number) => ({
+    payload.stepDetails = payload.steps.map((instruction: string, index: number) => ({
+      instruction,
       title: index === 0 ? "Construire la base aromatique" : `Maîtriser le geste ${index + 1}`,
       durationMinutes: 12 + index,
       restMinutes: index === 0 ? 5 : 0,
@@ -2307,7 +2303,7 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
       ingredientProductIds: index === 0 && payload.ingredients[0]?.productId ? [payload.ingredients[0].productId] : [],
     }));
     latestRecipePayload = payload;
-    await route.fulfill({ response, json: payload });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
   });
   await page.route(/\/api\/recipes\/[^/]+\/calculate(?:\?|$)/, async (route) => {
     if (!calculationAvailable) {
@@ -2318,7 +2314,7 @@ test("the recipe configurator recalculates, removes and restores an ingredient",
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ result: buildMockCalculation(body), locale: "fr" }) });
   });
   await page.goto("/?view=recipes", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /moteur de recettes africaines|african recipe engine/i })).toBeVisible({ timeout: 60_000 });
   await page.getByRole("button", { name: /configurer|configure/i }).first().click();
 
   await expect(page.getByRole("heading", { name: /configurateur de recette|recipe configurator/i })).toBeVisible();

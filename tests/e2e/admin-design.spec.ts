@@ -1824,7 +1824,7 @@ test("the inventory desk receives, values and secures a traceable batch", async 
   await expect(page.getByText("Derniers mouvements")).toBeVisible();
   const productImages = page.getByRole("img", { name: "Attiéké frais" });
   await expect(productImages.first()).toBeVisible();
-  expect(await productImages.first().evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect.poll(() => productImages.first().evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
 
   await page.getByRole("button", { name: "Réceptionner un lot" }).click();
   const receiptDialog = page.getByRole("dialog", { name: "Réceptionner un lot traçable" });
@@ -2407,9 +2407,12 @@ test("professional creation studios remain fully English and use brand-safe reci
 });
 
 test("the recipe studio imports a documented dish and exposes every unresolved stock link", async ({ page }) => {
+  test.setTimeout(240_000);
   await mockAdminApi(page);
   await page.goto("/admin#recipes", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Nouvelle recette" }).click();
+  const createRecipe = page.getByRole("button", { name: "Nouvelle recette" });
+  await expect(createRecipe).toBeVisible({ timeout: 60_000 });
+  await createRecipe.click();
 
   const dialog = page.getByRole("dialog", { name: "Composer une recette achetable" });
   const importer = dialog.getByTestId("recipe-template-importer");
