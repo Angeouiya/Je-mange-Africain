@@ -128,7 +128,7 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
   const isAuthenticated = Boolean(customer);
 
   const requireSearchAuth = (collection: SearchCollection = "products", value = query) => {
-    if (customer) return true;
+    if (useStore.getState().customer) return true;
     const normalized = value.trim();
     requestCustomerAuth({
       view: collection === "products" ? "catalog" : "recipes",
@@ -154,7 +154,7 @@ export function SearchBar({ autoFocus = false, compact = false }: { autoFocus?: 
   const submit = (value = query) => navigateToCollection(preferredSearchCollection(counts), value);
 
   const selectOption = (option: SearchOption) => {
-    if (!customer) {
+    if (!useStore.getState().customer) {
       if (option.kind === "product") requestCustomerAuth({ view: "product", params: { productId: option.id } });
       else if (option.kind === "recipe") requestCustomerAuth({ view: "recipe-config", params: { recipeId: option.id } });
       else requestCustomerAuth({ view: "recipes", params: { query: option.name, recipeMode: "library" } });

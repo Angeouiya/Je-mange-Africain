@@ -72,6 +72,12 @@ export function StorefrontApp() {
 
   useEffect(() => {
     let cancelled = false;
+    const stateAtMount = useStore.getState();
+    const navigationAtMount = {
+      view: stateAtMount.view,
+      params: JSON.stringify(stateAtMount.params),
+      historyLength: stateAtMount.navigationHistory.length,
+    };
     const applyLocation = () => {
       const destination = storefrontDestination(new URLSearchParams(window.location.search));
       navigate(destination.view, destination.params);
@@ -89,28 +95,27 @@ export function StorefrontApp() {
       }
       if (cancelled) return;
       const sessionSubject = useStore.getState().customer?.id || null;
-      const userAlreadyNavigated = useStore.getState().navigationHistory.length > 0;
+      const currentState = useStore.getState();
+      const userAlreadyNavigated = currentState.view !== navigationAtMount.view
+        || JSON.stringify(currentState.params) !== navigationAtMount.params
+        || currentState.navigationHistory.length !== navigationAtMount.historyLength;
       if (!userAlreadyNavigated) applyLocation();
-      setMounted(true);
-      fetch("/api/auth/customer/session", { cache: "no-store" })
-        .then(async (response) => {
-          if (!response.ok) throw new Error(`Session HTTP ${response.status}`);
-          return response.json();
-        })
-        .then((payload) => {
-          if (cancelled) return;
-          const state = useStore.getState();
-          const currentSubject = state.customer?.id || null;
-          const responseSubject = payload?.customer?.id || null;
-          if (currentSubject !== sessionSubject && currentSubject !== responseSubject) return;
-          if (!payload?.customer) {
-            if (state.customer) state.logout();
-            else {
-              state.setCustomer(null);
-              state.setAddresses([]);
-            }
-            return;
+      try {
+        const response = await fetch("/api/auth/customer/session", { cache: "no-store", signal: AbortSignal.timeout(6_000) });
+        if (!response.ok) throw new Error(`Session HTTP ${response.status}`);
+        const payload = await response.json();
+        if (cancelled) return;
+        const state = useStore.getState();
+        const currentSubject = state.customer?.id || null;
+        const responseSubject = payload?.customer?.id || null;
+        if (currentSubject !== sessionSubject && currentSubject !== responseSubject) return;
+        if (!payload?.customer) {
+          if (state.customer) state.logout();
+          else {
+            state.setCustomer(null);
+            state.setAddresses([]);
           }
+        } else {
           const pendingTarget = state.authReturnTarget;
           if (sessionSubject && sessionSubject !== responseSubject) state.logout();
           state.setCustomer(payload.customer);
@@ -120,8 +125,12 @@ export function StorefrontApp() {
             state.consumeAuthReturnTarget();
             state.navigate(pendingTarget.view, pendingTarget.params);
           }
-        })
-        .catch(() => undefined);
+        }
+      } catch {
+        // A failed session check falls back to the anonymous state restored above.
+      } finally {
+        if (!cancelled) setMounted(true);
+      }
     };
     void initialize();
     window.addEventListener("popstate", applyHydratedLocation);
@@ -208,7 +217,7 @@ export function StorefrontApp() {
   const isPublicAuthGate = view === "account" && !customer;
 
   return (
-    <div className="jma-shell min-h-screen">
+    <div data-testid="storefront-shell" className="jma-shell min-h-screen" aria-busy={!mounted} inert={!mounted ? true : undefined}>
       {isPublicAuthGate ? null : <MobileNav ready={mounted} />}
       <div className={`flex min-h-screen flex-col ${isPublicAuthGate ? "" : "md:pl-64"}`}>
       {isPublicAuthGate ? null : <Header />}

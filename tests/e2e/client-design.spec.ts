@@ -841,6 +841,7 @@ test("global search and notifications navigate to useful client destinations", a
   await expect(page.getByRole("button", { name: /notifications, 1 (non lues|unread)/i })).toBeVisible();
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("storefront-shell")).toHaveAttribute("aria-busy", "false");
   const search = page.getByRole("combobox", { name: /recherche globale|global search/i });
   await search.focus();
   await expect(page.getByText(/recherches populaires|popular searches/i)).toBeVisible();
@@ -860,6 +861,7 @@ test("global search and notifications navigate to useful client destinations", a
   expect(new URL(page.url()).searchParams.get("query")).toBe("attiéké");
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("storefront-shell")).toHaveAttribute("aria-busy", "false");
   await search.fill("attiéké");
   await expect(page.getByRole("option", { name: /attiéké frais/i })).toBeVisible();
   await search.press("ArrowDown");

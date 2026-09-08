@@ -15,7 +15,7 @@ type TeamTab = "members" | "roles";
 export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
   const isFr = locale === "fr";
   const [tab, setTab] = useState<TeamTab>("members");
-  const request = useFetch<TeamPayload>("/api/admin/team", [locale], {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
+  const request = useFetch<TeamPayload>("/api/admin/team", [locale], { "Accept-Language": locale }, { cache: true, ttlMs: ADMIN_DATA_TTL_MS });
   const data = request.data;
   const roleCatalog = data ? completeRoleCatalog(data) : [];
   const summary = data ? data.summary || fallbackSummary(data) : null;
@@ -31,11 +31,6 @@ export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
       eyebrow={isFr ? "Identités et autorisations" : "Identity and authorisation"}
       title={isFr ? "Équipe professionnelle" : "Professional team"}
       description={isFr ? "Attribuez le rôle minimal et documentez chaque changement d'accès." : "Grant the minimum role and document every access change."}
-      signals={summary ? [
-        { label: isFr ? "Identités" : "Identities", value: String(summary.total), icon: <UsersRound className="h-3.5 w-3.5" />, tone: "earth" },
-        { label: isFr ? "Actifs" : "Active", value: String(summary.active), icon: <UserCheck className="h-3.5 w-3.5" />, tone: "burgundy" },
-        { label: isFr ? "Délégation" : "Delegation", value: `${summary.coveredModules}/${summary.totalModules}`, icon: <ShieldCheck className="h-3.5 w-3.5" />, tone: "gold" },
-      ] : []}
       flow={summary ? [
         { label: isFr ? "Inviter" : "Invite", detail: isFr ? "Identité vérifiée" : "Verified identity", icon: <MailCheck className="h-3.5 w-3.5" />, tone: "burgundy", active: summary.invited > 0 },
         { label: isFr ? "Autoriser" : "Authorise", detail: isFr ? "Rôle strict utile" : "Least useful role", icon: <ShieldCheck className="h-3.5 w-3.5" />, tone: "earth", active: tab === "roles" },
@@ -43,7 +38,6 @@ export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
         { label: isFr ? "Tracer" : "Trace", detail: isFr ? "Changement d'accès" : "Access change", icon: <UserRoundCog className="h-3.5 w-3.5" />, tone: "coral", active: tab === "members" },
       ] : []}
       flowDensity="compact"
-      signalsMobile={false}
       action={data ? <InviteMemberDialog locale={locale} roles={data.roles} onInvited={request.refetch} /> : undefined}
     />
 

@@ -1937,7 +1937,7 @@ test("the professional console remains separate from the customer storefront", a
   if ((page.viewportSize()?.width || 0) < 768) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
   await expect(page.getByText("direction@je-mange-africain.com")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/mon panier|mes favoris|se connecter avec votre compte client/i);
-  await expect(page.getByRole("button", { name: /quitter/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /se déconnecter|sign out/i })).toBeVisible();
 });
 
 test("the product workspace edits bilingual content and calculates the customer price", async ({ page }) => {

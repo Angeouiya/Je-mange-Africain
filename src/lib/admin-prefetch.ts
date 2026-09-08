@@ -48,7 +48,8 @@ export function adminPrefetchUrls(section: AdminSectionId, locale: AdminPrefetch
 }
 
 export function prefetchAdminSectionData(section: AdminSectionId, locale: AdminPrefetchLocale) {
-  return Promise.allSettled(adminPrefetchUrls(section, locale).map((url) => prefetchJSON(url, {}, { cache: true, ttlMs: ADMIN_DATA_TTL_MS })));
+  const headers: Record<string, string> = section === "team" ? { "Accept-Language": locale } : {};
+  return Promise.allSettled(adminPrefetchUrls(section, locale).map((url) => prefetchJSON(url, headers, { cache: true, ttlMs: ADMIN_DATA_TTL_MS })));
 }
 
 export function adminPredictiveSections(section: AdminSectionId, availableSections: AdminSectionId[] = []) {

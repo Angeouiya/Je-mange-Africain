@@ -293,7 +293,7 @@ export function AdminView({
     ]));
     const restSectionIds = availableItems.map((item) => item.id).filter((id) => !prioritySectionIds.includes(id));
     const cancelPriority = scheduleAdminPreload(() => prioritySectionIds.forEach((id) => preloadAdminSection(id, locale)), 500);
-    const cancelRest = scheduleAdminPreload(() => restSectionIds.forEach((id) => preloadAdminSection(id, locale)), 1800);
+    const cancelRest = scheduleAdminPreload(() => restSectionIds.forEach(preloadAdminSectionBundle), 1800);
 
     return () => {
       cancelPriority();
