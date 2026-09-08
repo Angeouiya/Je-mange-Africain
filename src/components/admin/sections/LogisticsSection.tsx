@@ -134,6 +134,14 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
           { label: isFr ? "Routes" : "Routes", value: String(data.summary.routes), icon: <ReiconGlyph icon={ReRouteTrack} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy" },
           { label: isFr ? "Froid" : "Cold chain", value: String(data.summary.coldChainRoutes), icon: <ReiconGlyph icon={ReSnowflake} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold" },
         ]}
+        flow={[
+          { label: isFr ? "Cartographier" : "Map", detail: isFr ? "Pays et zones" : "Countries and zones", icon: <ReiconGlyph icon={ReMapPoint} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy", active: tab === "routes" },
+          { label: isFr ? "Tarifer" : "Price", detail: isFr ? "Poids, froid, délai" : "Weight, cold, timing", icon: <ReiconGlyph icon={ReGauge} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth", active: tab === "simulator" },
+          { label: isFr ? "Attribuer" : "Assign", detail: isFr ? "Transporteur et suivi" : "Carrier and tracking", icon: <ReiconGlyph icon={ReTruckTick} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold", active: tab === "carriers" },
+          { label: isFr ? "Sécuriser" : "Secure", detail: isFr ? "Promesse vendue" : "Sold promise", icon: <ReiconGlyph icon={ReShieldCheck} weight="Filled" className="h-3.5 w-3.5" />, tone: "coral", active: data.summary.coldChainRoutes > 0 },
+        ]}
+        flowDensity="compact"
+        signalsMobile={false}
       />
 
       {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}

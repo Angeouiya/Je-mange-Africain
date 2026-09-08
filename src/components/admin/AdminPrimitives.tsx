@@ -21,12 +21,42 @@ type AdminHeaderSignal = {
   icon?: ReactNode;
   tone?: "burgundy" | "earth" | "gold" | "coral";
 };
+type AdminHeaderFlowStep = {
+  label: string;
+  detail: string;
+  icon?: ReactNode;
+  tone?: "burgundy" | "earth" | "gold" | "coral";
+  active?: boolean;
+};
 
 const adminHeaderSignalTones: Record<NonNullable<AdminHeaderSignal["tone"]>, string> = {
   burgundy: "border-burgundy/15 bg-burgundy/[0.045] text-burgundy",
   earth: "border-terre/18 bg-terre/[0.055] text-terre",
   gold: "border-gold/35 bg-gold/[0.13] text-charcoal",
   coral: "border-terre/20 bg-terre/[0.04] text-terre",
+};
+
+const adminHeaderFlowTones: Record<NonNullable<AdminHeaderFlowStep["tone"]>, { item: string; icon: string; marker: string }> = {
+  burgundy: {
+    item: "border-burgundy/14 bg-burgundy/[0.035]",
+    icon: "border-burgundy/14 bg-burgundy/[0.07] text-burgundy",
+    marker: "bg-burgundy",
+  },
+  earth: {
+    item: "border-terre/14 bg-terre/[0.04]",
+    icon: "border-terre/15 bg-terre/[0.075] text-terre",
+    marker: "bg-terre",
+  },
+  gold: {
+    item: "border-gold/35 bg-gold/[0.10]",
+    icon: "border-gold/40 bg-gold/[0.18] text-charcoal",
+    marker: "bg-gold",
+  },
+  coral: {
+    item: "border-terre/20 bg-terre/[0.035]",
+    icon: "border-terre/20 bg-terre/[0.07] text-terre",
+    marker: "bg-terre",
+  },
 };
 
 function isReiconIcon(icon: AdminTabIcon): icon is IconFunction {
@@ -47,6 +77,8 @@ export function AdminPageHeader({
   icon,
   signals = [],
   signalsMobile = true,
+  flow = [],
+  flowDensity = "comfortable",
   variant = "workspace",
   accent = "#D65A32",
 }: {
@@ -57,11 +89,14 @@ export function AdminPageHeader({
   icon?: ReactNode;
   signals?: AdminHeaderSignal[];
   signalsMobile?: boolean;
+  flow?: AdminHeaderFlowStep[];
+  flowDensity?: "comfortable" | "compact";
   variant?: "command" | "workspace" | "flow" | "control";
   accent?: string;
 }) {
   const readableAccent = getReadableBrandAccent(accent);
   const accentForeground = getBrandAccentForeground(accent);
+  const compactFlow = flowDensity === "compact" || variant === "command";
   const signalRail = signals.length ? (
     <div className={`${signalsMobile ? "flex" : "hidden sm:flex"} -mx-1 mt-2 min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] sm:mt-3 [&::-webkit-scrollbar]:hidden`} role="region" tabIndex={0} aria-label={title}>
       {signals.map((signal) => (
@@ -79,6 +114,37 @@ export function AdminPageHeader({
       ))}
     </div>
   ) : null;
+  const flowRail = flow.length ? (
+    <ol
+      className={`${compactFlow ? "mt-2" : "mt-3"} -mx-1 flex min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+      aria-label={title}
+      tabIndex={0}
+      data-testid="admin-header-flow"
+    >
+      {flow.map((step, index) => {
+        const tone = adminHeaderFlowTones[step.tone || "burgundy"];
+        return (
+          <li
+            key={`${step.label}-${index}`}
+            aria-current={step.active ? "step" : undefined}
+            className={`relative flex shrink-0 items-center rounded-md border transition-colors ${compactFlow ? "min-h-9 min-w-[7.75rem] gap-1.5 px-1.5 py-1 sm:min-h-10 sm:min-w-[9.5rem] sm:gap-2 sm:px-2 sm:py-1.5" : "min-h-[4.25rem] min-w-[10rem] gap-2.5 px-2.5 py-2 sm:min-w-[11.75rem]"} ${tone.item} ${step.active ? "border-burgundy/28 bg-white shadow-[0_14px_34px_-30px_rgba(138,48,66,0.65)]" : ""}`}
+            data-testid="admin-header-flow-step"
+          >
+            {step.icon ? (
+              <span data-admin-flow-icon className={`grid shrink-0 place-items-center rounded-md border ${compactFlow ? "h-6 w-6 sm:h-7 sm:w-7" : "h-9 w-9"} ${tone.icon}`}>
+                {step.icon}
+              </span>
+            ) : null}
+            <span className="min-w-0">
+              <span data-admin-flow-label className={`block truncate font-black text-charcoal ${compactFlow ? "text-[9px] leading-3.5 sm:text-[10px]" : "text-[11px] leading-4"}`}>{step.label}</span>
+              <span data-admin-flow-detail className={`mt-0.5 block font-semibold text-muted-foreground ${compactFlow ? "truncate text-[8px] leading-3" : "line-clamp-2 text-[9px] leading-3.5"}`}>{step.detail}</span>
+            </span>
+            <span className={`absolute right-2 top-2 h-1.5 w-1.5 rounded-full ${step.active ? tone.marker : "bg-charcoal/18"}`} aria-hidden="true" />
+          </li>
+        );
+      })}
+    </ol>
+  ) : null;
 
   if (variant === "command") {
     return (
@@ -91,21 +157,23 @@ export function AdminPageHeader({
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>
         {signalRail ? <div className="[&_[data-testid=admin-header-signal]]:border-white/16 [&_[data-testid=admin-header-signal]]:bg-white/12 [&_[data-testid=admin-header-signal]]:text-white [&_[data-testid=admin-header-signal]_[class*=text-muted-foreground]]:text-white/62">{signalRail}</div> : null}
+        {flowRail ? <div className="[&_[data-testid=admin-header-flow-step]]:border-white/16 [&_[data-testid=admin-header-flow-step]]:bg-white/12 [&_[data-testid=admin-header-flow-step]_[data-admin-flow-label]]:text-white [&_[data-testid=admin-header-flow-step]_[data-admin-flow-detail]]:text-white/62 [&_[data-admin-flow-icon]]:border-white/12 [&_[data-admin-flow-icon]]:bg-white/16 [&_[data-admin-flow-icon]]:text-white">{flowRail}</div> : null}
       </div>
     );
   }
 
   if (variant === "flow") {
     return (
-      <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 overflow-hidden border-y border-charcoal/8 bg-[linear-gradient(118deg,#FFFFFF_0%,#FFFCFA_58%,rgba(242,169,0,0.08)_100%)] px-4 py-4 shadow-[0_18px_44px_-40px_rgba(90,38,50,0.55)] sm:-mx-6 sm:px-6 sm:py-5 lg:-mx-8 lg:px-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div className="flex max-w-3xl items-start gap-3 sm:items-center sm:gap-4">
-            {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/70 shadow-[0_16px_32px_-26px_rgba(90,38,50,0.75)] sm:h-12 sm:w-12" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
-            <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase sm:text-[10px]" style={{ color: readableAccent }}>{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p data-admin-header-description className="mt-1 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:text-xs sm:leading-5">{description}</p></div>
+      <div data-testid="admin-page-header" data-variant={variant} className="-mx-4 overflow-hidden border-y border-charcoal/8 bg-[linear-gradient(118deg,#FFFFFF_0%,#FFFCFA_58%,rgba(242,169,0,0.08)_100%)] px-4 py-3 shadow-[0_18px_44px_-40px_rgba(90,38,50,0.55)] sm:-mx-6 sm:px-6 sm:py-5 lg:-mx-8 lg:px-8">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex max-w-3xl items-start gap-2.5 sm:items-center sm:gap-4">
+            {icon ? <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/70 shadow-[0_16px_32px_-26px_rgba(90,38,50,0.75)] sm:h-12 sm:w-12" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
+            <div className="min-w-0"><p className="text-[8px] font-extrabold uppercase sm:text-[10px]" style={{ color: readableAccent }}>{eyebrow}</p><h2 className="mt-0.5 font-display text-xl font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p data-admin-header-description className="mt-1 line-clamp-2 max-w-2xl text-[10px] leading-4 text-muted-foreground sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
           </div>
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>
         {signalRail}
+        {flowRail}
       </div>
     );
   }
@@ -113,32 +181,34 @@ export function AdminPageHeader({
   if (variant === "control") {
     return (
       <div data-testid="admin-page-header" data-variant={variant} className="overflow-hidden border-l-[3px] bg-[linear-gradient(118deg,rgba(255,255,255,0.96),rgba(255,252,250,0.94),rgba(214,90,50,0.05))] px-3 py-3 shadow-[0_18px_44px_-42px_rgba(90,38,50,0.5)] sm:border-l-4 sm:px-5 sm:py-4" style={{ borderLeftColor: accent }}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div className="flex max-w-3xl items-start gap-3">
-            {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border" style={{ color: readableAccent, borderColor: `${accent}25`, backgroundColor: `${accent}0D` }}>{icon}</span> : null}
-            <div className="min-w-0"><p className="text-[9px] font-extrabold uppercase text-muted-foreground">{eyebrow}</p><h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p data-admin-header-description className="mt-1 line-clamp-3 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-1.5 sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex max-w-3xl items-start gap-2.5 sm:gap-3">
+            {icon ? <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border sm:h-9 sm:w-9" style={{ color: readableAccent, borderColor: `${accent}25`, backgroundColor: `${accent}0D` }}>{icon}</span> : null}
+            <div className="min-w-0"><p className="text-[8px] font-extrabold uppercase text-muted-foreground sm:text-[9px]">{eyebrow}</p><h2 className="mt-0.5 line-clamp-2 font-display text-xl font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p data-admin-header-description className="mt-1 line-clamp-1 max-w-2xl text-[10px] leading-4 text-muted-foreground sm:mt-1.5 sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
           </div>
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>
         {signalRail}
+        {flowRail}
       </div>
     );
   }
 
   return (
-    <div data-testid="admin-page-header" data-variant={variant} className="overflow-hidden rounded-md border border-burgundy/10 bg-[linear-gradient(116deg,rgba(255,255,255,1),rgba(255,252,250,0.96),rgba(242,169,0,0.075))] p-3.5 shadow-[0_18px_44px_-38px_rgba(90,38,50,0.62)] sm:p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-        <div className="flex max-w-3xl items-start gap-3 sm:gap-4">
-          {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/70 shadow-[0_16px_32px_-26px_rgba(90,38,50,0.72)] sm:h-11 sm:w-11" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
+    <div data-testid="admin-page-header" data-variant={variant} className="overflow-hidden rounded-md border border-burgundy/10 bg-[linear-gradient(116deg,rgba(255,255,255,1),rgba(255,252,250,0.96),rgba(242,169,0,0.075))] p-3 shadow-[0_18px_44px_-38px_rgba(90,38,50,0.62)] sm:p-4">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="flex max-w-3xl items-start gap-2.5 sm:gap-4">
+          {icon ? <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/70 shadow-[0_16px_32px_-26px_rgba(90,38,50,0.72)] sm:h-11 sm:w-11" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
           <div className="min-w-0">
-            <p className="text-[9px] font-extrabold uppercase sm:text-[11px]" style={{ color: readableAccent }}>{eyebrow}</p>
-            <h2 className="mt-0.5 font-display text-[1.35rem] font-semibold leading-tight text-charcoal sm:mt-1.5 sm:text-[32px]">{title}</h2>
-            <p data-admin-header-description className="mt-1 line-clamp-2 max-w-2xl text-[11px] leading-4 text-muted-foreground sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6">{description}</p>
+            <p className="text-[8px] font-extrabold uppercase sm:text-[11px]" style={{ color: readableAccent }}>{eyebrow}</p>
+            <h2 className="mt-0.5 line-clamp-2 font-display text-xl font-semibold leading-tight text-charcoal sm:mt-1.5 sm:text-[32px]">{title}</h2>
+            <p data-admin-header-description className="mt-1 line-clamp-1 max-w-2xl text-[10px] leading-4 text-muted-foreground sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6">{description}</p>
           </div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {signalRail}
+      {flowRail}
     </div>
   );
 }

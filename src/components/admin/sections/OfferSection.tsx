@@ -109,6 +109,18 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
           { label: isFr ? "Prêtes" : "Ready", value: String(recipeStats.ready), icon: <ChefHat className="h-3.5 w-3.5" />, tone: "gold" },
           { label: isFr ? "À vérifier" : "Review", value: String(recipeStats.attention), icon: <PackageX className="h-3.5 w-3.5" />, tone: recipeStats.attention ? "gold" : "earth" },
         ]}
+        flow={workspace === "products" ? [
+          { label: isFr ? "Ficher" : "Record", detail: isFr ? "Photo, nom, origine" : "Photo, name, origin", icon: <ReiconGlyph icon={ReImage} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy", active: productFilter === "draft" },
+          { label: isFr ? "Chiffrer" : "Price", detail: isFr ? "Coût brut, marge, prix" : "Cost, margin, price", icon: <ReiconGlyph icon={ReShieldCheck} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth", active: productFilter === "published" },
+          { label: isFr ? "Publier" : "Publish", detail: isFr ? "Client, stock, gros" : "Retail, stock, wholesale", icon: <ReiconGlyph icon={ReBasketShopping} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold", active: productFilter === "wholesale" },
+          { label: isFr ? "Arbitrer" : "Control", detail: isFr ? "Rupture ou désactivation" : "Stock out or disable", icon: <ReiconGlyph icon={ReBoxTick} weight="Filled" className="h-3.5 w-3.5" />, tone: "coral", active: productFilter === "depleted" || productFilter === "archived" },
+        ] : [
+          { label: isFr ? "Composer" : "Compose", detail: isFr ? "Ingrédients liés" : "Linked ingredients", icon: <ReiconGlyph icon={ReChefHatHeart} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy", active: recipeFilter === "draft" },
+          { label: isFr ? "Remplacer" : "Substitute", detail: isFr ? "Options de panier" : "Basket options", icon: <ReiconGlyph icon={ReArrowSwapHorizontal} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth", active: recipeFilter === "attention" },
+          { label: isFr ? "Détailler" : "Guide", detail: isFr ? "Étapes et portions" : "Steps and servings", icon: <ReiconGlyph icon={ReMagicWand} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold", active: recipeFilter === "published" },
+          { label: isFr ? "Rendre achetable" : "Make shoppable", detail: isFr ? "Panier modifiable" : "Editable basket", icon: <ReiconGlyph icon={ReBookOpen} weight="Filled" className="h-3.5 w-3.5" />, tone: "coral", active: recipeFilter === "all" },
+        ]}
+        flowDensity="compact"
         signalsMobile={false}
         action={workspace === "products" ? <ProductCreateDialog locale={locale} onCreated={productsRequest.refetch} /> : <RecipeCreateDialog locale={locale} onCreated={recipesRequest.refetch} />}
       />

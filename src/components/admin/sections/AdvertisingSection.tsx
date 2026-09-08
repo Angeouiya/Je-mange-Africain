@@ -75,6 +75,13 @@ export default function AdvertisingSection({ locale }: { locale: "fr" | "en" }) 
         { label: isFr ? "Planifiées" : "Scheduled", value: String(metrics.scheduled), icon: <CalendarRange className="h-3.5 w-3.5" />, tone: "gold" },
         { label: isFr ? "Emplacements" : "Placements", value: String(metrics.placements), icon: <LayoutTemplate className="h-3.5 w-3.5" />, tone: "burgundy" },
       ]}
+      flow={[
+        { label: isFr ? "Créer" : "Create", detail: isFr ? "Affiche bilingue" : "Bilingual artwork", icon: <ImagePlus className="h-3.5 w-3.5" />, tone: "burgundy", active: lifecycleFilter === "draft" },
+        { label: isFr ? "Placer" : "Place", detail: isFr ? "Accueil, catalogue, paiement" : "Home, catalog, checkout", icon: <LayoutTemplate className="h-3.5 w-3.5" />, tone: "earth", active: placementFilter !== "all" },
+        { label: isFr ? "Programmer" : "Schedule", detail: isFr ? "Priorité et calendrier" : "Priority and calendar", icon: <CalendarClock className="h-3.5 w-3.5" />, tone: "gold", active: lifecycleFilter === "scheduled" },
+        { label: isFr ? "Contrôler" : "Verify", detail: isFr ? "Rendu mobile client" : "Customer mobile render", icon: <MonitorSmartphone className="h-3.5 w-3.5" />, tone: "coral", active: lifecycleFilter === "active" },
+      ]}
+      flowDensity="compact"
       signalsMobile={false}
       action={<AdvertisementEditor locale={locale} onSaved={request.refetch} />}
     />

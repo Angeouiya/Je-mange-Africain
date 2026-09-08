@@ -291,8 +291,14 @@ export default function OverviewSection({ locale, onNavigate }: { locale: Locale
           { label: isFr ? "Commandes actives" : "Active orders", value: formatNumber(data.kpis.activeOrders, locale), icon: <ReiconGlyph icon={ClipboardCheck} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy" },
           { label: isFr ? "Catalogue prêt" : "Ready catalog", value: `${formatNumber(data.kpis.stockCoverageRate, locale, 1)} %`, icon: <ReiconGlyph icon={Store} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold" },
         ]}
+        flow={[
+          { label: isFr ? "Décider" : "Decide", detail: isFr ? "Priorités et alertes" : "Priorities and alerts", icon: <ReiconGlyph icon={Activity} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy", active: data.priorities.length > 0 },
+          { label: isFr ? "Orchestrer" : "Orchestrate", detail: isFr ? "Commandes, stock, livraison" : "Orders, stock, delivery", icon: <ReiconGlyph icon={ClipboardCheck} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth", active: data.kpis.activeOrders > 0 },
+          { label: isFr ? "Mesurer" : "Measure", detail: isFr ? "CA, marge, clients" : "Revenue, margin, clients", icon: <ReiconGlyph icon={ChartBar} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold", active: data.kpis.revenueToday > 0 },
+        ]}
+        flowDensity="compact"
         signalsMobile={false}
-        action={<div className="inline-flex h-9 items-center gap-2 rounded-md border border-charcoal/10 bg-white px-3 text-[9px] font-bold text-muted-foreground"><ReiconGlyph icon={Activity} weight="Filled" className="h-3.5 w-3.5 text-terre" /><span><span className="block text-charcoal">{isFr ? "Données synchronisées" : "Data synchronised"}</span>{formatDateTime(data.generatedAt, locale)}</span></div>}
+        action={<div className="hidden h-9 items-center gap-2 rounded-md border border-charcoal/10 bg-white px-3 text-[9px] font-bold text-muted-foreground sm:inline-flex"><ReiconGlyph icon={Activity} weight="Filled" className="h-3.5 w-3.5 text-terre" /><span><span className="block text-charcoal">{isFr ? "Données synchronisées" : "Data synchronised"}</span>{formatDateTime(data.generatedAt, locale)}</span></div>}
       />
 
       {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}

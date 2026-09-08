@@ -24,6 +24,13 @@ export default function GovernanceSection({ locale, adminEmail, adminRole }: { l
         { label: isFr ? "Référentiels" : "References", value: isFr ? "structurés" : "structured", icon: <Database className="h-3.5 w-3.5" />, tone: "burgundy" },
         { label: isFr ? "Rôle" : "Role", value: adminRole ? adminRole.replaceAll("_", " ") : (isFr ? "session" : "session"), icon: <Fingerprint className="h-3.5 w-3.5" />, tone: "gold" },
       ]}
+      flow={[
+        { label: isFr ? "Identifier" : "Identify", detail: adminEmail || (isFr ? "Session admin" : "Admin session"), icon: <Fingerprint className="h-3.5 w-3.5" />, tone: "burgundy", active: Boolean(adminEmail) },
+        { label: isFr ? "Prouver" : "Evidence", detail: isFr ? "Action avant/après" : "Before/after action", icon: <History className="h-3.5 w-3.5" />, tone: "earth", active: tab === "audit" },
+        { label: isFr ? "Structurer" : "Structure", detail: isFr ? "Pays, marques, catégories" : "Countries, brands, categories", icon: <Database className="h-3.5 w-3.5" />, tone: "gold", active: tab === "workspace" },
+        { label: isFr ? "Limiter" : "Limit", detail: adminRole ? adminRole.replaceAll("_", " ") : (isFr ? "Rôle courant" : "Current role"), icon: <Fingerprint className="h-3.5 w-3.5" />, tone: "coral", active: true },
+      ]}
+      flowDensity="compact"
       signalsMobile={false}
     />
     <SectionTabs variant="workspace" value={tab} onChange={setTab} label={isFr ? "Espaces de gouvernance" : "Governance spaces"} items={[

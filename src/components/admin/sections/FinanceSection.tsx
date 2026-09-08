@@ -30,6 +30,14 @@ export default function FinanceSection({ locale, canUpdate, onNavigate }: { loca
           { label: isFr ? "Encaissements" : "Payments", value: isFr ? "rapprochés" : "reconciled", icon: <ReiconGlyph icon={Bank} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth" },
           { label: isFr ? "Europe" : "Europe", value: isFr ? "multi-moyens" : "multi-method", icon: <ReiconGlyph icon={DollarCircle} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold" },
         ]}
+        flow={[
+          { label: isFr ? "Décomposer" : "Break down", detail: isFr ? "Brut par lot/famille" : "Cost by batch/family", icon: <ReiconGlyph icon={ChartBarTrendUp} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy", active: view === "profitability" },
+          { label: isFr ? "Mesurer" : "Measure", detail: isFr ? "Marge nette pilotable" : "Steerable net margin", icon: <ReiconGlyph icon={DollarCircle} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth", active: view === "profitability" },
+          { label: isFr ? "Encaisser" : "Collect", detail: isFr ? "Carte, PayPal, wallets" : "Card, PayPal, wallets", icon: <ReiconGlyph icon={Bank} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold", active: view === "payments" },
+          { label: isFr ? "Rapprocher" : "Reconcile", detail: isFr ? "Preuve et commande" : "Proof and order", icon: <ReiconGlyph icon={Bank} weight="Filled" className="h-3.5 w-3.5" />, tone: "coral", active: view === "payments" },
+        ]}
+        flowDensity="compact"
+        signalsMobile={false}
       />
 
       <SectionTabs variant="workspace" value={view} onChange={setView} label={isFr ? "Espaces financiers" : "Finance workspaces"} items={[

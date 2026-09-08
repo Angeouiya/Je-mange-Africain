@@ -760,21 +760,21 @@ async function mockAdminApi(page: Page) {
 }
 
 const sections = [
-  { id: "overview", nav: "Décider aujourd'hui", title: "Ce qui demande votre attention" },
-  { id: "catalog", nav: "Produits vendus", title: "Ce qui est réellement vendu" },
-  { id: "recipes", nav: "Recettes achetables", title: "Construire des recettes achetables" },
-  { id: "wholesaleQuotes", nav: "Qualifier les devis de gros", title: "Qualifier les demandes de gros" },
-  { id: "orders", nav: "Orchestrer les commandes", title: "Du paiement jusqu'à la porte" },
-  { id: "inventory", nav: "Tracer les lots", title: "Inventaire piloté par les lots" },
-  { id: "logistics", nav: "Piloter la livraison", title: "Promesse de livraison" },
-  { id: "customers", nav: "Développer la relation", title: "Piloter chaque relation" },
-  { id: "promotions", nav: "Piloter les promotions", title: "Piloter les promotions" },
-  { id: "campaigns", nav: "Diffuser sur mobile", title: "Composer, vérifier, diffuser" },
-  { id: "advertising", nav: "Piloter les emplacements", title: "Régie publicitaire" },
-  { id: "finance", nav: "Mesurer la rentabilité", title: "Rentabilité et encaissements" },
-  { id: "governance", nav: "Auditer l'exploitation", title: "Gouverner sans ambiguïté" },
-  { id: "team", nav: "Administrer les habilitations", title: "Équipe professionnelle" },
-  { id: "settings", nav: "Configurer la plateforme", title: "Configuration de la plateforme" },
+  { id: "overview", nav: "Décider aujourd'hui", title: "Ce qui demande votre attention", flow: "Décider" },
+  { id: "catalog", nav: "Produits vendus", title: "Ce qui est réellement vendu", flow: "Ficher" },
+  { id: "recipes", nav: "Recettes achetables", title: "Construire des recettes achetables", flow: "Composer" },
+  { id: "wholesaleQuotes", nav: "Qualifier les devis de gros", title: "Qualifier les demandes de gros", flow: "Qualifier" },
+  { id: "orders", nav: "Orchestrer les commandes", title: "Du paiement jusqu'à la porte", flow: "Valider" },
+  { id: "inventory", nav: "Tracer les lots", title: "Inventaire piloté par les lots", flow: "Réceptionner" },
+  { id: "logistics", nav: "Piloter la livraison", title: "Promesse de livraison", flow: "Cartographier" },
+  { id: "customers", nav: "Développer la relation", title: "Piloter chaque relation", flow: "Segmenter" },
+  { id: "promotions", nav: "Piloter les promotions", title: "Piloter les promotions", flow: "Cibler" },
+  { id: "campaigns", nav: "Diffuser sur mobile", title: "Composer, vérifier, diffuser", flow: "Rédiger" },
+  { id: "advertising", nav: "Piloter les emplacements", title: "Régie publicitaire", flow: "Créer" },
+  { id: "finance", nav: "Mesurer la rentabilité", title: "Rentabilité et encaissements", flow: "Décomposer" },
+  { id: "governance", nav: "Auditer l'exploitation", title: "Gouverner sans ambiguïté", flow: "Identifier" },
+  { id: "team", nav: "Administrer les habilitations", title: "Équipe professionnelle", flow: "Inviter" },
+  { id: "settings", nav: "Configurer la plateforme", title: "Configuration de la plateforme", flow: "Publier" },
 ] as const;
 
 test("the professional sign-in owns its bilingual identity and persists the selected language", async ({ page }) => {
@@ -882,6 +882,10 @@ test("every professional workspace has a clear purpose and stays inside the view
     await expect(page.locator("header h1")).toBeFocused();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
     await expect(page.locator("main").getByRole("heading", { name: section.title })).toBeVisible();
+    const purposeFlow = page.getByTestId("admin-header-flow");
+    await expect(purposeFlow).toBeVisible();
+    await expect(purposeFlow).toContainText(section.flow);
+    await expect(purposeFlow.getByTestId("admin-header-flow-step").first()).toBeVisible();
     if (mobile) {
       const workspaceHeader = await page.getByTestId("admin-page-header").boundingBox();
       expect(workspaceHeader?.height || Number.POSITIVE_INFINITY, `${section.nav} uses too much of the first mobile viewport`).toBeLessThanOrEqual(210);

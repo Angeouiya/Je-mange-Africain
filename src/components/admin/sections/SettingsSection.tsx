@@ -147,6 +147,13 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
           { label: "Cloudflare", value: data?.deploymentReadiness?.ready ? (isFr ? "prêt" : "ready") : (isFr ? "à finaliser" : "pending"), icon: <ReiconGlyph icon={Cloud} weight="Filled" className="h-3.5 w-3.5" />, tone: data?.deploymentReadiness?.ready ? "earth" : "gold" },
           { label: isFr ? "Paiements" : "Payments", value: data?.paymentReadiness.state === "ready" ? "LIVE" : (isFr ? "à vérifier" : "check"), icon: <ReiconGlyph icon={Card} weight="Filled" className="h-3.5 w-3.5" />, tone: data?.paymentReadiness.state === "ready" ? "burgundy" : "gold" },
         ]}
+        flow={[
+          { label: isFr ? "Publier" : "Publish", detail: isFr ? "Contact client officiel" : "Official customer contact", icon: <ReiconGlyph icon={Envelope} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy", active: dirty },
+          { label: isFr ? "Connecter" : "Connect", detail: isFr ? "Supabase et médias" : "Supabase and media", icon: <ReiconGlyph icon={Database} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth", active: readyCount > 0 },
+          { label: isFr ? "Encaisser" : "Collect", detail: isFr ? "Carte, PayPal, wallets" : "Card, PayPal, wallets", icon: <ReiconGlyph icon={Wallet} weight="Filled" className="h-3.5 w-3.5" />, tone: "gold", active: data?.paymentReadiness.state === "ready" },
+          { label: isFr ? "Déployer" : "Deploy", detail: isFr ? "Cloudflare et domaine" : "Cloudflare and domain", icon: <ReiconGlyph icon={Cloud} weight="Filled" className="h-3.5 w-3.5" />, tone: "coral", active: data?.deploymentReadiness?.ready === true },
+        ]}
+        flowDensity="compact"
         signalsMobile={false}
       />
 

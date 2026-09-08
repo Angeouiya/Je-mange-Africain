@@ -58,6 +58,14 @@ export default function WholesaleQuotesSection({ locale, canUpdate }: { locale: 
           { label: isFr ? "Actifs" : "Active", value: String(metrics.active), icon: <Handshake className="h-3.5 w-3.5" />, tone: "burgundy" },
           { label: isFr ? "Pipeline" : "Pipeline", value: formatPrice(metrics.pipeline, locale), icon: <BadgeEuro className="h-3.5 w-3.5" />, tone: "gold" },
         ]}
+        flow={[
+          { label: isFr ? "Qualifier" : "Qualify", detail: isFr ? "Entreprise et besoin" : "Company and need", icon: <Building2 className="h-3.5 w-3.5" />, tone: "burgundy", active: filter === "new" },
+          { label: isFr ? "Chiffrer" : "Quote", detail: isFr ? "Paliers et lots" : "Tiers and packs", icon: <Boxes className="h-3.5 w-3.5" />, tone: "earth", active: filter === "active" },
+          { label: isFr ? "Sécuriser" : "Secure", detail: isFr ? "Prix vus et figés" : "Seen and frozen prices", icon: <ShieldCheck className="h-3.5 w-3.5" />, tone: "gold", active: metrics.pipeline > 0 },
+          { label: isFr ? "Conclure" : "Close", detail: isFr ? "Accord ou refus" : "Accepted or declined", icon: <CheckCircle2 className="h-3.5 w-3.5" />, tone: "coral", active: filter === "closed" },
+        ]}
+        flowDensity="compact"
+        signalsMobile={false}
       />
 
       {request.error && request.data ? <AdminRefreshNotice locale={locale} message={request.error} onRetry={request.refetch} /> : null}

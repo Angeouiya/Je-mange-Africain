@@ -79,6 +79,13 @@ export default function InventorySection({ locale, canCreate = false, canUpdate 
           { label: isFr ? "Réservé" : "Reserved", value: String(reservedUnits), icon: <Boxes className="h-3.5 w-3.5" />, tone: "burgundy" },
           { label: isFr ? "À traiter" : "Action", value: String(priorityIds.size), icon: <AlertTriangle className="h-3.5 w-3.5" />, tone: priorityIds.size ? "gold" : "earth" },
         ]}
+        flow={[
+          { label: isFr ? "Réceptionner" : "Receive", detail: isFr ? "Lot, coût, entrepôt" : "Batch, cost, warehouse", icon: <Warehouse className="h-3.5 w-3.5" />, tone: "burgundy", active: canCreate },
+          { label: isFr ? "Prioriser FEFO" : "Prioritise FEFO", detail: isFr ? "Échéance et froid" : "Expiry and cold chain", icon: <Snowflake className="h-3.5 w-3.5" />, tone: "earth", active: filter === "priority" },
+          { label: isFr ? "Réserver" : "Reserve", detail: isFr ? "Commandes confirmées" : "Confirmed orders", icon: <Boxes className="h-3.5 w-3.5" />, tone: "gold", active: reservedUnits > 0 },
+          { label: isFr ? "Arbitrer" : "Act", detail: isFr ? "Blocage, rappel, perte" : "Block, recall, loss", icon: <AlertTriangle className="h-3.5 w-3.5" />, tone: "coral", active: priorityIds.size > 0 },
+        ]}
+        flowDensity="compact"
         signalsMobile={false}
         action={canCreate ? <BatchReceiptDialog locale={locale} products={products} warehouses={warehouses} disabled={request.loading} onCreated={request.refetch} /> : undefined}
       />

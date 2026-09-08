@@ -36,6 +36,13 @@ export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
         { label: isFr ? "Actifs" : "Active", value: String(summary.active), icon: <UserCheck className="h-3.5 w-3.5" />, tone: "burgundy" },
         { label: isFr ? "Délégation" : "Delegation", value: `${summary.coveredModules}/${summary.totalModules}`, icon: <ShieldCheck className="h-3.5 w-3.5" />, tone: "gold" },
       ] : []}
+      flow={summary ? [
+        { label: isFr ? "Inviter" : "Invite", detail: isFr ? "Identité vérifiée" : "Verified identity", icon: <MailCheck className="h-3.5 w-3.5" />, tone: "burgundy", active: summary.invited > 0 },
+        { label: isFr ? "Autoriser" : "Authorise", detail: isFr ? "Rôle strict utile" : "Least useful role", icon: <ShieldCheck className="h-3.5 w-3.5" />, tone: "earth", active: tab === "roles" },
+        { label: isFr ? "Surveiller" : "Monitor", detail: isFr ? "Activité et suspension" : "Activity and suspension", icon: <UserCheck className="h-3.5 w-3.5" />, tone: "gold", active: summary.dormant > 0 || summary.suspended > 0 },
+        { label: isFr ? "Tracer" : "Trace", detail: isFr ? "Changement d'accès" : "Access change", icon: <UserRoundCog className="h-3.5 w-3.5" />, tone: "coral", active: tab === "members" },
+      ] : []}
+      flowDensity="compact"
       signalsMobile={false}
       action={data ? <InviteMemberDialog locale={locale} roles={data.roles} onInvited={request.refetch} /> : undefined}
     />

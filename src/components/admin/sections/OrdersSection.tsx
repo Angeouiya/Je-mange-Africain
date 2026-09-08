@@ -124,6 +124,14 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
           { label: isFr ? "Préparation" : "Packing", value: String(counts.prepare), icon: <PackageCheck className="h-3.5 w-3.5" />, tone: "gold" },
           { label: isFr ? "Livraison" : "Delivery", value: String(counts.deliver), icon: <Truck className="h-3.5 w-3.5" />, tone: "burgundy" },
         ]}
+        flow={[
+          { label: isFr ? "Valider" : "Validate", detail: isFr ? "Paiement et antifraude" : "Payment and fraud check", icon: <ShieldAlert className="h-3.5 w-3.5" />, tone: "burgundy", active: flow === "validate" },
+          { label: isFr ? "Réserver" : "Reserve", detail: isFr ? "Stock côté serveur" : "Server-side stock", icon: <LockKeyhole className="h-3.5 w-3.5" />, tone: "earth", active: flow === "all" },
+          { label: isFr ? "Préparer" : "Pack", detail: isFr ? "Colis et froid" : "Parcels and cold chain", icon: <PackageCheck className="h-3.5 w-3.5" />, tone: "gold", active: flow === "prepare" },
+          { label: isFr ? "Clôturer" : "Close", detail: isFr ? "Livraison ou litige" : "Delivery or dispute", icon: <CheckCircle2 className="h-3.5 w-3.5" />, tone: "coral", active: flow === "deliver" || flow === "closed" },
+        ]}
+        flowDensity="compact"
+        signalsMobile={false}
       />
 
       {error && data ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}

@@ -152,8 +152,15 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
           { label: locale === "fr" ? "Consentants" : "Eligible", value: String(data?.eligibleSubscriptions || 0), icon: <UsersRound className="h-3.5 w-3.5" />, tone: "burgundy" },
           { label: locale === "fr" ? "Performance" : "Performance", value: `${Math.round(recentPerformance.deliveryRate)} %`, icon: <TrendingUp className="h-3.5 w-3.5" />, tone: "gold" },
         ]}
+        flow={[
+          { label: locale === "fr" ? "Rédiger" : "Write", detail: locale === "fr" ? "FR et EN complets" : "Complete FR and EN", icon: <Languages className="h-3.5 w-3.5" />, tone: "burgundy", active: !localeReady.fr || !localeReady.en },
+          { label: locale === "fr" ? "Cibler" : "Target", detail: selectedAudience.label, icon: <Target className="h-3.5 w-3.5" />, tone: "earth", active: audienceCount > 0 },
+          { label: locale === "fr" ? "Prévisualiser" : "Preview", detail: locale === "fr" ? "Rendu mobile" : "Mobile render", icon: <Smartphone className="h-3.5 w-3.5" />, tone: "gold", active: Boolean(previewTitle || previewBody) },
+          { label: locale === "fr" ? "Diffuser" : "Deliver", detail: locale === "fr" ? "Confirmation explicite" : "Explicit confirmation", icon: <Send className="h-3.5 w-3.5" />, tone: "coral", active: readiness.ready },
+        ]}
+        flowDensity="compact"
         signalsMobile={false}
-        action={<Badge variant="outline" className="h-9 border-burgundy/30 bg-burgundy/5 px-3 text-burgundy"><Smartphone className="mr-1.5 h-3.5 w-3.5" /> {loading || data?.type !== campaign.type ? "…" : data?.eligibleSubscriptions || 0} {locale === "fr" ? "consentants" : "consenting"}</Badge>}
+        action={<Badge variant="outline" className="hidden h-9 border-burgundy/30 bg-burgundy/5 px-3 text-burgundy sm:inline-flex"><Smartphone className="mr-1.5 h-3.5 w-3.5" /> {loading || data?.type !== campaign.type ? "…" : data?.eligibleSubscriptions || 0} {locale === "fr" ? "consentants" : "consenting"}</Badge>}
       />
 
       {error && data ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}

@@ -78,6 +78,13 @@ export default function PromotionsSection({ locale, canCreate, canUpdate, canDel
           { label: isFr ? "Planifiées" : "Scheduled", value: String(metrics.scheduled), icon: <Clock3 className="h-3.5 w-3.5" />, tone: "gold" },
           { label: isFr ? "Utilisées" : "Redemptions", value: String(metrics.uses), icon: <Gauge className="h-3.5 w-3.5" />, tone: "burgundy" },
         ]}
+        flow={[
+          { label: isFr ? "Cibler" : "Target", detail: isFr ? "Produit, pays, panier" : "Product, country, basket", icon: <Target className="h-3.5 w-3.5" />, tone: "burgundy", active: filter === "all" },
+          { label: isFr ? "Planifier" : "Schedule", detail: isFr ? "Début, fin, quota" : "Start, end, quota", icon: <CalendarClock className="h-3.5 w-3.5" />, tone: "earth", active: filter === "scheduled" },
+          { label: isFr ? "Protéger" : "Protect", detail: isFr ? "Seuils et marge" : "Thresholds and margin", icon: <ShieldCheck className="h-3.5 w-3.5" />, tone: "gold", active: metrics.attention > 0 },
+          { label: isFr ? "Activer" : "Activate", detail: isFr ? "Visible au panier" : "Visible in basket", icon: <PlayCircle className="h-3.5 w-3.5" />, tone: "coral", active: filter === "active" },
+        ]}
+        flowDensity="compact"
         signalsMobile={false}
         action={canCreate ? <PromotionEditor locale={locale} products={products} categories={categories} onSaved={request.refetch} /> : null}
       />

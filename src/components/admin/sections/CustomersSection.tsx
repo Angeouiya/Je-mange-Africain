@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, UserRound, UsersRound } from "lucide-react";
+import { BadgeCheck, Download, MessageCircle, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { CustomerPortfolioOverview } from "@/components/admin/customers/CustomerPortfolioOverview";
 import { CustomerProfileDialog } from "@/components/admin/customers/CustomerProfileDialog";
 import { CustomerRegister } from "@/components/admin/customers/CustomerRegister";
@@ -57,6 +57,14 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
           { label: isFr ? "Ambassadeurs" : "Ambassadors", value: String(data.summary.segments.ambassador), icon: <UserRound className="h-3.5 w-3.5" />, tone: "burgundy" },
           { label: isFr ? "À traiter" : "Actionable", value: String(data.summary.actionable), icon: <UserRound className="h-3.5 w-3.5" />, tone: data.summary.actionable ? "gold" : "earth" },
         ]}
+        flow={[
+          { label: isFr ? "Segmenter" : "Segment", detail: isFr ? "Valeur, risque, récence" : "Value, risk, recency", icon: <UsersRound className="h-3.5 w-3.5" />, tone: "burgundy", active: segment !== "all" },
+          { label: isFr ? "Prioriser" : "Prioritise", detail: isFr ? "Prochaine meilleure action" : "Next best action", icon: <BadgeCheck className="h-3.5 w-3.5" />, tone: "earth", active: sort === "priority" },
+          { label: isFr ? "Répondre" : "Respond", detail: isFr ? "Dossier et demandes" : "Profile and requests", icon: <MessageCircle className="h-3.5 w-3.5" />, tone: "gold", active: data.summary.actionable > 0 },
+          { label: isFr ? "Protéger" : "Protect", detail: isFr ? "Consentement et données" : "Consent and data", icon: <ShieldCheck className="h-3.5 w-3.5" />, tone: "coral", active: Boolean(selectedCustomer) },
+        ]}
+        flowDensity="compact"
+        signalsMobile={false}
       />
 
       {error ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
