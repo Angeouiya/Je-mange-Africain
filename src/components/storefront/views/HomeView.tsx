@@ -381,26 +381,30 @@ function FavouriteShelf({ products }: { products: ProductListItem[] }) {
 
   return (
     <div className="-mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-6 md:gap-3 md:px-0" data-testid="home-favourites-rail">
-      {products.map((product, index) => (
-        <motion.button
-          key={product.id}
-          type="button"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: index * 0.035 }}
-          onClick={() => navigate("product", { productId: product.id })}
-          className="group w-[6.75rem] shrink-0 snap-start text-left md:w-auto"
-          aria-label={locale === "fr" ? `Voir ${product.name}` : `View ${product.name}`}
-        >
-          <span className="relative block aspect-[4/3] overflow-hidden rounded-md bg-muted">
-            <ProductImage src={getProductPhoto(product)} alt="" emoji={product.imageEmoji} color={product.imageColor} size="md" className="h-full w-full transition duration-300 group-hover:scale-[1.035]" rounded="rounded-none" />
-            {product.promoPrice !== null && product.promoPrice < product.price ? <span className="absolute left-1.5 top-1.5 rounded bg-burgundy px-1.5 py-0.5 text-[8px] font-black text-white">-{Math.round(((product.price - product.promoPrice) / product.price) * 100)} %</span> : null}
-            <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-md bg-white/94 text-terre shadow-sm"><ReiconGlyph icon={Heart} weight="Filled" className="h-3.5 w-3.5" /></span>
-          </span>
-          <span className="mt-1.5 block line-clamp-2 min-h-7 text-[10px] font-extrabold leading-3.5 text-charcoal md:text-[11px]">{product.name}</span>
-          <span className="mt-0.5 flex min-h-4 items-baseline gap-1.5"><span className="text-[10px] font-black text-terre">{formatPrice(product.promoPrice ?? product.price, locale)}</span>{product.promoPrice !== null && product.promoPrice < product.price ? <span className="text-[8px] font-semibold text-muted-foreground line-through">{formatPrice(product.price, locale)}</span> : null}</span>
-        </motion.button>
-      ))}
+      {products.map((product, index) => {
+        const brief = product.description || [product.traditionalName, product.country].filter(Boolean).join(" · ") || product.category?.name || "";
+        return (
+          <motion.button
+            key={product.id}
+            type="button"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: index * 0.035 }}
+            onClick={() => navigate("product", { productId: product.id })}
+            className="group w-[6.75rem] shrink-0 snap-start text-left md:w-auto"
+            aria-label={locale === "fr" ? `Voir ${product.name}` : `View ${product.name}`}
+          >
+            <span className="relative block aspect-[4/3] overflow-hidden rounded-md bg-muted">
+              <ProductImage src={getProductPhoto(product)} alt="" emoji={product.imageEmoji} color={product.imageColor} size="md" className="h-full w-full transition duration-300 group-hover:scale-[1.035]" rounded="rounded-none" />
+              {product.promoPrice !== null && product.promoPrice < product.price ? <span className="absolute left-1.5 top-1.5 rounded bg-burgundy px-1.5 py-0.5 text-[8px] font-black text-white">-{Math.round(((product.price - product.promoPrice) / product.price) * 100)} %</span> : null}
+              <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-md bg-white/94 text-terre shadow-sm"><ReiconGlyph icon={Heart} weight="Filled" className="h-3.5 w-3.5" /></span>
+            </span>
+            <span className="mt-1.5 block line-clamp-2 min-h-7 text-[10px] font-extrabold leading-3.5 text-charcoal md:text-[11px]">{product.name}</span>
+            <span data-testid="home-favourite-brief" className="mt-0.5 block min-h-3.5 truncate text-[8px] font-semibold leading-3.5 text-muted-foreground">{brief}</span>
+            <span className="mt-0.5 flex min-h-4 items-baseline gap-1.5"><span className="text-[10px] font-black text-terre">{formatPrice(product.promoPrice ?? product.price, locale)}</span>{product.promoPrice !== null && product.promoPrice < product.price ? <span className="text-[8px] font-semibold text-muted-foreground line-through">{formatPrice(product.price, locale)}</span> : null}</span>
+          </motion.button>
+        );
+      })}
     </div>
   );
 }

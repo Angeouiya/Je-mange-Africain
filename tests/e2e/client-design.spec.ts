@@ -170,6 +170,7 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   const favouritesRail = page.getByTestId("home-favourites-rail");
   await expect(favouritesRail).toBeVisible();
   await expectLoadedProductImages(favouritesRail.locator("img"));
+  await expect(favouritesRail.getByTestId("home-favourite-brief").first()).toContainText(/\S/);
   await expect(favouritesRail.getByText(/-\d+ %/).first()).toBeVisible();
   await expect(favouritesRail.locator(".line-through").first()).toBeVisible();
   const categoryHeading = page.getByRole("heading", { name: /explorer les rayons|explore departments/i });
