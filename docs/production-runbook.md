@@ -66,10 +66,12 @@ Do not apply both initial migrations to the same populated database. For an exis
 npm run production:check-supabase
 npm run production:link-supabase
 npm run production:push-supabase
+npm run production:baseline-prisma
 npm run db:generate:postgres
 ```
 
 `production:link-supabase` needs `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` in the local deployment environment. `production:push-supabase` can also use `DIRECT_URL` or a PostgreSQL `DATABASE_URL` directly.
+`production:baseline-prisma` is for an already populated Supabase database: it runs a read-only Prisma schema diff first, then records the Prisma PostgreSQL migrations as applied only when the live schema has no difference.
 
 For the Prisma-managed production release path:
 

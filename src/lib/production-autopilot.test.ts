@@ -6,6 +6,8 @@ import {
   parseJsonPayload,
   preferredDashboardBrowser,
   postgresPasswordFromUrl,
+  prismaBaselineReadiness,
+  prismaPostgresMigrationNames,
   printRemoteProductionReadiness,
   printProductionReadiness,
   productionReadiness,
@@ -18,6 +20,7 @@ import {
   REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS,
   supabaseCliReadiness,
   supabaseProjectRefFromPostgresUrl,
+  unappliedPrismaMigrationNames,
 } from "../../scripts/production-autopilot.mjs";
 
 function environment(values: Record<string, string>) {
@@ -171,6 +174,41 @@ describe("production autopilot", () => {
       readyForLink: false,
       readyForDbPush: true,
     });
+  });
+
+  it("prepares a redacted Prisma baseline plan only for the JMA database", () => {
+    const directUrl = `postgresql://postgres:${encodeURIComponent("remote@password")}@db.${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co:5432/postgres`;
+    const report = prismaBaselineReadiness({ DIRECT_URL: directUrl });
+    const migrations = prismaPostgresMigrationNames();
+
+    expect(report.ready).toBe(true);
+    expect(report.directDatabaseUrlKey).toBe("DIRECT_URL");
+    expect(report.directDatabaseProjectRef).toBe(PRODUCTION_SUPABASE_PROJECT_REF);
+    expect(report.migrations).toEqual(migrations);
+    expect(report.migrations).toContain("0001_initial");
+    expect(JSON.stringify(report)).not.toContain("remote%40password");
+  });
+
+  it("blocks Prisma baselining for non-JMA database URLs", () => {
+    const report = prismaBaselineReadiness({
+      DIRECT_URL: "postgresql://postgres:secret@db.ailevucikakmgsxfptwv.supabase.co:5432/postgres",
+    });
+
+    expect(report.ready).toBe(false);
+    expect(report.directDatabaseUrlKey).toBeNull();
+    expect(report.problem).toContain("JMA Supabase");
+  });
+
+  it("parses unapplied Prisma migrations from migrate status output", () => {
+    const migrations = ["0001_initial", "20260907150000_align_order_allocations_and_phone_index"];
+    const output = `Following migrations have not yet been applied:
+0001_initial
+20260907150000_align_order_allocations_and_phone_index
+
+To apply migrations in production run prisma migrate deploy.`;
+
+    expect(unappliedPrismaMigrationNames(output, migrations)).toEqual(migrations);
+    expect(unappliedPrismaMigrationNames("Database schema is up to date!", migrations)).toEqual([]);
   });
 
   it("derives the Supabase database password from a valid production Postgres URL", () => {

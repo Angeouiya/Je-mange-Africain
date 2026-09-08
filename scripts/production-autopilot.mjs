@@ -433,6 +433,50 @@ function localSupabaseMigrationVersions(cwd = process.cwd()) {
     .sort();
 }
 
+export function prismaPostgresMigrationNames(cwd = process.cwd()) {
+  const migrationsDir = resolve(cwd, "prisma", "postgresql", "migrations");
+  if (!existsSync(migrationsDir)) return [];
+  return readdirSync(migrationsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+function productionDirectDatabaseUrl(values) {
+  const candidate = [
+    ["DIRECT_URL", values.DIRECT_URL],
+    ["DATABASE_URL", values.DATABASE_URL],
+  ].find(([, value]) => hasUsableValue("DATABASE_URL", value) && isPostgresUrl(value) && !postgresConnectionProblem(value));
+  return candidate ? { key: candidate[0], value: candidate[1] } : null;
+}
+
+export function prismaBaselineReadiness(values, cwd = process.cwd()) {
+  const direct = productionDirectDatabaseUrl(values);
+  const migrations = prismaPostgresMigrationNames(cwd);
+  return {
+    ready: Boolean(direct && migrations.length),
+    directDatabaseUrlKey: direct?.key || null,
+    directDatabaseProjectRef: direct ? supabaseProjectRefFromPostgresUrl(direct.value) : null,
+    migrations,
+    problem: !direct
+      ? "DIRECT_URL or PostgreSQL DATABASE_URL must target the JMA Supabase project"
+      : migrations.length
+        ? ""
+      : "No Prisma PostgreSQL migrations were found",
+  };
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function unappliedPrismaMigrationNames(statusOutput, migrations) {
+  const text = stripAnsi(statusOutput || "");
+  if (/Database schema is up to date/i.test(text) || /No pending migrations to apply/i.test(text)) return [];
+  const section = text.split("Following migrations have not yet been applied:")[1]?.split(/\r?\n\r?\n/)[0] || "";
+  return migrations.filter((migration) => new RegExp(`(^|\\s)${escapeRegExp(migration)}(\\s|$)`).test(section));
+}
+
 function directSupabaseMigrationAudit(result, cwd = process.cwd()) {
   const payload = parseJsonPayload(`${result?.stdout || ""}\n${result?.stderr || ""}`);
   const migrations = Array.isArray(payload?.migrations) ? payload.migrations : [];
@@ -612,9 +656,64 @@ function syncCloudflareSecrets(values) {
 }
 
 function migrateDatabase(values) {
+  ensureSupabaseCanPush(values);
   const migrationEnv = { ...values };
   if (values.DIRECT_URL) migrationEnv.DATABASE_URL = values.DIRECT_URL;
   run("npm", ["run", "db:generate:postgres"], migrationEnv);
+  run("npx", ["prisma", "migrate", "deploy", "--schema", "prisma/postgresql/schema.prisma"], migrationEnv);
+}
+
+function baselinePrismaMigrations(values) {
+  const readiness = prismaBaselineReadiness(values);
+  if (!readiness.ready) {
+    printSupabaseCliReadiness(supabaseCliReadiness({ values, sources: {}, cwd: process.cwd() }), (line) => console.error(line));
+    console.error(`Prisma baseline blocked: ${readiness.problem}`);
+    process.exit(1);
+  }
+
+  const direct = productionDirectDatabaseUrl(values);
+  const migrationEnv = { ...values, DATABASE_URL: direct.value };
+  const status = runCapture("npx", ["prisma", "migrate", "status", "--schema", "prisma/postgresql/schema.prisma"], migrationEnv);
+  const pendingMigrations = unappliedPrismaMigrationNames(`${status.stdout || ""}\n${status.stderr || ""}`, readiness.migrations);
+  if (status.status === 0 && pendingMigrations.length === 0) {
+    console.log("Prisma baseline already aligned: no migration history update required.");
+    return;
+  }
+
+  const diff = runCapture("npx", [
+    "prisma",
+    "migrate",
+    "diff",
+    "--from-schema-datamodel",
+    "prisma/postgresql/schema.prisma",
+    "--to-schema-datasource",
+    "prisma/postgresql/schema.prisma",
+    "--exit-code",
+  ], migrationEnv);
+
+  if (diff.status === 2) {
+    console.error("Prisma baseline blocked: the live Supabase schema differs from prisma/postgresql/schema.prisma.");
+    if (diff.stdout.trim()) console.error(diff.stdout.trim());
+    if (diff.stderr.trim()) console.error(diff.stderr.trim());
+    process.exit(1);
+  }
+  if (diff.status !== 0) {
+    console.error("Prisma baseline blocked: schema comparison failed.");
+    if (diff.stdout.trim()) console.error(diff.stdout.trim());
+    if (diff.stderr.trim()) console.error(diff.stderr.trim());
+    process.exit(diff.status || 1);
+  }
+
+  if (!pendingMigrations.length) {
+    console.error("Prisma baseline blocked: migrate status did not expose the pending Prisma migrations.");
+    if (status.stdout.trim()) console.error(status.stdout.trim());
+    if (status.stderr.trim()) console.error(status.stderr.trim());
+    process.exit(status.status || 1);
+  }
+
+  for (const migration of pendingMigrations) {
+    run("npx", ["prisma", "migrate", "resolve", "--schema", "prisma/postgresql/schema.prisma", "--applied", migration], migrationEnv);
+  }
   run("npx", ["prisma", "migrate", "deploy", "--schema", "prisma/postgresql/schema.prisma"], migrationEnv);
 }
 
@@ -717,6 +816,7 @@ Options:
   --open-dashboards    Open the exact provider pages needed to retrieve missing keys. Uses Edge first on Windows.
   --link-supabase      Link the local repo to the production Supabase project.
   --push-supabase      Push Supabase SQL migrations to the production project.
+  --baseline-prisma    Mark Prisma PostgreSQL migrations as applied only after a zero-diff schema check.
   --sync-cloudflare    Upload current env values to Cloudflare secrets for an existing Worker.
   --migrate            Run PostgreSQL migrations against Supabase using DATABASE_URL or DIRECT_URL.
   --deploy             Build and deploy the Cloudflare Worker with a temporary secrets file.
@@ -737,9 +837,10 @@ function main() {
   if (args.has("--check-supabase")) printSupabaseCliReadiness(supabaseCliReadiness(environment));
   if (args.has("--check-remote")) printRemoteProductionReadiness(remoteProductionReadiness({ environment }));
   if (args.has("--open-dashboards")) openDashboards();
-  if (args.has("--assert") || args.has("--sync-cloudflare") || args.has("--migrate") || args.has("--deploy")) ensureReady(report);
+  if (args.has("--assert") || args.has("--sync-cloudflare") || args.has("--deploy")) ensureReady(report);
   if (args.has("--link-supabase")) linkSupabaseProject(environment.values);
   if (args.has("--push-supabase")) pushSupabaseMigrations(environment.values);
+  if (args.has("--baseline-prisma")) baselinePrismaMigrations(environment.values);
   if (args.has("--sync-cloudflare")) syncCloudflareSecrets(environment.values);
   if (args.has("--migrate")) migrateDatabase(environment.values);
   if (args.has("--deploy")) deployCloudflare(environment.values);
