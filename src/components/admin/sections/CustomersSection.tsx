@@ -51,7 +51,7 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
         icon={<UsersRound className="h-5 w-5" />}
         eyebrow={isFr ? "Relation client" : "Customer relationship"}
         title={isFr ? "Piloter chaque relation" : "Steer every relationship"}
-        description={isFr ? "Mesurez la fidélité, traitez les demandes et ouvrez chaque dossier avec une prochaine action explicite." : "Measure loyalty, resolve requests and open every profile with an explicit next action."}
+        description={isFr ? "Mesurez la fidélité et donnez une suite claire à chaque dossier." : "Measure loyalty and give every profile a clear next action."}
         signals={[
           { label: isFr ? "Clients" : "Customers", value: String(data.summary.total), icon: <UsersRound className="h-3.5 w-3.5" />, tone: "earth" },
           { label: isFr ? "Ambassadeurs" : "Ambassadors", value: String(data.summary.segments.ambassador), icon: <UserRound className="h-3.5 w-3.5" />, tone: "burgundy" },

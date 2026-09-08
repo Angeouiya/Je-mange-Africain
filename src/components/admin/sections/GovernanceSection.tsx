@@ -18,7 +18,7 @@ export default function GovernanceSection({ locale, adminEmail, adminRole }: { l
       icon={<Fingerprint className="h-5 w-5" />}
       eyebrow={isFr ? "Conformité et référentiels" : "Compliance and reference data"}
       title={isFr ? "Gouverner sans ambiguïté" : "Govern without ambiguity"}
-      description={isFr ? "Qualifiez chaque action, retrouvez son acteur et comparez son état avant/après, puis contrôlez les référentiels qui structurent l'exploitation." : "Qualify every action, identify its actor and compare its before/after state, then control the reference data structuring operations."}
+      description={isFr ? "Retracez chaque action, son acteur et son état avant/après." : "Trace every action, actor and before/after state."}
       signals={[
         { label: isFr ? "Journal" : "Log", value: isFr ? "preuves" : "evidence", icon: <History className="h-3.5 w-3.5" />, tone: "earth" },
         { label: isFr ? "Référentiels" : "References", value: isFr ? "structurés" : "structured", icon: <Database className="h-3.5 w-3.5" />, tone: "burgundy" },

@@ -52,7 +52,7 @@ export default function WholesaleQuotesSection({ locale, canUpdate }: { locale: 
         icon={<Handshake className="h-5 w-5" />}
         eyebrow={isFr ? "Développement professionnel" : "Professional growth"}
         title={isFr ? "Qualifier les demandes de gros" : "Qualify wholesale requests"}
-        description={isFr ? "Transformez chaque sélection client en dossier commercial traçable, du premier contact jusqu'à l'accord final." : "Turn each customer selection into a traceable commercial file, from first contact to final agreement."}
+        description={isFr ? "Qualifiez chaque demande, du premier contact à l'accord final." : "Qualify every request, from first contact to final agreement."}
         signals={[
           { label: isFr ? "Nouveaux" : "New", value: String(metrics.new), icon: <Clock3 className="h-3.5 w-3.5" />, tone: "earth" },
           { label: isFr ? "Actifs" : "Active", value: String(metrics.active), icon: <Handshake className="h-3.5 w-3.5" />, tone: "burgundy" },

@@ -73,7 +73,7 @@ export default function InventorySection({ locale, canCreate = false, canUpdate 
         icon={<Warehouse className="h-5 w-5" />}
         eyebrow={isFr ? "Disponibilité et traçabilité" : "Availability and traceability"}
         title={isFr ? "Inventaire piloté par les lots" : "Batch-led inventory"}
-        description={isFr ? "Réceptionnez, valorisez et arbitrez chaque lot selon sa disponibilité réelle, sa chaîne thermique et son échéance FEFO." : "Receive, value and manage every batch using live availability, thermal class and FEFO expiry."}
+        description={isFr ? "Pilotez chaque lot par stock, froid et échéance FEFO." : "Control every batch by stock, cold chain and FEFO expiry."}
         signals={[
           { label: isFr ? "Vendable" : "Sellable", value: String(availableUnits), icon: <PackageCheck className="h-3.5 w-3.5" />, tone: "earth" },
           { label: isFr ? "Réservé" : "Reserved", value: String(reservedUnits), icon: <Boxes className="h-3.5 w-3.5" />, tone: "burgundy" },

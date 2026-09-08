@@ -285,7 +285,7 @@ export default function OverviewSection({ locale, onNavigate }: { locale: Locale
         icon={<ReiconGlyph icon={ChartBar} weight="Filled" className="h-5 w-5" />}
         eyebrow={isFr ? "Centre d'opérations" : "Operations centre"}
         title={isFr ? "Ce qui demande votre attention" : "What needs your attention"}
-        description={isFr ? "Commencez par les signaux prioritaires, puis suivez le commerce, les commandes et le stock depuis une seule vue de décision." : "Start with priority signals, then follow commerce, orders and stock from one decision view."}
+        description={isFr ? "Traitez les priorités, puis suivez ventes, commandes et stock." : "Resolve priorities, then monitor sales, orders and stock."}
         signals={[
           { label: isFr ? "CA jour" : "Today", value: formatPrice(data.kpis.revenueToday, locale), icon: <ReiconGlyph icon={DollarCircle} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth" },
           { label: isFr ? "Commandes actives" : "Active orders", value: formatNumber(data.kpis.activeOrders, locale), icon: <ReiconGlyph icon={ClipboardCheck} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy" },

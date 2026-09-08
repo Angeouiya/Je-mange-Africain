@@ -427,7 +427,7 @@ export function AdminView({
           <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><ReiconGlyph icon={current.icon} weight="Filled" className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0 flex-1">
             <p className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{current.marker} · {isFr ? currentGroup?.labelFr : currentGroup?.labelEn}</p>
-            <h1 ref={sectionTitleRef} tabIndex={-1} className="truncate text-sm font-black text-charcoal outline-none">{isFr ? current.labelFr : current.labelEn}</h1>
+            <h1 ref={sectionTitleRef} tabIndex={-1} className="line-clamp-2 break-words text-[13px] font-black leading-[1.15] text-charcoal outline-none sm:text-sm">{isFr ? current.labelFr : current.labelEn}</h1>
             <p className="hidden truncate text-[9px] text-muted-foreground lg:block">{isFr ? current.purposeFr : current.purposeEn}</p>
           </div>
           <Badge variant="outline" className="ml-3 h-8 shrink-0 border-burgundy/25 bg-white/70 px-2 text-[9px] font-bold text-burgundy sm:px-3"><ReiconGlyph icon={ShieldCheck} weight="Filled" className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>
@@ -464,7 +464,7 @@ export function AdminView({
             <button key={item.id} type="button" onClick={() => selectSection(item.id)} onPointerEnter={() => preloadAdminSectionCluster(item.id)} onFocus={() => preloadAdminSectionCluster(item.id)} onTouchStart={() => preloadAdminSectionCluster(item.id)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-terre" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
               {active ? <motion.span layoutId="admin-mobile-nav-active" className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-terre/15 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.07))] shadow-[0_8px_22px_-18px_rgba(185,71,43,0.85)]" transition={{ type: "spring", stiffness: 460, damping: 38 }} /> : null}
               <span className="relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95" style={{ color: active ? item.accent : undefined }}><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" />{count > 0 ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">{count > 99 ? "99+" : count}</span> : null}</span>
-              <span className="block max-w-full leading-[1.05]">{isFr ? item.mobileFr : item.mobileEn}</span>
+              <span className="block max-w-full break-words text-center leading-[1.05]">{isFr ? item.mobileFr : item.mobileEn}</span>
               {active ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-gold" aria-hidden="true" /> : null}
             </button>
           );

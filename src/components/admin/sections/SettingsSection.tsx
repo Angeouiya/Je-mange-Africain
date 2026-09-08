@@ -138,7 +138,7 @@ export default function SettingsSection({ locale, canUpdate }: { locale: "fr" | 
       <AdminPageHeader
         eyebrow={isFr ? "Socle de service" : "Service foundation"}
         title={isFr ? "Configuration de la plateforme" : "Platform configuration"}
-        description={isFr ? "Pilotez les informations publiques utiles aux clients et contrôlez la disponibilité des services sensibles sans exposer leurs secrets." : "Manage useful public customer information and monitor sensitive services without exposing their secrets."}
+        description={isFr ? "Publiez les contacts client et surveillez les services sensibles." : "Publish customer contacts and monitor sensitive services."}
         icon={<ReiconGlyph icon={Settings2} weight="Filled" className="h-5 w-5" />}
         variant="control"
         accent={BRAND_COLORS.burgundy}

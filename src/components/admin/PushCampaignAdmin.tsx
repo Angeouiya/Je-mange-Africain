@@ -146,7 +146,7 @@ export function PushCampaignAdmin({ locale }: { locale: "fr" | "en" }) {
         icon={<BellRing className="h-5 w-5" />}
         eyebrow={locale === "fr" ? "Engagement mobile" : "Mobile engagement"}
         title={locale === "fr" ? "Composer, vérifier, diffuser" : "Compose, verify, deliver"}
-        description={locale === "fr" ? "Préparez un message bilingue, contrôlez son rendu mobile et confirmez explicitement la diffusion vers les appareils consentants." : "Prepare a bilingual message, review its mobile rendering and explicitly confirm delivery to consenting devices."}
+        description={locale === "fr" ? "Rédigez, prévisualisez puis diffusez aux appareils consentants." : "Write, preview, then deliver to consenting devices."}
         signals={[
           { label: locale === "fr" ? "Actifs" : "Active", value: String(data?.activeSubscriptions || 0), icon: <Smartphone className="h-3.5 w-3.5" />, tone: "earth" },
           { label: locale === "fr" ? "Consentants" : "Eligible", value: String(data?.eligibleSubscriptions || 0), icon: <UsersRound className="h-3.5 w-3.5" />, tone: "burgundy" },

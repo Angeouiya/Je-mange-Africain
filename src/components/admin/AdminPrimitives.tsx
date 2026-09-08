@@ -180,11 +180,11 @@ export function AdminPageHeader({
 
   if (variant === "control") {
     return (
-      <div data-testid="admin-page-header" data-variant={variant} className="overflow-hidden border-l-[3px] bg-[linear-gradient(118deg,rgba(255,255,255,0.96),rgba(255,252,250,0.94),rgba(214,90,50,0.05))] px-3 py-3 shadow-[0_18px_44px_-42px_rgba(90,38,50,0.5)] sm:border-l-4 sm:px-5 sm:py-4" style={{ borderLeftColor: accent }}>
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div data-testid="admin-page-header" data-variant={variant} className="overflow-hidden border-l-[3px] bg-[linear-gradient(118deg,rgba(255,255,255,0.96),rgba(255,252,250,0.94),rgba(214,90,50,0.05))] px-3 py-2 shadow-[0_18px_44px_-42px_rgba(90,38,50,0.5)] sm:border-l-4 sm:px-5 sm:py-4" style={{ borderLeftColor: accent }}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex max-w-3xl items-start gap-2.5 sm:gap-3">
             {icon ? <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border sm:h-9 sm:w-9" style={{ color: readableAccent, borderColor: `${accent}25`, backgroundColor: `${accent}0D` }}>{icon}</span> : null}
-            <div className="min-w-0"><p className="text-[8px] font-extrabold uppercase text-muted-foreground sm:text-[9px]">{eyebrow}</p><h2 className="mt-0.5 line-clamp-2 font-display text-xl font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p data-admin-header-description className="mt-1 line-clamp-1 max-w-2xl text-[10px] leading-4 text-muted-foreground sm:mt-1.5 sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
+            <div className="min-w-0"><p className="text-[8px] font-extrabold uppercase text-muted-foreground sm:text-[9px]">{eyebrow}</p><h2 className="mt-0.5 line-clamp-2 font-display text-xl font-semibold leading-tight text-charcoal sm:mt-1 sm:text-3xl">{title}</h2><p data-admin-header-description className="mt-0.5 line-clamp-2 max-w-2xl text-[10px] leading-4 text-muted-foreground sm:mt-1.5 sm:line-clamp-none sm:text-xs sm:leading-5">{description}</p></div>
           </div>
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>
@@ -195,14 +195,14 @@ export function AdminPageHeader({
   }
 
   return (
-    <div data-testid="admin-page-header" data-variant={variant} className="overflow-hidden rounded-md border border-burgundy/10 bg-[linear-gradient(116deg,rgba(255,255,255,1),rgba(255,252,250,0.96),rgba(242,169,0,0.075))] p-3 shadow-[0_18px_44px_-38px_rgba(90,38,50,0.62)] sm:p-4">
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+    <div data-testid="admin-page-header" data-variant={variant} className="overflow-hidden rounded-md border border-burgundy/10 bg-[linear-gradient(116deg,rgba(255,255,255,1),rgba(255,252,250,0.96),rgba(242,169,0,0.075))] px-3 py-2.5 shadow-[0_18px_44px_-38px_rgba(90,38,50,0.62)] sm:p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div className="flex max-w-3xl items-start gap-2.5 sm:gap-4">
           {icon ? <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/70 shadow-[0_16px_32px_-26px_rgba(90,38,50,0.72)] sm:h-11 sm:w-11" style={{ backgroundColor: accent, color: accentForeground }}>{icon}</span> : null}
           <div className="min-w-0">
             <p className="text-[8px] font-extrabold uppercase sm:text-[11px]" style={{ color: readableAccent }}>{eyebrow}</p>
             <h2 className="mt-0.5 line-clamp-2 font-display text-xl font-semibold leading-tight text-charcoal sm:mt-1.5 sm:text-[32px]">{title}</h2>
-            <p data-admin-header-description className="mt-1 line-clamp-1 max-w-2xl text-[10px] leading-4 text-muted-foreground sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6">{description}</p>
+            <p data-admin-header-description className="mt-1 line-clamp-2 max-w-2xl text-[10px] leading-4 text-muted-foreground sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6">{description}</p>
           </div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}

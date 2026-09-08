@@ -30,7 +30,7 @@ export default function TeamSection({ locale }: { locale: "fr" | "en" }) {
       icon={<UserRoundCog className="h-5 w-5" />}
       eyebrow={isFr ? "Identités et autorisations" : "Identity and authorisation"}
       title={isFr ? "Équipe professionnelle" : "Professional team"}
-      description={isFr ? "Mesurez la couverture opérationnelle, attribuez le rôle strictement nécessaire et documentez chaque changement d'accès." : "Measure operational coverage, grant only the required role and document every access change."}
+      description={isFr ? "Attribuez le rôle minimal et documentez chaque changement d'accès." : "Grant the minimum role and document every access change."}
       signals={summary ? [
         { label: isFr ? "Identités" : "Identities", value: String(summary.total), icon: <UsersRound className="h-3.5 w-3.5" />, tone: "earth" },
         { label: isFr ? "Actifs" : "Active", value: String(summary.active), icon: <UserCheck className="h-3.5 w-3.5" />, tone: "burgundy" },

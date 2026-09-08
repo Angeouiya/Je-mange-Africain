@@ -24,7 +24,7 @@ export default function FinanceSection({ locale, canUpdate, onNavigate }: { loca
         icon={<ReiconGlyph icon={DollarCircle} weight="Filled" className="h-5 w-5" />}
         eyebrow={isFr ? "Pilotage financier" : "Financial steering"}
         title={isFr ? "Rentabilité et encaissements" : "Profitability and payments"}
-        description={isFr ? "Comprenez chaque euro vendu, arbitrez les familles et les lots, puis rapprochez les paiements dans un registre traçable." : "Understand every sales euro, manage families and batches, then reconcile payments in a traceable ledger."}
+        description={isFr ? "Analysez coûts, marges, familles, lots et encaissements." : "Analyse costs, margins, families, batches and payments."}
         signals={[
           { label: isFr ? "Coût brut" : "Gross cost", value: isFr ? "lots" : "batches", icon: <ReiconGlyph icon={ChartBarTrendUp} weight="Filled" className="h-3.5 w-3.5" />, tone: "burgundy" },
           { label: isFr ? "Encaissements" : "Payments", value: isFr ? "rapprochés" : "reconciled", icon: <ReiconGlyph icon={Bank} weight="Filled" className="h-3.5 w-3.5" />, tone: "earth" },

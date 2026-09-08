@@ -72,7 +72,7 @@ export default function PromotionsSection({ locale, canCreate, canUpdate, canDel
         icon={<TicketPercent className="h-5 w-5" />}
         eyebrow={isFr ? "Activation commerciale" : "Commercial activation"}
         title={isFr ? "Piloter les promotions" : "Promotion control"}
-        description={isFr ? "Planifiez les codes, protégez les marges par des seuils et vérifiez leur consommation dans l'application client." : "Schedule codes, protect margin with thresholds and monitor redemption in the customer app."}
+        description={isFr ? "Planifiez les codes, protégez la marge et suivez leur usage." : "Schedule codes, protect margin and track redemption."}
         signals={[
           { label: isFr ? "Actives" : "Active", value: String(metrics.active), icon: <CheckCircle2 className="h-3.5 w-3.5" />, tone: "earth" },
           { label: isFr ? "Planifiées" : "Scheduled", value: String(metrics.scheduled), icon: <Clock3 className="h-3.5 w-3.5" />, tone: "gold" },

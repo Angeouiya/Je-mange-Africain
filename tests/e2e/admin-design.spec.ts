@@ -878,8 +878,17 @@ test("every professional workspace has a clear purpose and stays inside the view
     if (mobile) await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
     const navigation = page.getByRole("navigation", { name: "Navigation professionnelle" });
     await navigation.getByRole("button", { name: new RegExp(`^${section.nav}`) }).click();
-    await expect(page.locator("header h1")).toHaveText(section.nav);
-    await expect(page.locator("header h1")).toBeFocused();
+    const navigationTitle = page.locator("header h1");
+    await expect(navigationTitle).toHaveText(section.nav);
+    await expect(navigationTitle).toBeFocused();
+    if (mobile) {
+      expect(await navigationTitle.evaluate((element) => getComputedStyle(element).whiteSpace)).toBe("normal");
+      const [titleBox, headerBox] = await Promise.all([
+        navigationTitle.boundingBox(),
+        page.locator("header").boundingBox(),
+      ]);
+      expect((titleBox?.y || 0) + (titleBox?.height || 0)).toBeLessThanOrEqual((headerBox?.y || 0) + (headerBox?.height || 0));
+    }
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
     await expect(page.locator("main").getByRole("heading", { name: section.title })).toBeVisible();
     const purposeFlow = page.getByTestId("admin-header-flow");
@@ -889,6 +898,8 @@ test("every professional workspace has a clear purpose and stays inside the view
     if (mobile) {
       const workspaceHeader = await page.getByTestId("admin-page-header").boundingBox();
       expect(workspaceHeader?.height || Number.POSITIVE_INFINITY, `${section.nav} uses too much of the first mobile viewport`).toBeLessThanOrEqual(210);
+      const description = page.getByTestId("admin-page-header").locator("[data-admin-header-description]");
+      expect(await description.evaluate((element) => element.scrollHeight - element.clientHeight), `${section.nav} hides its purpose`).toBeLessThanOrEqual(1);
     }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${section.nav} overflows horizontally`).toBeLessThanOrEqual(1);

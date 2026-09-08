@@ -69,7 +69,7 @@ export default function AdvertisingSection({ locale }: { locale: "fr" | "en" }) 
       icon={<Megaphone className="h-5 w-5" />}
       eyebrow={isFr ? "Visibilité commerciale" : "Commercial visibility"}
       title={isFr ? "Régie publicitaire" : "Advertising desk"}
-      description={isFr ? "Créez des affiches bilingues, choisissez leur emplacement et leur calendrier, puis contrôlez exactement ce qui est visible dans l'application client." : "Create bilingual artwork, choose its placement and schedule, then control exactly what appears in the customer app."}
+      description={isFr ? "Planifiez les affiches visibles dans chaque espace client." : "Plan artwork shown in each customer workspace."}
       signals={[
         { label: isFr ? "En cours" : "Live", value: String(metrics.active), icon: <Radio className="h-3.5 w-3.5" />, tone: "earth" },
         { label: isFr ? "Planifiées" : "Scheduled", value: String(metrics.scheduled), icon: <CalendarRange className="h-3.5 w-3.5" />, tone: "gold" },

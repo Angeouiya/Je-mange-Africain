@@ -125,7 +125,7 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
       <AdminPageHeader
         eyebrow={isFr ? "Réseau européen" : "European network"}
         title={isFr ? "Promesse de livraison" : "Delivery promise"}
-        description={isFr ? "Configurez les routes réellement vendues au paiement, leurs transporteurs, leurs prix au poids et leurs contraintes de chaîne du froid." : "Configure the routes actually sold at checkout, their carriers, weight pricing and cold-chain constraints."}
+        description={isFr ? "Publiez les zones, transporteurs, tarifs et contraintes de froid." : "Publish zones, carriers, rates and cold-chain constraints."}
         icon={<ReiconGlyph icon={ReRouteTrack} weight="Filled" className="h-5 w-5" />}
         variant="flow"
         accent={BRAND_COLORS.earth}

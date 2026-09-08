@@ -118,7 +118,7 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
         icon={<ClipboardList className="h-5 w-5" />}
         eyebrow={isFr ? "Exécution des commandes" : "Order execution"}
         title={isFr ? "Du paiement jusqu'à la porte" : "From payment to the doorstep"}
-        description={isFr ? "Chaque commande avance dans un flux explicite. Ouvrez une fiche pour contrôler ses articles, son paiement, ses colis et sa chronologie." : "Every order moves through an explicit workflow. Open a record to inspect items, payment, parcels and timeline."}
+        description={isFr ? "Contrôlez articles, paiement, colis et suivi de chaque commande." : "Control items, payment, parcels and tracking for every order."}
         signals={[
           { label: isFr ? "À valider" : "To validate", value: String(counts.validate), icon: <Clock3 className="h-3.5 w-3.5" />, tone: "earth" },
           { label: isFr ? "Préparation" : "Packing", value: String(counts.prepare), icon: <PackageCheck className="h-3.5 w-3.5" />, tone: "gold" },
