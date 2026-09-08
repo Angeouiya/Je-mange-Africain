@@ -17,7 +17,7 @@ export default function FinanceSection({ locale, canUpdate, onNavigate }: { loca
   const [view, setView] = useState<FinanceView>("profitability");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <AdminPageHeader
         variant="control"
         accent="#8A3042"

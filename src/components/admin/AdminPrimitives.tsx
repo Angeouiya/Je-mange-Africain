@@ -337,12 +337,14 @@ export function SectionTabs<T extends string>({
   items,
   label,
   variant = "filter",
+  mobileLayout = "grid",
 }: {
   value: T;
   onChange: (value: T) => void;
   items: Array<{ value: T; label: string; count?: number; description?: string; icon?: AdminTabIcon; accent?: string }>;
   label: string;
   variant?: "filter" | "workspace";
+  mobileLayout?: "grid" | "scroll";
 }) {
   const moveWithKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     let nextIndex = currentIndex;
@@ -402,8 +404,9 @@ export function SectionTabs<T extends string>({
   }
 
   const mobileGridClass = items.length <= 1 ? "grid-cols-1" : items.length === 2 ? "grid-cols-2" : items.length === 3 ? "grid-cols-3" : "grid-cols-2";
+  const scrollOnMobile = mobileLayout === "scroll";
   return (
-    <div className={`grid w-full max-w-full ${mobileGridClass} gap-1 overflow-hidden rounded-lg border border-border bg-white p-1 sm:flex sm:w-fit sm:overflow-x-auto sm:overscroll-x-contain`} role="tablist" aria-label={label} aria-orientation="horizontal" data-testid="section-tabs">
+    <div className={`${scrollOnMobile ? "flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : `grid ${mobileGridClass} overflow-hidden`} w-full max-w-full gap-1 rounded-lg border border-border bg-white p-1 sm:flex sm:w-fit sm:overflow-x-auto sm:overscroll-x-contain`} role="tablist" aria-label={label} aria-orientation="horizontal" data-testid="section-tabs">
       {items.map((item, index) => (
         <button
           key={item.value}
@@ -413,7 +416,7 @@ export function SectionTabs<T extends string>({
           aria-label={typeof item.count === "number" ? `${item.label}, ${item.count}` : item.label}
           onClick={() => onChange(item.value)}
           onKeyDown={(event) => moveWithKeyboard(event, index)}
-          className={`flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-center text-[10px] font-bold leading-3.5 transition-colors sm:h-9 sm:min-h-0 sm:min-w-max sm:flex-none sm:shrink-0 sm:gap-2 sm:px-3 sm:py-0 sm:text-xs ${value === item.value ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}
+          className={`flex min-h-10 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-center text-[10px] font-bold leading-3.5 transition-colors sm:h-9 sm:min-h-0 sm:min-w-max sm:flex-none sm:shrink-0 sm:gap-2 sm:px-3 sm:py-0 sm:text-xs ${scrollOnMobile ? "min-w-max flex-none shrink-0 snap-start" : "min-w-0 flex-1"} ${value === item.value ? "bg-burgundy text-white" : "text-muted-foreground hover:bg-muted hover:text-charcoal"}`}
         >
           <span data-tab-label className="line-clamp-2 min-w-0">{item.label}</span>
           {typeof item.count === "number" ? <span aria-hidden="true" className={`grid min-w-5 place-items-center rounded px-1.5 py-0.5 text-[9px] tabular-nums ${value === item.value ? "bg-white/12 text-white" : "bg-muted text-muted-foreground"}`}>{item.count}</span> : null}

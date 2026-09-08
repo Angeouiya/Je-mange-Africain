@@ -108,14 +108,14 @@ export function ProfitabilityPanel({ locale, onNavigate }: { locale: "fr" | "en"
           <p className="mt-1 max-w-2xl text-[11px] leading-5 text-muted-foreground">{isFr ? "Les remises et remboursements sont intégrés. Le coût réel du lot est prioritaire dès qu'une allocation existe." : "Discounts and refunds are included. Actual batch cost takes priority whenever an allocation exists."}</p>
         </div>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-          <SectionTabs value={period} onChange={setPeriod} label={isFr ? "Période comptable" : "Accounting period"} items={periodItems} />
+          <SectionTabs value={period} onChange={setPeriod} label={isFr ? "Période comptable" : "Accounting period"} items={periodItems} mobileLayout="scroll" />
           <Button type="button" variant="outline" size="sm" onClick={() => downloadProfitabilityCsv(exportRows, analysis, locale)} disabled={!exportRows.length} className="h-11 shrink-0 border-charcoal/12 sm:h-9">
             <Download className="mr-1.5 h-4 w-4" />{isFr ? "Exporter" : "Export"}
           </Button>
         </div>
       </div>
 
-      <section data-testid="profitability-metrics" className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white xl:grid-cols-4" aria-label={isFr ? "Indicateurs de rentabilité" : "Profitability indicators"}>
+      <section tabIndex={0} data-testid="profitability-metrics" className="flex snap-x snap-mandatory overflow-x-auto rounded-lg border border-charcoal/8 bg-white overscroll-x-contain outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-burgundy/35 focus-visible:ring-offset-2 xl:grid xl:grid-cols-4 xl:overflow-hidden [&::-webkit-scrollbar]:hidden" aria-label={isFr ? "Indicateurs de rentabilité" : "Profitability indicators"}>
         <Metric position={0} icon={ChartNoAxesCombined} label={isFr ? "Chiffre d'affaires produits" : "Product revenue"} value={formatPrice(metrics.revenue, locale)} change={data.comparison?.revenue} kind="revenue" locale={locale} />
         <Metric position={1} icon={ShoppingBasket} label={isFr ? "Coût brut vendu" : "Gross cost sold"} value={formatPrice(metrics.grossCost, locale)} change={data.comparison?.grossCost} kind="cost" locale={locale} />
         <Metric position={2} icon={TrendingUp} label={isFr ? "Marge bénéficiaire" : "Profit margin"} value={formatPrice(metrics.margin, locale)} change={data.comparison?.margin} kind="margin" locale={locale} />
@@ -145,7 +145,7 @@ function Metric({ position, icon: Icon, label, value, change, kind, locale, deta
   const favourable = change === null || change === undefined ? null : kind === "cost" ? change <= 0 : change >= 0;
   const iconStyle = kind === "revenue" ? "bg-terre text-white" : kind === "cost" ? "bg-gold/20 text-charcoal" : kind === "margin" ? "bg-burgundy/10 text-burgundy" : "bg-terre/10 text-terre";
   return (
-    <div className={`min-w-0 p-3 sm:p-5 ${position < 2 ? "border-b" : ""} ${position % 2 === 0 ? "border-r" : ""} border-charcoal/8 xl:border-b-0 ${position < 3 ? "xl:border-r" : "xl:border-r-0"}`}>
+    <div className={`min-w-[10.5rem] shrink-0 snap-start p-3 sm:min-w-[12rem] sm:p-5 xl:min-w-0 ${position < 3 ? "border-r border-charcoal/8" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${iconStyle}`}><Icon className="h-4 w-4" /></span>
         <TrendBadge change={change} favourable={favourable} locale={locale} />

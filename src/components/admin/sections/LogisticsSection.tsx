@@ -121,7 +121,7 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
   ];
 
   return (
-    <div data-testid="logistics-workspace">
+    <div data-testid="logistics-workspace" className="space-y-4 sm:space-y-5">
       <AdminPageHeader
         eyebrow={isFr ? "Réseau européen" : "European network"}
         title={isFr ? "Promesse de livraison" : "Delivery promise"}
@@ -148,20 +148,13 @@ export default function LogisticsSection({ locale, canCreate, canUpdate, canDele
 
       <LogisticsCommandRail data={data} locale={locale} />
 
-      <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-burgundy/10 bg-burgundy/10 lg:grid-cols-4" aria-label={isFr ? "Indicateurs logistiques" : "Logistics indicators"}>
-        <Metric icon={ReTruckTick} label={isFr ? "Transporteurs" : "Carriers"} value={data.summary.carriers} accent={BRAND_COLORS.burgundy} />
-        <Metric icon={ReRouteTrack} label={isFr ? "Routes actives" : "Active routes"} value={data.summary.routes} accent={BRAND_COLORS.earth} />
-        <Metric icon={ReMapPoint} label={isFr ? "Pays configurés" : "Configured countries"} value={data.summary.countries} accent={BRAND_COLORS.gold} />
-        <Metric icon={ReSnowflake} label={isFr ? "Routes sous froid" : "Cold-chain routes"} value={data.summary.coldChainRoutes} accent={BRAND_COLORS.chilli} />
-      </div>
-
-      <div className="mt-5">
+      <div>
         <SectionTabs variant="workspace" value={tab} onChange={setTab} items={tabs} label={isFr ? "Espaces logistiques" : "Logistics workspaces"} />
       </div>
 
-      {message ? <div role={messageKind === "error" ? "alert" : "status"} className={`mt-4 flex items-start gap-2 rounded-md border px-3 py-2.5 text-xs ${messageKind === "error" ? "border-destructive/20 bg-destructive/[0.05] text-destructive" : "border-burgundy/15 bg-burgundy/[0.045] text-burgundy"}`}>{messageKind === "error" ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />}{message}</div> : null}
+      {message ? <div role={messageKind === "error" ? "alert" : "status"} className={`flex items-start gap-2 rounded-md border px-3 py-2.5 text-xs ${messageKind === "error" ? "border-destructive/20 bg-destructive/[0.05] text-destructive" : "border-burgundy/15 bg-burgundy/[0.045] text-burgundy"}`}>{messageKind === "error" ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />}{message}</div> : null}
 
-      <div className="mt-6">
+      <div>
         {tab === "routes" ? <RoutesWorkspace data={data} locale={locale} canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} onCreate={() => setZoneEditor("new")} onEdit={setZoneEditor} mutate={mutate} /> : null}
         {tab === "carriers" ? <CarriersWorkspace carriers={data.carriers} locale={locale} canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} onCreate={() => setCarrierEditor("new")} onEdit={setCarrierEditor} mutate={mutate} /> : null}
         {tab === "simulator" ? <ShippingSimulator locale={locale} /> : null}
@@ -198,13 +191,13 @@ function LogisticsCommandRail({ data, locale }: { data: LogisticsPayload; locale
       icon: ReTruckTick,
       value: averageRating ? `${averageRating.toFixed(1)}/5` : "-",
       label: isFr ? "qualité transport" : "carrier quality",
-      detail: fastestDelay ? (isFr ? `promesse la plus rapide <= ${fastestDelay} h` : `fastest promise <= ${fastestDelay} h`) : (isFr ? "délai à configurer" : "timing to configure"),
+      detail: fastestDelay ? (isFr ? `${data.summary.carriers} transporteur(s) · promesse <= ${fastestDelay} h` : `${data.summary.carriers} carrier(s) · promise <= ${fastestDelay} h`) : (isFr ? `${data.summary.carriers} transporteur(s) · délai à configurer` : `${data.summary.carriers} carrier(s) · timing to configure`),
       accent: BRAND_COLORS.burgundy,
     },
   ];
 
   return (
-    <section data-testid="logistics-command-rail" className="mt-5 overflow-hidden border-y border-charcoal/8 bg-[linear-gradient(115deg,#FFFFFF_0%,#FFFCFA_58%,rgba(214,90,50,0.055)_100%)]" aria-labelledby="logistics-command-rail-title">
+    <section data-testid="logistics-command-rail" className="overflow-hidden border-y border-charcoal/8 bg-[linear-gradient(115deg,#FFFFFF_0%,#FFFCFA_58%,rgba(214,90,50,0.055)_100%)]" aria-labelledby="logistics-command-rail-title">
       <div className="flex flex-col gap-3 px-3.5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-burgundy text-white shadow-[0_18px_34px_-26px_rgba(138,48,66,0.78)]"><ReiconGlyph icon={ReShieldCheck} weight="Filled" className="h-4 w-4" /></span>
@@ -228,7 +221,7 @@ function LogisticsCommandRail({ data, locale }: { data: LogisticsPayload; locale
           })}
         </div>
       </div>
-      <div className="grid gap-px bg-charcoal/8 sm:grid-cols-3" aria-label={isFr ? "Indicateurs de promesse client" : "Customer promise indicators"}>
+      <div tabIndex={0} className="flex snap-x snap-mandatory gap-px overflow-x-auto bg-charcoal/8 overscroll-x-contain outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-burgundy/35 sm:grid sm:grid-cols-3 sm:overflow-hidden [&::-webkit-scrollbar]:hidden" aria-label={isFr ? "Indicateurs de promesse client" : "Customer promise indicators"}>
         {metrics.map((metric) => <LogisticsCommandMetric key={metric.label} {...metric} />)}
       </div>
     </section>
@@ -236,11 +229,7 @@ function LogisticsCommandRail({ data, locale }: { data: LogisticsPayload; locale
 }
 
 function LogisticsCommandMetric({ icon: Icon, label, value, detail, accent }: { icon: IconFunction; label: string; value: string; detail: string; accent: string }) {
-  return <div className="min-w-0 bg-white p-3.5 sm:p-4"><div className="flex items-start justify-between gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md" style={{ color: accent, backgroundColor: `${accent}12` }}><ReiconGlyph icon={Icon} weight="Filled" className="h-4 w-4" /></span><strong className="text-lg font-black tabular-nums text-charcoal">{value}</strong></div><p className="mt-3 text-[11px] font-extrabold text-charcoal">{label}</p><p className="mt-1 line-clamp-2 text-[9px] leading-4 text-muted-foreground">{detail}</p></div>;
-}
-
-function Metric({ icon: Icon, label, value, accent }: { icon: IconFunction; label: string; value: number; accent: string }) {
-  return <div className="flex min-h-[4.7rem] items-center gap-3 bg-white p-3 sm:p-4"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md" style={{ color: accent, backgroundColor: `${accent}12` }}><ReiconGlyph icon={Icon} weight="Filled" className="h-4 w-4" /></span><span className="min-w-0"><strong className="block text-lg font-black tabular-nums text-charcoal">{value}</strong><span className="block truncate text-[9px] font-bold text-muted-foreground">{label}</span></span></div>;
+  return <div className="min-w-[10.5rem] shrink-0 snap-start bg-white p-3.5 sm:min-w-0 sm:p-4"><div className="flex items-start justify-between gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md" style={{ color: accent, backgroundColor: `${accent}12` }}><ReiconGlyph icon={Icon} weight="Filled" className="h-4 w-4" /></span><strong className="text-lg font-black tabular-nums text-charcoal">{value}</strong></div><p className="mt-3 text-[11px] font-extrabold text-charcoal">{label}</p><p className="mt-1 line-clamp-2 text-[9px] leading-4 text-muted-foreground">{detail}</p></div>;
 }
 
 function RoutesWorkspace({ data, locale, canCreate, canUpdate, canDelete, onCreate, onEdit, mutate }: { data: LogisticsPayload; locale: "fr" | "en"; canCreate: boolean; canUpdate: boolean; canDelete: boolean; onCreate: () => void; onEdit: (zone: DeliveryZone) => void; mutate: Mutate }) {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { BadgeCheck, Download, MessageCircle, ShieldCheck, UserRound, UsersRound } from "lucide-react";
-import { CustomerPortfolioOverview } from "@/components/admin/customers/CustomerPortfolioOverview";
+import { CustomerPortfolioComposition, CustomerPortfolioOverview } from "@/components/admin/customers/CustomerPortfolioOverview";
 import { CustomerProfileDialog } from "@/components/admin/customers/CustomerProfileDialog";
 import { CustomerRegister } from "@/components/admin/customers/CustomerRegister";
 import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading, SectionTabs } from "@/components/admin/AdminPrimitives";
@@ -44,7 +44,7 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
   if (!data) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <AdminPageHeader
         variant="workspace"
         accent="#E66A3A"
@@ -95,6 +95,8 @@ export default function CustomersSection({ locale, canUpdate = false }: { locale
       </div>
 
       {filteredCustomers.length ? <CustomerRegister customers={filteredCustomers} actions={data.actions} locale={locale} onSelect={setSelectedCustomer} /> : <AdminEmptyState icon={<UserRound className="h-5 w-5" />} title={isFr ? "Aucun client dans ce segment" : "No customers in this segment"} description={isFr ? "Modifiez le segment ou la recherche pour afficher d'autres profils." : "Change the segment or search to display other profiles."} />}
+
+      <CustomerPortfolioComposition summary={data.summary} locale={locale} />
 
       <CustomerProfileDialog selectedCustomer={selectedCustomer} onClose={() => setSelectedCustomer(null)} locale={locale} canUpdate={canUpdate} />
     </div>
