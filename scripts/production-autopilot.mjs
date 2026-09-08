@@ -21,7 +21,7 @@ const REQUIRED_ENV = [
   ["CLOUDFLARE_HYPERDRIVE_ID", `Cloudflare Hyperdrive connection for ${PRODUCTION_SUPABASE_PROJECT_NAME}`],
   ["NEXT_PUBLIC_SUPABASE_URL", `Supabase URL must target ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF})`],
   ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "Supabase publishable key"],
-  ["SUPABASE_SERVICE_ROLE_KEY", "Supabase server service role"],
+  ["SUPABASE_SECRET_KEY", "Supabase server secret key"],
   ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "Stripe publishable key"],
   ["STRIPE_SECRET_KEY", "Stripe server key"],
   ["STRIPE_WEBHOOK_SECRET", "Stripe webhook signing secret"],
@@ -41,6 +41,7 @@ const OPTIONAL_ENV = [
 const CLOUDFLARE_SECRET_KEYS = [
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
   "STRIPE_SECRET_KEY",
@@ -53,7 +54,7 @@ const CLOUDFLARE_SECRET_KEYS = [
 ];
 export const REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS = [
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_SECRET_KEY",
   "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
@@ -90,7 +91,9 @@ function readWranglerConfig(cwd = process.cwd()) {
 }
 
 export function loadProductionEnvironment(cwd = process.cwd()) {
+  /** @type {Record<string, string>} */
   const values = {};
+  /** @type {Record<string, string>} */
   const sources = {};
   for (const name of DOTENV_FILES) {
     const filePath = resolve(cwd, name);
@@ -112,6 +115,10 @@ export function loadProductionEnvironment(cwd = process.cwd()) {
     if (values[key] || !value) continue;
     values[key] = String(value);
     sources[key] = "wrangler.jsonc";
+  }
+  if (!values.SUPABASE_SECRET_KEY && values.SUPABASE_SERVICE_ROLE_KEY) {
+    values.SUPABASE_SECRET_KEY = values.SUPABASE_SERVICE_ROLE_KEY;
+    sources.SUPABASE_SECRET_KEY = `${sources.SUPABASE_SERVICE_ROLE_KEY || "environment"} (legacy service role)`;
   }
 
   for (const [key, value] of Object.entries(process.env)) {
@@ -790,7 +797,7 @@ export function preferredDashboardBrowser({
 
 function openDashboards() {
   const urls = [
-    `https://supabase.com/dashboard/project/${PRODUCTION_SUPABASE_PROJECT_REF}/settings/api`,
+    `https://supabase.com/dashboard/project/${PRODUCTION_SUPABASE_PROJECT_REF}/settings/api-keys`,
     `https://supabase.com/dashboard/project/${PRODUCTION_SUPABASE_PROJECT_REF}/settings/database`,
     `https://dash.cloudflare.com/${PRODUCTION_CLOUDFLARE_ACCOUNT_ID}/workers/services/view/${PRODUCTION_WORKER_NAME}/production/settings`,
     "https://dashboard.stripe.com/apikeys",

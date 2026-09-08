@@ -94,6 +94,7 @@ type PlatformEnvironmentKey =
   | "SUPABASE_URL"
   | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
   | "SUPABASE_PUBLISHABLE_KEY"
+  | "SUPABASE_SECRET_KEY"
   | "SUPABASE_SERVICE_ROLE_KEY"
   | "UPSTASH_REDIS_REST_URL"
   | "UPSTASH_REDIS_REST_TOKEN"
@@ -141,6 +142,7 @@ export const CLOUDFLARE_PRODUCTION_ENV_KEYS = [
   "DATABASE_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
   "STRIPE_SECRET_KEY",
@@ -196,6 +198,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
   const stripeCore = Boolean(environment.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && environment.STRIPE_SECRET_KEY);
   const supabaseProject = supabaseUrl === PRODUCTION_SUPABASE_URL;
   const supabaseCore = Boolean(supabaseProject && productionSupabasePublishableKey);
+  const supabaseServerAccess = Boolean(environment.SUPABASE_SECRET_KEY || environment.SUPABASE_SERVICE_ROLE_KEY);
 
   return [
     {
@@ -205,7 +208,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
       capabilities: { connection: databaseAvailable, persistence: persistentDatabase, production: productionDatabase },
     },
     { id: "payments", state: stripeCore && environment.STRIPE_WEBHOOK_SECRET ? "ready" : stripeCore ? "partial" : "attention", provider: "Stripe", capabilities: { connection: stripeCore, webhook: Boolean(environment.STRIPE_WEBHOOK_SECRET) } },
-    { id: "identity", state: supabaseCore && environment.SUPABASE_SERVICE_ROLE_KEY ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, publishableKey: productionSupabasePublishableKey, serverAccess: Boolean(environment.SUPABASE_SERVICE_ROLE_KEY) } },
+    { id: "identity", state: supabaseCore && supabaseServerAccess ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, publishableKey: productionSupabasePublishableKey, serverAccess: supabaseServerAccess } },
     { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
     { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: cloudflareAccount, workers: cloudflareWorkers, runtime: cloudflareRuntime, domainConfigured: productionDomain, domainDeferred: !domainAttached, domain: domainAttached } },
@@ -222,6 +225,7 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
   const cloudflareAccount = environment.CLOUDFLARE_ACCOUNT_ID === PRODUCTION_CLOUDFLARE_ACCOUNT_ID;
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
   const domainAttached = siteUrl === PRODUCTION_SITE_URL && environment.CLOUDFLARE_DOMAIN_STATUS === "attached";
+  const supabaseServerAccess = Boolean(environment.SUPABASE_SECRET_KEY || environment.SUPABASE_SERVICE_ROLE_KEY);
   const requirements: CloudflareDeploymentRequirement[] = [
     {
       id: "database-url",
@@ -263,8 +267,8 @@ export function cloudflareDeploymentReadiness(databaseAvailable: boolean, enviro
       labelEn: "Supabase server access",
       detailFr: "Accès serveur requis pour les opérations protégées de l'admin et des médias.",
       detailEn: "Server access required for protected admin and media operations.",
-      envKeys: ["SUPABASE_SERVICE_ROLE_KEY"],
-      satisfied: has("SUPABASE_SERVICE_ROLE_KEY"),
+      envKeys: ["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"],
+      satisfied: supabaseServerAccess,
       severity: "blocking",
     },
     {

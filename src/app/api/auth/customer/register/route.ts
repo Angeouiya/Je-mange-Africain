@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { enforceRateLimit } from "@/lib/redis";
 import { loadCustomerAccount } from "@/lib/customer-account";
+import { supabaseApiHeaders } from "@/lib/supabase-server-key";
 
 export const dynamic = "force-dynamic";
 
@@ -56,11 +57,7 @@ export async function POST(request: Request) {
     if (serviceRoleKey) {
       const createResponse = await fetch(`${url}/auth/v1/admin/users`, {
         method: "POST",
-        headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: supabaseApiHeaders(serviceRoleKey, { contentType: "application/json" }),
         body: JSON.stringify({
           email: parsed.data.email,
           phone: parsed.data.phone,

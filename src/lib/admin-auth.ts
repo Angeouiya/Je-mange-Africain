@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { type AdminAction, type AdminModule, hasAdminPermission, permissionsForRole } from "@/lib/admin-permissions";
 import { enforceRateLimit } from "@/lib/redis";
+import { getSupabaseServerKey } from "@/lib/supabase-server-key";
 
 export const ADMIN_ROLES = new Set([
   "super_admin",
@@ -21,7 +22,7 @@ export const ADMIN_REFRESH_COOKIE = "jma-admin-refresh";
 export function getSupabaseAdminConfig() {
   const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.replace(/\/$/, "");
   const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = getSupabaseServerKey();
   return { url, key, serviceRoleKey };
 }
 

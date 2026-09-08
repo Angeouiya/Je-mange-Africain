@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { authorizeAdminRequest, getSupabaseAdminConfig } from "@/lib/admin-auth";
 import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { hasAdminPermission, type AdminModule } from "@/lib/admin-permissions";
+import { supabaseApiHeaders } from "@/lib/supabase-server-key";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ const extensionFor = (mimeType: string) => ({
 }[mimeType] || "bin");
 
 async function ensureBucket(url: string, serviceRoleKey: string) {
-  const headers = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` };
+  const headers = supabaseApiHeaders(serviceRoleKey);
   const current = await fetch(`${url}/storage/v1/bucket/${BUCKET}`, { headers, cache: "no-store" });
   if (current.ok) return;
   const created = await fetch(`${url}/storage/v1/bucket`, {
@@ -74,15 +75,9 @@ export async function POST(request: NextRequest) {
     const objectPath = `${kind}/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${randomUUID()}.${extensionFor(file.type)}`;
     const encodedPath = objectPath.split("/").map(encodeURIComponent).join("/");
     const storageKey = serviceRoleKey || key;
-    const bearer = serviceRoleKey || authorization.accessToken;
     const uploaded = await fetch(`${url}/storage/v1/object/${BUCKET}/${encodedPath}`, {
       method: "POST",
-      headers: {
-        apikey: storageKey,
-        Authorization: `Bearer ${bearer}`,
-        "Content-Type": file.type,
-        "x-upsert": "false",
-      },
+      headers: { ...supabaseApiHeaders(storageKey, { accessToken: serviceRoleKey ? undefined : authorization.accessToken, contentType: file.type }), "x-upsert": "false" },
       body: await file.arrayBuffer(),
       signal: AbortSignal.timeout(30_000),
     });
@@ -142,10 +137,9 @@ export async function DELETE(request: NextRequest) {
   const { url, key, serviceRoleKey } = getSupabaseAdminConfig();
   if (!url || !key) return NextResponse.json({ error: "Le stockage Supabase n'est pas configuré." }, { status: 503 });
   const storageKey = serviceRoleKey || key;
-  const bearer = serviceRoleKey || authorization.accessToken;
   const response = await fetch(`${url}/storage/v1/object/${BUCKET}`, {
     method: "DELETE",
-    headers: { apikey: storageKey, Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
+    headers: supabaseApiHeaders(storageKey, { accessToken: serviceRoleKey ? undefined : authorization.accessToken, contentType: "application/json" }),
     body: JSON.stringify({ prefixes: [objectPath] }),
     signal: AbortSignal.timeout(15_000),
   });

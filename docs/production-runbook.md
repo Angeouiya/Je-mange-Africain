@@ -11,7 +11,7 @@
 
 ## Required environment
 
-Configure the variables documented in `.env.example` in the production host. Never expose `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` or `UPSTASH_REDIS_REST_TOKEN` to the browser.
+Configure the variables documented in `.env.example` in the production host. Never expose `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SECRET_KEY` or `UPSTASH_REDIS_REST_TOKEN` to the browser. A legacy `SUPABASE_SERVICE_ROLE_KEY` remains supported during migration, but new deployments should use the scoped `sb_secret_...` key.
 
 Use the committed `HYPERDRIVE` binding for the Cloudflare application runtime. Keep `DIRECT_URL` available only in the trusted deployment environment for schema migrations and the guarded initial catalogue import.
 Production is pinned to Supabase project `JMA` (`ahigidhuhqcmxzjxetnw`) and Cloudflare account `82164eca9557f63e18984230deac12bc`. The release guard refuses another Supabase URL, including previous staging projects.

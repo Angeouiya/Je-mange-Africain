@@ -38,7 +38,7 @@ describe("production autopilot", () => {
     DATABASE_URL: `postgresql://postgres:secret@db.${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co:5432/postgres`,
     NEXT_PUBLIC_SUPABASE_URL: PRODUCTION_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
-    SUPABASE_SERVICE_ROLE_KEY: "service_role_example",
+    SUPABASE_SECRET_KEY: "sb_secret_example",
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_example",
     STRIPE_SECRET_KEY: "sk_live_example",
     STRIPE_WEBHOOK_SECRET: "whsec_example",
@@ -138,7 +138,7 @@ describe("production autopilot", () => {
     expect(output).toContain("Production environment is ready to deploy.");
     expect(output).toContain("STRIPE_SECRET_KEY");
     expect(output).not.toContain(readyValues.STRIPE_SECRET_KEY);
-    expect(output).not.toContain(readyValues.SUPABASE_SERVICE_ROLE_KEY);
+    expect(output).not.toContain(readyValues.SUPABASE_SECRET_KEY);
     expect(output).not.toContain(readyValues.UPSTASH_REDIS_REST_TOKEN);
   });
 

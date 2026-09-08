@@ -161,7 +161,7 @@ describe("platform production readiness", () => {
     expect(readiness.deployCommand).toBe("npm run cloudflare:deploy");
     expect(readiness.requirements.find((requirement) => requirement.id === "database-url")).toMatchObject({ satisfied: false, envKeys: ["DATABASE_URL"] });
     expect(missingKeys).toEqual(expect.arrayContaining([
-      "SUPABASE_SERVICE_ROLE_KEY",
+      "SUPABASE_SECRET_KEY",
       "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
