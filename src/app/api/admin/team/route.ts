@@ -5,6 +5,7 @@ import { ADMIN_ROLES, authorizeAdminRequest, getSupabaseAdminConfig } from "@/li
 import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { ADMIN_ACTIONS, ADMIN_MODULES, permissionsForRole } from "@/lib/admin-permissions";
 import { supabaseAuthAdminFetch, teamConfigurationError, teamServiceUnavailableError } from "@/lib/supabase-admin-team";
+import { supabaseApiHeaders } from "@/lib/supabase-server-key";
 import { summarizeTeam, type TeamMemberStatus } from "@/lib/team-insights";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
   const input = parsed.data;
   let invited: Response;
   try {
-    invited = await fetch(`${url}/auth/v1/invite`, { method: "POST", headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ email: input.email.toLowerCase(), data: { first_name: input.firstName, last_name: input.lastName } }), signal: AbortSignal.timeout(15_000) });
+    invited = await fetch(`${url}/auth/v1/invite`, { method: "POST", headers: supabaseApiHeaders(serviceRoleKey, { contentType: "application/json" }), body: JSON.stringify({ email: input.email.toLowerCase(), data: { first_name: input.firstName, last_name: input.lastName } }), signal: AbortSignal.timeout(15_000) });
   } catch {
     return teamServiceUnavailableError();
   }

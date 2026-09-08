@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BRAND_ACCENT_COLORS, BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
@@ -11,17 +11,12 @@ describe("market media", () => {
     expect(getProductPhoto({ traditionalName: "Pâte d'arachide" })).toBe("/products/pate-arachide.webp");
   });
 
-  it("keeps a real local image for every seeded product and recipe", () => {
-    const seed = readFileSync(join(process.cwd(), "prisma", "seed.ts"), "utf8");
-    const productSection = seed.slice(seed.indexOf("const products:"), seed.indexOf("const productIds:"));
-    const recipeSection = seed.slice(seed.indexOf("const recipes:"), seed.indexOf("// fix mafe"));
-    const productSlugs = [...productSection.matchAll(/^    \["([^"]+)", "JMA-/gm)].map((match) => match[1]).sort();
-    const recipeSlugs = [...recipeSection.matchAll(/^    \["([^"]+)",/gm)].map((match) => match[1]).sort();
-    const productImages = readdirSync(join(process.cwd(), "public", "products")).filter((file) => file.endsWith(".webp")).map((file) => file.replace(/\.webp$/, "")).sort();
-    const recipeImages = readdirSync(join(process.cwd(), "public", "recipes")).filter((file) => file.endsWith(".webp")).map((file) => file.replace(/\.webp$/, "")).sort();
+  it("keeps every curated static media asset resolvable without demo database records", () => {
+    const productSlugs = readdirSync(join(process.cwd(), "public", "products")).filter((file) => file.endsWith(".webp")).map((file) => file.replace(/\.webp$/, "")).sort();
+    const recipeSlugs = readdirSync(join(process.cwd(), "public", "recipes")).filter((file) => file.endsWith(".webp")).map((file) => file.replace(/\.webp$/, "")).sort();
 
-    expect(productImages).toEqual(productSlugs);
-    expect(recipeImages).toEqual(recipeSlugs);
+    expect(productSlugs.length).toBeGreaterThan(0);
+    expect(recipeSlugs.length).toBeGreaterThan(0);
     for (const slug of productSlugs) expect(getProductPhoto({ slug })).toBe(`/products/${slug}.webp`);
     for (const slug of recipeSlugs) expect(getRecipePhoto({ slug })).toBe(`/recipes/${slug}.webp`);
   });

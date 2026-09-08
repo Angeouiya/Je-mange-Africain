@@ -73,13 +73,22 @@ npm run db:generate:postgres
 `production:link-supabase` needs `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` in the local deployment environment. `production:push-supabase` can also use `DIRECT_URL` or a PostgreSQL `DATABASE_URL` directly.
 `production:baseline-prisma` is for an already populated Supabase database: it runs a read-only Prisma schema diff first, then records the Prisma PostgreSQL migrations as applied only when the live schema has no difference.
 
-For a brand-new, empty production catalogue, import the curated local catalogue without demo customers, orders or payments:
+Production must never be populated from the local demonstration seed. Products, recipes, prices, stock, suppliers and logistics records are created with verified business data from the professional console.
+
+The guarded cleanup command only targets the known JMA demonstration fingerprint, refuses to run if operational records exist, and requires an explicit execution flag:
 
 ```bash
-npm run production:seed-catalog
+npm run production:purge-demo
+npm run production:purge-demo -- --execute
 ```
 
-The import requires `DIRECT_URL`, targets only project `ahigidhuhqcmxzjxetnw`, runs in one transaction and refuses to run when any production catalogue records already exist.
+Bootstrap the protected owner account with a server-side Supabase secret and the direct production database URL:
+
+```bash
+npm run production:bootstrap-admin
+```
+
+Both commands only target project `ahigidhuhqcmxzjxetnw`. Secrets must be supplied through the execution environment and must never be committed.
 
 For the Prisma-managed production release path:
 
