@@ -77,6 +77,23 @@ describe("POST /api/payments/intent European payment policy", () => {
 
     expect(response.status).toBe(200);
     expect(payload.paymentMethodTypes).toEqual(["card", "paypal", "ideal"]);
+    expect(payload.paymentPolicy).toMatchObject({
+      country: "France",
+      countryCode: "FR",
+      settlementMode: "immediate",
+      paypalPreferredLocale: "fr-FR",
+      providerMethodTypes: ["card", "paypal", "ideal"],
+      recommendedMethodTypes: ["card", "paypal", "link", "revolut_pay", "cartes_bancaires"],
+      serverControls: {
+        authenticationRequired: true,
+        pricingFingerprintRequired: true,
+        deliveryFingerprintRequired: true,
+        fraudScreeningRequired: true,
+        confirmedIntentRequired: true,
+        delayedMethodsBlocked: true,
+      },
+    });
+    expect(payload.paymentPolicy.blockedDelayedMethodTypes).toContain("sepa_debit");
     expect(mocks.createIntent).toHaveBeenCalledWith(expect.objectContaining({
       amount: 4870,
       currency: "eur",

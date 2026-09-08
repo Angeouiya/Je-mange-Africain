@@ -33,6 +33,7 @@ import { dict } from "@/lib/i18n";
 import { cartSubtotal, cartThermalSplit, cartWeightGrams, type CartItem, useStore } from "@/lib/store";
 import { ApiError, postJSON } from "@/lib/use-fetch";
 import { clearPendingCheckout, readPendingCheckout, rememberPendingCheckout, type PendingCheckoutPayload } from "@/lib/checkout-return";
+import type { CheckoutPaymentPolicy } from "@/lib/checkout-payment-policy";
 import { europeanCountryLabel, europeanCountryOptions, europeanCountryValue, validateEuropeanPostalCode } from "@/lib/european-countries";
 import { availableExpressPaymentMethods, checkoutPaymentMethodSummary, paymentMethodFamily, paymentMethodHint, paymentMethodLabel, recommendedEuropeanPaymentMethods, uniquePaymentMethods } from "@/lib/payment-methods";
 import { clearPaymentRecovery, readPaymentRecovery, rememberPaymentRecovery, type PaymentRecovery } from "@/lib/payment-recovery-storage";
@@ -47,6 +48,7 @@ type IntentResponse = {
   amount: number;
   currency: string;
   paymentMethodTypes: string[];
+  paymentPolicy: CheckoutPaymentPolicy;
   pricing: { subtotal: number; promoDiscount: number; shipping: number; vat: number; packages: number; carrier: string; service: DeliveryService; minDelayHours: number; maxDelayHours: number };
 };
 
@@ -541,6 +543,7 @@ export function CheckoutView() {
                   amount={displayTotal}
                   locale={locale}
                   paymentMethodTypes={intent.paymentMethodTypes}
+                  paymentPolicy={intent.paymentPolicy}
                   review={review}
                   onBeforeConfirm={() => rememberPendingCheckout(intent.paymentIntentId, checkoutPayload)}
                   onConfirm={finalizeOrder}
@@ -624,7 +627,7 @@ function CheckoutBasketPreview({
   );
 }
 
-function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentError, paymentRecovery, setPaymentError, amount, locale, paymentMethodTypes, review, onBeforeConfirm, onConfirm }: {
+function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentError, paymentRecovery, setPaymentError, amount, locale, paymentMethodTypes, paymentPolicy, review, onBeforeConfirm, onConfirm }: {
   step: number;
   setStep: (step: number) => void;
   clientSecret: string;
@@ -635,6 +638,7 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   amount: number;
   locale: "fr" | "en";
   paymentMethodTypes: string[];
+  paymentPolicy?: CheckoutPaymentPolicy;
   review: ReactNode;
   onBeforeConfirm: () => boolean;
   onConfirm: (paymentIntentId: string) => Promise<void>;
@@ -753,7 +757,7 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
       <div className={step === 1 ? "space-y-4" : "hidden"} aria-hidden={step !== 1}>
-        <PaymentCapabilityPanel locale={locale} methodTypes={paymentMethodTypes} />
+        <PaymentCapabilityPanel locale={locale} methodTypes={paymentMethodTypes} policy={paymentPolicy} />
         {!expressReady || expressMethods.length ? <section className={expressMethods.length ? "border-y border-burgundy/12 py-4" : "invisible h-0 overflow-hidden"} aria-hidden={!expressMethods.length} aria-labelledby="express-payment-title" data-testid="express-payment">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
@@ -814,8 +818,17 @@ function SecurePaymentStages({ step, setStep, clientSecret, processing, paymentE
   );
 }
 
-function PaymentCapabilityPanel({ locale, methodTypes }: { locale: "fr" | "en"; methodTypes: string[] }) {
-  const methods = uniquePaymentMethods(methodTypes.length ? methodTypes : ["card"]);
+function PaymentCapabilityPanel({ locale, methodTypes, policy }: { locale: "fr" | "en"; methodTypes: string[]; policy?: CheckoutPaymentPolicy }) {
+  const providerMethods = uniquePaymentMethods(policy?.providerMethodTypes.length ? policy.providerMethodTypes : methodTypes.length ? methodTypes : ["card"]);
+  const recommendedMethods = uniquePaymentMethods(policy?.recommendedMethodTypes || []);
+  const extraRecommendedMethods = recommendedMethods.filter((method) => !providerMethods.includes(method));
+  const serverControls = policy ? [
+    locale === "fr" ? "Session client" : "Customer session",
+    locale === "fr" ? "Panier repricé" : "Server repriced",
+    locale === "fr" ? "Adresse verrouillée" : "Address locked",
+    locale === "fr" ? "Antifraude" : "Fraud screen",
+    locale === "fr" ? "Validation Stripe" : "Stripe confirmed",
+  ] : [];
 
   return (
     <section className="overflow-hidden rounded-md border border-burgundy/12 bg-[linear-gradient(125deg,#FFFFFF_0%,#FFF8F4_58%,#FFF5E6_100%)] shadow-[0_18px_44px_-36px_rgba(90,38,50,0.72)]" aria-labelledby="payment-choice-title" data-testid="payment-capabilities">
@@ -823,13 +836,35 @@ function PaymentCapabilityPanel({ locale, methodTypes }: { locale: "fr" | "en"; 
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-burgundy text-white shadow-[0_10px_24px_-16px_rgba(138,48,66,0.9)]"><ReiconGlyph icon={ReShieldCheck} weight="Filled" className="h-4 w-4" /></span>
         <div className="min-w-0">
           <h2 id="payment-choice-title" className="text-xs font-black text-charcoal">{locale === "fr" ? "Choisissez votre moyen de paiement" : "Choose your payment method"}</h2>
-          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{locale === "fr" ? `${methods.length} option(s) activée(s) pour cette commande. Stripe les ordonne selon votre pays, votre appareil et le montant.` : `${methods.length} option(s) enabled for this order. Stripe orders them for your country, device and amount.`}</p>
+          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{policy
+            ? (locale === "fr"
+              ? `${providerMethods.length} option(s) renvoyée(s) par Stripe pour ${europeanCountryLabel(policy.country, locale)}. Les méthodes lentes sont bloquées avant toute finalisation.`
+              : `${providerMethods.length} option(s) returned by Stripe for ${europeanCountryLabel(policy.country, locale)}. Delayed methods are blocked before finalisation.`)
+            : (locale === "fr" ? `${providerMethods.length} option(s) activée(s) pour cette commande. Stripe les ordonne selon votre pays, votre appareil et le montant.` : `${providerMethods.length} option(s) enabled for this order. Stripe orders them for your country, device and amount.`)}</p>
         </div>
       </div>
       <div className="grid grid-cols-2 border-t border-burgundy/10 sm:grid-cols-3">
-        {methods.map((method) => <PaymentCapability key={method} method={method} locale={locale} />)}
+        {providerMethods.map((method) => <PaymentCapability key={method} method={method} locale={locale} />)}
       </div>
-      {methods.includes("card") ? <p className="border-t border-burgundy/10 px-3.5 py-2 text-[9px] leading-4 text-muted-foreground">{locale === "fr" ? "Apple Pay et Google Pay apparaissent avec l'option carte lorsque l'appareil et la carte sont compatibles." : "Apple Pay and Google Pay appear with the card option when the device and card are compatible."}</p> : null}
+      {policy ? (
+        <div className="border-t border-burgundy/10 px-3.5 py-3" data-testid="payment-server-policy">
+          <div className="flex flex-wrap gap-1.5">
+            {serverControls.map((control) => (
+              <span key={control} className="rounded-md border border-terre/12 bg-white px-2 py-1 text-[8px] font-black uppercase text-terre">{control}</span>
+            ))}
+          </div>
+          {extraRecommendedMethods.length ? (
+            <div className="mt-3">
+              <p className="text-[9px] font-black uppercase text-muted-foreground">{locale === "fr" ? "Baseline Europe" : "European baseline"}</p>
+              <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{extraRecommendedMethods.map((method) => paymentMethodLabel(method, locale)).join(" · ")}</p>
+            </div>
+          ) : null}
+          <p className="mt-2 text-[9px] leading-4 text-muted-foreground">{locale === "fr"
+            ? `${policy.blockedDelayedMethodTypes.length} méthode(s) à notification tardive sont exclues pour éviter une commande validée sans contrôle serveur complet.`
+            : `${policy.blockedDelayedMethodTypes.length} delayed-notification method(s) are excluded to prevent an order being validated without full server control.`}</p>
+        </div>
+      ) : null}
+      {providerMethods.includes("card") ? <p className="border-t border-burgundy/10 px-3.5 py-2 text-[9px] leading-4 text-muted-foreground">{locale === "fr" ? "Apple Pay et Google Pay apparaissent avec l'option carte lorsque l'appareil et la carte sont compatibles." : "Apple Pay and Google Pay appear with the card option when the device and card are compatible."}</p> : null}
     </section>
   );
 }

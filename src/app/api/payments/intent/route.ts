@@ -7,7 +7,7 @@ import { enforceRateLimit, redis } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 import { CHECKOUT_SERVER_VERIFICATION, deliveryContactFingerprint } from "@/lib/checkout-security";
 import { europeanCountryCode, europeanCountryValue, europeanPostalCodeMessage, validateEuropeanPostalCode } from "@/lib/european-countries";
-import { CHECKOUT_DELAYED_PAYMENT_METHODS, paypalPreferredLocale } from "@/lib/checkout-payment-policy";
+import { CHECKOUT_DELAYED_PAYMENT_METHODS, buildCheckoutPaymentPolicy, paypalPreferredLocale } from "@/lib/checkout-payment-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -94,13 +94,14 @@ export async function POST(request: NextRequest) {
     }
 
     const addressFingerprint = deliveryContactFingerprint(deliveryAddress);
+    const payPalLocale = paypalPreferredLocale(parsed.data.locale, shippingCountryCode);
     const intent = await stripe.paymentIntents.create({
       amount: Math.round(pricing.total * 100),
       currency: "eur",
       automatic_payment_methods: { enabled: true },
       excluded_payment_method_types: [...CHECKOUT_DELAYED_PAYMENT_METHODS],
       payment_method_options: {
-        paypal: { preferred_locale: paypalPreferredLocale(parsed.data.locale, shippingCountryCode) },
+        paypal: { preferred_locale: payPalLocale },
       },
       receipt_email: deliveryAddress.email,
       description: "Commande Je mange Africain",
@@ -134,6 +135,12 @@ export async function POST(request: NextRequest) {
       amount: pricing.total,
       currency: "EUR",
       paymentMethodTypes: intent.payment_method_types,
+      paymentPolicy: buildCheckoutPaymentPolicy({
+        country: deliveryAddress.country,
+        countryCode: shippingCountryCode,
+        locale: parsed.data.locale,
+        providerMethodTypes: intent.payment_method_types,
+      }),
       riskLevel: risk.level,
       pricing: {
         subtotal: pricing.subtotal,

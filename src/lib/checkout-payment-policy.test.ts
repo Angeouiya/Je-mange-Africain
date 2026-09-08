@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHECKOUT_DELAYED_PAYMENT_METHODS, isImmediateCheckoutMethod, paypalPreferredLocale } from "./checkout-payment-policy";
+import { CHECKOUT_DELAYED_PAYMENT_METHODS, buildCheckoutPaymentPolicy, isImmediateCheckoutMethod, paypalPreferredLocale } from "./checkout-payment-policy";
 
 describe("checkout payment policy", () => {
   it("keeps immediately confirmed European methods available", () => {
@@ -19,5 +19,33 @@ describe("checkout payment policy", () => {
     expect(paypalPreferredLocale("fr", "BE")).toBe("fr-BE");
     expect(paypalPreferredLocale("fr", "LU")).toBe("fr-LU");
     expect(paypalPreferredLocale("en", "DE")).toBe("en-GB");
+  });
+
+  it("builds a server-readable European policy for the current intent", () => {
+    const policy = buildCheckoutPaymentPolicy({
+      country: "Pays-Bas",
+      countryCode: "NL",
+      locale: "fr",
+      providerMethodTypes: ["card", "paypal", "sepa_debit", "ideal", "card"],
+    });
+
+    expect(policy).toMatchObject({
+      country: "Pays-Bas",
+      countryCode: "NL",
+      settlementMode: "immediate",
+      paypalPreferredLocale: "fr-FR",
+      providerMethodTypes: ["card", "paypal", "ideal"],
+      recommendedMethodTypes: ["card", "paypal", "link", "revolut_pay", "ideal"],
+      serverControls: {
+        authenticationRequired: true,
+        pricingFingerprintRequired: true,
+        deliveryFingerprintRequired: true,
+        fraudScreeningRequired: true,
+        confirmedIntentRequired: true,
+        delayedMethodsBlocked: true,
+      },
+    });
+    expect(policy.blockedDelayedMethodTypes).toContain("sepa_debit");
+    expect(policy.providerMethodTypes).not.toContain("sepa_debit");
   });
 });
