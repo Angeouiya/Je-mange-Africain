@@ -11,6 +11,7 @@ import {
   printRemoteProductionReadiness,
   printProductionReadiness,
   productionReadiness,
+  PRODUCTION_HYPERDRIVE_ID,
   PRODUCTION_SITE_URL,
   PRODUCTION_SUPABASE_PUBLISHABLE_KEY,
   PRODUCTION_SUPABASE_PROJECT_NAME,
@@ -49,6 +50,7 @@ describe("production autopilot", () => {
     NEXT_PUBLIC_SITE_URL: PRODUCTION_SITE_URL,
     CLOUDFLARE_DOMAIN_STATUS: "attached",
     CLOUDFLARE_ACCOUNT_ID: "82164eca9557f63e18984230deac12bc",
+    CLOUDFLARE_HYPERDRIVE_ID: PRODUCTION_HYPERDRIVE_ID,
     CLOUDFLARE_DEPLOYMENT_TARGET: "workers",
   };
 
@@ -87,16 +89,16 @@ describe("production autopilot", () => {
     ]));
   });
 
-  it("blocks local databases and previous Supabase projects", () => {
+  it("blocks an unrelated Hyperdrive and previous Supabase projects", () => {
     const report = productionReadiness(environment({
       ...readyValues,
-      DATABASE_URL: "file:./dev.db",
+      CLOUDFLARE_HYPERDRIVE_ID: "unrelated-hyperdrive",
       NEXT_PUBLIC_SUPABASE_URL: "https://ailevucikakmgsxfptwv.supabase.co",
     }));
 
     expect(report.ready).toBe(false);
     expect(report.blockers).toEqual(expect.arrayContaining([
-      expect.objectContaining({ key: "DATABASE_URL", problem: expect.stringContaining("PostgreSQL") }),
+      expect.objectContaining({ key: "CLOUDFLARE_HYPERDRIVE_ID", problem: expect.stringContaining(PRODUCTION_HYPERDRIVE_ID) }),
       expect.objectContaining({ key: "NEXT_PUBLIC_SUPABASE_URL", problem: expect.stringContaining(PRODUCTION_SUPABASE_PROJECT_REF) }),
     ]));
   });
@@ -122,7 +124,6 @@ describe("production autopilot", () => {
 
     expect(report.ready).toBe(false);
     expect(report.blockers).toEqual(expect.arrayContaining([
-      expect.objectContaining({ key: "DATABASE_URL", problem: expect.stringContaining("ailevucikakmgsxfptwv") }),
       expect.objectContaining({ key: "DIRECT_URL", problem: expect.stringContaining("ailevucikakmgsxfptwv") }),
     ]));
   });
@@ -301,6 +302,8 @@ To apply migrations in production run prisma migrate deploy.`;
         return { status: 1, stdout: "", stderr: "unexpected", error: "" };
       },
     });
+    const lines: string[] = [];
+    printRemoteProductionReadiness(report, (line) => lines.push(line));
 
     expect(report.ready).toBe(false);
     expect(report.cloudflare.workerDeploymentsReadable).toBe(true);
@@ -312,6 +315,7 @@ To apply migrations in production run prisma migrate deploy.`;
       expect.objectContaining({ key: "SUPABASE_PROJECT" }),
       expect.objectContaining({ key: "SUPABASE_LINK" }),
     ]));
+    expect(lines.join("\n")).toContain(`0/${REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS.length} required present`);
   });
 
   it("accepts direct JMA database access when migrations are aligned", () => {

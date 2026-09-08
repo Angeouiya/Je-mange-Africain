@@ -5,7 +5,7 @@
 - Next.js 16 serves the customer storefront, the separate `/admin` surface and API routes.
 - Cloudflare Workers is the frontend runtime for production builds, generated with vinext and deployed through Wrangler on account `82164eca9557f63e18984230deac12bc`.
 - Supabase Auth owns customer and administrator sessions; the two applications keep separate cookies and authorization flows.
-- PostgreSQL is selected automatically when `DATABASE_URL` starts with `postgres://` or `postgresql://`. SQLite remains a local fixture fallback only.
+- Cloudflare Hyperdrive pools the Worker's PostgreSQL traffic to the direct Supabase endpoint. Each request gets its own Prisma client and SQLite remains a local fixture only.
 - Upstash Redis provides distributed rate limiting and payment-attempt velocity. In production, identity, account, admin, media, push, checkout and payment actions fail closed if Redis is unavailable; only catalogue search keeps a local emergency bucket.
 - Stripe Payment Element collects payment details. The server creates and verifies PaymentIntents, and the signed webhook reconciles asynchronous events.
 
@@ -13,7 +13,7 @@
 
 Configure the variables documented in `.env.example` in the production host. Never expose `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` or `UPSTASH_REDIS_REST_TOKEN` to the browser.
 
-Use the pooled Supabase PostgreSQL connection for the application runtime. Keep a direct database URL available for operational migrations when the provider requires it.
+Use the committed `HYPERDRIVE` binding for the Cloudflare application runtime. Keep `DIRECT_URL` available only in the trusted deployment environment for schema migrations and the guarded initial catalogue import.
 Production is pinned to Supabase project `JMA` (`ahigidhuhqcmxzjxetnw`) and Cloudflare account `82164eca9557f63e18984230deac12bc`. The release guard refuses another Supabase URL, including previous staging projects.
 
 The production autopilot prints only key names and readiness states. It never prints secret values.
@@ -28,7 +28,7 @@ npm run production:open-dashboards
 
 The production frontend is Cloudflare Workers, not Vercel. Keep the root `wrangler.jsonc` committed as the source of truth for account, Worker name, assets and observability.
 The Worker can be created before the domain is ready, but `workers_dev` stays disabled so no unrelated Cloudflare subdomain is exposed. `je-mange-africain.com` is the only public storefront URL and will be attached later once DNS is ready.
-The deploy command refuses to publish when production secrets are incomplete, when `DATABASE_URL` still points to a local SQLite database, or when Supabase points to a project other than `JMA` (`ahigidhuhqcmxzjxetnw`).
+The deploy command refuses to publish when production secrets are incomplete or when Supabase points to a project other than `JMA` (`ahigidhuhqcmxzjxetnw`). The Worker itself reaches PostgreSQL through the `jma-supabase-db` Hyperdrive configuration.
 
 ```bash
 npm run cloudflare:check
@@ -72,6 +72,14 @@ npm run db:generate:postgres
 
 `production:link-supabase` needs `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` in the local deployment environment. `production:push-supabase` can also use `DIRECT_URL` or a PostgreSQL `DATABASE_URL` directly.
 `production:baseline-prisma` is for an already populated Supabase database: it runs a read-only Prisma schema diff first, then records the Prisma PostgreSQL migrations as applied only when the live schema has no difference.
+
+For a brand-new, empty production catalogue, import the curated local catalogue without demo customers, orders or payments:
+
+```bash
+npm run production:seed-catalog
+```
+
+The import requires `DIRECT_URL`, targets only project `ahigidhuhqcmxzjxetnw`, runs in one transaction and refuses to run when any production catalogue records already exist.
 
 For the Prisma-managed production release path:
 

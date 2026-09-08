@@ -10,6 +10,7 @@ export const PRODUCTION_SUPABASE_PROJECT_NAME = "JMA";
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
 export const PRODUCTION_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_AUIg2aOqbAJKzAvkEFdG8A_qYZiGd7D";
 export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12bc";
+export const PRODUCTION_HYPERDRIVE_ID = "ecda2d6ebe7e44babfe8e29ab4fabecc";
 export const PRODUCTION_WORKER_NAME = "je-mange-africain";
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
 export const CLOUDFLARE_PUBLICATION_MODE = "Cloudflare Workers custom-domain deployment";
@@ -17,7 +18,7 @@ export const SUPABASE_OPERATIONAL_KEYS = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_
 
 const DOTENV_FILES = [".env", ".env.local", ".env.production.local"];
 const REQUIRED_ENV = [
-  ["DATABASE_URL", `Supabase PostgreSQL runtime connection for ${PRODUCTION_SUPABASE_PROJECT_NAME}`],
+  ["CLOUDFLARE_HYPERDRIVE_ID", `Cloudflare Hyperdrive connection for ${PRODUCTION_SUPABASE_PROJECT_NAME}`],
   ["NEXT_PUBLIC_SUPABASE_URL", `Supabase URL must target ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF})`],
   ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "Supabase publishable key"],
   ["SUPABASE_SERVICE_ROLE_KEY", "Supabase server service role"],
@@ -38,8 +39,6 @@ const OPTIONAL_ENV = [
   ["DIRECT_URL", `Supabase direct migration connection for ${PRODUCTION_SUPABASE_PROJECT_NAME}`],
 ];
 const CLOUDFLARE_SECRET_KEYS = [
-  "DATABASE_URL",
-  "DIRECT_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
@@ -53,7 +52,6 @@ const CLOUDFLARE_SECRET_KEYS = [
   "VAPID_SUBJECT",
 ];
 export const REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS = [
-  "DATABASE_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
@@ -107,6 +105,7 @@ export function loadProductionEnvironment(cwd = process.cwd()) {
   const wranglerVars = wrangler.vars || {};
   const wranglerFallbacks = {
     CLOUDFLARE_ACCOUNT_ID: wrangler.account_id,
+    CLOUDFLARE_HYPERDRIVE_ID: wrangler.hyperdrive?.find((binding) => binding.binding === "HYPERDRIVE")?.id,
     ...wranglerVars,
   };
   for (const [key, value] of Object.entries(wranglerFallbacks)) {
@@ -241,6 +240,9 @@ function evaluateRequirement(key, label, values, sources) {
   if (key === "CLOUDFLARE_ACCOUNT_ID" && value !== PRODUCTION_CLOUDFLARE_ACCOUNT_ID) {
     return { key, label, ok: false, source, problem: `must target ${PRODUCTION_CLOUDFLARE_ACCOUNT_ID}` };
   }
+  if (key === "CLOUDFLARE_HYPERDRIVE_ID" && value !== PRODUCTION_HYPERDRIVE_ID) {
+    return { key, label, ok: false, source, problem: `must target JMA Hyperdrive ${PRODUCTION_HYPERDRIVE_ID}` };
+  }
   if (key === "CLOUDFLARE_DEPLOYMENT_TARGET" && value !== "workers") {
     return { key, label, ok: false, source, problem: "must be workers" };
   }
@@ -265,6 +267,7 @@ export function productionReadiness(environment = loadProductionEnvironment()) {
       supabaseName: PRODUCTION_SUPABASE_PROJECT_NAME,
       supabaseUrl: PRODUCTION_SUPABASE_URL,
       cloudflareAccountId: PRODUCTION_CLOUDFLARE_ACCOUNT_ID,
+      hyperdriveId: PRODUCTION_HYPERDRIVE_ID,
       workerName: PRODUCTION_WORKER_NAME,
       siteUrl: PRODUCTION_SITE_URL,
       domainStatus: environment.values.CLOUDFLARE_DOMAIN_STATUS || "deferred",
@@ -585,7 +588,7 @@ export function remoteProductionReadiness({
 export function printRemoteProductionReadiness(report, writer = console.log) {
   writer(`Remote production audit: Cloudflare Worker ${PRODUCTION_WORKER_NAME} + Supabase ${PRODUCTION_SUPABASE_PROJECT_NAME} (${PRODUCTION_SUPABASE_PROJECT_REF})`);
   writer(`${report.cloudflare.workerDeploymentsReadable ? "OK" : "BLOCKED"} Cloudflare Worker deployments`);
-  const present = report.cloudflare.remoteSecrets.length;
+  const present = report.cloudflare.requiredRemoteSecretKeys.filter((key) => report.cloudflare.remoteSecrets.includes(key)).length;
   const required = report.cloudflare.requiredRemoteSecretKeys.length;
   const missing = report.cloudflare.missingRemoteSecretKeys.length
     ? ` - missing: ${report.cloudflare.missingRemoteSecretKeys.join(", ")}`

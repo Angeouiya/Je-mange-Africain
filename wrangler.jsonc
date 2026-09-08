@@ -6,7 +6,7 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "main": "vinext/server/fetch-handler",
+  "main": "src/cloudflare-worker.ts",
   "workers_dev": false,
   "routes": [
     {
@@ -25,6 +25,12 @@
   "placement": {
     "mode": "smart"
   },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "ecda2d6ebe7e44babfe8e29ab4fabecc"
+    }
+  ],
   "vars": {
     "CLOUDFLARE_ACCOUNT_ID": "82164eca9557f63e18984230deac12bc",
     "CLOUDFLARE_DEPLOYMENT_TARGET": "workers",
