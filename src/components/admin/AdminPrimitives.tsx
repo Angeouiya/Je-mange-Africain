@@ -127,7 +127,7 @@ export function AdminPageHeader({
           <li
             key={`${step.label}-${index}`}
             aria-current={step.active ? "step" : undefined}
-            className={`relative flex shrink-0 items-center rounded-md border transition-colors ${compactFlow ? "min-h-9 min-w-[7.75rem] gap-1.5 px-1.5 py-1 sm:min-h-10 sm:min-w-[9.5rem] sm:gap-2 sm:px-2 sm:py-1.5" : "min-h-[4.25rem] min-w-[10rem] gap-2.5 px-2.5 py-2 sm:min-w-[11.75rem]"} ${tone.item} ${step.active ? "border-burgundy/28 bg-white shadow-[0_14px_34px_-30px_rgba(138,48,66,0.65)]" : ""}`}
+            className={`relative flex shrink-0 items-center rounded-md border transition-colors ${compactFlow ? "min-h-8 min-w-[6.75rem] gap-1.5 px-1.5 py-1 sm:min-h-10 sm:min-w-[9.5rem] sm:gap-2 sm:px-2 sm:py-1.5" : "min-h-[4.25rem] min-w-[10rem] gap-2.5 px-2.5 py-2 sm:min-w-[11.75rem]"} ${tone.item} ${step.active ? "border-burgundy/28 bg-white shadow-[0_14px_34px_-30px_rgba(138,48,66,0.65)]" : ""}`}
             data-testid="admin-header-flow-step"
           >
             {step.icon ? (
@@ -137,7 +137,7 @@ export function AdminPageHeader({
             ) : null}
             <span className="min-w-0">
               <span data-admin-flow-label className={`block truncate font-black text-charcoal ${compactFlow ? "text-[9px] leading-3.5 sm:text-[10px]" : "text-[11px] leading-4"}`}>{step.label}</span>
-              <span data-admin-flow-detail className={`mt-0.5 block font-semibold text-muted-foreground ${compactFlow ? "truncate text-[8px] leading-3" : "line-clamp-2 text-[9px] leading-3.5"}`}>{step.detail}</span>
+              <span data-admin-flow-detail className={`mt-0.5 font-semibold text-muted-foreground ${compactFlow ? "hidden truncate text-[8px] leading-3 sm:block" : "line-clamp-2 text-[9px] leading-3.5"}`}>{step.detail}</span>
             </span>
             <span className={`absolute right-2 top-2 h-1.5 w-1.5 rounded-full ${step.active ? tone.marker : "bg-charcoal/18"}`} aria-hidden="true" />
           </li>

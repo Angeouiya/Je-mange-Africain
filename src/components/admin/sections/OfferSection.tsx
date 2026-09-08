@@ -92,7 +92,7 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
   if (activeRequest.error && !activeRequest.data) return <AdminErrorState locale={locale} message={activeRequest.error} onRetry={activeRequest.refetch} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <AdminPageHeader
         variant="workspace"
         accent={workspace === "products" ? "#8A3042" : "#F2A900"}
@@ -163,21 +163,25 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
         <RecipeClientMirror locale={locale} recipes={recipes} stats={recipeStats} onFilter={setRecipeFilter} />
       ) : null}
 
-      <OfferPilotStrip
-        locale={locale}
-        title={workspace === "products" ? (isFr ? "Pilotage marchand" : "Commerce cockpit") : (isFr ? "Pilotage culinaire" : "Culinary cockpit")}
-        scoreLabel={workspace === "products" ? (isFr ? "Fiches publiées" : "Published records") : (isFr ? "Recettes prêtes" : "Ready recipes")}
-        score={workspace === "products" ? productPilotScore : recipePilotScore}
-        scoreDetail={workspace === "products"
-          ? (isFr ? `${productStats.published}/${products.length || 0} produits visibles côté client` : `${productStats.published}/${products.length || 0} products visible to customers`)
-          : (isFr ? `${recipeStats.ready}/${recipes.length || 0} recettes achetables sans alerte` : `${recipeStats.ready}/${recipes.length || 0} recipes shoppable without alerts`)}
-        actions={workspace === "products" ? productPilotActions : recipePilotActions}
-        hasActiveFilter={workspace === "products" ? productFilter !== "all" : recipeFilter !== "all"}
-        resetLabel={workspace === "products" ? (isFr ? "Voir tous les produits" : "View all products") : (isFr ? "Voir toutes les recettes" : "View all recipes")}
-        onReset={() => { if (workspace === "products") setProductFilter("all"); else setRecipeFilter("all"); }}
-      />
+      <div className="flex flex-col gap-4 sm:gap-6">
+        <div className="order-2 sm:order-1">
+          <OfferPilotStrip
+            locale={locale}
+            title={workspace === "products" ? (isFr ? "Pilotage marchand" : "Commerce cockpit") : (isFr ? "Pilotage culinaire" : "Culinary cockpit")}
+            scoreLabel={workspace === "products" ? (isFr ? "Fiches publiées" : "Published records") : (isFr ? "Recettes prêtes" : "Ready recipes")}
+            score={workspace === "products" ? productPilotScore : recipePilotScore}
+            scoreDetail={workspace === "products"
+              ? (isFr ? `${productStats.published}/${products.length || 0} produits visibles côté client` : `${productStats.published}/${products.length || 0} products visible to customers`)
+              : (isFr ? `${recipeStats.ready}/${recipes.length || 0} recettes achetables sans alerte` : `${recipeStats.ready}/${recipes.length || 0} recipes shoppable without alerts`)}
+            actions={workspace === "products" ? productPilotActions : recipePilotActions}
+            hasActiveFilter={workspace === "products" ? productFilter !== "all" : recipeFilter !== "all"}
+            resetLabel={workspace === "products" ? (isFr ? "Voir tous les produits" : "View all products") : (isFr ? "Voir toutes les recettes" : "View all recipes")}
+            onReset={() => { if (workspace === "products") setProductFilter("all"); else setRecipeFilter("all"); }}
+          />
+        </div>
 
-      {workspace === "products" ? (
+        <div className="order-1 sm:order-2">
+          {workspace === "products" ? (
         filteredProducts.length ? (
           <div className="overflow-hidden rounded-lg border border-charcoal/8 bg-white">
             <div className="hidden overflow-x-auto sm:block">
@@ -208,7 +212,9 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
             <div className="divide-y divide-border md:hidden">{filteredRecipes.map((recipe, index) => <article key={recipe.id} className="p-3 [contain-intrinsic-size:142px] [content-visibility:auto]" data-testid="admin-recipe-row"><div className="flex items-start gap-3"><button type="button" onClick={() => setSelectedRecipe(recipe)} aria-label={isFr ? `Inspecter ${recipe.title}` : `Inspect ${recipe.title}`} className="flex min-w-0 flex-1 items-start gap-3 text-left"><ProductImage src={recipe.imageUrl || getRecipePhoto(recipe)} alt={recipe.title} emoji={recipe.imageEmoji} color={recipe.imageColor} size="sm" className="h-16 w-20 shrink-0" rounded="rounded-md" priority={index === 0} /><span className="min-w-0 flex-1"><span className="block truncate text-[9px] font-black uppercase text-terre">{recipe.country} · {recipe.category}</span><span className="mt-1 block line-clamp-2 text-sm font-black leading-4 text-charcoal">{recipe.title}</span><span className="mt-1 block line-clamp-1 text-[10px] text-muted-foreground">{recipe.description}</span></span></button><div className="flex shrink-0 gap-1"><RecipeCreateDialog locale={locale} recipe={recipe} onCreated={recipesRequest.refetch} /><EditorialActionsDialog kind="recipe" entity={recipe} locale={locale} onUpdated={recipesRequest.refetch} /></div></div><div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-t border-charcoal/8 pt-3"><RecipeStatusBadge recipe={recipe} locale={locale} compact /><RecipeCoverage recipe={recipe} locale={locale} compact /><RecipeFormat recipe={recipe} locale={locale} compact /></div></article>)}</div>
           </div>
         ) : <AdminEmptyState icon={<BookOpen className="h-5 w-5" />} title={isFr ? "Aucune recette trouvée" : "No recipes found"} description={isFr ? "Essayez un plat, un pays ou une catégorie différente." : "Try another dish, country or category."} />
-      )}
+          )}
+        </div>
+      </div>
 
       <Dialog open={Boolean(selectedRecipe)} onOpenChange={(open) => { if (!open) setSelectedRecipe(null); }}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto p-0 sm:max-w-3xl">
@@ -238,7 +244,7 @@ function productAvailableQty(product: Pick<Product, "stockQty" | "reservedQty" |
 }
 
 function RegisterMetric({ label, value, attention = false }: { label: string; value: number; attention?: boolean }) {
-  return <div className="min-w-[4.5rem] px-3 first:pl-0"><p className="truncate text-[8px] font-black uppercase text-muted-foreground">{label}</p><p className={`mt-0.5 text-base font-black tabular-nums ${attention ? "text-destructive" : "text-charcoal"}`}>{value}</p></div>;
+  return <div className="min-w-0 px-1.5 sm:min-w-[4.5rem] sm:px-3 sm:first:pl-0"><p className="min-h-5 break-words text-[7px] font-black uppercase leading-2.5 text-muted-foreground sm:min-h-0 sm:truncate sm:text-[8px] sm:leading-normal">{label}</p><p className={`mt-0.5 text-base font-black tabular-nums ${attention ? "text-destructive" : "text-charcoal"}`}>{value}</p></div>;
 }
 
 function ProductAvailability({ product, locale, compact = false }: { product: Product; locale: "fr" | "en"; compact?: boolean }) {

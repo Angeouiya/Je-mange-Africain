@@ -278,7 +278,7 @@ export default function OverviewSection({ locale, onNavigate }: { locale: Locale
   if (!data) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <AdminPageHeader
         variant="flow"
         accent="#B9472B"

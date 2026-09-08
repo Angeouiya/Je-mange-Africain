@@ -111,7 +111,7 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
   const SelectedSecurityIcon = selectedSecurityWarning?.icon;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <AdminPageHeader
         variant="flow"
         accent="#B9472B"
@@ -136,13 +136,13 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
 
       {error && data ? <AdminRefreshNotice locale={locale} message={error} onRetry={refetch} /> : null}
 
-      <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-charcoal/8 bg-white sm:grid-cols-4" aria-label={isFr ? "Filtrer par étape opérationnelle" : "Filter by operational stage"}>
+      <div className="flex snap-x snap-mandatory overflow-x-auto rounded-lg border border-charcoal/8 bg-white [scrollbar-width:none] sm:grid sm:grid-cols-4 sm:overflow-hidden [&::-webkit-scrollbar]:hidden" aria-label={isFr ? "Filtrer par étape opérationnelle" : "Filter by operational stage"}>
         {([
           ["validate", Clock3, isFr ? "À valider" : "To validate", counts.validate, "text-terre"],
           ["prepare", PackageCheck, isFr ? "En préparation" : "Packing", counts.prepare, "text-gold"],
           ["deliver", Truck, isFr ? "En livraison" : "Delivering", counts.deliver, "text-terre"],
           ["closed", CheckCircle2, isFr ? "Clôturées" : "Closed", counts.closed, "text-burgundy"],
-        ] as const).map(([target, Icon, label, value, color], index) => <button key={target} type="button" onClick={() => setFlow(flow === target ? "all" : target)} aria-pressed={flow === target} aria-label={`${label}, ${value}`} className={`flex min-h-20 items-center gap-3 p-3 text-left transition hover:bg-burgundy/[0.035] sm:p-4 ${flow === target ? "bg-burgundy/[0.055] shadow-[inset_0_-2px_0_#8A3042]" : ""} ${index % 2 === 0 ? "border-r border-charcoal/8" : ""} ${index < 2 ? "border-b border-charcoal/8" : ""} ${index < 3 ? "sm:border-r" : "sm:border-r-0"} sm:border-b-0`}><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${flow === target ? "bg-white shadow-sm" : "bg-charcoal/[0.035]"}`}><Icon className={`h-5 w-5 ${color}`} /></span><span><span className="block text-xl font-black tabular-nums text-charcoal">{value}</span><span className="block text-[10px] font-bold leading-4 text-muted-foreground">{label}</span></span></button>)}
+        ] as const).map(([target, Icon, label, value, color], index) => <button key={target} type="button" onClick={() => setFlow(flow === target ? "all" : target)} aria-pressed={flow === target} aria-label={`${label}, ${value}`} className={`flex min-h-14 min-w-[8.25rem] shrink-0 snap-start items-center gap-2 p-2.5 text-left transition hover:bg-burgundy/[0.035] sm:min-h-20 sm:min-w-0 sm:shrink sm:gap-3 sm:p-4 ${flow === target ? "bg-burgundy/[0.055] shadow-[inset_0_-2px_0_#8A3042]" : ""} ${index < 3 ? "border-r border-charcoal/8" : ""}`}><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md sm:h-9 sm:w-9 ${flow === target ? "bg-white shadow-sm" : "bg-charcoal/[0.035]"}`}><Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} /></span><span className="min-w-0"><span className="block text-lg font-black tabular-nums text-charcoal sm:text-xl">{value}</span><span className="block truncate text-[9px] font-bold leading-4 text-muted-foreground sm:text-[10px]">{label}</span></span></button>)}
       </div>
 
       <div className="flex flex-col gap-3 border-y border-charcoal/8 py-3 xl:flex-row xl:items-center xl:justify-between">

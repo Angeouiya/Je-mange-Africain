@@ -433,7 +433,7 @@ export function AdminView({
           <Badge variant="outline" className="ml-3 h-8 shrink-0 border-burgundy/25 bg-white/70 px-2 text-[9px] font-bold text-burgundy sm:px-3"><ReiconGlyph icon={ShieldCheck} weight="Filled" className="mr-1 h-3.5 w-3.5" /> <span className="hidden sm:inline">{isFr ? "Session sécurisée" : "Secure session"}</span><span className="sm:hidden">{isFr ? "Sûr" : "Secure"}</span></Badge>
         </header>
 
-        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[100rem] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[100rem] px-4 py-3 sm:px-6 sm:py-7 lg:px-8">
           <AnimatePresence mode="wait">
             <motion.div key={section} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={{ duration: 0.18 }}>
               {section === "overview" ? <OverviewSection locale={locale} onNavigate={selectSection} /> : null}
