@@ -13,7 +13,7 @@
     "build": "npm run db:generate:all && next build --webpack && node -e \"const fs=require('fs'); if (fs.existsSync('.next/standalone')) { fs.cpSync('.next/static','.next/standalone/.next/static',{recursive:true,force:true}); fs.cpSync('public','.next/standalone/public',{recursive:true,force:true}); }\"",
     "start": "node .next/standalone/server.js",
     "lint": "eslint .",
-    "typecheck": "next typegen && tsc --noEmit",
+    "typecheck": "node scripts/clean-next-dev-types.mjs && next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

@@ -26,6 +26,7 @@ import { PageBackButton } from "@/components/shared/PageBackButton";
 import { absoluteUrl, ClientSeo } from "@/components/shared/ClientSeo";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { StorefrontUnavailableState } from "@/components/storefront/StorefrontUnavailableState";
+import { StorefrontWorkspaceHeader } from "@/components/storefront/StorefrontWorkspaceHeader";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { useStore } from "@/lib/store";
 import { dict, type Locale } from "@/lib/i18n";
@@ -122,6 +123,13 @@ export function ProductDetailView() {
     },
   };
   const productTabs = productTabDescriptors(locale);
+  const originLine = [product.traditionalName, product.country].filter(Boolean).join(" · ");
+  const productHeaderDescription = [originLine, commercialLine].filter(Boolean).join(". ");
+  const stockSignalValue = outOfStock
+    ? (locale === "fr" ? "Épuisé" : "Sold out")
+    : lowStock
+      ? String(product.stockQty)
+      : (locale === "fr" ? "Disponible" : "Available");
 
   const handleAdd = () => {
     if (!customer) {
@@ -220,6 +228,27 @@ export function ProductDetailView() {
 
         {/* info */}
         <div className="min-w-0 space-y-4">
+          <StorefrontWorkspaceHeader
+            icon={Barcode}
+            eyebrow={locale === "fr" ? "Fiche produit vérifiée" : "Verified product file"}
+            title={product.name}
+            description={productHeaderDescription || seoDescription}
+            signalsMobile={false}
+            signalsLayout="grid"
+            signals={[
+              { icon: Snowflake, value: thermalLabel(product.thermalClass, locale), label: locale === "fr" ? "conservation" : "storage", tone: "earth" },
+              { icon: CartAdd, value: stockSignalValue, label: "stock", tone: outOfStock ? "gold" : "burgundy" },
+              { icon: Truck, value: "EU", label: locale === "fr" ? "livraison" : "delivery", tone: "gold" },
+            ]}
+            flow={[
+              { icon: Barcode, label: locale === "fr" ? "Identifier" : "Identify", detail: locale === "fr" ? "Image" : "Image", tone: "burgundy", active: true },
+              { icon: Snowflake, label: locale === "fr" ? "Vérifier" : "Verify", detail: locale === "fr" ? "Stock" : "Stock", tone: "earth", active: !outOfStock },
+              { icon: CartAdd, label: customer ? (locale === "fr" ? "Ajouter" : "Add") : (locale === "fr" ? "Connexion" : "Sign in"), detail: customer ? (locale === "fr" ? "Panier" : "Basket") : (locale === "fr" ? "Protégé" : "Protected"), tone: "gold", active: Boolean(customer) },
+            ]}
+            flowDensity="compact"
+            flowLayout="grid"
+          />
+
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium ${thermalColor(product.thermalClass)}`}>
               <ReiconGlyph icon={Snowflake} className="mr-1 h-3 w-3" /> {thermalLabel(product.thermalClass, locale)}
@@ -227,11 +256,6 @@ export function ProductDetailView() {
             {discountPercent > 0 && <Badge className="bg-destructive text-white border-0">-{discountPercent}%</Badge>}
             {editorialHighlight ? <Badge className={`border-0 ${editorialHighlight === "new" ? "bg-gold text-charcoal" : editorialHighlight === "recommended" ? "bg-terre text-white" : "bg-burgundy text-cream"}`}>{editorialLabel}</Badge> : null}
             {product.isOnSale && discountPercent === 0 && <Badge className="bg-destructive text-white border-0">{t.promo}</Badge>}
-          </div>
-          <div>
-            <h1 className="break-words font-display text-3xl font-semibold leading-tight text-charcoal md:text-4xl">{product.name}</h1>
-            <p className="break-words text-sm text-muted-foreground">{product.traditionalName} · {product.country}</p>
-            <p className="mt-2 text-sm font-medium leading-relaxed text-terre">{commercialLine}</p>
           </div>
 
           {/* price */}

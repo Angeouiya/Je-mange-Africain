@@ -894,6 +894,9 @@ test("product details stay bounded and preserve real visual identification in th
   await firstProductCard.press("Enter");
 
   await expect(page.getByRole("heading", { level: 1, name: productName })).toBeVisible();
+  const productFlow = page.getByTestId("storefront-workspace-flow");
+  await expect(productFlow.getByTestId("storefront-workspace-flow-step")).toHaveCount(3);
+  await expect(productFlow).toContainText(/identifier|identify/i);
   await expect(page).toHaveURL(/\?view=product&productId=[^&]+/);
   await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\?view=product&productId=[^&]+/);

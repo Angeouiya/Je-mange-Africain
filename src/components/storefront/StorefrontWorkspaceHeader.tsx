@@ -27,8 +27,10 @@ type StorefrontWorkspaceHeaderProps = {
   description: string;
   signals?: StorefrontWorkspaceSignal[];
   signalsMobile?: boolean;
+  signalsLayout?: "scroll" | "grid";
   flow?: StorefrontWorkspaceFlowStep[];
   flowDensity?: "comfortable" | "compact";
+  flowLayout?: "scroll" | "grid";
   action?: ReactNode;
   switcher?: ReactNode;
   variant?: "band" | "hero";
@@ -59,9 +61,11 @@ const flowToneClasses: Record<NonNullable<StorefrontWorkspaceFlowStep["tone"]>, 
   },
 };
 
-export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, signals = [], signalsMobile = true, flow = [], flowDensity = "comfortable", action, switcher, variant = "band", className }: StorefrontWorkspaceHeaderProps) {
+export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, signals = [], signalsMobile = true, signalsLayout = "scroll", flow = [], flowDensity = "comfortable", flowLayout = "scroll", action, switcher, variant = "band", className }: StorefrontWorkspaceHeaderProps) {
   const band = variant === "band";
   const compactFlow = variant === "hero" || flowDensity === "compact";
+  const gridFlow = flowLayout === "grid";
+  const gridSignals = signalsLayout === "grid";
 
   return (
     <section
@@ -89,7 +93,10 @@ export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, s
           <div className={cn("mt-3 grid min-w-0 gap-2", switcher ? "sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" : "")}>
             {signals.length ? (
               <div
-                className={cn("-mx-1 min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", signalsMobile ? "flex" : "hidden sm:flex")}
+                className={cn(
+                  gridSignals ? "grid min-w-0 grid-cols-3 gap-1.5" : "-mx-1 min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                  signalsMobile ? (gridSignals ? "grid" : "flex") : gridSignals ? "hidden sm:grid" : "hidden sm:flex",
+                )}
                 role="region"
                 tabIndex={0}
                 aria-label={title}
@@ -99,7 +106,8 @@ export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, s
                     key={`${signal.label}-${signal.value}`}
                     data-testid="storefront-workspace-signal"
                     className={cn(
-                      "inline-flex min-h-11 min-w-[7.5rem] shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5",
+                      "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5",
+                      gridSignals ? "min-w-0" : "min-w-[7.5rem]",
                       signalToneClasses[signal.tone || "burgundy"],
                     )}
                   >
@@ -119,7 +127,9 @@ export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, s
         {flow.length ? (
           <ol
             className={cn(
-              "-mx-1 flex min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              gridFlow
+                ? "grid min-w-0 grid-cols-3 gap-1.5"
+                : "-mx-1 flex min-w-0 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
               compactFlow ? "mt-2" : "mt-3",
             )}
             aria-label={title}
@@ -133,9 +143,11 @@ export function StorefrontWorkspaceHeader({ icon, eyebrow, title, description, s
                   key={`${step.label}-${index}`}
                   className={cn(
                     "relative flex shrink-0 items-center rounded-md border transition-colors",
-                    compactFlow
-                      ? "min-h-10 min-w-[8.75rem] gap-2 px-2 py-1.5 sm:min-w-[9.5rem]"
-                      : "min-h-[4.25rem] min-w-[10rem] gap-2.5 px-2.5 py-2 sm:min-w-[11.5rem]",
+                    gridFlow
+                      ? "min-h-10 min-w-0 gap-1.5 px-1.5 py-1.5"
+                      : compactFlow
+                        ? "min-h-10 min-w-[8.75rem] gap-2 px-2 py-1.5 sm:min-w-[9.5rem]"
+                        : "min-h-[4.25rem] min-w-[10rem] gap-2.5 px-2.5 py-2 sm:min-w-[11.5rem]",
                     tone.item,
                     step.active && "border-burgundy/28 bg-white shadow-[0_14px_34px_-30px_rgba(138,48,66,0.65)]",
                   )}
