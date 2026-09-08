@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { storefrontPredictiveTargets, storefrontPrefetchUrls } from "./storefront-prefetch";
+import { storefrontPredictiveTargets, storefrontPrefetchUrls, storefrontWarmupPlan } from "./storefront-prefetch";
 
 describe("storefront prefetch map", () => {
   it("matches the first catalogue request emitted by the public catalogue view", () => {
@@ -41,5 +41,23 @@ describe("storefront prefetch map", () => {
     expect(storefrontPredictiveTargets("product", { productId: "atti-1" })).toContainEqual({ view: "product", params: { productId: "atti-1" } });
     expect(storefrontPredictiveTargets("recipes", { recipeId: "sauce-graine" })).toContainEqual({ view: "recipe-config", params: { recipeId: "sauce-graine" } });
     expect(storefrontPredictiveTargets("order-confirmation", { orderId: "order-42" })).toContainEqual({ view: "order-tracking", params: { orderId: "order-42" } });
+  });
+
+  it("warms the auth workspace instead of protected data for anonymous customers", () => {
+    expect(storefrontWarmupPlan([{ view: "product", params: { productId: "atti-1" } }], false)).toEqual([
+      { view: "product", params: { productId: "atti-1" }, bundleView: "account", prefetchData: false },
+    ]);
+    expect(storefrontWarmupPlan([{ view: "info", params: { infoPage: "help" } }], false)).toEqual([
+      { view: "info", params: { infoPage: "help" }, bundleView: "info", prefetchData: true },
+    ]);
+  });
+
+  it("warms protected destination bundles and data once the customer is authenticated", () => {
+    expect(storefrontWarmupPlan([
+      { view: "recipe-config", params: { recipeId: "mafe" } },
+      { view: "recipe-config", params: { recipeId: "mafe" } },
+    ], true)).toEqual([
+      { view: "recipe-config", params: { recipeId: "mafe" }, bundleView: "recipe-config", prefetchData: true },
+    ]);
   });
 });

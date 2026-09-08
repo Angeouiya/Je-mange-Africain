@@ -13,8 +13,9 @@ import { formatPrice, formatUnitPrice, thermalColor, thermalLabel } from "@/lib/
 import { getProductCommercialLine, getProductPhoto } from "@/lib/market-media";
 import { productEditorialHighlight } from "@/lib/editorial-flags";
 import { resolveProductPricing } from "@/lib/product-pricing";
-import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
+import { prefetchStorefrontData, storefrontWarmupPlan } from "@/lib/storefront-prefetch";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
+import { preloadStorefrontViewBundle } from "@/components/storefront/view-loaders";
 
 export interface ProductListItem {
   id: string;
@@ -85,8 +86,10 @@ export function ProductCard({ product, index = 0, compact = false }: { product: 
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
   const { price } = resolveProductPricing(product, defaultVariant?.price);
   const warmProduct = () => {
-    if (!customer) return;
-    void prefetchStorefrontData("product", { productId: product.id }, locale);
+    for (const target of storefrontWarmupPlan([{ view: "product", params: { productId: product.id } }], Boolean(customer))) {
+      void preloadStorefrontViewBundle(target.bundleView);
+      if (target.prefetchData) void prefetchStorefrontData(target.view, target.params, locale);
+    }
   };
 
   const handleAdd = (e: React.MouseEvent) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Locale } from "@/lib/i18n";
-import type { ViewId, ViewParams } from "@/lib/store";
+import { customerProtectedDestination, type ViewId, type ViewParams } from "@/lib/store";
 import { prefetchJSON } from "@/lib/use-fetch";
 
 export const STOREFRONT_DATA_TTL_MS = 60_000;
@@ -10,6 +10,11 @@ export const STOREFRONT_DETAIL_TTL_MS = 12_000;
 export type StorefrontPrefetchTarget = {
   view: ViewId;
   params: ViewParams;
+};
+
+export type StorefrontWarmupTarget = StorefrontPrefetchTarget & {
+  bundleView: ViewId;
+  prefetchData: boolean;
 };
 
 const STOREFRONT_FLOW_NEIGHBORS: Record<ViewId, ViewId[]> = {
@@ -104,4 +109,21 @@ export function storefrontPredictiveTargets(view: ViewId, params: ViewParams = {
   if (view === "account" && params.returnView) add(params.returnView, {});
 
   return targets;
+}
+
+export function storefrontWarmupPlan(targets: StorefrontPrefetchTarget[], authenticated: boolean) {
+  const plannedTargets: StorefrontWarmupTarget[] = [];
+  const seen = new Set<string>();
+
+  for (const target of targets) {
+    const protectedDestination = customerProtectedDestination(target.view, target.params);
+    const bundleView = !authenticated && protectedDestination ? "account" : target.view;
+    const prefetchData = authenticated || !protectedDestination;
+    const key = `${target.view}:${JSON.stringify(target.params)}:${bundleView}:${prefetchData}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    plannedTargets.push({ ...target, bundleView, prefetchData });
+  }
+
+  return plannedTargets;
 }

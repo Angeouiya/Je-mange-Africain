@@ -16,8 +16,9 @@ import { useStore } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { getRecipePhoto } from "@/lib/market-media";
 import { recipeEditorialHighlight } from "@/lib/editorial-flags";
-import { prefetchStorefrontData } from "@/lib/storefront-prefetch";
+import { prefetchStorefrontData, storefrontWarmupPlan } from "@/lib/storefront-prefetch";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
+import { preloadStorefrontViewBundle } from "@/components/storefront/view-loaders";
 
 export interface RecipeListItem {
   id: string;
@@ -61,8 +62,10 @@ export function RecipeCard({ recipe, index = 0, compact = false }: { recipe: Rec
   const customer = useStore((s) => s.customer);
   const isSaved = savedRecipes.includes(recipe.id);
   const warmRecipe = () => {
-    if (!customer) return;
-    void prefetchStorefrontData("recipe-config", { recipeId: recipe.id }, locale);
+    for (const target of storefrontWarmupPlan([{ view: "recipe-config", params: { recipeId: recipe.id } }], Boolean(customer))) {
+      void preloadStorefrontViewBundle(target.bundleView);
+      if (target.prefetchData) void prefetchStorefrontData(target.view, target.params, locale);
+    }
   };
   const openRecipe = () => {
     if (!customer) {

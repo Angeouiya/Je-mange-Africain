@@ -15,7 +15,7 @@ import { Logout } from "reicon/icons/Logout";
 import { Settings2 } from "reicon/icons/Settings2";
 import { Sliders } from "reicon/icons/Sliders";
 import { UserCircle } from "reicon/icons/UserCircle";
-import { useStore, ViewId, cartCount, customerProtectedDestination } from "@/lib/store";
+import { useStore, ViewId, cartCount } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
@@ -23,7 +23,7 @@ import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 import { clientPrimaryNavigationTarget, clientSidebarUtilityTarget } from "@/lib/client-navigation";
 import { COMPANY_PROFILE } from "@/lib/company-profile";
-import { prefetchStorefrontData, storefrontPredictiveTargets } from "@/lib/storefront-prefetch";
+import { prefetchStorefrontData, storefrontPredictiveTargets, storefrontWarmupPlan } from "@/lib/storefront-prefetch";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import { preloadStorefrontViewBundle } from "@/components/storefront/view-loaders";
 
@@ -69,11 +69,11 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
   const desktopActiveTarget = clientPrimaryNavigationTarget(view, "desktop", Boolean(customer));
   const utilityActiveTarget = clientSidebarUtilityTarget(view, params);
   const warmDestination = (destination: ViewId) => {
-    for (const target of storefrontPredictiveTargets(destination).slice(0, 4)) {
-      const protectedDestination = customerProtectedDestination(target.view, target.params);
-      void preloadStorefrontViewBundle(!customer && protectedDestination ? "account" : target.view);
-      if (!customer && protectedDestination) continue;
-      void prefetchStorefrontData(target.view, target.params, locale);
+    for (const target of storefrontWarmupPlan(storefrontPredictiveTargets(destination).slice(0, 4), Boolean(customer))) {
+      void preloadStorefrontViewBundle(target.bundleView);
+      if (target.prefetchData) {
+        void prefetchStorefrontData(target.view, target.params, locale);
+      }
     }
   };
 

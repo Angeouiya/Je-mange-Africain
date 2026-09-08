@@ -6,7 +6,7 @@ import { customerProtectedDestination, hydrateStore, useStore, type ViewId, type
 import { Header } from "@/components/storefront/Header";
 import { MobileNav } from "@/components/storefront/MobileNav";
 import { HomeView } from "@/components/storefront/views/HomeView";
-import { prefetchStorefrontData, storefrontPredictiveTargets, type StorefrontPrefetchTarget } from "@/lib/storefront-prefetch";
+import { prefetchStorefrontData, storefrontPredictiveTargets, storefrontWarmupPlan, type StorefrontPrefetchTarget } from "@/lib/storefront-prefetch";
 import { PremiumLoadingFrame } from "@/components/shared/PremiumLoadingFrame";
 import {
   loadAccountView,
@@ -333,11 +333,9 @@ function scheduleStorefrontPreload(callback: () => void, timeout: number, delay:
 }
 
 function warmStorefrontTargets(targets: StorefrontPrefetchTarget[], locale: "fr" | "en", authenticated: boolean) {
-  for (const target of targets) {
-    const protectedDestination = customerProtectedDestination(target.view, target.params);
-    const bundleView = !authenticated && protectedDestination ? "account" : target.view;
-    void preloadStorefrontViewBundle(bundleView);
-    if (authenticated || !protectedDestination) {
+  for (const target of storefrontWarmupPlan(targets, authenticated)) {
+    void preloadStorefrontViewBundle(target.bundleView);
+    if (target.prefetchData) {
       void prefetchStorefrontData(target.view, target.params, locale);
     }
   }
