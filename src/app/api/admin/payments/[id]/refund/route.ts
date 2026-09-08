@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AdminRefundInput, isFullRefund, providerRefundStatus, refundAmounts, refundReasonLabel } from "@/lib/admin-refunds";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
+import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { db } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push-server";
-import { enforceRateLimit } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const perimeterLimited = await enforceAdminCriticalPerimeterRateLimit(request, "admin-sensitive");
+  if (perimeterLimited) return perimeterLimited;
+
   const authorization = await authorizeAdminRequest(request, { module: "finance", action: "update" });
   if (!authorization.ok) return authorization.response;
-  const limited = await enforceRateLimit(request, "admin-sensitive", authorization.user.id || authorization.user.email, { scopes: ["subject"] });
+  const limited = await enforceAdminCriticalSubjectRateLimit(request, "admin-sensitive", adminRateLimitSubject(authorization.user));
   if (limited) return limited;
 
   const parsed = AdminRefundInput.safeParse(await request.json().catch(() => null));

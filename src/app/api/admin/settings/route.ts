@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
+import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { db } from "@/lib/db";
 import {
   PLATFORM_CONFIGURATION_ID,
@@ -27,8 +28,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const perimeterLimited = await enforceAdminCriticalPerimeterRateLimit(request, "admin-sensitive");
+  if (perimeterLimited) return perimeterLimited;
+
   const authorization = await authorizeAdminRequest(request, { module: "settings", action: "update" });
   if (!authorization.ok) return authorization.response;
+  const limited = await enforceAdminCriticalSubjectRateLimit(request, "admin-sensitive", adminRateLimitSubject(authorization.user));
+  if (limited) return limited;
 
   const parsed = PlatformConfigurationInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

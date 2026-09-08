@@ -86,6 +86,24 @@ describe("enforceRateLimit", () => {
     expect(otherAdmin).toBeNull();
   });
 
+  it("adds tight route shields for critical admin actions and media uploads", async () => {
+    for (const policy of ["admin-sensitive", "media-upload"] as const) {
+      const routeWindow = rateLimitPolicyConfig[policy].windows.find((window) => window.scope === "route")!;
+      expect(routeWindow.requests).toBeLessThanOrEqual(18);
+
+      clearLocalRateLimitBuckets();
+      for (let index = 0; index < routeWindow.requests; index += 1) {
+        await expect(enforceRateLimit(request(`/api/${policy}`), policy, undefined, { scopes: ["route"] })).resolves.toBeNull();
+      }
+
+      const blocked = await enforceRateLimit(request(`/api/${policy}`), policy, undefined, { scopes: ["route"] });
+
+      expect(blocked?.status).toBe(429);
+      expect(blocked?.headers.get("X-RateLimit-Policy")).toBe(policy);
+      expect(blocked?.headers.get("X-RateLimit-Scope")).toBe("route");
+    }
+  });
+
   it("protects delivery quotes and recipe recalculations with dedicated policies", async () => {
     for (const policy of ["shipping-quote", "recipe-configurator"] as const) {
       const subjectWindow = rateLimitPolicyConfig[policy].windows.find((window) => window.scope === "subject" && window.window === "1 m")!;

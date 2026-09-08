@@ -213,6 +213,7 @@ export const rateLimitPolicyConfig: Record<RateLimitPolicy, RateLimitPolicyConfi
   "admin-sensitive": {
     windows: [
       { scope: "ip", requests: 24, windowMs: 60_000, window: "1 m" },
+      { scope: "route", requests: 18, windowMs: 60_000, window: "1 m" },
       { scope: "subject", requests: 12, windowMs: 60_000, window: "1 m" },
       { scope: "subject", requests: 80, windowMs: 60 * 60_000, window: "1 h" },
     ],
@@ -222,6 +223,7 @@ export const rateLimitPolicyConfig: Record<RateLimitPolicy, RateLimitPolicyConfi
   "media-upload": {
     windows: [
       { scope: "ip", requests: 24, windowMs: 60_000, window: "1 m" },
+      { scope: "route", requests: 18, windowMs: 60_000, window: "1 m" },
       { scope: "subject", requests: 16, windowMs: 60_000, window: "1 m" },
       { scope: "subject", requests: 100, windowMs: 60 * 60_000, window: "1 h" },
     ],

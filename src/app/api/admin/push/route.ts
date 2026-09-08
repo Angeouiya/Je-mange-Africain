@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
+import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { broadcastLocalizedPush, getPushAudienceCounts, isPushConfigured } from "@/lib/push-server";
 import { PUSH_AUDIENCES } from "@/lib/push-audience";
 import { db } from "@/lib/db";
-import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +32,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const perimeterLimited = await enforceAdminCriticalPerimeterRateLimit(request, "admin-sensitive");
+  if (perimeterLimited) return perimeterLimited;
+
   const authorization = await authorizeAdminRequest(request, { module: "marketing", action: "create" });
   if (!authorization.ok) return authorization.response;
-  const limited = await enforceRateLimit(request, "admin-sensitive", authorization.user.id || authorization.user.email, { scopes: ["subject"] });
+  const limited = await enforceAdminCriticalSubjectRateLimit(request, "admin-sensitive", adminRateLimitSubject(authorization.user));
   if (limited) return limited;
 
   if (!CAMPAIGN_ROLES.has(authorization.user.role)) {

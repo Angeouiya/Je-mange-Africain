@@ -122,4 +122,22 @@ describe("production rate limiting safety", () => {
       await expect(blocked?.json()).resolves.toMatchObject({ code: "RATE_LIMIT_UNAVAILABLE", policy });
     }
   });
+
+  it("requires remote throttling for critical admin perimeter shields in production", async () => {
+    vi.resetModules();
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+
+    const { enforceRateLimit, remoteRateLimitRequired } = await import("./redis");
+
+    for (const policy of ["admin-sensitive", "media-upload"] as const) {
+      const blocked = await enforceRateLimit(request(`/api/${policy}`), policy, undefined, { scopes: ["route"] });
+
+      expect(remoteRateLimitRequired(policy)).toBe(true);
+      expect(blocked?.status).toBe(503);
+      expect(blocked?.headers.get("X-RateLimit-Policy")).toBe(policy);
+      await expect(blocked?.json()).resolves.toMatchObject({ code: "RATE_LIMIT_UNAVAILABLE", policy });
+    }
+  });
 });

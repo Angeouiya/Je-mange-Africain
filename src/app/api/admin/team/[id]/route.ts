@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ADMIN_ROLES, authorizeAdminRequest, getSupabaseAdminConfig } from "@/lib/admin-auth";
+import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { permissionsForRole } from "@/lib/admin-permissions";
 import { supabaseAuthAdminFetch, teamConfigurationError, teamServiceUnavailableError } from "@/lib/supabase-admin-team";
 
@@ -16,8 +17,14 @@ const MemberUpdate = z.object({
 const MemberDelete = z.object({ reason: z.string().trim().min(5).max(500).optional() });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const perimeterLimited = await enforceAdminCriticalPerimeterRateLimit(request, "admin-sensitive");
+  if (perimeterLimited) return perimeterLimited;
+
   const authorization = await authorizeAdminRequest(request, { module: "team", action: "update" });
   if (!authorization.ok) return authorization.response;
+  const limited = await enforceAdminCriticalSubjectRateLimit(request, "admin-sensitive", adminRateLimitSubject(authorization.user));
+  if (limited) return limited;
+
   const { id } = await params;
   if (id === authorization.user.id) return NextResponse.json({ error: "Votre propre compte super admin ne peut pas être modifié depuis cette session." }, { status: 409 });
   const parsed = MemberUpdate.safeParse(await request.json().catch(() => null));
@@ -50,8 +57,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const perimeterLimited = await enforceAdminCriticalPerimeterRateLimit(request, "admin-sensitive");
+  if (perimeterLimited) return perimeterLimited;
+
   const authorization = await authorizeAdminRequest(request, { module: "team", action: "delete" });
   if (!authorization.ok) return authorization.response;
+  const limited = await enforceAdminCriticalSubjectRateLimit(request, "admin-sensitive", adminRateLimitSubject(authorization.user));
+  if (limited) return limited;
+
   const { id } = await params;
   if (id === authorization.user.id) return NextResponse.json({ error: "Votre propre compte super admin ne peut pas être supprimé." }, { status: 409 });
   const parsed = MemberDelete.safeParse(await request.json().catch(() => ({})));

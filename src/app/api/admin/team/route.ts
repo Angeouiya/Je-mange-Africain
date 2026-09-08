@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ADMIN_ROLES, authorizeAdminRequest, getSupabaseAdminConfig } from "@/lib/admin-auth";
+import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { ADMIN_ACTIONS, ADMIN_MODULES, permissionsForRole } from "@/lib/admin-permissions";
 import { supabaseAuthAdminFetch, teamConfigurationError, teamServiceUnavailableError } from "@/lib/supabase-admin-team";
 import { summarizeTeam, type TeamMemberStatus } from "@/lib/team-insights";
@@ -48,8 +49,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const perimeterLimited = await enforceAdminCriticalPerimeterRateLimit(request, "admin-sensitive");
+  if (perimeterLimited) return perimeterLimited;
+
   const authorization = await authorizeAdminRequest(request, { module: "team", action: "create" });
   if (!authorization.ok) return authorization.response;
+  const limited = await enforceAdminCriticalSubjectRateLimit(request, "admin-sensitive", adminRateLimitSubject(authorization.user));
+  if (limited) return limited;
+
   const parsed = MemberInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Les informations du membre sont invalides." }, { status: 400 });
   const { url, serviceRoleKey } = getSupabaseAdminConfig();

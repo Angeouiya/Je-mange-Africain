@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest, getSupabaseAdminConfig } from "@/lib/admin-auth";
+import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { hasAdminPermission, type AdminModule } from "@/lib/admin-permissions";
-import { enforceRateLimit } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -43,9 +43,12 @@ async function ensureBucket(url: string, serviceRoleKey: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const perimeterLimited = await enforceAdminCriticalPerimeterRateLimit(request, "media-upload");
+  if (perimeterLimited) return perimeterLimited;
+
   const authorization = await authorizeAdminRequest(request);
   if (!authorization.ok) return authorization.response;
-  const limited = await enforceRateLimit(request, "media-upload", authorization.user.id || authorization.user.email, { scopes: ["subject"] });
+  const limited = await enforceAdminCriticalSubjectRateLimit(request, "media-upload", adminRateLimitSubject(authorization.user));
   if (limited) return limited;
 
   const form = await request.formData().catch(() => null);
@@ -120,9 +123,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const perimeterLimited = await enforceAdminCriticalPerimeterRateLimit(request, "admin-sensitive");
+  if (perimeterLimited) return perimeterLimited;
+
   const authorization = await authorizeAdminRequest(request);
   if (!authorization.ok) return authorization.response;
-  const limited = await enforceRateLimit(request, "admin-sensitive", authorization.user.id || authorization.user.email, { scopes: ["subject"] });
+  const limited = await enforceAdminCriticalSubjectRateLimit(request, "admin-sensitive", adminRateLimitSubject(authorization.user));
   if (limited) return limited;
 
   const body = await request.json().catch(() => null);
