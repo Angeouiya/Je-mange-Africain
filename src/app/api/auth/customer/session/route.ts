@@ -5,7 +5,7 @@ import {
   authorizeCustomerRequest,
   clearCustomerCookies,
   getSupabaseCustomerConfig,
-  normalizePhone,
+  normalizePhoneForCountry,
   setCustomerCookies,
   toCustomerSession,
 } from "@/lib/customer-auth";
@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 const Credentials = z.object({
   identifier: z.string().trim().min(3).max(254),
+  country: z.string().trim().min(2).max(80).optional(),
   password: z.string().min(8).max(256),
 });
 
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
   if (!url || !key) return NextResponse.json({ error: "Le service de connexion est momentanément indisponible." }, { status: 503 });
 
   const identifierKey = parsed.data.identifier.includes("@") ? "email" : "phone";
-  const identifier = identifierKey === "phone" ? normalizePhone(parsed.data.identifier) : parsed.data.identifier.toLowerCase();
+  const identifier = identifierKey === "phone" ? normalizePhoneForCountry(parsed.data.identifier, parsed.data.country) : parsed.data.identifier.toLowerCase();
   const identityLimited = await enforceRateLimit(request, "auth", identifier, { scopes: ["subject"] });
   if (identityLimited) return identityLimited;
 

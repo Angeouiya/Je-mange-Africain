@@ -19,7 +19,7 @@ import { useStore, ViewId, cartCount } from "@/lib/store";
 import { dict } from "@/lib/i18n";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
-import { BRAND_COLORS, getBrandAccentForeground } from "@/lib/brand-colors";
+import { BRAND_COLORS } from "@/lib/brand-colors";
 import { requestPrivacyPreferences } from "@/lib/privacy-consent";
 import { clientPrimaryNavigationTarget, clientSidebarUtilityTarget } from "@/lib/client-navigation";
 import { COMPANY_PROFILE } from "@/lib/company-profile";
@@ -88,7 +88,7 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
         onFocus={() => warmDestination(it.id)}
         onTouchStart={() => warmDestination(it.id)}
         className={`group relative isolate flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${
-          active ? "text-terre" : "text-muted-foreground hover:text-charcoal"
+          active ? "text-burgundy" : "text-muted-foreground hover:text-charcoal"
         } disabled:pointer-events-none disabled:opacity-65`}
         aria-label={it.label}
         aria-current={active ? "page" : undefined}
@@ -98,11 +98,11 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
         {active ? (
           <motion.span
             layoutId="client-mobile-nav-active"
-            className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-terre/15 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.07))] shadow-[0_8px_22px_-18px_rgba(185,71,43,0.85)]"
+            className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-burgundy/14 bg-white shadow-[0_8px_22px_-19px_rgba(90,38,50,0.55)]"
             transition={{ type: "spring", stiffness: 460, damping: 38 }}
           />
         ) : null}
-        <span className={`relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95 ${active ? "text-terre" : "text-muted-foreground group-hover:text-charcoal"}`}>
+        <span className={`relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95 ${active ? "text-burgundy" : "text-muted-foreground group-hover:text-charcoal"}`}>
           <ReiconGlyph icon={it.icon} weight={active ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" />
           {it.id === "cart" && count > 0 ? (
             <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">
@@ -111,7 +111,7 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
           ) : null}
         </span>
         <span className="relative block max-w-full truncate leading-[1.05]">{it.label}</span>
-        {active ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-gold" aria-hidden="true" /> : null}
+        {active ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-burgundy" aria-hidden="true" /> : null}
       </button>
     );
   };
@@ -122,7 +122,7 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
         <div className="mx-auto grid max-w-xl grid-cols-5">{mobileItems.map(renderMobileItem)}</div>
       </nav>
 
-      <aside data-testid="client-sidebar" className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-burgundy/10 bg-[#FFFCFA] text-charcoal shadow-[14px_0_42px_-36px_rgba(90,38,50,0.48)] md:flex">
+      <aside data-testid="client-sidebar" className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-burgundy/10 bg-white text-charcoal shadow-[14px_0_42px_-36px_rgba(90,38,50,0.42)] md:flex">
         <div className="african-kente-stripe h-[3px] shrink-0" />
         <button disabled={!ready} onClick={() => navigate("home")} onPointerEnter={() => warmDestination("home")} onFocus={() => warmDestination("home")} className="border-b border-burgundy/10 px-5 py-5 text-left transition hover:bg-burgundy/[0.035] disabled:pointer-events-none disabled:opacity-65" aria-label={locale === "fr" ? "Accueil" : "Home"} aria-disabled={!ready}>
           <BrandLockup compact locale={locale} />
@@ -130,16 +130,16 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
 
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           {desktopGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? "mt-3" : ""}>
-            <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-burgundy">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-terre">{group.intent}</span></div>
+            <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-burgundy">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-burgundy/70">{group.intent}</span></div>
             <div className="space-y-1">{group.items.map((item) => {
               const active = desktopActiveTarget === item.id;
               return (
                 <button key={item.id} disabled={!ready} onClick={() => navigate(item.id)} onPointerEnter={() => warmDestination(item.id)} onFocus={() => warmDestination(item.id)} aria-current={active ? "page" : undefined} aria-disabled={!ready} data-active={active ? "true" : "false"} className={`group relative isolate flex min-h-12 w-full items-center gap-3 overflow-hidden rounded-md px-3 text-left transition disabled:pointer-events-none disabled:opacity-65 ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.75)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}>
-                  {active ? <motion.span layoutId="client-desktop-nav-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
+                  {active ? <motion.span layoutId="client-desktop-nav-active" className="absolute inset-0 -z-10 border border-burgundy/12 bg-white shadow-[0_12px_28px_-24px_rgba(90,38,50,0.52)]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
                   {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : item.accent }}><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.05rem] w-[1.05rem]" /></span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? BRAND_COLORS.burgundy : `${BRAND_COLORS.burgundy}10`, color: active ? "#FFFFFF" : BRAND_COLORS.burgundy }}><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.05rem] w-[1.05rem]" /></span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold">{item.desktopLabel}</span><span className="mt-0.5 block truncate text-[9px] leading-4 text-muted-foreground">{item.purpose}</span></span>
-                  {item.id === "cart" && count > 0 ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-extrabold text-charcoal">{count}</span> : null}
+                  {item.id === "cart" && count > 0 ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-burgundy px-1 text-[10px] font-extrabold text-white">{count}</span> : null}
                 </button>
               );
             })}</div>
@@ -157,7 +157,7 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
               data-active={utilityActiveTarget === "account" ? "true" : "false"}
               className={`mb-1 flex w-full items-center gap-3 rounded-md border px-2 py-2 text-left transition disabled:pointer-events-none disabled:opacity-65 ${utilityActiveTarget === "account" ? "border-burgundy/10 bg-burgundy/[0.06] shadow-[0_10px_24px_-22px_rgba(90,38,50,0.75)]" : "border-transparent hover:bg-burgundy/5"}`}
             >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-terre text-xs font-extrabold text-white">{customer.firstName[0]}{customer.lastName[0] || ""}</span>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-burgundy text-xs font-extrabold text-white">{customer.firstName[0]}{customer.lastName[0] || ""}</span>
               <span className="min-w-0"><span className="block truncate text-xs font-bold text-charcoal">{customer.firstName} {customer.lastName}</span><span className="block truncate text-[10px] text-muted-foreground">{customer.email}</span></span>
             </button>
           ) : null}
@@ -198,7 +198,7 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
           </button>
           {customer ? (
             <LogoutConfirmDialog>
-              <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-terre transition hover:bg-terre/5"><ReiconGlyph icon={Logout} className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
+              <button className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-semibold text-burgundy transition hover:bg-burgundy/5"><ReiconGlyph icon={Logout} className="h-4 w-4" /> {locale === "fr" ? "Se déconnecter" : "Sign out"}</button>
             </LogoutConfirmDialog>
           ) : null}
           <p className="mt-2 flex items-center gap-2 border-t border-burgundy/8 px-3 pt-2 text-[9px] font-bold leading-4 text-muted-foreground">

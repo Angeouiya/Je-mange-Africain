@@ -6,6 +6,8 @@ type CategoryLike = {
   slug?: string | null;
   name?: string | null;
   color?: string | null;
+  imageUrl?: string | null;
+  photoUrl?: string | null;
 };
 
 type MarketSubject = {
@@ -30,8 +32,10 @@ const unsplash = (id: string, width = 1200) =>
   `https://images.unsplash.com/photo-${id}?ixlib=rb-4.0.3&auto=format&fit=crop&w=${width}&q=78`;
 
 export const MARKET_PHOTOS = {
-  africanMarket: unsplash("1542838132-92c53300491e"),
+  africanMarket: "/hero-market-spices-real.jpg",
+  produceMarket: unsplash("1542838132-92c53300491e"),
   spiceVendor: unsplash("1566385101042-1a0aa0c1268c"),
+  spiceBowls: "/hero-market-spices-real.jpg",
   cassava: "/products/gari-blanc.webp",
   plantain: "/products/banane-plantain.webp",
   okra: "/products/gombo-frais.webp",
@@ -178,6 +182,7 @@ function categorySlug(subject: MarketSubject | CategoryLike | string) {
 }
 
 export function getCategoryPhoto(category: MarketSubject | CategoryLike | string) {
+  if (typeof category !== "string" && (category.imageUrl || category.photoUrl)) return category.imageUrl || category.photoUrl || MARKET_PHOTOS.africanMarket;
   const slug = categorySlug(category);
   return CATEGORY_PHOTOS[slug] || MARKET_PHOTOS.africanMarket;
 }

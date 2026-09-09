@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       name: c[`name${locale === "en" ? "En" : "Fr"}`],
       nameFr: c.nameFr, nameEn: c.nameEn,
       description: c[`description${locale === "en" ? "En" : "Fr"}`],
-      icon: c.icon, color: c.color, productCount: c._count.products,
+      icon: c.icon, color: c.color, imageUrl: c.imageUrl, sortOrder: c.sortOrder, productCount: c._count.products,
     })),
   }, "storefrontReference");
 }

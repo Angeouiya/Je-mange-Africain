@@ -72,7 +72,7 @@ export function Header() {
         {/* mobile menu */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-md text-charcoal hover:bg-terre/[0.07] hover:text-terre md:hidden" aria-label="Menu">
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-md text-charcoal hover:bg-burgundy/[0.06] hover:text-burgundy md:hidden" aria-label="Menu">
               <ReiconGlyph icon={Menu} className="h-[1.15rem] w-[1.15rem]" />
             </Button>
           </SheetTrigger>
@@ -90,7 +90,7 @@ export function Header() {
                 className="flex min-h-14 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-charcoal hover:bg-muted"
                 aria-label={customer ? (locale === "fr" ? "Ouvrir mon espace" : "Open my account") : t.nav.login}
               >
-                  <span className="grid h-9 w-9 place-items-center rounded-md bg-terre text-white">
+                  <span className="grid h-9 w-9 place-items-center rounded-md bg-burgundy text-white">
                   <ReiconGlyph icon={customer ? UserCircle : Login} weight="Filled" className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
@@ -113,7 +113,7 @@ export function Header() {
               <p className="px-3 pb-2 text-[10px] font-extrabold uppercase text-muted-foreground">{locale === "fr" ? "À votre service" : "At your service"}</p>
               {utilityLinks.map((link) => (
                 <button key={link.key} onClick={() => go(link.view, link.params)} aria-label={link.label} className="flex min-h-12 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-charcoal hover:bg-muted">
-                  <span className="grid h-8 w-8 place-items-center rounded-md border border-charcoal/8 bg-white text-terre"><ReiconGlyph icon={link.icon} className="h-4 w-4" /></span>
+                  <span className="grid h-8 w-8 place-items-center rounded-md border border-burgundy/10 bg-white text-burgundy"><ReiconGlyph icon={link.icon} className="h-4 w-4" /></span>
                   {link.label}
                 </button>
               ))}
@@ -127,7 +127,7 @@ export function Header() {
                   <ReiconGlyph icon={Scroll} className="h-4 w-4" />
                   {locale === "fr" ? "Conditions générales" : "Terms and conditions"}
                 </button>
-                <button type="button" onClick={openPrivacy} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-burgundy hover:bg-burgundy/[0.05] hover:text-terre">
+                <button type="button" onClick={openPrivacy} className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-xs font-bold text-burgundy hover:bg-burgundy/[0.05]">
                   <ReiconGlyph icon={Sliders} className="h-4 w-4" />
                   {locale === "fr" ? "Gérer mes choix" : "Manage my choices"}
                 </button>
@@ -144,14 +144,14 @@ export function Header() {
         </Sheet>
 
         {/* logo */}
-        <button onClick={() => go("home")} className="flex min-h-11 items-center gap-2 rounded-md px-0.5 transition hover:bg-terre/[0.035] md:hidden" aria-label={locale === "fr" ? "Accueil" : "Home"}>
+        <button onClick={() => go("home")} className="flex min-h-11 items-center gap-2 rounded-md px-0.5 transition hover:bg-burgundy/[0.035] md:hidden" aria-label={locale === "fr" ? "Accueil" : "Home"}>
           <BrandLockup compact responsive locale={locale} className="[&>span:first-child]:h-12 [&>span:first-child]:w-12" />
         </button>
 
         <div className="hidden min-w-0 flex-1 md:block">
           {searchContext ? (
             <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-md border border-terre/10 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre"><ReiconGlyph icon={searchContext.icon} weight="Filled" className="h-4 w-4" /></span>
+              <span className="grid h-9 w-9 place-items-center rounded-md border border-burgundy/12 bg-white text-burgundy shadow-[0_10px_24px_-22px_rgba(90,38,50,0.58)]"><ReiconGlyph icon={searchContext.icon} weight="Filled" className="h-4 w-4" /></span>
               <div className="min-w-0"><p className="text-xs font-black text-charcoal">{searchContext.label}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{searchContext.detail}</p></div>
             </div>
           ) : <div className="max-w-2xl"><SearchBar /></div>}

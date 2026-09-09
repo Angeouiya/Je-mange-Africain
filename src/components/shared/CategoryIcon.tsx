@@ -104,22 +104,20 @@ export function CategoryIcon({
   return (
     <span
       className={cn(
-        "relative isolate grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md border bg-white shadow-[0_12px_26px_-19px_rgba(90,38,50,0.72)] transition duration-200 before:absolute before:inset-y-1 before:left-1 before:w-px before:rounded-full before:bg-current/30 after:absolute after:inset-x-1.5 after:bottom-1 after:h-px after:rounded-full after:bg-current/25",
+        "relative isolate grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md border bg-white shadow-[0_12px_26px_-22px_rgba(90,38,50,0.58)] transition duration-200 before:absolute before:inset-y-1 before:left-1 before:w-px before:rounded-full before:bg-current/24 after:absolute after:inset-x-1.5 after:bottom-1 after:h-px after:rounded-full after:bg-current/18",
         active && "scale-[1.04] ring-1 ring-white/70",
         className,
       )}
       style={{
         color: resolvedColor,
         borderColor: active ? "rgba(255,255,255,0.7)" : `color-mix(in srgb, ${resolvedColor} 28%, white)`,
-        background: active
-          ? `linear-gradient(145deg, #fff 0%, #FFF8F4 54%, color-mix(in srgb, ${resolvedColor} 16%, white) 100%)`
-          : `linear-gradient(145deg, color-mix(in srgb, ${resolvedColor} 13%, white), #fff 46%, color-mix(in srgb, ${resolvedColor} 8%, white))`,
+        background: "#FFFFFF",
       }}
       aria-hidden="true"
       data-testid="category-icon"
       data-category-key={visualKey || "generic"}
     >
-      <span className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.82),transparent_44%),repeating-linear-gradient(135deg,currentColor_0_1px,transparent_1px_7px)] opacity-25" />
+      <span className="absolute inset-0 bg-current opacity-[0.035]" />
       <span className="absolute right-1 top-1 text-[5px] font-black leading-none tracking-normal opacity-45">{motif.top}</span>
       <span className="absolute bottom-1 left-1.5 text-[5px] font-black leading-none tracking-normal opacity-35">{motif.bottom}</span>
       <span className="absolute inset-1.5 rounded-[6px] border border-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)]" />

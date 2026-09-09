@@ -151,6 +151,7 @@ model Category {
   descriptionEn String?
   icon          String? // emoji or icon name
   color         String? // hex
+  imageUrl      String?
   parentId      String?
   parent        Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children      Category[] @relation("CategoryTree")
@@ -595,7 +596,7 @@ model WholesaleQuoteItem {
 
 model MediaAsset {
   id         String   @id @default(cuid())
-  kind       String // product | recipe | advertisement | brand
+  kind       String // product | recipe | advertisement | brand | category
   ownerType  String?
   ownerId    String?
   fileName   String

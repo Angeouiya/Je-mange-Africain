@@ -35,7 +35,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import type { RecipeListItem } from "@/components/shared/RecipeCard";
 import { dict } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
-import { getCategoryPhoto, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
+import { MARKET_PHOTOS, getCategoryPhoto, getProductPhoto, getRecipePhoto } from "@/lib/market-media";
 import { useFetch } from "@/lib/use-fetch";
 import { prefetchStorefrontData, STOREFRONT_DATA_TTL_MS } from "@/lib/storefront-prefetch";
 import { preloadStorefrontViewBundle } from "@/components/storefront/view-loaders";
@@ -51,6 +51,7 @@ type HomeCategory = {
   slug: string;
   name: string;
   color?: string | null;
+  imageUrl?: string | null;
 };
 
 type HomeCatalog = {
@@ -166,21 +167,10 @@ export function HomeView() {
       </div>
 
       <section className="relative order-2 min-h-[15rem] overflow-hidden md:order-1 md:min-h-[22rem]" data-testid="home-hero">
-        <div className="absolute inset-0">
-          <Image
-            src="/hero-feast-v2.webp"
-            alt=""
-            fill
-            sizes="100vw"
-            loading="eager"
-            fetchPriority="high"
-            className="object-cover object-[64%_center] md:object-center"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(90,48,66,0.28),rgba(90,48,66,0.78))] md:bg-gradient-to-r md:from-burgundy/95 md:via-burgundy/62 md:to-terre/10" />
-        </div>
+        <HomeHeroMedia locale={locale} />
         <div className="relative mx-auto flex min-h-[15rem] max-w-7xl flex-col justify-end gap-2 px-4 py-4 md:min-h-[22rem] md:justify-center md:gap-4 md:px-12 md:py-10">
           <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
-            <Badge className="border-0 bg-transparent p-0 text-[9px] font-extrabold uppercase text-gold shadow-none md:text-[10px]">
+            <Badge className="border-0 bg-transparent p-0 text-[9px] font-extrabold uppercase text-[#FFD88A] shadow-none md:text-[10px] md:text-burgundy">
               <ReiconGlyph icon={Sparkles} weight="Filled" className="mr-1 h-3 w-3" /> {t.home.heroBadge}
             </Badge>
             <HomeDeliveryContext variant="desktop" />
@@ -188,30 +178,30 @@ export function HomeView() {
           <motion.h1
             initial={false}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-3xl font-display text-[1.55rem] font-semibold leading-[1.05] text-white sm:text-3xl md:text-[2.8rem]"
+            className="max-w-3xl font-display text-[1.55rem] font-semibold leading-[1.05] text-white sm:text-3xl md:max-w-2xl md:text-[2.8rem] md:text-charcoal"
           >
             {t.home.heroTitle.split("\n").map((line, index) => (
               <span key={line} className="sm:block">
                 {index > 0 ? " " : null}
-                {index === 1 ? <span className="text-gold">{line}</span> : line}
+                {index === 1 ? <span className="text-[#FFD88A] md:text-burgundy">{line}</span> : line}
               </span>
             ))}
           </motion.h1>
           <motion.p
             initial={false}
             animate={{ opacity: 1, y: 0 }}
-            className="line-clamp-2 max-w-xl text-[10px] leading-4 text-white/88 sm:text-xs md:text-sm md:leading-6"
+            className="line-clamp-2 max-w-xl text-[10px] leading-4 text-white/88 sm:text-xs md:text-sm md:leading-6 md:text-charcoal/75"
           >
             {t.home.heroSubtitle}
           </motion.p>
           <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="grid max-w-lg grid-cols-3 gap-1.5 md:gap-2">
             {heroSignals.map((signal) => {
               return (
-                <span key={signal.label} className="flex min-h-10 items-center gap-1.5 rounded-md border border-white/22 bg-white/14 px-2 text-white shadow-[0_14px_30px_-26px_rgba(255,255,255,0.75)] backdrop-blur-md">
-                  <ReiconGlyph icon={signal.icon} weight="Filled" className="h-3.5 w-3.5 shrink-0 text-gold md:h-4 md:w-4" />
+                <span key={signal.label} className="flex min-h-10 items-center gap-1.5 rounded-md border border-white/26 bg-white/16 px-2 text-white shadow-[0_14px_30px_-26px_rgba(255,255,255,0.75)] backdrop-blur-md md:border-burgundy/12 md:bg-white/92 md:text-charcoal">
+                  <ReiconGlyph icon={signal.icon} weight="Filled" className="h-3.5 w-3.5 shrink-0 text-[#FFD88A] md:h-4 md:w-4 md:text-burgundy" />
                   <span className="min-w-0">
-                    <span className="block truncate text-[7px] font-bold uppercase text-white/70 md:text-[8px]">{signal.label}</span>
-                    <span className="block truncate text-[8.5px] font-black leading-3 text-white md:text-[10px]">{signal.value}</span>
+                    <span className="block truncate text-[7px] font-bold uppercase text-white/70 md:text-[8px] md:text-muted-foreground">{signal.label}</span>
+                    <span className="block truncate text-[8.5px] font-black leading-3 text-white md:text-[10px] md:text-charcoal">{signal.value}</span>
                   </span>
                 </span>
               );
@@ -222,10 +212,10 @@ export function HomeView() {
             animate={{ opacity: 1, y: 0 }}
             className="flex gap-2"
           >
-            <Button onPointerEnter={() => warmDestination("catalog")} onFocus={() => warmDestination("catalog")} onTouchStart={() => warmDestination("catalog")} onClick={() => selectDestination("catalog")} className="h-9 bg-terre px-3 text-[11px] text-white shadow-lg hover:bg-terre-dark md:h-11 md:px-5 md:text-sm">
+            <Button onPointerEnter={() => warmDestination("catalog")} onFocus={() => warmDestination("catalog")} onTouchStart={() => warmDestination("catalog")} onClick={() => selectDestination("catalog")} className="h-9 bg-burgundy px-3 text-[11px] text-white shadow-lg hover:bg-burgundy-dark md:h-11 md:px-5 md:text-sm">
               {t.home.heroCtaCatalog} <ReiconGlyph icon={ArrowRight} className="ml-1 h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
-            <Button onPointerEnter={() => warmDestination("recipes")} onFocus={() => warmDestination("recipes")} onTouchStart={() => warmDestination("recipes")} onClick={() => selectDestination("recipes")} className="h-9 border border-white/50 bg-white px-3 text-[11px] text-burgundy shadow-lg hover:bg-cream md:h-11 md:px-5 md:text-sm">
+            <Button onPointerEnter={() => warmDestination("recipes")} onFocus={() => warmDestination("recipes")} onTouchStart={() => warmDestination("recipes")} onClick={() => selectDestination("recipes")} className="h-9 border border-white/50 bg-white px-3 text-[11px] text-burgundy shadow-lg hover:bg-cream md:h-11 md:border-burgundy/15 md:px-5 md:text-sm">
               {t.home.heroCtaRecipes}
             </Button>
           </motion.div>
@@ -281,7 +271,7 @@ export function HomeView() {
         </div></>}
 
         <section className="border-y border-charcoal/10 bg-[#FFFCFA]" aria-label={t.home.commitmentsTitle}>
-          <div tabIndex={0} aria-label={locale === "fr" ? "Engagements Je mange Africain, défilement horizontal" : "Je mange Africain commitments, horizontal scroll"} className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 outline-none focus-visible:ring-2 focus-visible:ring-terre focus-visible:ring-inset [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0">
+          <div tabIndex={0} aria-label={locale === "fr" ? "Engagements Je mange Africain, défilement horizontal" : "Je mange Africain commitments, horizontal scroll"} className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 outline-none focus-visible:ring-2 focus-visible:ring-burgundy focus-visible:ring-inset [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0">
             {commitments.map((commitment) => {
               return (
                 <div key={commitment.title} className="flex w-[78vw] max-w-[18rem] shrink-0 snap-start items-center gap-3 px-3 py-4 md:w-auto md:border-r md:border-charcoal/10 md:px-5 md:last:border-r-0">
@@ -312,12 +302,43 @@ type HomeQuickAction = {
   signal: string;
 };
 
+function HomeHeroMedia({ locale }: { locale: "fr" | "en" }) {
+  const isFr = locale === "fr";
+  const tiles = [
+    { src: "/recipes/sauce-graine.webp", alt: isFr ? "Sauce graine ivoirienne" : "Ivorian palm nut sauce" },
+    { src: "/products/banane-plantain.webp", alt: isFr ? "Bananes plantain" : "Plantains" },
+    { src: "/recipes/attieke-poisson.webp", alt: isFr ? "Attiéké poisson" : "Attieke with fish" },
+  ];
+
+  return (
+    <div className="absolute inset-0 bg-white" aria-hidden="true">
+      <Image
+        src={MARKET_PHOTOS.spiceBowls}
+        alt=""
+        fill
+        sizes="100vw"
+        loading="eager"
+        fetchPriority="high"
+        className="object-cover object-[52%_72%]"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(63,41,48,0.05)_0%,rgba(90,38,50,0.66)_58%,rgba(90,38,50,0.92)_100%)] md:bg-[linear-gradient(90deg,rgba(255,255,255,0.94)_0%,rgba(255,255,255,0.78)_32%,rgba(90,38,50,0.28)_58%,rgba(90,38,50,0.76)_100%)]" />
+      <div className="absolute inset-y-0 right-0 hidden w-[42%] items-end justify-end gap-2 p-5 md:flex lg:w-[38%] lg:p-8">
+        {tiles.map((tile, index) => (
+          <span key={tile.src} className={`relative block overflow-hidden rounded-md border border-white/70 bg-white shadow-[0_18px_50px_-32px_rgba(63,41,48,0.75)] ${index === 1 ? "mb-8 h-36 w-28 lg:h-44 lg:w-36" : "h-28 w-24 lg:h-36 lg:w-32"}`}>
+            <Image src={tile.src} alt={tile.alt} fill sizes="10rem" className="object-cover" />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HomeQuickLaunch({ actions, onSelect, onWarm, locale }: { actions: HomeQuickAction[]; onSelect: (view: ViewId, params?: ViewParams) => void; onWarm: (view: ViewId, params?: ViewParams) => void; locale: "fr" | "en" }) {
   return (
-    <section data-testid="home-quick-launch" aria-label={locale === "fr" ? "Actions principales" : "Primary actions"} className="border-y border-burgundy/10 bg-[linear-gradient(110deg,rgba(255,255,255,1),rgba(255,249,242,0.94),rgba(242,169,0,0.07))] px-1.5 py-2 shadow-[0_18px_50px_-42px_rgba(138,48,66,0.65)] sm:px-2 md:px-3 md:py-3">
+    <section data-testid="home-quick-launch" aria-label={locale === "fr" ? "Actions principales" : "Primary actions"} className="border-y border-burgundy/10 bg-white px-1.5 py-2 shadow-[0_18px_50px_-42px_rgba(138,48,66,0.55)] sm:px-2 md:px-3 md:py-3">
       <div className="mb-2 hidden items-center justify-between gap-3 px-1 sm:flex">
         <p className="truncate text-[9px] font-black uppercase tracking-[0.16em] text-burgundy">{locale === "fr" ? "Parcours rapides" : "Fast paths"}</p>
-        <span className="inline-flex min-h-6 shrink-0 items-center gap-1 rounded-md border border-terre/15 bg-white px-2 text-[8px] font-black uppercase text-terre"><ReiconGlyph icon={TruckFast} weight="Filled" className="h-3 w-3" />{locale === "fr" ? "Europe" : "Europe"}</span>
+        <span className="inline-flex min-h-6 shrink-0 items-center gap-1 rounded-md border border-burgundy/15 bg-white px-2 text-[8px] font-black uppercase text-burgundy"><ReiconGlyph icon={TruckFast} weight="Filled" className="h-3 w-3" />{locale === "fr" ? "Europe" : "Europe"}</span>
       </div>
       <div className="grid grid-cols-4 gap-1.5 sm:gap-2 md:gap-2.5">
         {actions.map((action, index) => (
@@ -328,7 +349,7 @@ function HomeQuickLaunch({ actions, onSelect, onWarm, locale }: { actions: HomeQ
             onPointerEnter={() => onWarm(action.view, action.params)}
             onFocus={() => onWarm(action.view, action.params)}
             onTouchStart={() => onWarm(action.view, action.params)}
-            className="group relative min-h-[4.9rem] min-w-0 overflow-hidden rounded-md border bg-white px-1 py-1.5 text-center shadow-[0_16px_36px_-34px_rgba(138,48,66,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-34px_rgba(138,48,66,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre/45 sm:min-h-[5.5rem] sm:px-2.5 sm:py-2 sm:text-left"
+            className="group relative min-h-[4.9rem] min-w-0 overflow-hidden rounded-md border bg-white px-1 py-1.5 text-center shadow-[0_16px_36px_-34px_rgba(138,48,66,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-34px_rgba(138,48,66,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/45 sm:min-h-[5.5rem] sm:px-2.5 sm:py-2 sm:text-left"
             style={{ borderColor: `${action.accent}22` }}
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: action.accent }} />
@@ -344,7 +365,7 @@ function HomeQuickLaunch({ actions, onSelect, onWarm, locale }: { actions: HomeQ
             <span className="mt-1 block min-h-4 text-[7px] font-semibold leading-[0.65rem] text-muted-foreground sm:mt-2 sm:min-h-[1.75rem] sm:text-[9px] sm:leading-3.5">{action.detail}</span>
             <span className="mt-2 hidden items-center justify-between gap-2 sm:flex">
               <span className="h-1 flex-1 rounded-full bg-burgundy/8"><span className="block h-full rounded-full" style={{ width: `${56 + index * 10}%`, backgroundColor: action.accent }} /></span>
-              <ReiconGlyph icon={AngleRight} className="h-3.5 w-3.5 shrink-0 text-terre transition-transform group-hover:translate-x-0.5" />
+              <ReiconGlyph icon={AngleRight} className="h-3.5 w-3.5 shrink-0 text-burgundy transition-transform group-hover:translate-x-0.5" />
             </span>
           </button>
         ))}
@@ -358,14 +379,14 @@ function Section({ title, intent, index, actionLabel, onAction, children, compac
     <section className={`min-w-0 ${compact ? "space-y-2.5" : "space-y-3.5 md:space-y-5"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-2.5">
-          {index ? <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md border border-terre/15 bg-terre/[0.06] text-[9px] font-black tabular-nums text-terre">{index}</span> : null}
+          {index ? <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md border border-burgundy/15 bg-burgundy/[0.05] text-[9px] font-black tabular-nums text-burgundy">{index}</span> : null}
           <div className="min-w-0">
             <h2 className={`${compact ? "text-xl md:text-2xl" : "text-lg md:text-3xl"} min-w-0 font-black leading-tight text-charcoal md:font-display md:font-semibold`}>{title}</h2>
             {intent ? <p data-testid="home-section-intent" className="mt-0.5 line-clamp-2 text-[10px] font-semibold leading-4 text-muted-foreground md:text-xs">{intent}</p> : null}
           </div>
         </div>
         {actionLabel && onAction ? (
-          <button type="button" onClick={onAction} className="inline-flex min-h-9 shrink-0 items-center gap-1 text-[11px] font-extrabold text-terre hover:underline md:text-xs">
+          <button type="button" onClick={onAction} className="inline-flex min-h-9 shrink-0 items-center gap-1 text-[11px] font-extrabold text-burgundy hover:underline md:text-xs">
             {actionLabel} <ReiconGlyph icon={ArrowRight} className="h-3.5 w-3.5" />
           </button>
         ) : null}
@@ -397,11 +418,11 @@ function FavouriteShelf({ products }: { products: ProductListItem[] }) {
             <span className="relative block aspect-[4/3] overflow-hidden rounded-md bg-muted">
               <ProductImage src={getProductPhoto(product)} alt="" emoji={product.imageEmoji} color={product.imageColor} size="md" className="h-full w-full transition duration-300 group-hover:scale-[1.035]" rounded="rounded-none" />
               {product.promoPrice !== null && product.promoPrice < product.price ? <span className="absolute left-1.5 top-1.5 rounded bg-burgundy px-1.5 py-0.5 text-[8px] font-black text-white">-{Math.round(((product.price - product.promoPrice) / product.price) * 100)} %</span> : null}
-              <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-md bg-white/94 text-terre shadow-sm"><ReiconGlyph icon={Heart} weight="Filled" className="h-3.5 w-3.5" /></span>
+              <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-md bg-white/94 text-burgundy shadow-sm"><ReiconGlyph icon={Heart} weight="Filled" className="h-3.5 w-3.5" /></span>
             </span>
             <span className="mt-1.5 block line-clamp-2 min-h-7 text-[10px] font-extrabold leading-3.5 text-charcoal md:text-[11px]">{product.name}</span>
             <span data-testid="home-favourite-brief" className="mt-0.5 block min-h-3.5 truncate text-[8px] font-semibold leading-3.5 text-muted-foreground">{brief}</span>
-            <span className="mt-0.5 flex min-h-4 items-baseline gap-1.5"><span className="text-[10px] font-black text-terre">{formatPrice(product.promoPrice ?? product.price, locale)}</span>{product.promoPrice !== null && product.promoPrice < product.price ? <span className="text-[8px] font-semibold text-muted-foreground line-through">{formatPrice(product.price, locale)}</span> : null}</span>
+            <span className="mt-0.5 flex min-h-4 items-baseline gap-1.5"><span className="text-[10px] font-black text-burgundy">{formatPrice(product.promoPrice ?? product.price, locale)}</span>{product.promoPrice !== null && product.promoPrice < product.price ? <span className="text-[8px] font-semibold text-muted-foreground line-through">{formatPrice(product.price, locale)}</span> : null}</span>
           </motion.button>
         );
       })}
@@ -417,10 +438,10 @@ function HomeDeliveryContext({ variant }: { variant: "mobile" | "desktop" }) {
   const isMobile = variant === "mobile";
   return (
     <DeliveryDestinationDialog weightGrams={0} thermalClasses={[]}>
-      <button type="button" data-testid={`home-delivery-${variant}`} aria-label={locale === "fr" ? `Modifier la destination de livraison : ${label}, ${postalCode}` : `Change delivery destination: ${label}, ${postalCode}`} className={`${isMobile ? "flex md:hidden" : "hidden md:flex"} min-w-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition ${isMobile ? "max-w-[11.5rem] border-burgundy/15 bg-[#FFFCFA] text-charcoal hover:border-terre/30" : "border-white/30 bg-white/12 text-white backdrop-blur-sm hover:bg-white/18"}`}>
-        <ReiconGlyph icon={MapPoint} weight="Filled" className={`h-4 w-4 shrink-0 ${isMobile ? "text-terre" : "text-gold"}`} />
-        <span className="min-w-0"><span className={`block text-[8px] font-bold uppercase ${isMobile ? "text-muted-foreground" : "text-white/70"}`}>{locale === "fr" ? "Livrer à" : "Deliver to"}</span><span className="block max-w-[7.5rem] truncate text-[10px] font-black">{label}{postalCode ? ` · ${postalCode}` : ""}</span></span>
-        {!isMobile ? <span className="hidden text-[8px] font-bold text-white/75 lg:block">{EUROPEAN_COUNTRIES.length} {locale === "fr" ? "pays" : "countries"}</span> : null}
+      <button type="button" data-testid={`home-delivery-${variant}`} aria-label={locale === "fr" ? `Modifier la destination de livraison : ${label}, ${postalCode}` : `Change delivery destination: ${label}, ${postalCode}`} className={`${isMobile ? "flex md:hidden" : "hidden md:flex"} min-w-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition ${isMobile ? "max-w-[11.5rem] border-burgundy/15 bg-white text-charcoal hover:border-burgundy/30" : "border-burgundy/12 bg-white/88 text-charcoal backdrop-blur-sm hover:bg-white"}`}>
+        <ReiconGlyph icon={MapPoint} weight="Filled" className={`h-4 w-4 shrink-0 ${isMobile ? "text-burgundy" : "text-burgundy"}`} />
+        <span className="min-w-0"><span className={`block text-[8px] font-bold uppercase ${isMobile ? "text-muted-foreground" : "text-muted-foreground"}`}>{locale === "fr" ? "Livrer à" : "Deliver to"}</span><span className="block max-w-[7.5rem] truncate text-[10px] font-black">{label}{postalCode ? ` · ${postalCode}` : ""}</span></span>
+        {!isMobile ? <span className="hidden text-[8px] font-bold text-burgundy lg:block">{EUROPEAN_COUNTRIES.length} {locale === "fr" ? "pays" : "countries"}</span> : null}
         <ReiconGlyph icon={AngleRight} className="h-3.5 w-3.5 shrink-0" />
       </button>
     </DeliveryDestinationDialog>
@@ -428,7 +449,7 @@ function HomeDeliveryContext({ variant }: { variant: "mobile" | "desktop" }) {
 }
 
 function HomeCollectionEmpty({ locale }: { locale: "fr" | "en" }) {
-  return <div className="flex min-h-28 items-center gap-3 border-y border-charcoal/10 px-3 py-4"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-terre/[0.07] text-terre"><ReiconGlyph icon={BoxSearch} weight="Filled" className="h-5 w-5" /></span><span><strong className="block text-xs text-charcoal">{locale === "fr" ? "La sélection arrive bientôt" : "The selection is coming soon"}</strong><span className="mt-1 block text-[10px] text-muted-foreground">{locale === "fr" ? "Les prochaines références publiées apparaîtront ici." : "The next published products will appear here."}</span></span></div>;
+  return <div className="flex min-h-28 items-center gap-3 border-y border-charcoal/10 px-3 py-4"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-burgundy/[0.07] text-burgundy"><ReiconGlyph icon={BoxSearch} weight="Filled" className="h-5 w-5" /></span><span><strong className="block text-xs text-charcoal">{locale === "fr" ? "La sélection arrive bientôt" : "The selection is coming soon"}</strong><span className="mt-1 block text-[10px] text-muted-foreground">{locale === "fr" ? "Les prochaines références publiées apparaîtront ici." : "The next published products will appear here."}</span></span></div>;
 }
 
 function CategoryShelf({ categories }: { categories: HomeCategory[] }) {
@@ -520,7 +541,7 @@ function RecipeShelf({ recipes }: { recipes: RecipeListItem[] }) {
               onClick={() => saveRecipe(recipe.id)}
               aria-pressed={saved}
               aria-label={!isAuthenticated ? (locale === "fr" ? `Connectez-vous pour sauvegarder ${recipe.title}` : `Sign in to save ${recipe.title}`) : saved ? (locale === "fr" ? `Retirer ${recipe.title} des recettes sauvegardées` : `Remove ${recipe.title} from saved recipes`) : (locale === "fr" ? `Sauvegarder ${recipe.title}` : `Save ${recipe.title}`)}
-              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md border border-charcoal/10 bg-white/94 text-charcoal shadow-sm hover:text-terre"
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md border border-charcoal/10 bg-white/94 text-charcoal shadow-sm hover:text-burgundy"
             >
               <ReiconGlyph icon={isAuthenticated ? Bookmark : Login} weight={saved ? "Filled" : "Outline"} className="h-4 w-4" />
             </button>

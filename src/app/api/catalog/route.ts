@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
       bestsellers: bestsellers.map((p) => project(p, locale)),
       news: news.map((p) => project(p, locale)),
       onSale: onSale.map((p) => project(p, locale)),
-      categories: categories.map((c) => ({ id: c.id, slug: c.slug, nameFr: c.nameFr, nameEn: c.nameEn, name: c[`name${locale === "en" ? "En" : "Fr"}`], icon: c.icon, color: c.color, description: c[`description${locale === "en" ? "En" : "Fr"}`] })),
+      categories: categories.map((c) => ({ id: c.id, slug: c.slug, nameFr: c.nameFr, nameEn: c.nameEn, name: c[`name${locale === "en" ? "En" : "Fr"}`], icon: c.icon, color: c.color, imageUrl: c.imageUrl, description: c[`description${locale === "en" ? "En" : "Fr"}`] })),
       brands: brands.map((b) => ({ id: b.id, slug: b.slug, name: b[`name${locale === "en" ? "En" : "Fr"}`] })),
       popularRecipes: popularRecipes.map((r) => {
         const translation = r.translations.find((item) => item.locale === locale) || r.translations[0];
@@ -189,7 +189,7 @@ export async function GET(req: NextRequest) {
     pageSize,
     pages: Math.ceil(total / pageSize),
     filters: {
-      categories: categories.map((c) => ({ id: c.id, slug: c.slug, name: c[`name${locale === "en" ? "En" : "Fr"}`], color: c.color })),
+      categories: categories.map((c) => ({ id: c.id, slug: c.slug, name: c[`name${locale === "en" ? "En" : "Fr"}`], color: c.color, imageUrl: c.imageUrl })),
       brands: brands.map((b) => ({ id: b.id, slug: b.slug, name: b[`name${locale === "en" ? "En" : "Fr"}`] })),
       countries: countries.map((c) => c.country),
     },

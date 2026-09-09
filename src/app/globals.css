@@ -74,7 +74,7 @@
   --card-foreground: #3F2930;
   --popover: #FFFFFF;
   --popover-foreground: #3F2930;
-  --primary: #B9472B;
+  --primary: #8A3042;
   --primary-foreground: #FFF9F2;
   --secondary: #8A3042;
   --secondary-foreground: #FFF9F2;
@@ -85,7 +85,7 @@
   --destructive: #BE352B;
   --border: #E9DDDA;
   --input: #E4D6D2;
-  --ring: #B9472B;
+  --ring: #8A3042;
   --chart-1: #D65A32;
   --chart-2: #8A3042;
   --chart-3: #F2A900;
@@ -216,7 +216,7 @@
   background-size: 22px 22px;
 }
 .african-kente-stripe {
-  background: linear-gradient(90deg, #D65A32 0 28%, #F2A900 28% 50%, #8A3042 50% 74%, #E66A3A 74% 87%, #C92A3E 87% 100%);
+  background: linear-gradient(90deg, #8A3042 0 86%, #F2A900 86% 100%);
 }
 
 @keyframes steam-rise {

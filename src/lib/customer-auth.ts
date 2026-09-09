@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { europeanCountryDialCode } from "@/lib/european-countries";
 import { getSupabaseServerKey } from "@/lib/supabase-server-key";
 
 export const CUSTOMER_ACCESS_COOKIE = "jma-customer-access";
 export const CUSTOMER_REFRESH_COOKIE = "jma-customer-refresh";
 
 export function normalizePhone(value: string) {
+  return normalizePhoneForCountry(value);
+}
+
+export function normalizePhoneForCountry(value: string, country?: string | null) {
   const compact = value.replace(/[\s().-]/g, "");
-  return compact.startsWith("00") ? `+${compact.slice(2)}` : compact;
+  if (compact.startsWith("00")) return `+${compact.slice(2)}`;
+  if (compact.startsWith("+")) return compact;
+  const digits = compact.replace(/\D/g, "");
+  const dialCode = europeanCountryDialCode(country);
+  if (dialCode && digits) return `${dialCode}${digits.replace(/^0+/, "")}`;
+  return compact;
 }
 
 export type CustomerSession = {

@@ -50,8 +50,43 @@ export const EUROPEAN_COUNTRIES: readonly EuropeanCountry[] = [
   { code: "GB", fr: "Royaume-Uni", en: "United Kingdom", postalCodePattern: /^(?:GIR ?0AA|(?:(?:AB|AL|B|BA|BB|BD|BF|BH|BL|BN|BR|BS|BT|BX|CA|CB|CF|CH|CM|CO|CR|CT|CV|CW|DA|DD|DE|DG|DH|DL|DN|DT|DY|E|EC|EH|EN|EX|FK|FY|G|GL|GY|GU|HA|HD|HG|HP|HR|HS|HU|HX|IG|IM|IP|IV|JE|KA|KT|KW|KY|L|LA|LD|LE|LL|LN|LS|LU|M|ME|MK|ML|N|NE|NG|NN|NP|NR|NW|OL|OX|PA|PE|PH|PL|PO|PR|RG|RH|RM|S|SA|SE|SG|SK|SL|SM|SN|SO|SP|SR|SS|ST|SW|SY|TA|TD|TF|TN|TQ|TR|TS|TW|UB|W|WA|WC|WD|WF|WN|WR|WS|WV|YO|ZE)(?:\d[\dA-Z]? ?\d[ABD-HJLN-UW-Z]{2}))|BFPO ?\d{1,4})$/, postalCodeExample: "SW1A 1AA", aliases: ["UK", "Great Britain", "Grande-Bretagne"] },
 ];
 
+export const EUROPEAN_COUNTRY_DIAL_CODES: Record<string, string> = {
+  AT: "+43",
+  BE: "+32",
+  BG: "+359",
+  CH: "+41",
+  CY: "+357",
+  CZ: "+420",
+  DE: "+49",
+  DK: "+45",
+  EE: "+372",
+  ES: "+34",
+  FI: "+358",
+  FR: "+33",
+  GB: "+44",
+  GR: "+30",
+  HR: "+385",
+  HU: "+36",
+  IE: "+353",
+  IS: "+354",
+  IT: "+39",
+  LI: "+423",
+  LT: "+370",
+  LU: "+352",
+  LV: "+371",
+  MT: "+356",
+  NL: "+31",
+  NO: "+47",
+  PL: "+48",
+  PT: "+351",
+  RO: "+40",
+  SE: "+46",
+  SI: "+386",
+  SK: "+421",
+};
+
 export function europeanCountryOptions(locale: "fr" | "en") {
-  return EUROPEAN_COUNTRIES.map((country) => ({ value: country.fr, code: country.code, label: country[locale] }));
+  return EUROPEAN_COUNTRIES.map((country) => ({ value: country.fr, code: country.code, dialCode: EUROPEAN_COUNTRY_DIAL_CODES[country.code], label: country[locale] }));
 }
 
 export function europeanCountryCode(value: unknown) {
@@ -60,6 +95,11 @@ export function europeanCountryCode(value: unknown) {
 
 export function europeanCountryValue(value: unknown) {
   return findCountry(value)?.fr || null;
+}
+
+export function europeanCountryDialCode(value: unknown) {
+  const code = europeanCountryCode(value);
+  return code ? EUROPEAN_COUNTRY_DIAL_CODES[code] || "" : "";
 }
 
 export function europeanCountryLabel(value: unknown, locale: "fr" | "en") {

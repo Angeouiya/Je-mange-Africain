@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EUROPEAN_COUNTRIES, europeanCountryCode, europeanCountryLabel, europeanCountryOptions, europeanCountryValue, normalizeEuropeanPostalCode, validateEuropeanPostalCode } from "./european-countries";
+import { EUROPEAN_COUNTRIES, europeanCountryCode, europeanCountryDialCode, europeanCountryLabel, europeanCountryOptions, europeanCountryValue, normalizeEuropeanPostalCode, validateEuropeanPostalCode } from "./european-countries";
 
 describe("European checkout countries", () => {
   it("covers the EU, EEA, Switzerland and the United Kingdom", () => {
@@ -15,6 +15,8 @@ describe("European checkout countries", () => {
     expect(europeanCountryValue("Germany")).toBe("Allemagne");
     expect(europeanCountryLabel("CH", "fr")).toBe("Suisse");
     expect(europeanCountryLabel("Suisse", "en")).toBe("Switzerland");
+    expect(europeanCountryDialCode("France")).toBe("+33");
+    expect(europeanCountryDialCode("GB")).toBe("+44");
   });
 
   it("accepts the official example format for every supported country", () => {

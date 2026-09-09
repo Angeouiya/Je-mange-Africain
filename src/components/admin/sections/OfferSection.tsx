@@ -14,6 +14,7 @@ import { ShieldCheck as ReShieldCheck } from "reicon/icons/ShieldCheck";
 import { AdminEmptyState, AdminErrorState, AdminPageHeader, AdminRefreshNotice, AdminSearchField, AdminSectionLoading } from "@/components/admin/AdminPrimitives";
 import { ProductCreateDialog } from "@/components/admin/ProductCreateDialog";
 import { RecipeCreateDialog } from "@/components/admin/RecipeCreateDialog";
+import { CategoryImageManager } from "@/components/admin/CategoryImageManager";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -126,6 +127,8 @@ export default function OfferSection({ locale, workspace }: { locale: "fr" | "en
       />
 
       {activeRequest.error && activeRequest.data ? <AdminRefreshNotice locale={locale} message={activeRequest.error} onRetry={activeRequest.refetch} /> : null}
+
+      {workspace === "products" ? <CategoryImageManager locale={locale} /> : null}
 
       <div className="flex flex-col gap-3 border-y border-charcoal/8 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
         {workspace === "products" ? <div className="grid grid-cols-4 divide-x divide-charcoal/8"><RegisterMetric label={isFr ? "Publiés" : "Published"} value={productStats.published} /><RegisterMetric label={isFr ? "Rupture" : "Out"} value={productStats.depleted} attention={productStats.depleted > 0} /><RegisterMetric label={isFr ? "Brouillons" : "Drafts"} value={productStats.draft} /><RegisterMetric label={isFr ? "Désactivés" : "Disabled"} value={productStats.archived} /></div> : <div className="grid grid-cols-4 divide-x divide-charcoal/8"><RegisterMetric label={isFr ? "Publiées" : "Published"} value={recipeStats.published} /><RegisterMetric label={isFr ? "Prêtes" : "Ready"} value={recipeStats.ready} /><RegisterMetric label={isFr ? "À vérifier" : "Review"} value={recipeStats.attention} attention={recipeStats.attention > 0} /><RegisterMetric label={isFr ? "Désactivées" : "Disabled"} value={recipeStats.archived} /></div>}

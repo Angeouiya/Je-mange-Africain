@@ -17,7 +17,7 @@ export function MediaUploadField({
 }: {
   value: string;
   onChange: (url: string, objectPath?: string) => void;
-  kind: "product" | "recipe" | "advertisement" | "brand";
+  kind: "product" | "recipe" | "advertisement" | "brand" | "category";
   locale: string;
   label: string;
   aspect?: "square" | "landscape";

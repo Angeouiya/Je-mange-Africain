@@ -16,6 +16,7 @@ const KIND_MODULE: Record<string, AdminModule> = {
   recipe: "recipes",
   advertisement: "marketing",
   brand: "catalog",
+  category: "catalog",
 };
 
 const extensionFor = (mimeType: string) => ({

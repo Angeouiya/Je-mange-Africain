@@ -34,6 +34,7 @@ import { LanguageSwitch } from "@/components/shared/LanguageSwitch";
 import { AccountWorkspace } from "@/components/storefront/account/AccountWorkspace";
 import { CustomerAuthVisualPanel } from "@/components/storefront/CustomerAuthVisualPanel";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
+import { europeanCountryOptions, europeanCountryValue } from "@/lib/european-countries";
 
 type AuthMode = "login" | "register" | "forgot";
 type AuthStatus = "idle" | "busy" | "error" | "success";
@@ -43,6 +44,7 @@ interface RegistrationState {
   lastName: string;
   email: string;
   phone: string;
+  country: string;
   password: string;
   confirmPassword: string;
   termsAccepted: boolean;
@@ -54,6 +56,7 @@ const EMPTY_REGISTRATION: RegistrationState = {
   lastName: "",
   email: "",
   phone: "",
+  country: "France",
   password: "",
   confirmPassword: "",
   termsAccepted: false,
@@ -69,13 +72,17 @@ export function AccountView() {
   const navigate = useStore((state) => state.navigate);
   const authReturnTarget = useStore((state) => state.authReturnTarget);
   const consumeAuthReturnTarget = useStore((state) => state.consumeAuthReturnTarget);
+  const deliveryCountry = useStore((state) => state.country);
+  const postalCode = useStore((state) => state.postalCode);
+  const setDeliveryContext = useStore((state) => state.setDeliveryContext);
   const params = useStore((state) => state.params);
   const t = dict[locale];
   const isFr = locale === "fr";
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [registration, setRegistration] = useState<RegistrationState>(EMPTY_REGISTRATION);
+  const [authCountry, setAuthCountry] = useState(() => europeanCountryValue(deliveryCountry) || "France");
+  const [registration, setRegistration] = useState<RegistrationState>(() => ({ ...EMPTY_REGISTRATION, country: europeanCountryValue(deliveryCountry) || "France" }));
   const [authStatus, setAuthStatus] = useState<AuthStatus>("idle");
   const [authMessage, setAuthMessage] = useState("");
 
@@ -84,6 +91,7 @@ export function AccountView() {
   const registrationIdentityReady = registration.firstName.trim().length >= 2
     && registration.lastName.trim().length >= 2
     && /^\S+@\S+\.\S+$/.test(registration.email)
+    && Boolean(europeanCountryValue(registration.country))
     && /^\+?[\d\s().-]{8,}$/.test(registration.phone);
   const registrationLegalReady = registration.termsAccepted && registration.privacyAccepted;
   const registrationSteps = [registrationIdentityReady, registrationPasswordsReady, registrationLegalReady];
@@ -118,9 +126,18 @@ export function AccountView() {
     clearFeedback();
   };
 
+  const updateAuthCountry = (value: string) => {
+    setAuthCountry(europeanCountryValue(value) || "France");
+    clearFeedback();
+  };
+
   const updateRegistration = <K extends keyof RegistrationState,>(field: K, value: RegistrationState[K]) => {
     setRegistration((current) => ({ ...current, [field]: value }));
     clearFeedback();
+  };
+
+  const saveCountryContext = (value: string) => {
+    setDeliveryContext(europeanCountryValue(value) || "France", postalCode);
   };
 
   const submitLogin = async (event: FormEvent) => {
@@ -130,7 +147,7 @@ export function AccountView() {
     const response = await fetch("/api/auth/customer/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password }),
+      body: JSON.stringify({ identifier, password, country: authCountry }),
     }).catch(() => null);
     const payload = response ? await response.json().catch(() => ({})) : {};
     if (!response?.ok || !payload.customer) {
@@ -138,6 +155,7 @@ export function AccountView() {
       setAuthMessage(resolveAuthError(payload.error, locale, "Connexion momentanément indisponible.", "Sign-in is temporarily unavailable."));
       return;
     }
+    saveCountryContext(authCountry);
     setCustomer(payload.customer);
     setAddresses(payload.addresses || []);
     mergeSavedItems(payload.favoriteProductIds || [], payload.savedRecipeIds || []);
@@ -167,6 +185,7 @@ export function AccountView() {
       setAuthMessage(resolveAuthError(payload.error, locale, "Inscription momentanément indisponible.", "Registration is temporarily unavailable."));
       return;
     }
+    saveCountryContext(registration.country);
     if (payload.customer) {
       setCustomer(payload.customer);
       setAddresses(payload.addresses || []);
@@ -219,7 +238,7 @@ export function AccountView() {
         <div className="african-kente-stripe fixed inset-x-0 top-0 z-30 h-[3px]" />
         <div className="fixed left-4 top-4 z-30 sm:left-6 sm:top-6 lg:left-auto lg:right-20"><LanguageSwitch compact /></div>
         <DialogClose asChild>
-          <button type="button" disabled={authStatus === "busy"} className="fixed right-4 top-4 z-30 grid h-11 w-11 place-items-center rounded-full border border-burgundy/10 bg-white text-charcoal shadow-[0_10px_28px_-22px_rgba(90,38,50,0.7)] transition hover:border-terre/30 hover:text-terre disabled:opacity-50 sm:right-6 sm:top-6" aria-label={isFr ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
+          <button type="button" disabled={authStatus === "busy"} className="fixed right-4 top-4 z-30 grid h-11 w-11 place-items-center rounded-full border border-burgundy/10 bg-white text-charcoal shadow-[0_10px_28px_-22px_rgba(90,38,50,0.7)] transition hover:border-burgundy/30 hover:text-burgundy disabled:opacity-50 sm:right-6 sm:top-6" aria-label={isFr ? "Fermer la connexion et revenir à la page précédente" : "Close sign-in and return to the previous page"}>
             <ReiconGlyph icon={X} className="h-5 w-5" />
           </button>
         </DialogClose>
@@ -235,11 +254,11 @@ export function AccountView() {
                 </div>
 
                 <div className="flex items-start gap-3.5">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border border-terre/10 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.06))] text-terre">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border border-burgundy/12 bg-white text-burgundy shadow-[0_10px_26px_-22px_rgba(90,38,50,0.58)]">
                     <ReiconGlyph icon={authMode === "register" ? UserAdd : authMode === "forgot" ? Key : LockKeyhole} weight="Filled" className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="mb-1 text-[9px] font-black uppercase text-terre">{isFr ? "Espace client privé" : "Private customer space"}</p>
+                    <p className="mb-1 text-[9px] font-black uppercase text-burgundy">{isFr ? "Espace client privé" : "Private customer space"}</p>
                     <DialogTitle id="customer-auth-title" className="font-display text-[1.7rem] font-semibold leading-[1.08] text-charcoal sm:text-[2rem]">{title}</DialogTitle>
                     <DialogDescription className="mt-2 max-w-lg text-xs leading-5 text-muted-foreground">{description}</DialogDescription>
                   </div>
@@ -248,8 +267,8 @@ export function AccountView() {
                 <AuthSignalRail locale={locale} mode={authMode} completedSteps={completedRegistrationSteps} />
 
                 {params.returnView === "checkout" || authReturnTarget ? (
-                  <div className="mt-5 flex items-start gap-3 rounded-md border border-gold/35 bg-gold/[0.08] p-3 text-charcoal" data-testid="auth-return-context">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-terre"><ReiconGlyph icon={ShoppingBag} weight="Filled" className="h-4 w-4" /></span>
+                  <div className="mt-5 flex items-start gap-3 rounded-md border border-burgundy/15 bg-burgundy/[0.045] p-3 text-charcoal" data-testid="auth-return-context">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-burgundy"><ReiconGlyph icon={ShoppingBag} weight="Filled" className="h-4 w-4" /></span>
                     <div><p className="text-xs font-black">{isFr ? "Connexion requise" : "Sign-in required"}</p><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{isFr ? "Connectez-vous pour continuer cette action dans votre espace sécurisé." : "Sign in to continue this action in your secure space."}</p></div>
                   </div>
                 ) : null}
@@ -265,10 +284,11 @@ export function AccountView() {
                   <div id="customer-login-panel" role="tabpanel" aria-labelledby="customer-login-panel-tab" className="mt-5">
                     <form onSubmit={submitLogin} className="space-y-4" aria-label={isFr ? "Formulaire de connexion" : "Sign-in form"}>
                       <AuthTextField id="customer-identifier" label={isFr ? "E-mail ou numéro de téléphone" : "Email or phone number"} icon={AtSign} autoFocus autoComplete="username" value={identifier} onChange={updateIdentifier} placeholder={isFr ? "vous@exemple.fr ou +33..." : "you@example.com or +44..."} />
+                      <CountrySelect id="customer-auth-country" label={isFr ? "Pays actuel" : "Current country"} value={authCountry} onChange={updateAuthCountry} locale={locale} />
                       <PasswordInput id="customer-password" label={isFr ? "Mot de passe" : "Password"} autoComplete="current-password" value={password} onChange={updatePassword} locale={locale} />
-                      <div className="flex min-h-9 items-center justify-between gap-3"><span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><ReiconGlyph icon={ShieldCheck} weight="Filled" className="h-3.5 w-3.5 text-burgundy" />{isFr ? "Accès chiffré" : "Encrypted access"}</span><button type="button" onClick={() => changeAuthMode("forgot")} className="min-h-9 text-xs font-bold text-terre hover:underline">{isFr ? "Mot de passe oublié ?" : "Forgot password?"}</button></div>
+                      <div className="flex min-h-9 items-center justify-between gap-3"><span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground"><ReiconGlyph icon={ShieldCheck} weight="Filled" className="h-3.5 w-3.5 text-burgundy" />{isFr ? "Accès chiffré" : "Encrypted access"}</span><button type="button" onClick={() => changeAuthMode("forgot")} className="min-h-9 text-xs font-bold text-burgundy hover:underline">{isFr ? "Mot de passe oublié ?" : "Forgot password?"}</button></div>
                       <AuthMessage status={authStatus} message={authMessage} />
-                      <Button type="submit" disabled={authStatus === "busy"} className="min-h-12 w-full justify-between bg-terre px-4 text-white shadow-[0_16px_34px_-24px_rgba(185,71,43,0.9)] hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Connexion..." : "Signing in...") : t.nav.login}</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></Button>
+                      <Button type="submit" disabled={authStatus === "busy"} className="min-h-12 w-full justify-between bg-burgundy px-4 text-white shadow-[0_16px_34px_-24px_rgba(90,38,50,0.8)] hover:bg-burgundy-dark"><span>{authStatus === "busy" ? (isFr ? "Connexion..." : "Signing in...") : t.nav.login}</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></Button>
                       <AuthCapabilityRail locale={locale} />
                     </form>
                   </div>
@@ -286,6 +306,7 @@ export function AccountView() {
                       </div>
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         <AuthTextField id="register-email" label="E-mail" icon={AtSign} type="email" autoComplete="email" value={registration.email} onChange={(value) => updateRegistration("email", value)} />
+                        <CountrySelect id="register-country" label={isFr ? "Pays de connexion" : "Sign-in country"} value={registration.country} onChange={(value) => updateRegistration("country", value)} locale={locale} />
                         <AuthTextField id="register-phone" label={isFr ? "Numéro de téléphone" : "Phone number"} icon={Phone} type="tel" autoComplete="tel" value={registration.phone} onChange={(value) => updateRegistration("phone", value)} placeholder={isFr ? "+33 6 00 00 00 00" : "+44 7 0000 0000"} />
                       </div>
                     </fieldset>
@@ -301,7 +322,7 @@ export function AccountView() {
                       {registration.confirmPassword ? <p aria-live="polite" className={`mt-2 flex min-h-6 items-center gap-1.5 text-[11px] font-semibold ${passwordsMatch ? "text-burgundy" : "text-destructive"}`}>{passwordsMatch ? <ReiconGlyph icon={CheckCircle} weight="Filled" className="h-3.5 w-3.5" /> : <ReiconGlyph icon={X} className="h-3.5 w-3.5" />}{passwordsMatch ? (isFr ? "Les mots de passe correspondent." : "Passwords match.") : (isFr ? "Les mots de passe ne correspondent pas." : "Passwords do not match.")}</p> : null}
                     </fieldset>
 
-                    <fieldset className="min-w-0 rounded-md border border-burgundy/12 bg-[linear-gradient(145deg,rgba(138,48,66,0.045),rgba(242,169,0,0.035))] p-3.5">
+                    <fieldset className="min-w-0 rounded-md border border-burgundy/12 bg-white p-3.5">
                       <legend className="px-1 text-xs font-black text-charcoal">{isFr ? "3. Accords obligatoires" : "3. Required agreements"}</legend>
                       <p className="mb-3 mt-1 px-1 text-[10px] leading-4 text-muted-foreground">{isFr ? "Ces deux validations sont nécessaires pour ouvrir le compte." : "Both confirmations are required to open the account."}</p>
                       <div className="space-y-3">
@@ -311,7 +332,7 @@ export function AccountView() {
                     </fieldset>
 
                       <AuthMessage status={authStatus} message={authMessage} />
-                      <Button type="submit" disabled={authStatus === "busy" || !registrationReady} className="min-h-12 w-full justify-between bg-terre px-4 text-white shadow-[0_16px_34px_-24px_rgba(185,71,43,0.9)] hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Création..." : "Creating...") : (isFr ? "Créer mon compte" : "Create my account")}</span><span className="flex items-center gap-2 text-[10px] font-black"><span>{completedRegistrationSteps}/3</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></span></Button>
+                      <Button type="submit" disabled={authStatus === "busy" || !registrationReady} className="min-h-12 w-full justify-between bg-burgundy px-4 text-white shadow-[0_16px_34px_-24px_rgba(90,38,50,0.8)] hover:bg-burgundy-dark"><span>{authStatus === "busy" ? (isFr ? "Création..." : "Creating...") : (isFr ? "Créer mon compte" : "Create my account")}</span><span className="flex items-center gap-2 text-[10px] font-black"><span>{completedRegistrationSteps}/3</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></span></Button>
                     </form>
                   </div>
                 ) : (
@@ -319,16 +340,16 @@ export function AccountView() {
                     <RecoverySteps locale={locale} />
                     <AuthTextField id="recovery-email" label="E-mail" icon={AtSign} type="email" autoFocus autoComplete="email" value={identifier} onChange={updateIdentifier} placeholder={isFr ? "vous@exemple.fr" : "you@example.com"} />
                     <AuthMessage status={authStatus} message={authMessage} successIcon />
-                    <Button type="submit" disabled={authStatus === "busy" || authStatus === "success"} className="min-h-12 w-full justify-between bg-terre px-4 text-white hover:bg-terre-dark"><span>{authStatus === "busy" ? (isFr ? "Envoi..." : "Sending...") : (isFr ? "Envoyer le lien sécurisé" : "Send secure link")}</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></Button>
-                    <button type="button" onClick={() => changeAuthMode("login")} className="inline-flex min-h-10 items-center gap-1.5 text-xs font-bold text-charcoal hover:text-terre"><ReiconGlyph icon={ArrowLeft} className="h-3.5 w-3.5" />{isFr ? "Retour à la connexion" : "Back to sign in"}</button>
+                    <Button type="submit" disabled={authStatus === "busy" || authStatus === "success"} className="min-h-12 w-full justify-between bg-burgundy px-4 text-white hover:bg-burgundy-dark"><span>{authStatus === "busy" ? (isFr ? "Envoi..." : "Sending...") : (isFr ? "Envoyer le lien sécurisé" : "Send secure link")}</span><ReiconGlyph icon={ArrowRight} className="h-4 w-4" /></Button>
+                    <button type="button" onClick={() => changeAuthMode("login")} className="inline-flex min-h-10 items-center gap-1.5 text-xs font-bold text-charcoal hover:text-burgundy"><ReiconGlyph icon={ArrowLeft} className="h-3.5 w-3.5" />{isFr ? "Retour à la connexion" : "Back to sign in"}</button>
                   </form>
                 )}
 
                 <p className="mt-6 border-t border-charcoal/8 pt-4 text-center text-[10px] leading-5 text-muted-foreground">
                   {isFr ? "L'utilisation de Je mange Africain est régie par nos " : "Using Je mange Africain is governed by our "}
-                  <a href={`${LEGAL_PATHS.terms}?lang=${locale}`} target="_blank" rel="noreferrer" className="font-bold text-terre hover:underline">{isFr ? "conditions générales" : "terms"}</a>
+                  <a href={`${LEGAL_PATHS.terms}?lang=${locale}`} target="_blank" rel="noreferrer" className="font-bold text-burgundy hover:underline">{isFr ? "conditions générales" : "terms"}</a>
                   {isFr ? " et notre " : " and "}
-                  <a href={`${LEGAL_PATHS.privacy}?lang=${locale}`} target="_blank" rel="noreferrer" className="font-bold text-terre hover:underline">{isFr ? "politique de confidentialité" : "privacy policy"}</a>.
+                  <a href={`${LEGAL_PATHS.privacy}?lang=${locale}`} target="_blank" rel="noreferrer" className="font-bold text-burgundy hover:underline">{isFr ? "politique de confidentialité" : "privacy policy"}</a>.
                 </p>
               </section>
             </div>
@@ -347,10 +368,10 @@ function AuthSignalRail({ locale, mode, completedSteps }: { locale: "fr" | "en";
     { icon: mode === "register" ? CheckCircle : Envelope, label: isFr ? "Parcours" : "Flow", value: mode === "register" ? `${completedSteps}/3` : (isFr ? "clair" : "clear") },
   ];
   return (
-    <div className="mt-5 grid grid-cols-3 divide-x divide-burgundy/8 border-y border-burgundy/8 bg-[#FFFCFA]" data-testid="customer-auth-signal-rail" aria-label={isFr ? "Repères de l'espace client" : "Customer space signals"}>
+    <div className="mt-5 grid grid-cols-3 divide-x divide-burgundy/8 border-y border-burgundy/8 bg-white" data-testid="customer-auth-signal-rail" aria-label={isFr ? "Repères de l'espace client" : "Customer space signals"}>
       {items.map((item) => (
         <div key={item.label} className="min-w-0 px-2.5 py-3">
-          <ReiconGlyph icon={item.icon} weight="Filled" className="h-4 w-4 text-terre" />
+          <ReiconGlyph icon={item.icon} weight="Filled" className="h-4 w-4 text-burgundy" />
           <span className="mt-1.5 block truncate text-[9px] font-black uppercase text-burgundy">{item.label}</span>
           <span className="mt-0.5 block truncate text-[10px] font-bold text-charcoal">{item.value}</span>
         </div>
@@ -360,11 +381,35 @@ function AuthSignalRail({ locale, mode, completedSteps }: { locale: "fr" | "en";
 }
 
 function AuthTab({ selected, label, icon: Icon, controls, onClick }: { selected: boolean; label: string; icon: IconFunction; controls: string; onClick: () => void }) {
-  return <button id={`${controls}-tab`} type="button" role="tab" aria-selected={selected} aria-controls={controls} onClick={onClick} className={`relative flex min-h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-bold transition ${selected ? "border border-terre/12 bg-white text-charcoal shadow-[0_8px_22px_-20px_rgba(90,38,50,0.7)]" : "text-muted-foreground hover:bg-white/55 hover:text-charcoal"}`}><ReiconGlyph icon={Icon} weight={selected ? "Filled" : "Outline"} className={`h-4 w-4 ${selected ? "text-terre" : ""}`} />{label}{selected ? <span className="absolute inset-x-8 bottom-0 h-0.5 rounded-full bg-gold" aria-hidden="true" /> : null}</button>;
+  return <button id={`${controls}-tab`} type="button" role="tab" aria-selected={selected} aria-controls={controls} onClick={onClick} className={`relative flex min-h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-bold transition ${selected ? "border border-burgundy/12 bg-white text-charcoal shadow-[0_8px_22px_-20px_rgba(90,38,50,0.62)]" : "text-muted-foreground hover:bg-white/55 hover:text-charcoal"}`}><ReiconGlyph icon={Icon} weight={selected ? "Filled" : "Outline"} className={`h-4 w-4 ${selected ? "text-burgundy" : ""}`} />{label}{selected ? <span className="absolute inset-x-8 bottom-0 h-0.5 rounded-full bg-burgundy" aria-hidden="true" /> : null}</button>;
 }
 
 function AuthTextField({ id, label, icon: Icon, type = "text", autoComplete, value, onChange, placeholder, autoFocus = false }: { id: string; label: string; icon: IconFunction; type?: string; autoComplete?: string; value: string; onChange: (value: string) => void; placeholder?: string; autoFocus?: boolean }) {
-  return <div className="min-w-0"><Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label><div className="relative"><ReiconGlyph icon={Icon} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" /><Input id={id} type={type} autoFocus={autoFocus} autoComplete={autoComplete} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-11 rounded-md border-charcoal/10 bg-white pl-9 focus:border-terre" required /></div></div>;
+  return <div className="min-w-0"><Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label><div className="relative"><ReiconGlyph icon={Icon} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-burgundy" /><Input id={id} type={type} autoFocus={autoFocus} autoComplete={autoComplete} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-11 rounded-md border-charcoal/10 bg-white pl-9 focus:border-burgundy" required /></div></div>;
+}
+
+function CountrySelect({ id, label, value, onChange, locale }: { id: string; label: string; value: string; onChange: (value: string) => void; locale: "fr" | "en" }) {
+  const options = europeanCountryOptions(locale);
+  const selected = options.find((country) => country.value === value);
+  return (
+    <div className="min-w-0">
+      <Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label>
+      <div className="relative">
+        <ReiconGlyph icon={MapPoint} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-burgundy" />
+        <select
+          id={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-11 w-full appearance-none rounded-md border border-charcoal/10 bg-white py-0 pl-9 pr-16 text-sm font-semibold text-charcoal outline-none transition focus:border-burgundy focus:ring-2 focus:ring-burgundy/18"
+          required
+        >
+          {options.map((country) => <option key={country.code} value={country.value}>{country.label}</option>)}
+        </select>
+        <span className="pointer-events-none absolute right-8 top-1/2 -translate-y-1/2 text-[10px] font-black text-burgundy">{selected?.dialCode}</span>
+        <span className="pointer-events-none absolute right-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rotate-45 border-b border-r border-charcoal/45" aria-hidden="true" />
+      </div>
+    </div>
+  );
 }
 
 function LegalCheckbox({ id, checked, onCheckedChange, label, linkLabel, href }: { id: string; checked: boolean; onCheckedChange: (checked: boolean) => void; label: string; linkLabel: string; href: string }) {
@@ -373,7 +418,7 @@ function LegalCheckbox({ id, checked, onCheckedChange, label, linkLabel, href }:
       <Checkbox id={id} checked={checked} onCheckedChange={(value) => onCheckedChange(value === true)} className="mt-0.5" required />
       <label htmlFor={id} className="min-w-0 text-[11px] leading-5 text-charcoal">
         {label}{" "}
-        <a href={href} target="_blank" rel="noreferrer" className="font-bold text-terre hover:underline" onClick={(event) => event.stopPropagation()}>{linkLabel}</a>
+        <a href={href} target="_blank" rel="noreferrer" className="font-bold text-burgundy hover:underline" onClick={(event) => event.stopPropagation()}>{linkLabel}</a>
       </label>
     </div>
   );
@@ -386,9 +431,9 @@ function PasswordInput({ id, label, autoComplete, value, onChange, locale }: { i
     <div className="min-w-0">
       <Label htmlFor={id} className="mb-1.5 block text-xs font-bold text-charcoal">{label}</Label>
       <div className="relative">
-        <ReiconGlyph icon={LockKeyhole} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-terre" />
-        <Input id={id} type={visible ? "text" : "password"} autoComplete={autoComplete} minLength={8} value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-md border-charcoal/10 bg-white pl-9 pr-11 focus:border-terre" required />
-        <button type="button" onClick={() => setVisible((current) => !current)} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground transition hover:text-terre" aria-label={actionLabel} title={actionLabel}><ReiconGlyph icon={visible ? EyeOff : Eye} className="h-4 w-4" /></button>
+        <ReiconGlyph icon={LockKeyhole} weight="Filled" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-burgundy" />
+        <Input id={id} type={visible ? "text" : "password"} autoComplete={autoComplete} minLength={8} value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-md border-charcoal/10 bg-white pl-9 pr-11 focus:border-burgundy" required />
+        <button type="button" onClick={() => setVisible((current) => !current)} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground transition hover:text-burgundy" aria-label={actionLabel} title={actionLabel}><ReiconGlyph icon={visible ? EyeOff : Eye} className="h-4 w-4" /></button>
       </div>
     </div>
   );
@@ -400,8 +445,8 @@ function RegistrationProgress({ locale, steps }: { locale: "fr" | "en"; steps: b
   const completed = steps.filter(Boolean).length;
   const progress = Math.round((completed / steps.length) * 100);
   return (
-    <section className="rounded-md border border-burgundy/10 bg-[#FFFCFA] p-3" aria-labelledby="registration-progress-title" data-testid="registration-progress">
-      <div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase text-terre">{isFr ? "Ouverture du compte" : "Account setup"}</p><h2 id="registration-progress-title" className="mt-0.5 text-xs font-black text-charcoal">{completed === 3 ? (isFr ? "Votre dossier est prêt" : "Your details are ready") : (isFr ? `${completed} étape(s) sur 3` : `${completed} of 3 steps`)}</h2></div><span className="text-sm font-black tabular-nums text-burgundy">{progress}%</span></div>
+    <section className="rounded-md border border-burgundy/10 bg-white p-3" aria-labelledby="registration-progress-title" data-testid="registration-progress">
+      <div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Ouverture du compte" : "Account setup"}</p><h2 id="registration-progress-title" className="mt-0.5 text-xs font-black text-charcoal">{completed === 3 ? (isFr ? "Votre dossier est prêt" : "Your details are ready") : (isFr ? `${completed} étape(s) sur 3` : `${completed} of 3 steps`)}</h2></div><span className="text-sm font-black tabular-nums text-burgundy">{progress}%</span></div>
       <div className="mt-3 grid grid-cols-3 gap-1.5" role="progressbar" aria-label={isFr ? "Progression de l'inscription" : "Registration progress"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
         {steps.map((complete, index) => <div key={labels[index]} className={`min-w-0 rounded-md border px-2 py-2 ${complete ? "border-burgundy/15 bg-burgundy/[0.065]" : "border-charcoal/8 bg-white"}`}><span className={`grid h-5 w-5 place-items-center rounded-md ${complete ? "bg-burgundy text-white" : "bg-muted text-muted-foreground"}`}>{complete ? <ReiconGlyph icon={Check} className="h-3 w-3" /> : <span className="text-[9px] font-black">{index + 1}</span>}</span><span className="mt-1.5 block truncate text-[9px] font-black text-charcoal">{labels[index]}</span></div>)}
       </div>
@@ -413,7 +458,7 @@ function PasswordStrength({ password, locale }: { password: string; locale: "fr"
   const isFr = locale === "fr";
   const score = [password.length >= 8, password.length >= 12, /[A-Za-z]/.test(password) && /\d/.test(password), /[^A-Za-z\d]/.test(password)].filter(Boolean).length;
   const level = score >= 4 ? (isFr ? "Très solide" : "Very strong") : score >= 3 ? (isFr ? "Solide" : "Strong") : score >= 2 ? (isFr ? "Correct" : "Fair") : (isFr ? "À renforcer" : "Needs strengthening");
-  return <div className="mt-3" aria-live="polite"><div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground"><span>{isFr ? "Force du mot de passe" : "Password strength"}</span><span className={score >= 3 ? "text-burgundy" : "text-terre"}>{password ? level : (isFr ? "8 caractères minimum" : "8 characters minimum")}</span></div><div className="mt-1.5 grid grid-cols-4 gap-1" aria-hidden="true">{Array.from({ length: 4 }).map((_, index) => <span key={index} className={`h-1 rounded-full ${index < score ? (score >= 3 ? "bg-burgundy" : "bg-terre") : "bg-muted"}`} />)}</div></div>;
+  return <div className="mt-3" aria-live="polite"><div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground"><span>{isFr ? "Force du mot de passe" : "Password strength"}</span><span className={score >= 3 ? "text-burgundy" : "text-muted-foreground"}>{password ? level : (isFr ? "8 caractères minimum" : "8 characters minimum")}</span></div><div className="mt-1.5 grid grid-cols-4 gap-1" aria-hidden="true">{Array.from({ length: 4 }).map((_, index) => <span key={index} className={`h-1 rounded-full ${index < score ? "bg-burgundy" : "bg-muted"}`} />)}</div></div>;
 }
 
 function AuthCapabilityRail({ locale }: { locale: "fr" | "en" }) {
@@ -423,7 +468,7 @@ function AuthCapabilityRail({ locale }: { locale: "fr" | "en" }) {
     { icon: BookBookmark, label: isFr ? "Favoris" : "Saved" },
     { icon: MapPoint, label: isFr ? "Adresses" : "Addresses" },
   ];
-  return <div className="grid grid-cols-3 divide-x divide-charcoal/8 border-y border-charcoal/8 py-3" aria-label={isFr ? "Services liés au compte" : "Account services"}>{items.map((item) => <div key={item.label} className="min-w-0 px-2 text-center"><ReiconGlyph icon={item.icon} weight="Filled" className="mx-auto h-4 w-4 text-terre" /><span className="mt-1 block truncate text-[9px] font-black text-charcoal">{item.label}</span></div>)}</div>;
+  return <div className="grid grid-cols-3 divide-x divide-charcoal/8 border-y border-charcoal/8 py-3" aria-label={isFr ? "Services liés au compte" : "Account services"}>{items.map((item) => <div key={item.label} className="min-w-0 px-2 text-center"><ReiconGlyph icon={item.icon} weight="Filled" className="mx-auto h-4 w-4 text-burgundy" /><span className="mt-1 block truncate text-[9px] font-black text-charcoal">{item.label}</span></div>)}</div>;
 }
 
 function RecoverySteps({ locale }: { locale: "fr" | "en" }) {
@@ -433,7 +478,7 @@ function RecoverySteps({ locale }: { locale: "fr" | "en" }) {
     { icon: Envelope, title: isFr ? "Ouvrez le lien" : "Open the link", detail: isFr ? "Lien personnel" : "Personal link" },
     { icon: ShieldCheck, title: isFr ? "Choisissez le mot de passe" : "Choose the password", detail: isFr ? "Accès renouvelé" : "Access restored" },
   ];
-  return <div className="grid grid-cols-3 gap-2" aria-label={isFr ? "Étapes de récupération" : "Recovery steps"}>{steps.map((step, index) => <div key={step.title} className="min-w-0 rounded-md border border-charcoal/8 bg-[#FFFCFA] p-2.5"><span className="flex items-center justify-between"><ReiconGlyph icon={step.icon} weight="Filled" className="h-4 w-4 text-terre" /><span className="text-[9px] font-black text-burgundy">0{index + 1}</span></span><span className="mt-2 block text-[10px] font-black leading-4 text-charcoal">{step.title}</span><span className="mt-0.5 block text-[8px] leading-3 text-muted-foreground">{step.detail}</span></div>)}</div>;
+  return <div className="grid grid-cols-3 gap-2" aria-label={isFr ? "Étapes de récupération" : "Recovery steps"}>{steps.map((step, index) => <div key={step.title} className="min-w-0 rounded-md border border-charcoal/8 bg-white p-2.5"><span className="flex items-center justify-between"><ReiconGlyph icon={step.icon} weight="Filled" className="h-4 w-4 text-burgundy" /><span className="text-[9px] font-black text-burgundy">0{index + 1}</span></span><span className="mt-2 block text-[10px] font-black leading-4 text-charcoal">{step.title}</span><span className="mt-0.5 block text-[8px] leading-3 text-muted-foreground">{step.detail}</span></div>)}</div>;
 }
 
 function AuthMessage({ status, message, successIcon = false }: { status: AuthStatus; message: string; successIcon?: boolean }) {

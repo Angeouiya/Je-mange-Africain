@@ -43,13 +43,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fr_FR",
     alternateLocale: ["en_US"],
-    images: [{ url: "/hero-feast-v2.webp", alt: "Cuisine africaine authentique Je mange Africain" }],
+    images: [{ url: "/hero-market-spices-real.jpg", alt: "Marché africain d'épices et de condiments Je mange Africain" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Je mange Africain",
     description: "Authentic African cooking essentials, delivered to your door.",
-    images: ["/hero-feast-v2.webp"],
+    images: ["/hero-market-spices-real.jpg"],
   },
   alternates: {
     languages: { "fr-FR": "/", "en-GB": "/?lang=en", "x-default": "/" },

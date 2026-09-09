@@ -45,7 +45,7 @@ import type { AdminSectionId, DashboardPayload } from "@/components/admin/admin-
 import { useFetch } from "@/lib/use-fetch";
 import { ADMIN_DATA_TTL_MS, adminPredictiveSections, prefetchAdminSectionData } from "@/lib/admin-prefetch";
 import { hasAdminPermission, type AdminModule } from "@/lib/admin-permissions";
-import { BRAND_COLORS, getBrandAccentForeground, getReadableBrandAccent } from "@/lib/brand-colors";
+import { BRAND_COLORS } from "@/lib/brand-colors";
 
 type IdleWindow = Window & typeof globalThis & {
   requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
@@ -333,7 +333,7 @@ export function AdminView({
     <div className="min-h-dvh bg-white text-charcoal md:flex">
       <aside
         data-testid="admin-sidebar"
-        className={`fixed inset-y-0 left-0 z-50 flex w-[18.5rem] transform flex-col border-r border-burgundy/10 bg-[#FFFCFA] text-charcoal shadow-2xl transition-transform duration-300 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:shadow-[12px_0_36px_-32px_rgba(90,38,50,0.35)] ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[18.5rem] transform flex-col border-r border-burgundy/10 bg-white text-charcoal shadow-2xl transition-transform duration-300 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:shadow-[12px_0_36px_-32px_rgba(90,38,50,0.35)] ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-hidden={!isDesktop && !sidebarOpen}
         inert={!isDesktop && !sidebarOpen ? true : undefined}
       >
@@ -349,9 +349,9 @@ export function AdminView({
           {availableGroups.map((group, groupIndex) => (
             <div key={group.labelFr} className="mt-4 first:mt-1">
               <div className="flex items-center gap-2 px-3">
-                <span className="text-[9px] font-black tabular-nums text-terre">{String(groupIndex + 1).padStart(2, "0")}</span>
+                <span className="text-[9px] font-black tabular-nums text-burgundy">{String(groupIndex + 1).padStart(2, "0")}</span>
                 <p className="text-[9px] font-extrabold uppercase text-burgundy">{isFr ? group.labelFr : group.labelEn}</p>
-                <span className="ml-auto text-[8px] font-bold uppercase text-terre">{isFr ? group.verbFr : group.verbEn}</span>
+                <span className="ml-auto text-[8px] font-bold uppercase text-burgundy/70">{isFr ? group.verbFr : group.verbEn}</span>
               </div>
               <div className="mt-1.5 space-y-1">
                 {group.items.map((item) => {
@@ -369,16 +369,16 @@ export function AdminView({
                       data-active={active ? "true" : "false"}
                       className={`group relative isolate flex min-h-[3.1rem] w-full items-center gap-2.5 overflow-hidden rounded-md px-2.5 py-2 text-left transition-all ${active ? "text-charcoal shadow-[0_12px_28px_-24px_rgba(90,38,50,0.72)]" : "text-charcoal hover:bg-burgundy/[0.045]"}`}
                     >
-                      {active ? <motion.span layoutId="admin-sidebar-active" className="absolute inset-0 -z-10 border border-burgundy/10 bg-[linear-gradient(105deg,rgba(255,255,255,1),rgba(185,71,43,0.07))]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
+                      {active ? <motion.span layoutId="admin-sidebar-active" className="absolute inset-0 -z-10 border border-burgundy/12 bg-white shadow-[0_12px_28px_-24px_rgba(90,38,50,0.52)]" transition={{ type: "spring", stiffness: 420, damping: 38 }} /> : null}
                       {active ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full" style={{ backgroundColor: item.accent }} aria-hidden="true" /> : null}
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? item.accent : `${item.accent}16`, color: active ? getBrandAccentForeground(item.accent) : getReadableBrandAccent(item.accent) }}>
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md transition-transform duration-200 group-hover:scale-[1.04]" style={{ backgroundColor: active ? BRAND_COLORS.burgundy : `${BRAND_COLORS.burgundy}10`, color: active ? "#FFFFFF" : BRAND_COLORS.burgundy }}>
                         <ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[17px] w-[17px]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[12px] font-extrabold">{isFr ? item.labelFr : item.labelEn}</span>
                         <span className="mt-0.5 block truncate text-[9px] leading-4 text-muted-foreground">{isFr ? item.purposeFr : item.purposeEn}</span>
                       </span>
-                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded px-1.5 py-1 text-[10px] font-black tabular-nums" style={{ backgroundColor: `${item.accent}18`, color: getReadableBrandAccent(item.accent) }}>{count}</span> : active ? <span className="text-[8px] font-black tabular-nums" style={{ color: getReadableBrandAccent(item.accent) }}>{item.marker}</span> : <ReiconGlyph icon={AngleRight} className="h-4 w-4 text-charcoal/20" />}
+                      {count > 0 ? <span className="grid min-w-6 place-items-center rounded bg-burgundy/[0.08] px-1.5 py-1 text-[10px] font-black tabular-nums text-burgundy">{count}</span> : active ? <span className="text-[8px] font-black tabular-nums text-burgundy">{item.marker}</span> : <ReiconGlyph icon={AngleRight} className="h-4 w-4 text-charcoal/20" />}
                     </button>
                   );
                 })}
@@ -388,7 +388,7 @@ export function AdminView({
         </nav>
 
         <div className="border-t border-burgundy/10 bg-white/70 p-3">
-          <div className="mb-2 flex items-center gap-3 border-l-2 border-terre bg-white px-3 py-2.5">
+          <div className="mb-2 flex items-center gap-3 border-l-2 border-burgundy bg-white px-3 py-2.5">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-burgundy text-xs font-black text-white">{(adminEmail || "J").slice(0, 1).toUpperCase()}</span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[11px] font-bold text-charcoal">{adminEmail || (isFr ? "Session professionnelle" : "Professional session")}</p>
@@ -404,7 +404,7 @@ export function AdminView({
             </Button>
             {onLogout ? (
               <AlertDialog>
-                <AlertDialogTrigger asChild><Button type="button" variant="ghost" data-testid="admin-logout-trigger" aria-label={isFr ? "Se déconnecter de la console professionnelle" : "Sign out of the professional console"} className="h-9 min-w-0 justify-start px-2 text-[10px] text-terre hover:bg-terre/5"><ReiconGlyph icon={LogOut} className="mr-1.5 h-3.5 w-3.5 shrink-0" /> <span className="truncate">{isFr ? "Se déconnecter" : "Sign out"}</span></Button></AlertDialogTrigger>
+                <AlertDialogTrigger asChild><Button type="button" variant="ghost" data-testid="admin-logout-trigger" aria-label={isFr ? "Se déconnecter de la console professionnelle" : "Sign out of the professional console"} className="h-9 min-w-0 justify-start px-2 text-[10px] text-burgundy hover:bg-burgundy/5"><ReiconGlyph icon={LogOut} className="mr-1.5 h-3.5 w-3.5 shrink-0" /> <span className="truncate">{isFr ? "Se déconnecter" : "Sign out"}</span></Button></AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <span className="mb-1 grid h-11 w-11 place-items-center rounded-md bg-destructive/[0.07] text-destructive"><ReiconGlyph icon={LogOut} className="h-5 w-5" /></span>
@@ -423,7 +423,7 @@ export function AdminView({
 
       <div className="min-w-0 flex-1 pb-20 md:pb-0">
         <header className="sticky top-0 z-30 flex h-[4.5rem] items-center border-b bg-white/[0.97] px-4 shadow-[0_12px_28px_-28px_rgba(90,38,50,0.55)] backdrop-blur-xl sm:px-6 lg:px-8" style={{ borderBottomColor: `${current.accent}35` }}>
-          <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-terre/12 bg-[linear-gradient(145deg,rgba(185,71,43,0.09),rgba(242,169,0,0.05))] text-charcoal transition hover:text-terre md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><ReiconGlyph icon={Menu} className="h-[1.15rem] w-[1.15rem]" /></button>
+          <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} className="mr-3 grid h-10 w-10 place-items-center rounded-md border border-burgundy/12 bg-white text-charcoal transition hover:text-burgundy md:hidden" aria-label={isFr ? "Ouvrir la navigation" : "Open navigation"}><ReiconGlyph icon={Menu} className="h-[1.15rem] w-[1.15rem]" /></button>
           <span className="mr-3 hidden h-9 w-9 shrink-0 place-items-center rounded-md text-white sm:grid" style={{ backgroundColor: current.accent }}><ReiconGlyph icon={current.icon} weight="Filled" className="h-[18px] w-[18px]" /></span>
           <div className="min-w-0 flex-1">
             <p className="hidden truncate text-[8px] font-black uppercase text-muted-foreground sm:block">{current.marker} · {isFr ? currentGroup?.labelFr : currentGroup?.labelEn}</p>
@@ -461,19 +461,19 @@ export function AdminView({
           const active = section === item.id;
           const count = badgeFor(item.id);
           return (
-            <button key={item.id} type="button" onClick={() => selectSection(item.id)} onPointerEnter={() => preloadAdminSectionCluster(item.id)} onFocus={() => preloadAdminSectionCluster(item.id)} onTouchStart={() => preloadAdminSectionCluster(item.id)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-terre" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
-              {active ? <motion.span layoutId="admin-mobile-nav-active" className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-terre/15 bg-[linear-gradient(145deg,rgba(185,71,43,0.12),rgba(242,169,0,0.07))] shadow-[0_8px_22px_-18px_rgba(185,71,43,0.85)]" transition={{ type: "spring", stiffness: 460, damping: 38 }} /> : null}
-              <span className="relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95" style={{ color: active ? item.accent : undefined }}><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" />{count > 0 ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">{count > 99 ? "99+" : count}</span> : null}</span>
+            <button key={item.id} type="button" onClick={() => selectSection(item.id)} onPointerEnter={() => preloadAdminSectionCluster(item.id)} onFocus={() => preloadAdminSectionCluster(item.id)} onTouchStart={() => preloadAdminSectionCluster(item.id)} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${active ? "text-burgundy" : "text-muted-foreground hover:text-charcoal"}`} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
+              {active ? <motion.span layoutId="admin-mobile-nav-active" className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-burgundy/14 bg-white shadow-[0_8px_22px_-19px_rgba(90,38,50,0.55)]" transition={{ type: "spring", stiffness: 460, damping: 38 }} /> : null}
+              <span className="relative grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95 text-current"><ReiconGlyph icon={item.icon} weight={active ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" />{count > 0 ? <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-burgundy px-1 text-[8px] font-black text-white">{count > 99 ? "99+" : count}</span> : null}</span>
               <span className="block max-w-full break-words text-center leading-[1.05]">{isFr ? item.mobileFr : item.mobileEn}</span>
-              {active ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-gold" aria-hidden="true" /> : null}
+              {active ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-burgundy" aria-hidden="true" /> : null}
             </button>
           );
         })}
         <button type="button" onClick={() => setSidebarOpen(true)} onPointerEnter={preloadAvailableSections} onFocus={preloadAvailableSections} onTouchStart={preloadAvailableSections} aria-expanded={sidebarOpen} data-testid="admin-mobile-more" data-active={moreActive ? "true" : "false"} className={`group relative isolate flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-extrabold transition-colors ${moreActive ? "text-burgundy" : "text-muted-foreground hover:text-charcoal"}`}>
-          {moreActive ? <span className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-burgundy/15 bg-[linear-gradient(145deg,rgba(138,48,66,0.11),rgba(242,169,0,0.06))]" /> : null}
+          {moreActive ? <span className="absolute inset-x-1.5 inset-y-1 -z-10 rounded-md border border-burgundy/14 bg-white shadow-[0_8px_22px_-19px_rgba(90,38,50,0.55)]" /> : null}
           <span className="grid h-7 w-8 place-items-center rounded-md transition-transform duration-200 group-active:scale-95"><ReiconGlyph icon={Menu} weight={moreActive ? "Filled" : "Outline"} className="h-[1.18rem] w-[1.18rem]" /></span>
           <span>{isFr ? "Plus" : "More"}</span>
-          {moreActive ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-gold" aria-hidden="true" /> : null}
+          {moreActive ? <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-burgundy" aria-hidden="true" /> : null}
         </button>
       </nav>
     </div>

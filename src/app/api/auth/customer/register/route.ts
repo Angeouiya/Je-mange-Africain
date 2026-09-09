@@ -1,27 +1,54 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSupabaseCustomerConfig, normalizePhone, setCustomerCookies, toCustomerSession } from "@/lib/customer-auth";
+import { getSupabaseCustomerConfig, normalizePhoneForCountry, setCustomerCookies, toCustomerSession } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { enforceRateLimit } from "@/lib/redis";
 import { loadCustomerAccount } from "@/lib/customer-account";
 import { supabaseApiHeaders } from "@/lib/supabase-server-key";
+import { europeanCountryValue } from "@/lib/european-countries";
 
 export const dynamic = "force-dynamic";
 
-const Registration = z.object({
+const RegistrationInput = z.object({
   firstName: z.string().trim().min(2).max(80),
   lastName: z.string().trim().min(2).max(80),
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
-  phone: z.string().trim().transform(normalizePhone).pipe(z.string().regex(/^\+[1-9]\d{7,14}$/)),
+  phone: z.string().trim().min(6).max(32),
+  country: z.string().trim().min(2).max(80),
   password: z.string().min(8).max(256),
   confirmPassword: z.string().min(8).max(256),
   termsAccepted: z.literal(true),
   privacyAccepted: z.literal(true),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Les mots de passe ne correspondent pas.",
-  path: ["confirmPassword"],
 });
+
+const Registration = RegistrationInput.superRefine((data, ctx) => {
+  if (data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Les mots de passe ne correspondent pas.",
+      path: ["confirmPassword"],
+    });
+  }
+  if (!europeanCountryValue(data.country)) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Ce pays n'est pas encore desservi.",
+      path: ["country"],
+    });
+  }
+  if (!/^\+[1-9]\d{7,14}$/.test(normalizePhoneForCountry(data.phone, data.country))) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Numéro de téléphone invalide pour le pays choisi.",
+      path: ["phone"],
+    });
+  }
+}).transform((data) => ({
+  ...data,
+  country: europeanCountryValue(data.country) || data.country,
+  phone: normalizePhoneForCountry(data.phone, data.country),
+}));
 
 export async function POST(request: Request) {
   const limited = await enforceRateLimit(request, "register", undefined, { scopes: ["ip", "global"] });
@@ -47,6 +74,7 @@ export async function POST(request: Request) {
     first_name: parsed.data.firstName,
     last_name: parsed.data.lastName,
     phone: parsed.data.phone,
+    country: parsed.data.country,
     role: "customer",
     terms_version: TERMS_VERSION,
     privacy_version: PRIVACY_VERSION,
