@@ -390,7 +390,7 @@ function MarketAbundanceShelf({ title, intent, locale, onSelect, onWarm }: { tit
           {locale === "fr" ? "Explorer" : "Explore"} <ReiconGlyph icon={ArrowRight} className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-12 md:px-0">
+      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:h-[19.25rem] md:grid-cols-6 md:grid-rows-2 md:overflow-hidden md:px-0">
         {items.map((item, index) => (
           <motion.button
             key={`${item.src}-${item.label}`}
@@ -402,13 +402,13 @@ function MarketAbundanceShelf({ title, intent, locale, onSelect, onWarm }: { tit
             onPointerEnter={() => onWarm(item.view, item.params)}
             onFocus={() => onWarm(item.view, item.params)}
             onTouchStart={() => onWarm(item.view, item.params)}
-            className={`group relative shrink-0 snap-start overflow-hidden rounded-md border border-white bg-white text-left shadow-[0_18px_46px_-36px_rgba(138,48,66,0.5)] outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-burgundy/45 ${item.featured ? "h-[11rem] w-[17.5rem] md:col-span-4 md:h-[19.25rem] md:w-auto" : "h-[8.7rem] w-[8.7rem] md:col-span-2 md:h-[9.1rem] md:w-auto"}`}
+            className={`group relative shrink-0 snap-start overflow-hidden rounded-md border border-white bg-white text-left shadow-[0_18px_46px_-36px_rgba(138,48,66,0.5)] outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-burgundy/45 ${item.featured ? "h-[11rem] w-[17.5rem] md:col-span-1 md:row-span-1 md:h-full md:w-auto" : "h-[8.7rem] w-[8.7rem] md:col-span-1 md:h-full md:w-auto"}`}
             aria-label={locale === "fr" ? `Voir ${item.label}` : `View ${item.label}`}
           >
-            <Image src={item.src} alt="" fill sizes={item.featured ? "(min-width: 768px) 34vw, 17.5rem" : "(min-width: 768px) 16vw, 8.7rem"} className="object-cover transition duration-500 group-hover:scale-[1.04]" />
+            <Image src={item.src} alt="" fill sizes={item.featured ? "(min-width: 768px) 16vw, 17.5rem" : "(min-width: 768px) 16vw, 8.7rem"} className="object-cover transition duration-500 group-hover:scale-[1.04]" />
             <span className="absolute inset-0 bg-gradient-to-t from-burgundy/80 via-burgundy/16 to-transparent" />
             <span className="absolute inset-x-0 bottom-0 block p-2.5 text-white">
-              <strong className={`${item.featured ? "text-base md:text-xl" : "text-[11px] md:text-xs"} block line-clamp-2 font-black leading-tight`}>{item.label}</strong>
+              <strong className={`${item.featured ? "text-base md:text-sm" : "text-[11px] md:text-xs"} block line-clamp-2 font-black leading-tight`}>{item.label}</strong>
               <span className="mt-0.5 block truncate text-[9px] font-semibold text-white/82">{item.detail}</span>
             </span>
           </motion.button>
