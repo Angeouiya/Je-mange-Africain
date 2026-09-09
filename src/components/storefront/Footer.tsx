@@ -95,6 +95,7 @@ export function Footer() {
             {legalLinks.map(([label, view, params]) => (
               <li key={label}><button onClick={() => go(view, params)} className="transition hover:text-terre hover:underline">{label}</button></li>
             ))}
+            <li><a href="/image-credits.txt" target="_blank" rel="noreferrer" className="transition hover:text-terre hover:underline">{locale === "fr" ? "Crédits images" : "Image credits"}</a></li>
             <li><button type="button" onClick={requestPrivacyPreferences} className="inline-flex items-center gap-1.5 font-bold text-burgundy transition hover:text-terre hover:underline"><ReiconGlyph icon={SliderHorizontal} className="h-3.5 w-3.5" />{locale === "fr" ? "Gérer mes choix" : "Manage my choices"}</button></li>
           </ul>
         </div>

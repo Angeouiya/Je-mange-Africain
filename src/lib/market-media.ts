@@ -28,20 +28,17 @@ type MarketSubject = {
   promoPrice?: number | null;
 };
 
-const unsplash = (id: string, width = 1200) =>
-  `https://images.unsplash.com/photo-${id}?ixlib=rb-4.0.3&auto=format&fit=crop&w=${width}&q=78`;
-
 export const MARKET_PHOTOS = {
   africanMarket: "/hero-market-spices-real.jpg",
-  produceMarket: unsplash("1542838132-92c53300491e"),
-  spiceVendor: unsplash("1566385101042-1a0aa0c1268c"),
+  produceMarket: "/hero-market-spices-real.jpg",
+  spiceVendor: "/hero-market-spices-real.jpg",
   spiceBowls: "/hero-market-spices-real.jpg",
   cassava: "/products/gari-blanc.webp",
   plantain: "/products/banane-plantain.webp",
   okra: "/products/gombo-frais.webp",
   peanuts: "/products/arachides.webp",
   chili: "/products/piment-frais.webp",
-  riceCooked: unsplash("1504674900247-0877df9cc836"),
+  riceCooked: "/recipes/attieke-poisson.webp",
   riceGrain: "/products/farine-riz.webp",
 };
 
