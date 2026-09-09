@@ -29,10 +29,10 @@ type MarketSubject = {
 };
 
 export const MARKET_PHOTOS = {
-  africanMarket: "/hero-market-spices-real.jpg",
+  africanMarket: "/market-collage-premium.jpg",
   produceMarket: "/hero-market-spices-real.jpg",
   spiceVendor: "/hero-market-spices-real.jpg",
-  spiceBowls: "/hero-market-spices-real.jpg",
+  spiceBowls: "/market-collage-premium.jpg",
   cassava: "/products/gari-blanc.webp",
   plantain: "/products/banane-plantain.webp",
   okra: "/products/gombo-frais.webp",
@@ -40,17 +40,22 @@ export const MARKET_PHOTOS = {
   chili: "/products/piment-frais.webp",
   riceCooked: "/recipes/attieke-poisson.webp",
   riceGrain: "/products/farine-riz.webp",
+  palmSauce: "/recipes/sauce-graine.webp",
+  fish: "/products/tilapia.webp",
+  poultry: "/products/poulet-fermier.webp",
+  hibiscus: "/products/bissap.webp",
+  peanutPaste: "/products/pate-arachide.webp",
 };
 
 const CATEGORY_PHOTOS: Record<string, string> = {
   manioc: MARKET_PHOTOS.cassava,
   farines: MARKET_PHOTOS.riceGrain,
-  viandes: MARKET_PHOTOS.africanMarket,
-  poissons: MARKET_PHOTOS.spiceVendor,
+  viandes: MARKET_PHOTOS.poultry,
+  poissons: MARKET_PHOTOS.fish,
   legumes: MARKET_PHOTOS.okra,
-  sauces: MARKET_PHOTOS.chili,
+  sauces: MARKET_PHOTOS.palmSauce,
   legumineuses: MARKET_PHOTOS.peanuts,
-  boissons: MARKET_PHOTOS.spiceVendor,
+  boissons: MARKET_PHOTOS.hibiscus,
 };
 
 const RECIPE_PHOTOS: Record<string, string> = {
@@ -124,15 +129,17 @@ const PRODUCT_PHOTOS: Record<string, string> = {
 
 const KEYWORD_PHOTOS: Array<{ terms: string[]; photo: string }> = [
   { terms: ["attieke", "garba", "jollof", "thieboudienne", "waakye", "riz gras"], photo: MARKET_PHOTOS.riceCooked },
-  { terms: ["placali", "gari", "garri", "fufu", "foufou", "chikwangue", "kwanga", "manioc", "cassava"], photo: MARKET_PHOTOS.africanMarket },
+  { terms: ["placali", "gari", "garri", "fufu", "foufou", "chikwangue", "kwanga", "manioc", "cassava"], photo: MARKET_PHOTOS.cassava },
   { terms: ["plantain", "banane", "alloco"], photo: MARKET_PHOTOS.plantain },
   { terms: ["gombo", "okra"], photo: MARKET_PHOTOS.okra },
-  { terms: ["arachide", "peanut", "dakatine", "mafe", "mafe"], photo: MARKET_PHOTOS.peanuts },
+  { terms: ["arachide", "peanut", "dakatine"], photo: MARKET_PHOTOS.peanutPaste },
+  { terms: ["mafe", "mafe"], photo: "/recipes/mafe.webp" },
   { terms: ["piment", "chili", "epice", "epices", "poivre", "condiment", "akpi", "njansang", "soumbala", "cube"], photo: MARKET_PHOTOS.chili },
   { terms: ["riz", "rice", "fonio", "mil", "millet", "mais", "cereale", "cereales", "farine"], photo: MARKET_PHOTOS.riceGrain },
-  { terms: ["poisson", "fish", "capitaine", "tilapia", "crevette", "seafood"], photo: MARKET_PHOTOS.spiceVendor },
-  { terms: ["kplo", "kplo", "tripe", "tripes", "boeuf", "boeuf", "viande"], photo: MARKET_PHOTOS.africanMarket },
-  { terms: ["bissap", "hibiscus", "gingembre", "jus", "boisson"], photo: MARKET_PHOTOS.spiceVendor },
+  { terms: ["poisson", "fish", "capitaine", "tilapia", "crevette", "seafood"], photo: MARKET_PHOTOS.fish },
+  { terms: ["kplo", "kplo", "tripe", "tripes", "boeuf", "boeuf", "viande", "poulet"], photo: MARKET_PHOTOS.poultry },
+  { terms: ["bissap", "hibiscus", "jus", "boisson"], photo: MARKET_PHOTOS.hibiscus },
+  { terms: ["gingembre"], photo: "/products/gingembre.webp" },
 ];
 
 const norm = (value?: string | null) =>

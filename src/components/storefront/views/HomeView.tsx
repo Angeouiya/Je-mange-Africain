@@ -104,6 +104,8 @@ export function HomeView() {
         signalPaymentValue: "Carte + PayPal",
         signalRecipe: "Recettes",
         signalRecipeValue: "panier ajusté",
+        marketTitle: "Marché garni",
+        marketIntent: "Plats, épices et essentiels qui donnent envie dès l'image",
       }
     : {
         screenTitle: "Home",
@@ -125,6 +127,8 @@ export function HomeView() {
         signalPaymentValue: "Card + PayPal",
         signalRecipe: "Recipes",
         signalRecipeValue: "adjusted basket",
+        marketTitle: "Loaded market",
+        marketIntent: "Dishes, spices and essentials that sell the appetite first",
       };
 
   const commitments: Array<{ icon: IconFunction; title: string; desc: string; color: string }> = [
@@ -224,6 +228,7 @@ export function HomeView() {
 
       {!error ? <div className="order-3 mx-auto w-full max-w-7xl space-y-5 px-4 pb-5 pt-5 md:order-2 md:px-8 md:pb-9 md:pt-8">
         <HomeQuickLaunch actions={quickActions} onSelect={selectDestination} onWarm={warmDestination} locale={locale} />
+        <MarketAbundanceShelf title={copy.marketTitle} intent={copy.marketIntent} locale={locale} onSelect={selectDestination} onWarm={warmDestination} />
         <Section
           title={copy.favourites}
           intent={copy.favouritesIntent}
@@ -255,8 +260,8 @@ export function HomeView() {
           fallback={{
             title: locale === "fr" ? "Le panier d'une recette, calculé pour vous" : "A recipe basket, calculated for you",
             body: locale === "fr" ? "Choisissez le nombre de personnes, adaptez les ingrédients et obtenez les bonnes quantités." : "Choose the number of guests, adapt ingredients and get the right quantities.",
-            imageUrl: "/hero.jpg",
-            imageAlt: locale === "fr" ? "Assortiment de plats africains prêts à cuisiner" : "Selection of African dishes ready to cook",
+            imageUrl: "/showcase/jollof-dodo.webp",
+            imageAlt: locale === "fr" ? "Jollof, plantain frit et sauce servis" : "Jollof rice, fried plantain and sauce served",
           }}
           fallbackDestination={{ view: "recipes" }}
         />
@@ -305,9 +310,10 @@ type HomeQuickAction = {
 function HomeHeroMedia({ locale }: { locale: "fr" | "en" }) {
   const isFr = locale === "fr";
   const tiles = [
-    { src: "/recipes/sauce-graine.webp", alt: isFr ? "Sauce graine ivoirienne" : "Ivorian palm nut sauce" },
-    { src: "/products/banane-plantain.webp", alt: isFr ? "Bananes plantain" : "Plantains" },
-    { src: "/recipes/attieke-poisson.webp", alt: isFr ? "Attiéké poisson" : "Attieke with fish" },
+    { src: "/showcase/jollof-dodo.webp", alt: isFr ? "Jollof et plantain frit" : "Jollof rice with fried plantain" },
+    { src: "/recipes/alloco-poulet.webp", alt: isFr ? "Alloco, riz et poulet" : "Plantain, rice and chicken" },
+    { src: "/recipe-library-hero.webp", alt: isFr ? "Egusi et eba servis" : "Egusi and eba served" },
+    { src: "/products/piment-frais.webp", alt: isFr ? "Piments frais" : "Fresh peppers" },
   ];
 
   return (
@@ -319,17 +325,96 @@ function HomeHeroMedia({ locale }: { locale: "fr" | "en" }) {
         sizes="100vw"
         loading="eager"
         fetchPriority="high"
-        className="object-cover object-[52%_72%]"
+        className="object-cover object-[46%_62%]"
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(63,41,48,0.05)_0%,rgba(90,38,50,0.66)_58%,rgba(90,38,50,0.92)_100%)] md:bg-[linear-gradient(90deg,rgba(255,255,255,0.94)_0%,rgba(255,255,255,0.78)_32%,rgba(90,38,50,0.28)_58%,rgba(90,38,50,0.76)_100%)]" />
-      <div className="absolute inset-y-0 right-0 hidden w-[42%] items-end justify-end gap-2 p-5 md:flex lg:w-[38%] lg:p-8">
+      <div className="absolute inset-y-0 right-0 hidden w-[44%] items-end justify-end gap-2 p-5 md:flex lg:w-[40%] lg:p-8">
         {tiles.map((tile, index) => (
-          <span key={tile.src} className={`relative block overflow-hidden rounded-md border border-white/70 bg-white shadow-[0_18px_50px_-32px_rgba(63,41,48,0.75)] ${index === 1 ? "mb-8 h-36 w-28 lg:h-44 lg:w-36" : "h-28 w-24 lg:h-36 lg:w-32"}`}>
+          <span key={tile.src} className={`relative block overflow-hidden rounded-md border border-white/75 bg-white shadow-[0_18px_50px_-32px_rgba(63,41,48,0.75)] ${index === 1 ? "mb-10 h-40 w-[7.5rem] lg:h-48 lg:w-40" : index === 3 ? "mb-5 h-32 w-24 lg:h-40 lg:w-32" : "h-28 w-24 lg:h-36 lg:w-32"}`}>
             <Image src={tile.src} alt={tile.alt} fill sizes="10rem" className="object-cover" />
           </span>
         ))}
       </div>
     </div>
+  );
+}
+
+type MarketShowcaseItem = {
+  label: string;
+  detail: string;
+  src: string;
+  view: ViewId;
+  params?: ViewParams;
+  featured?: boolean;
+};
+
+function MarketAbundanceShelf({ title, intent, locale, onSelect, onWarm }: { title: string; intent: string; locale: "fr" | "en"; onSelect: (view: ViewId, params?: ViewParams) => void; onWarm: (view: ViewId, params?: ViewParams) => void }) {
+  const items: MarketShowcaseItem[] = locale === "fr"
+    ? [
+        { label: "Marché garni", detail: "Épices, plats, condiments", src: "/market-collage-premium.jpg", view: "catalog", featured: true },
+        { label: "Jollof & dodo", detail: "Riz parfumé, plantain doré", src: "/showcase/jollof-dodo.webp", view: "recipes", params: { query: "jollof" } },
+        { label: "Alloco poulet", detail: "Assiette chaude et généreuse", src: "/recipes/alloco-poulet.webp", view: "recipes", params: { query: "alloco" } },
+        { label: "Egusi & eba", detail: "Sauce riche, base fondante", src: "/recipe-library-hero.webp", view: "recipes", params: { query: "egusi" } },
+        { label: "Attiéké poisson", detail: "Ivoirien, frais, relevé", src: "/recipes/attieke-poisson.webp", view: "recipes", params: { query: "attieke" } },
+        { label: "Maffé", detail: "Sauce arachide profonde", src: "/showcase/groundnut-stew.webp", view: "recipes", params: { query: "mafe" } },
+        { label: "Piments frais", detail: "Couleur et intensité", src: "/products/piment-frais.webp", view: "catalog", params: { query: "piment" } },
+        { label: "Pâte d'arachide", detail: "Texture dense et crémeuse", src: "/products/pate-arachide.webp", view: "catalog", params: { query: "arachide" } },
+        { label: "Gombo frais", detail: "Produit net, prêt à cuisiner", src: "/products/gombo-frais.webp", view: "catalog", params: { query: "gombo" } },
+        { label: "Fonio", detail: "Grain fin, cuisson légère", src: "/products/fonio.webp", view: "catalog", params: { query: "fonio" } },
+        { label: "Bissap", detail: "Hibiscus intense", src: "/products/bissap.webp", view: "catalog", params: { query: "bissap" } },
+        { label: "Dodo", detail: "Plantain mûr doré", src: "/showcase/dodo-fried.webp", view: "catalog", params: { query: "plantain" } },
+      ]
+    : [
+        { label: "Loaded market", detail: "Spices, dishes, condiments", src: "/market-collage-premium.jpg", view: "catalog", featured: true },
+        { label: "Jollof & dodo", detail: "Spiced rice, golden plantain", src: "/showcase/jollof-dodo.webp", view: "recipes", params: { query: "jollof" } },
+        { label: "Plantain chicken", detail: "Warm, generous plate", src: "/recipes/alloco-poulet.webp", view: "recipes", params: { query: "plantain chicken" } },
+        { label: "Egusi & eba", detail: "Rich sauce, soft base", src: "/recipe-library-hero.webp", view: "recipes", params: { query: "egusi" } },
+        { label: "Attieke fish", detail: "Ivorian, fresh, spicy", src: "/recipes/attieke-poisson.webp", view: "recipes", params: { query: "attieke" } },
+        { label: "Groundnut stew", detail: "Deep peanut sauce", src: "/showcase/groundnut-stew.webp", view: "recipes", params: { query: "groundnut" } },
+        { label: "Fresh peppers", detail: "Color and intensity", src: "/products/piment-frais.webp", view: "catalog", params: { query: "pepper" } },
+        { label: "Peanut paste", detail: "Dense, creamy texture", src: "/products/pate-arachide.webp", view: "catalog", params: { query: "peanut" } },
+        { label: "Fresh okra", detail: "Clear product shot", src: "/products/gombo-frais.webp", view: "catalog", params: { query: "okra" } },
+        { label: "Fonio", detail: "Fine grain, light cooking", src: "/products/fonio.webp", view: "catalog", params: { query: "fonio" } },
+        { label: "Bissap", detail: "Deep hibiscus", src: "/products/bissap.webp", view: "catalog", params: { query: "hibiscus" } },
+        { label: "Dodo", detail: "Golden ripe plantain", src: "/showcase/dodo-fried.webp", view: "catalog", params: { query: "plantain" } },
+      ];
+
+  return (
+    <section data-testid="home-market-abundance" aria-label={title} className="-mx-4 border-y border-burgundy/10 bg-[#FFFCFA] py-3 md:mx-0 md:px-3 md:py-4">
+      <div className="mb-3 flex items-end justify-between gap-3 px-4 md:px-0">
+        <div className="min-w-0">
+          <h2 className="text-xl font-black leading-tight text-charcoal md:font-display md:text-2xl md:font-semibold">{title}</h2>
+          <p className="mt-0.5 line-clamp-2 text-[10px] font-semibold leading-4 text-muted-foreground md:text-xs">{intent}</p>
+        </div>
+        <button type="button" onClick={() => onSelect("catalog")} onPointerEnter={() => onWarm("catalog")} onFocus={() => onWarm("catalog")} className="inline-flex min-h-8 shrink-0 items-center gap-1 text-[10px] font-black text-burgundy hover:underline md:text-xs">
+          {locale === "fr" ? "Explorer" : "Explore"} <ReiconGlyph icon={ArrowRight} className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-12 md:px-0">
+        {items.map((item, index) => (
+          <motion.button
+            key={`${item.src}-${item.label}`}
+            type="button"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: index * 0.025 }}
+            onClick={() => onSelect(item.view, item.params)}
+            onPointerEnter={() => onWarm(item.view, item.params)}
+            onFocus={() => onWarm(item.view, item.params)}
+            onTouchStart={() => onWarm(item.view, item.params)}
+            className={`group relative shrink-0 snap-start overflow-hidden rounded-md border border-white bg-white text-left shadow-[0_18px_46px_-36px_rgba(138,48,66,0.5)] outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-burgundy/45 ${item.featured ? "h-[11rem] w-[17.5rem] md:col-span-4 md:h-[19.25rem] md:w-auto" : "h-[8.7rem] w-[8.7rem] md:col-span-2 md:h-[9.1rem] md:w-auto"}`}
+            aria-label={locale === "fr" ? `Voir ${item.label}` : `View ${item.label}`}
+          >
+            <Image src={item.src} alt="" fill sizes={item.featured ? "(min-width: 768px) 34vw, 17.5rem" : "(min-width: 768px) 16vw, 8.7rem"} className="object-cover transition duration-500 group-hover:scale-[1.04]" />
+            <span className="absolute inset-0 bg-gradient-to-t from-burgundy/80 via-burgundy/16 to-transparent" />
+            <span className="absolute inset-x-0 bottom-0 block p-2.5 text-white">
+              <strong className={`${item.featured ? "text-base md:text-xl" : "text-[11px] md:text-xs"} block line-clamp-2 font-black leading-tight`}>{item.label}</strong>
+              <span className="mt-0.5 block truncate text-[9px] font-semibold text-white/82">{item.detail}</span>
+            </span>
+          </motion.button>
+        ))}
+      </div>
+    </section>
   );
 }
 
