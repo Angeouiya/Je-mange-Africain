@@ -7,7 +7,7 @@
     "nodejs_compat"
   ],
   "main": "src/cloudflare-worker.ts",
-  "workers_dev": false,
+  "workers_dev": true,
   "routes": [
     {
       "pattern": "je-mange-africain.com",
