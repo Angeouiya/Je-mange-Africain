@@ -99,7 +99,7 @@ describe("GET /api/catalog", () => {
     expect(where).toMatchObject({ status: "published", isRecommended: true });
   });
 
-  it("links every loaded-market card to a concrete product or recipe", async () => {
+  it("links every loaded-market card to a concrete published product or recipe", async () => {
     mocks.productFindMany.mockReset();
     mocks.productFindMany
       .mockResolvedValueOnce([])
@@ -107,7 +107,7 @@ describe("GET /api/catalog", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{
         id: "product-pepper",
-        sku: "JMA-PIM-043",
+        sku: "REAL-PRODUCT-2026",
         traditionalName: "Piment frais",
         translations: [{ locale: "fr", name: "Piment frais", description: "Piment frais." }],
         country: "Côte d'Ivoire",
@@ -121,7 +121,7 @@ describe("GET /api/catalog", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{
         id: "recipe-alloco",
-        slug: "alloco-poulet",
+        slug: "recette-publiee",
         country: "Côte d'Ivoire",
         category: "mains",
         timeMinutes: 35,
@@ -137,5 +137,28 @@ describe("GET /api/catalog", () => {
       expect.objectContaining({ kind: "product", id: "product-pepper", label: "Piment frais" }),
     ]);
     expect(payload.marketShowcase.every((item: { id?: string; kind?: string }) => Boolean(item.id && item.kind))).toBe(true);
+    expect(mocks.productFindMany.mock.calls[3]?.[0]).toMatchObject({
+      where: { status: "published" },
+      take: 6,
+      orderBy: [
+        { isRecommended: "desc" },
+        { isBestseller: "desc" },
+        { isNew: "desc" },
+        { isOnSale: "desc" },
+        { updatedAt: "desc" },
+      ],
+    });
+    expect(mocks.productFindMany.mock.calls[3]?.[0]?.where).not.toHaveProperty("sku");
+    expect(mocks.recipeFindMany.mock.calls[1]?.[0]).toMatchObject({
+      where: expect.objectContaining({ status: "published" }),
+      take: 5,
+      orderBy: [
+        { isRecommended: "desc" },
+        { isPopular: "desc" },
+        { isNew: "desc" },
+        { updatedAt: "desc" },
+      ],
+    });
+    expect(mocks.recipeFindMany.mock.calls[1]?.[0]?.where).not.toHaveProperty("slug");
   });
 });

@@ -10,19 +10,8 @@ import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 export const dynamic = "force-dynamic";
 type CatalogHighlight = "all" | "available" | "sale" | "new" | "recommended" | "popular";
 const CATALOG_HIGHLIGHTS = new Set<CatalogHighlight>(["all", "available", "sale", "new", "recommended", "popular"]);
-const MARKET_SHOWCASE_SLOTS = [
-  { kind: "recipe", key: "alloco-poulet" },
-  { kind: "recipe", key: "placali-sauce-graine" },
-  { kind: "recipe", key: "attieke-poisson" },
-  { kind: "recipe", key: "mafe" },
-  { kind: "recipe", key: "sauce-gombo" },
-  { kind: "product", key: "JMA-PIM-043" },
-  { kind: "product", key: "JMA-PAR-051" },
-  { kind: "product", key: "JMA-GOM-040" },
-  { kind: "product", key: "JMA-FON-011" },
-  { kind: "product", key: "JMA-BIS-071" },
-  { kind: "product", key: "JMA-PLA-042" },
-] as const;
+const MARKET_SHOWCASE_PRODUCT_LIMIT = 6;
+const MARKET_SHOWCASE_RECIPE_LIMIT = 5;
 
 function catalogHighlight(value: string | null): CatalogHighlight {
   return CATALOG_HIGHLIGHTS.has(value as CatalogHighlight) ? (value as CatalogHighlight) : "all";
@@ -129,13 +118,24 @@ type MarketShowcaseItem = {
 };
 
 function marketShowcase(products: any[], recipes: any[], locale: "fr" | "en"): MarketShowcaseItem[] {
-  const productsBySku = new Map(products.map((product) => [product.sku, product]));
-  const recipesBySlug = new Map(recipes.map((recipe) => [recipe.slug, recipe]));
+  const items: MarketShowcaseItem[] = [];
+  const itemCount = Math.max(products.length, recipes.length);
 
-  return MARKET_SHOWCASE_SLOTS.reduce<MarketShowcaseItem[]>((items, slot) => {
-    if (slot.kind === "product") {
-      const product = productsBySku.get(slot.key);
-      if (!product) return items;
+  for (let index = 0; index < itemCount; index += 1) {
+    const recipe = recipes[index];
+    if (recipe) {
+      const projected = projectRecipe(recipe, locale);
+      items.push({
+        kind: "recipe",
+        id: projected.id,
+        label: projected.title || recipe.slug,
+        detail: [projected.country, projected.timeMinutes ? `${projected.timeMinutes} min` : null].filter(Boolean).join(" · "),
+        imageUrl: projected.imageUrl,
+      });
+    }
+
+    const product = products[index];
+    if (product) {
       const projected = project(product, locale);
       items.push({
         kind: "product",
@@ -144,21 +144,10 @@ function marketShowcase(products: any[], recipes: any[], locale: "fr" | "en"): M
         detail: [projected.category?.name, projected.country].filter(Boolean).join(" · "),
         imageUrl: projected.imageUrl,
       });
-      return items;
     }
+  }
 
-    const recipe = recipesBySlug.get(slot.key);
-    if (!recipe) return items;
-    const projected = projectRecipe(recipe, locale);
-    items.push({
-      kind: "recipe",
-      id: projected.id,
-      label: projected.title || recipe.slug,
-      detail: [projected.country, projected.timeMinutes ? `${projected.timeMinutes} min` : null].filter(Boolean).join(" · "),
-      imageUrl: projected.imageUrl,
-    });
-    return items;
-  }, []);
+  return items;
 }
 
 export async function GET(req: NextRequest) {
@@ -186,11 +175,15 @@ export async function GET(req: NextRequest) {
       db.brand.findMany(),
       db.recipe.findMany({ where: { ...PUBLIC_RECIPE_WHERE, isPopular: true }, take: 6, include: { translations: true } }),
       db.product.findMany({
-        where: { status: "published", sku: { in: MARKET_SHOWCASE_SLOTS.filter((slot) => slot.kind === "product").map((slot) => slot.key) } },
+        where: { status: "published" },
+        orderBy: [{ isRecommended: "desc" }, { isBestseller: "desc" }, { isNew: "desc" }, { isOnSale: "desc" }, { updatedAt: "desc" }],
+        take: MARKET_SHOWCASE_PRODUCT_LIMIT,
         include: { translations: true, brand: true, category: true, variants: true },
       }),
       db.recipe.findMany({
-        where: { ...PUBLIC_RECIPE_WHERE, slug: { in: MARKET_SHOWCASE_SLOTS.filter((slot) => slot.kind === "recipe").map((slot) => slot.key) } },
+        where: PUBLIC_RECIPE_WHERE,
+        orderBy: [{ isRecommended: "desc" }, { isPopular: "desc" }, { isNew: "desc" }, { updatedAt: "desc" }],
+        take: MARKET_SHOWCASE_RECIPE_LIMIT,
         include: { translations: true },
       }),
     ]);
