@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
 
@@ -847,14 +847,14 @@ export function preferredDashboardBrowser({
 } = {}) {
   if (platform !== "win32") return null;
   const edgeCandidates = [
-    env.LOCALAPPDATA && join(env.LOCALAPPDATA, "Microsoft", "Edge", "Application", "msedge.exe"),
-    env.PROGRAMFILES && join(env.PROGRAMFILES, "Microsoft", "Edge", "Application", "msedge.exe"),
-    env["PROGRAMFILES(X86)"] && join(env["PROGRAMFILES(X86)"], "Microsoft", "Edge", "Application", "msedge.exe"),
+    env.LOCALAPPDATA && win32.join(env.LOCALAPPDATA, "Microsoft", "Edge", "Application", "msedge.exe"),
+    env.PROGRAMFILES && win32.join(env.PROGRAMFILES, "Microsoft", "Edge", "Application", "msedge.exe"),
+    env["PROGRAMFILES(X86)"] && win32.join(env["PROGRAMFILES(X86)"], "Microsoft", "Edge", "Application", "msedge.exe"),
   ].filter(Boolean);
   const chromeCandidates = [
-    env.LOCALAPPDATA && join(env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe"),
-    env.PROGRAMFILES && join(env.PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
-    env["PROGRAMFILES(X86)"] && join(env["PROGRAMFILES(X86)"], "Google", "Chrome", "Application", "chrome.exe"),
+    env.LOCALAPPDATA && win32.join(env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe"),
+    env.PROGRAMFILES && win32.join(env.PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
+    env["PROGRAMFILES(X86)"] && win32.join(env["PROGRAMFILES(X86)"], "Google", "Chrome", "Application", "chrome.exe"),
   ].filter(Boolean);
   const preferChrome = (env.JMA_PRODUCTION_BROWSER || "").toLowerCase().includes("chrome");
   const browserGroups = preferChrome
