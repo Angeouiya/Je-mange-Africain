@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin-rate-limit";
 import { changePasswordWithFreshSession, ConnectedPasswordChangeInput } from "@/lib/change-password";
 import { db } from "@/lib/db";
+import { sendPasswordChangedEmail } from "@/lib/password-change-email";
 
 export const dynamic = "force-dynamic";
 
@@ -49,18 +50,19 @@ export async function PATCH(request: NextRequest) {
   });
   if (!result.ok) return passwordChangeError(result.reason);
 
+  const emailDelivery = await sendPasswordChangedEmail(authorization.user.email);
   await db.auditLog.create({
     data: {
       action: "admin_password_change",
       entityType: "AdminIdentity",
       entityId: authorization.user.id,
-      after: JSON.stringify({ sessionPreserved: true, securityEmailRequested: true }),
+      after: JSON.stringify({ sessionPreserved: true, securityEmailSent: emailDelivery.sent, emailProvider: "gmail" }),
       reason: `Mot de passe modifié par ${authorization.user.email}`,
       ip: clientIp(request),
     },
   }).catch(() => undefined);
 
-  const response = NextResponse.json({ ok: true, sessionPreserved: true, securityEmailRequested: true });
+  const response = NextResponse.json({ ok: true, sessionPreserved: true, securityEmailSent: emailDelivery.sent });
   setAdminCookies(response, result.session as Record<string, unknown>);
   response.headers.set("Cache-Control", "no-store");
   return response;

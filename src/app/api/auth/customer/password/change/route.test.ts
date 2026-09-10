@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   userFind: vi.fn(),
   auditCreate: vi.fn(),
   notify: vi.fn(),
+  email: vi.fn(),
   fetch: vi.fn(),
 }));
 
@@ -27,6 +28,7 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/user-notifications", () => ({ createAndSendUserNotification: mocks.notify }));
+vi.mock("@/lib/password-change-email", () => ({ sendPasswordChangedEmail: mocks.email }));
 
 import { PATCH } from "./route";
 
@@ -51,6 +53,7 @@ describe("connected customer password change", () => {
     mocks.userFind.mockResolvedValue({ id: "directory-user-1" });
     mocks.auditCreate.mockResolvedValue({ id: "audit-1" });
     mocks.notify.mockResolvedValue({ notificationId: "notification-1" });
+    mocks.email.mockResolvedValue({ sent: true, provider: "gmail", messageId: "gmail-1" });
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -62,8 +65,9 @@ describe("connected customer password change", () => {
     const response = await PATCH(request({ currentPassword: "Ancien2025!", newPassword: "Jma26!Aa", confirmation: "Jma26!Aa" }));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true, sessionPreserved: true, securityEmailRequested: true });
+    await expect(response.json()).resolves.toEqual({ ok: true, sessionPreserved: true, securityEmailSent: true });
     expect(mocks.setCookies).toHaveBeenCalledWith(expect.any(NextResponse), freshSession);
+    expect(mocks.email).toHaveBeenCalledWith(customer.email);
     expect(mocks.notify).toHaveBeenCalledWith(expect.objectContaining({ userId: "directory-user-1", type: "system", url: "/?view=account&accountSection=settings" }));
     expect(mocks.auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ action: "customer_password_change", userId: "directory-user-1", ip: "203.0.113.20" }) });
   });

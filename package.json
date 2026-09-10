@@ -47,7 +47,6 @@
     "production:purge-demo": "node scripts/purge-production-demo-data.mjs",
     "production:bootstrap-admin": "node scripts/bootstrap-production-super-admin.mjs",
     "production:sync-cloudflare": "node scripts/production-autopilot.mjs --sync-cloudflare",
-    "production:configure-auth-email": "node scripts/configure-supabase-auth-email.mjs",
     "production:migrate-supabase": "node scripts/production-autopilot.mjs --migrate",
     "production:release": "node scripts/production-autopilot.mjs --push-supabase --migrate --deploy",
     "deploy": "npm run cloudflare:deploy",

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   config: vi.fn(),
   setCookies: vi.fn(),
   auditCreate: vi.fn(),
+  email: vi.fn(),
   fetch: vi.fn(),
 }));
 
@@ -23,6 +24,7 @@ vi.mock("@/lib/admin-rate-limit", () => ({
   enforceAdminCriticalSubjectRateLimit: mocks.subject,
 }));
 vi.mock("@/lib/db", () => ({ db: { auditLog: { create: mocks.auditCreate } } }));
+vi.mock("@/lib/password-change-email", () => ({ sendPasswordChangedEmail: mocks.email }));
 
 import { PATCH } from "./route";
 
@@ -45,6 +47,7 @@ describe("connected admin password change", () => {
     mocks.authorize.mockResolvedValue({ ok: true, user });
     mocks.config.mockReturnValue({ url: "https://jma.supabase.co", key: "publishable-key" });
     mocks.auditCreate.mockResolvedValue({ id: "audit-1" });
+    mocks.email.mockResolvedValue({ sent: true, provider: "gmail", messageId: "gmail-1" });
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -56,8 +59,9 @@ describe("connected admin password change", () => {
     const response = await PATCH(request({ currentPassword: "Ancien2025!", newPassword: "Jma26!Aa", confirmation: "Jma26!Aa" }));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true, sessionPreserved: true, securityEmailRequested: true });
+    await expect(response.json()).resolves.toEqual({ ok: true, sessionPreserved: true, securityEmailSent: true });
     expect(mocks.setCookies).toHaveBeenCalledWith(expect.any(NextResponse), freshSession);
+    expect(mocks.email).toHaveBeenCalledWith(user.email);
     expect(mocks.auditCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ action: "admin_password_change", entityId: user.id, ip: "203.0.113.10" }) });
   });
 

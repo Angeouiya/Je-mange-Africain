@@ -7,6 +7,7 @@ import {
   toCustomerSession,
 } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
+import { sendPasswordChangedEmail } from "@/lib/password-change-email";
 import { enforceRateLimit } from "@/lib/redis";
 import { createAndSendUserNotification } from "@/lib/user-notifications";
 
@@ -43,10 +44,13 @@ export async function PATCH(request: NextRequest) {
   });
   if (!result.ok) return passwordChangeError(result.reason);
 
-  const directoryUser = await db.user.findUnique({
-    where: { email: customer.email.toLowerCase() },
-    select: { id: true },
-  }).catch(() => null);
+  const [directoryUser, emailDelivery] = await Promise.all([
+    db.user.findUnique({
+      where: { email: customer.email.toLowerCase() },
+      select: { id: true },
+    }).catch(() => null),
+    sendPasswordChangedEmail(customer.email),
+  ]);
   if (directoryUser) {
     await Promise.all([
       db.auditLog.create({
@@ -55,7 +59,7 @@ export async function PATCH(request: NextRequest) {
           action: "customer_password_change",
           entityType: "User",
           entityId: directoryUser.id,
-          after: JSON.stringify({ sessionPreserved: true, securityEmailRequested: true }),
+          after: JSON.stringify({ sessionPreserved: true, securityEmailSent: emailDelivery.sent, emailProvider: "gmail" }),
           reason: "Mot de passe modifié depuis l'espace client connecté",
           ip: clientIp(request),
         },
@@ -77,7 +81,7 @@ export async function PATCH(request: NextRequest) {
     ]);
   }
 
-  const response = NextResponse.json({ ok: true, sessionPreserved: true, securityEmailRequested: true });
+  const response = NextResponse.json({ ok: true, sessionPreserved: true, securityEmailSent: emailDelivery.sent });
   setCustomerCookies(response, result.session as Record<string, unknown>);
   response.headers.set("Cache-Control", "no-store");
   return response;

@@ -248,11 +248,12 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
-# Uncomment to customize notification email template
-[auth.email.notification.password_changed]
-enabled = true
-subject = "Sécurité : votre mot de passe Je mange Africain a été modifié"
-content_path = "./supabase/templates/password_changed_notification.html"
+# Uncomment to customize a Supabase notification email template.
+# Password-change notifications are sent by the application through Gmail.
+# [auth.email.notification.password_changed]
+# enabled = true
+# subject = "Your password has been changed"
+# content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

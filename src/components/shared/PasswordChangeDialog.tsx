@@ -36,6 +36,7 @@ export function PasswordChangeDialog({
   const [showPasswords, setShowPasswords] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
+  const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const requirements = useMemo(() => connectedPasswordRequirements(newPassword), [newPassword]);
   const ready = currentPassword.length >= 8
     && Object.values(requirements).every(Boolean)
@@ -49,6 +50,7 @@ export function PasswordChangeDialog({
     setShowPasswords(false);
     setStatus("idle");
     setMessage("");
+    setEmailSent(null);
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -74,7 +76,7 @@ export function PasswordChangeDialog({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ currentPassword, newPassword, confirmation }),
     }).catch(() => null);
-    const payload = response ? await response.json().catch(() => ({})) as { error?: string } : {};
+    const payload = response ? await response.json().catch(() => ({})) as { error?: string; securityEmailSent?: boolean } : {};
     if (!response?.ok) {
       setStatus("error");
       setMessage(payload.error || (isFr ? "La modification est momentanément indisponible." : "The change is temporarily unavailable."));
@@ -84,9 +86,10 @@ export function PasswordChangeDialog({
     setNewPassword("");
     setConfirmation("");
     setStatus("success");
-    setMessage(isFr
-      ? "Votre mot de passe est modifié. Cette session reste ouverte et un e-mail de sécurité vous est envoyé."
-      : "Your password has been changed. This session stays open and a security email is being sent to you.");
+    setEmailSent(payload.securityEmailSent === true);
+    setMessage(payload.securityEmailSent === true
+      ? (isFr ? "Votre mot de passe est modifié. Cette session reste ouverte et l'e-mail de sécurité a été envoyé via Gmail." : "Your password has been changed. This session stays open and the security email was sent through Gmail.")
+      : (isFr ? "Votre mot de passe est modifié et cette session reste ouverte. L'e-mail n'a pas pu être envoyé ; votre notification de sécurité reste disponible dans l'application." : "Your password has been changed and this session stays open. The email could not be sent; your in-app security notification remains available."));
   };
 
   return (
@@ -112,8 +115,10 @@ export function PasswordChangeDialog({
                 <h3 className="mt-5 text-lg font-black text-charcoal">{isFr ? "Modification confirmée" : "Change confirmed"}</h3>
                 <p role="status" className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
                 <div className="mx-auto mt-5 flex max-w-sm items-start gap-3 border-y border-gold/35 bg-gold/[0.07] px-4 py-3 text-left">
-                  <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-terre" />
-                  <p className="text-xs leading-5 text-charcoal">{isFr ? "L'e-mail de confirmation ne contient aucune information sensible. Si vous ne reconnaissez pas cette action, utilisez immédiatement la récupération de compte." : "The confirmation email contains no sensitive information. If you do not recognize this action, use account recovery immediately."}</p>
+                  <MailCheck className={`mt-0.5 h-5 w-5 shrink-0 ${emailSent ? "text-terre" : "text-burgundy"}`} />
+                  <p className="text-xs leading-5 text-charcoal">{emailSent
+                    ? (isFr ? "L'e-mail Gmail ne contient aucune information sensible. Si vous ne reconnaissez pas cette action, utilisez immédiatement la récupération de compte." : "The Gmail message contains no sensitive information. If you do not recognize this action, use account recovery immediately.")
+                    : (isFr ? "La modification est bien enregistrée. Consultez la notification dans votre espace et contactez l'assistance si vous ne reconnaissez pas cette action." : "The change has been saved. Check the notification in your account and contact support if you do not recognize this action.")}</p>
                 </div>
                 <DialogClose asChild><Button type="button" className="mt-6 min-h-11 bg-burgundy text-white hover:bg-burgundy/90">{isFr ? "Continuer dans mon espace" : "Continue in my account"}</Button></DialogClose>
               </div>
