@@ -19,6 +19,27 @@ export const ADMIN_ROLES = new Set([
 export const ADMIN_ACCESS_COOKIE = "jma-admin-access";
 export const ADMIN_REFRESH_COOKIE = "jma-admin-refresh";
 
+export const adminCookieOptions = (maxAge: number) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict" as const,
+  path: "/",
+  maxAge,
+});
+
+export function setAdminCookies(response: NextResponse, payload: Record<string, unknown>) {
+  const accessToken = String(payload.access_token || "");
+  const refreshToken = String(payload.refresh_token || "");
+  const expiresIn = Math.max(60, Math.min(Number(payload.expires_in || 3600), 86400));
+  if (accessToken) response.cookies.set(ADMIN_ACCESS_COOKIE, accessToken, adminCookieOptions(expiresIn));
+  if (refreshToken) response.cookies.set(ADMIN_REFRESH_COOKIE, refreshToken, adminCookieOptions(60 * 60 * 24 * 7));
+}
+
+export function clearAdminCookies(response: NextResponse) {
+  response.cookies.set(ADMIN_ACCESS_COOKIE, "", adminCookieOptions(0));
+  response.cookies.set(ADMIN_REFRESH_COOKIE, "", adminCookieOptions(0));
+}
+
 export function getSupabaseAdminConfig() {
   const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.replace(/\/$/, "");
   const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;

@@ -48,6 +48,7 @@ import { Label } from "@/components/ui/label";
 import { ProductCard, type ProductListItem } from "@/components/shared/ProductCard";
 import { PostalCodeField } from "@/components/shared/PostalCodeField";
 import { RecipeCard, type RecipeListItem } from "@/components/shared/RecipeCard";
+import { PasswordChangeDialog } from "@/components/shared/PasswordChangeDialog";
 import { CustomerWholesaleQuotes, type CustomerWholesaleQuotesResponse } from "@/components/storefront/account/CustomerWholesaleQuotes";
 import { LogoutConfirmDialog } from "@/components/storefront/LogoutConfirmDialog";
 import { dict } from "@/lib/i18n";
@@ -91,8 +92,6 @@ export function AccountWorkspace() {
   const [profile, setProfile] = useState({ firstName: customer.firstName, lastName: customer.lastName, phone: customer.phone });
   const [profileStatus, setProfileStatus] = useState<RequestStatus>("idle");
   const [profileMessage, setProfileMessage] = useState("");
-  const [securityStatus, setSecurityStatus] = useState<RequestStatus>("idle");
-  const [securityMessage, setSecurityMessage] = useState("");
   const [addressOpen, setAddressOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addressForm, setAddressForm] = useState(() => blankAddress(customer));
@@ -229,25 +228,6 @@ export function AccountWorkspace() {
     }
   };
 
-  const requestPasswordChange = async () => {
-    if (securityStatus === "busy") return;
-    setSecurityStatus("busy");
-    setSecurityMessage("");
-    const response = await fetch("/api/auth/customer/password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: customer.email }),
-    }).catch(() => null);
-    const payload = response ? await response.json().catch(() => ({})) : {};
-    if (!response?.ok) {
-      setSecurityStatus("error");
-      setSecurityMessage(payload.error || (locale === "fr" ? "Envoi momentanément indisponible." : "Email is temporarily unavailable."));
-      return;
-    }
-    setSecurityStatus("success");
-    setSecurityMessage(locale === "fr" ? "Un lien sécurisé vient d'être envoyé à votre adresse e-mail." : "A secure link has just been sent to your email address.");
-  };
-
   const changeLanguage = async (nextLocale: "fr" | "en") => {
     setLocale(nextLocale);
     try {
@@ -352,7 +332,7 @@ export function AccountWorkspace() {
             <div className="mt-6 divide-y divide-border border-y border-border">
               <SettingRow icon={Languages} accent={BRAND_COLORS.gold} title={t.account.language} description={locale === "fr" ? "Langue utilisée dans l'application et les contenus." : "Language used in the application and content."}><div className="inline-flex rounded-lg bg-muted p-1">{(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => void changeLanguage(language)} aria-pressed={locale === language} className={`h-9 rounded-md px-4 text-xs font-bold ${locale === language ? "bg-white text-charcoal shadow-sm" : "text-muted-foreground"}`}>{language === "fr" ? "Français" : "English"}</button>)}</div></SettingRow>
               <SettingRow icon={SlidersHorizontal} accent={BRAND_COLORS.terracotta} title={locale === "fr" ? "Confidentialité" : "Privacy"} description={locale === "fr" ? "Contrôlez séparément la mesure, la personnalisation et le marketing." : "Control analytics, personalisation and marketing separately."}><Button type="button" variant="outline" size="sm" onClick={requestPrivacyPreferences} className="border-burgundy/20 text-burgundy hover:bg-burgundy/[0.04] hover:text-burgundy"><ShieldCheck className="mr-2 h-4 w-4" />{locale === "fr" ? "Gérer mes choix" : "Manage choices"}</Button></SettingRow>
-              <SettingRow icon={LockKeyhole} accent={BRAND_COLORS.burgundy} title={locale === "fr" ? "Mot de passe" : "Password"} description={locale === "fr" ? "Recevez un lien sécurisé pour choisir un nouveau mot de passe." : "Receive a secure link to choose a new password."}><Button type="button" variant="outline" size="sm" onClick={() => void requestPasswordChange()} disabled={securityStatus === "busy" || securityStatus === "success"}>{securityStatus === "busy" ? (locale === "fr" ? "Envoi..." : "Sending...") : (locale === "fr" ? "Envoyer le lien" : "Send link")}</Button><InlineStatus status={securityStatus} message={securityMessage} className="mt-3" /></SettingRow>
+              <SettingRow icon={LockKeyhole} accent={BRAND_COLORS.burgundy} title={locale === "fr" ? "Mot de passe" : "Password"} description={locale === "fr" ? "Modifiez-le ici sans quitter votre session. Un e-mail de sécurité confirmera l'action." : "Change it here without leaving your session. A security email will confirm the action."}><PasswordChangeDialog endpoint="/api/auth/customer/password/change" locale={locale}><Button type="button" variant="outline" size="sm" className="border-burgundy/20 text-burgundy hover:bg-burgundy/[0.04] hover:text-burgundy"><LockKeyhole className="mr-2 h-4 w-4" />{locale === "fr" ? "Modifier" : "Change"}</Button></PasswordChangeDialog></SettingRow>
               <SettingRow icon={LogOut} accent={BRAND_COLORS.chilli} title={locale === "fr" ? "Fermer la session" : "Close session"} description={locale === "fr" ? "Votre panier restera sur cet appareil après la déconnexion." : "Your cart will stay on this device after sign-out."}><LogoutConfirmDialog><Button type="button" variant="outline" className="border-destructive/25 text-destructive hover:bg-destructive/5 hover:text-destructive"><LogOut className="mr-2 h-4 w-4" />{t.account.logout}</Button></LogoutConfirmDialog></SettingRow>
             </div>
           </section>

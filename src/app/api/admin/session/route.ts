@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
   ADMIN_ACCESS_COOKIE,
-  ADMIN_REFRESH_COOKIE,
   ADMIN_ROLES,
   authorizeAdminRequest,
+  clearAdminCookies,
   getSupabaseAdminConfig,
+  setAdminCookies,
 } from "@/lib/admin-auth";
 import { permissionsForRole } from "@/lib/admin-permissions";
 import { enforceRateLimit } from "@/lib/redis";
@@ -15,14 +16,6 @@ export const dynamic = "force-dynamic";
 const Credentials = z.object({
   email: z.string().trim().email(),
   password: z.string().min(8).max(256),
-});
-
-const cookieOptions = (maxAge: number) => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict" as const,
-  path: "/",
-  maxAge,
 });
 
 export async function GET(request: NextRequest) {
@@ -70,12 +63,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Ce compte ne possède aucun rôle d'administration autorisé." }, { status: 403 });
   }
 
-  const expiresIn = Math.max(60, Math.min(Number(payload.expires_in || 3600), 86400));
   const response = NextResponse.json({
     user: { id: payload.user.id, email: payload.user.email, role, permissions: permissionsForRole(role) },
   });
-  response.cookies.set(ADMIN_ACCESS_COOKIE, payload.access_token, cookieOptions(expiresIn));
-  if (payload.refresh_token) response.cookies.set(ADMIN_REFRESH_COOKIE, payload.refresh_token, cookieOptions(60 * 60 * 24 * 7));
+  setAdminCookies(response, payload);
   return response;
 }
 
@@ -91,7 +82,6 @@ export async function DELETE(request: NextRequest) {
   }
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(ADMIN_ACCESS_COOKIE, "", cookieOptions(0));
-  response.cookies.set(ADMIN_REFRESH_COOKIE, "", cookieOptions(0));
+  clearAdminCookies(response);
   return response;
 }

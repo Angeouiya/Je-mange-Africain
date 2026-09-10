@@ -28,6 +28,7 @@ import { X } from "reicon/icons/X";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BrandLockup } from "@/components/shared/BrandLockup";
+import { PasswordChangeDialog } from "@/components/shared/PasswordChangeDialog";
 import { ReiconGlyph } from "@/components/ui/reicon-glyph";
 import {
   AlertDialog,
@@ -397,6 +398,13 @@ export function AdminView({
           </div>
           <div className="grid grid-cols-2 gap-1 rounded-md border border-burgundy/10 bg-burgundy/[0.035] p-1" aria-label={isFr ? "Langue" : "Language"}>
             {(["fr", "en"] as const).map((language) => <button key={language} type="button" onClick={() => onLocaleChange(language)} aria-pressed={locale === language} className={`h-8 rounded text-[10px] font-extrabold uppercase transition ${locale === language ? "bg-burgundy text-white shadow-sm" : "text-muted-foreground hover:bg-white hover:text-burgundy"}`}>{language}</button>)}
+          </div>
+          <div className="mt-1">
+            <PasswordChangeDialog endpoint="/api/admin/password/change" locale={locale}>
+              <Button type="button" variant="ghost" data-testid="admin-password-change-trigger" className="h-9 w-full justify-start px-2 text-[10px] text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy">
+                <ReiconGlyph icon={Fingerprint} className="mr-1.5 h-3.5 w-3.5" /> {isFr ? "Modifier le mot de passe" : "Change password"}
+              </Button>
+            </PasswordChangeDialog>
           </div>
           <div className="mt-1 grid grid-cols-2 gap-1">
             <Button type="button" variant="ghost" onClick={() => window.location.assign("https://je-mange-africain.com")} className="h-9 justify-start px-2 text-[10px] text-muted-foreground hover:bg-burgundy/5 hover:text-burgundy">
