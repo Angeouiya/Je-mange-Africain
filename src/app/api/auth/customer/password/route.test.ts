@@ -108,6 +108,19 @@ describe("customer password production flow", () => {
     });
   });
 
+  it("keeps recovery entirely on the Cloudflare Worker while custom DNS is deferred", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://je-mange-africain.promise-corporation.workers.dev");
+
+    const response = await POST(jsonRequest("https://je-mange-africain.promise-corporation.workers.dev/api/auth/customer/password", {
+      email: "ezechielouiya@gmail.com",
+    }));
+
+    expect(response.status).toBe(200);
+    expect(sentBody()).toMatchObject({
+      redirect_to: "https://je-mange-africain.promise-corporation.workers.dev/auth/reset",
+    });
+  });
+
   it("normalizes the www storefront reset redirect to the official apex domain", async () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.je-mange-africain.com");
 

@@ -10,6 +10,19 @@ import { jsonWithPublicApiCache } from "@/lib/public-api-cache";
 export const dynamic = "force-dynamic";
 type CatalogHighlight = "all" | "available" | "sale" | "new" | "recommended" | "popular";
 const CATALOG_HIGHLIGHTS = new Set<CatalogHighlight>(["all", "available", "sale", "new", "recommended", "popular"]);
+const MARKET_SHOWCASE_SLOTS = [
+  { kind: "recipe", key: "alloco-poulet" },
+  { kind: "recipe", key: "placali-sauce-graine" },
+  { kind: "recipe", key: "attieke-poisson" },
+  { kind: "recipe", key: "mafe" },
+  { kind: "recipe", key: "sauce-gombo" },
+  { kind: "product", key: "JMA-PIM-043" },
+  { kind: "product", key: "JMA-PAR-051" },
+  { kind: "product", key: "JMA-GOM-040" },
+  { kind: "product", key: "JMA-FON-011" },
+  { kind: "product", key: "JMA-BIS-071" },
+  { kind: "product", key: "JMA-PLA-042" },
+] as const;
 
 function catalogHighlight(value: string | null): CatalogHighlight {
   return CATALOG_HIGHLIGHTS.has(value as CatalogHighlight) ? (value as CatalogHighlight) : "all";
@@ -86,6 +99,68 @@ function project(p: any, locale: string) {
   };
 }
 
+function projectRecipe(recipe: any, locale: "fr" | "en") {
+  const translation = recipe.translations.find((item: any) => item.locale === locale) || recipe.translations[0];
+  return {
+    id: recipe.id,
+    slug: recipe.slug,
+    country: recipe.country,
+    category: recipe.category,
+    difficulty: recipe.difficulty,
+    timeMinutes: recipe.timeMinutes,
+    baseServings: recipe.baseServings,
+    imageColor: recipe.imageColor,
+    imageEmoji: recipe.imageEmoji,
+    imageUrl: getRecipePhoto({ slug: recipe.slug, title: translation?.title, country: recipe.country, category: recipe.category, imageUrl: recipe.imageUrl }),
+    isNew: recipe.isNew,
+    isRecommended: recipe.isRecommended,
+    isPopular: recipe.isPopular,
+    title: translation?.title,
+    description: translation?.description,
+  };
+}
+
+type MarketShowcaseItem = {
+  kind: "product" | "recipe";
+  id: string;
+  label: string;
+  detail: string;
+  imageUrl: string;
+};
+
+function marketShowcase(products: any[], recipes: any[], locale: "fr" | "en"): MarketShowcaseItem[] {
+  const productsBySku = new Map(products.map((product) => [product.sku, product]));
+  const recipesBySlug = new Map(recipes.map((recipe) => [recipe.slug, recipe]));
+
+  return MARKET_SHOWCASE_SLOTS.reduce<MarketShowcaseItem[]>((items, slot) => {
+    if (slot.kind === "product") {
+      const product = productsBySku.get(slot.key);
+      if (!product) return items;
+      const projected = project(product, locale);
+      items.push({
+        kind: "product",
+        id: projected.id,
+        label: projected.name,
+        detail: [projected.category?.name, projected.country].filter(Boolean).join(" · "),
+        imageUrl: projected.imageUrl,
+      });
+      return items;
+    }
+
+    const recipe = recipesBySlug.get(slot.key);
+    if (!recipe) return items;
+    const projected = projectRecipe(recipe, locale);
+    items.push({
+      kind: "recipe",
+      id: projected.id,
+      label: projected.title || recipe.slug,
+      detail: [projected.country, projected.timeMinutes ? `${projected.timeMinutes} min` : null].filter(Boolean).join(" · "),
+      imageUrl: projected.imageUrl,
+    });
+    return items;
+  }, []);
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const locale = (searchParams.get("locale") as "fr" | "en") || "fr";
@@ -103,13 +178,21 @@ export async function GET(req: NextRequest) {
   const pageSize = parseInt(searchParams.get("pageSize") || "12", 10);
 
   if (section === "home") {
-    const [bestsellers, news, onSale, categories, brands, popularRecipes] = await Promise.all([
+    const [bestsellers, news, onSale, categories, brands, popularRecipes, showcaseProducts, showcaseRecipes] = await Promise.all([
       db.product.findMany({ where: { status: "published", isBestseller: true }, take: 8, include: { translations: true, brand: true, category: true, variants: true } }),
       db.product.findMany({ where: { status: "published", isNew: true }, take: 8, include: { translations: true, brand: true, category: true, variants: true } }),
       db.product.findMany({ where: { status: "published", isOnSale: true }, take: 8, include: { translations: true, brand: true, category: true, variants: true } }),
       db.category.findMany({ orderBy: { sortOrder: "asc" } }),
       db.brand.findMany(),
       db.recipe.findMany({ where: { ...PUBLIC_RECIPE_WHERE, isPopular: true }, take: 6, include: { translations: true } }),
+      db.product.findMany({
+        where: { status: "published", sku: { in: MARKET_SHOWCASE_SLOTS.filter((slot) => slot.kind === "product").map((slot) => slot.key) } },
+        include: { translations: true, brand: true, category: true, variants: true },
+      }),
+      db.recipe.findMany({
+        where: { ...PUBLIC_RECIPE_WHERE, slug: { in: MARKET_SHOWCASE_SLOTS.filter((slot) => slot.kind === "recipe").map((slot) => slot.key) } },
+        include: { translations: true },
+      }),
     ]);
     return jsonWithPublicApiCache({
       bestsellers: bestsellers.map((p) => project(p, locale)),
@@ -117,17 +200,8 @@ export async function GET(req: NextRequest) {
       onSale: onSale.map((p) => project(p, locale)),
       categories: categories.map((c) => ({ id: c.id, slug: c.slug, nameFr: c.nameFr, nameEn: c.nameEn, name: c[`name${locale === "en" ? "En" : "Fr"}`], icon: c.icon, color: c.color, imageUrl: c.imageUrl, description: c[`description${locale === "en" ? "En" : "Fr"}`] })),
       brands: brands.map((b) => ({ id: b.id, slug: b.slug, name: b[`name${locale === "en" ? "En" : "Fr"}`] })),
-      popularRecipes: popularRecipes.map((r) => {
-        const translation = r.translations.find((item) => item.locale === locale) || r.translations[0];
-        return {
-          id: r.id, slug: r.slug, country: r.country, category: r.category, difficulty: r.difficulty,
-          timeMinutes: r.timeMinutes, baseServings: r.baseServings, imageColor: r.imageColor, imageEmoji: r.imageEmoji,
-          imageUrl: getRecipePhoto({ slug: r.slug, title: translation?.title, country: r.country, category: r.category, imageUrl: r.imageUrl }),
-          isNew: r.isNew, isRecommended: r.isRecommended, isPopular: r.isPopular,
-          title: translation?.title,
-          description: translation?.description,
-        };
-      }),
+      popularRecipes: popularRecipes.map((recipe) => projectRecipe(recipe, locale)),
+      marketShowcase: marketShowcase(showcaseProducts, showcaseRecipes, locale),
     }, "storefrontHome");
   }
 

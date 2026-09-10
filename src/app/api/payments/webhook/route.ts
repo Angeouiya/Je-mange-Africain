@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { isFullRefund, providerRefundStatus, refundAmounts } from "@/lib/admin-refunds";
-import { sendPushToUser } from "@/lib/push-server";
+import { createAndSendUserNotification } from "@/lib/user-notifications";
 import { requiresServerFraudReview } from "@/lib/fraud";
 
 export const dynamic = "force-dynamic";
@@ -114,12 +114,14 @@ async function notifyRefund(userId: string, orderId: string, amount: number, ful
   const bodyFr = `${amountFr} ont été recrédités sur votre moyen de paiement.`;
   const bodyEn = `${amountEn} has been returned to your payment method.`;
   const url = `/?view=order-tracking&orderId=${orderId}`;
-  const notification = await db.notification.create({ data: { userId, channel: "push", type: "order", titleFr, titleEn, bodyFr, bodyEn, url } });
-  const delivery = await sendPushToUser(userId, {
-    fr: { title: titleFr, body: bodyFr, url, type: "order", tag: `refund-${orderId}` },
-    en: { title: titleEn, body: bodyEn, url, type: "order", tag: `refund-${orderId}` },
+  await createAndSendUserNotification({
+    userId,
+    type: "order",
+    url,
+    tag: `refund-${orderId}`,
+    fr: { title: titleFr, body: bodyFr },
+    en: { title: titleEn, body: bodyEn },
   });
-  if (delivery.sent > 0) await db.notification.update({ where: { id: notification.id }, data: { sent: true, deliveredCount: delivery.sent, failedCount: delivery.failed } });
 }
 
 async function updatePayment(reference: string, paymentStatus: string, orderStatus: string, label: string) {

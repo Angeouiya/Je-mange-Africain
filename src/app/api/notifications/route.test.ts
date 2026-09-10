@@ -66,4 +66,14 @@ describe("GET /api/notifications", () => {
       url: notification.url,
     });
   });
+
+  it("returns an honest empty activity feed instead of fabricated production offers", async () => {
+    mocks.notificationFindMany.mockResolvedValue([]);
+
+    const response = await GET(new NextRequest("http://localhost/api/notifications?locale=fr"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    await expect(response.json()).resolves.toEqual({ notifications: [] });
+  });
 });

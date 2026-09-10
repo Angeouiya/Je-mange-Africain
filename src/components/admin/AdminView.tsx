@@ -351,7 +351,7 @@ export function AdminView({
               <div className="flex items-center gap-2 px-3">
                 <span className="text-[9px] font-black tabular-nums text-burgundy">{String(groupIndex + 1).padStart(2, "0")}</span>
                 <p className="text-[9px] font-extrabold uppercase text-burgundy">{isFr ? group.labelFr : group.labelEn}</p>
-                <span className="ml-auto text-[8px] font-bold uppercase text-burgundy/70">{isFr ? group.verbFr : group.verbEn}</span>
+                <span className="ml-auto text-[9px] font-bold uppercase text-burgundy">{isFr ? group.verbFr : group.verbEn}</span>
               </div>
               <div className="mt-1.5 space-y-1">
                 {group.items.map((item) => {

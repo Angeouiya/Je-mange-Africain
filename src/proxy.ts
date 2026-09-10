@@ -5,6 +5,7 @@ const ADMIN_DOMAIN = "admin.je-mange-africain.com";
 const CUSTOMER_DOMAIN = "je-mange-africain.com";
 const WWW_CUSTOMER_DOMAIN = "www.je-mange-africain.com";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+const CLOUDFLARE_PREVIEW_SUFFIXES = [".workers.dev", ".pages.dev"];
 
 function requestHost(request: NextRequest) {
   const hostHeader = (request.headers.get("host") || "").toLowerCase();
@@ -20,6 +21,10 @@ function isApiSurfacePath(pathname: string) {
   return pathname === "/api" || pathname.startsWith("/api/");
 }
 
+function shouldKeepCombinedSurface(host: string) {
+  return LOCAL_HOSTS.has(host) || CLOUDFLARE_PREVIEW_SUFFIXES.some((suffix) => host.endsWith(suffix));
+}
+
 export async function proxy(request: NextRequest) {
   const host = requestHost(request);
   const { pathname } = request.nextUrl;
@@ -28,7 +33,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.rewrite(new URL("/admin", request.url));
   }
 
-  if (host !== ADMIN_DOMAIN && !LOCAL_HOSTS.has(host) && isAdminSurfacePath(pathname)) {
+  if (host !== ADMIN_DOMAIN && !shouldKeepCombinedSurface(host) && isAdminSurfacePath(pathname)) {
     const adminUrl = request.nextUrl.clone();
     adminUrl.protocol = "https";
     adminUrl.hostname = ADMIN_DOMAIN;

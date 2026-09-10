@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
   findUser: vi.fn(),
+  findSubscription: vi.fn(),
   upsert: vi.fn(),
   updateMany: vi.fn(),
   deleteMany: vi.fn(),
@@ -13,17 +14,17 @@ vi.mock("@/lib/customer-auth", () => ({ authorizeCustomerRequest: mocks.authoriz
 vi.mock("@/lib/db", () => ({
   db: {
     user: { findUnique: mocks.findUser },
-    pushSubscription: { upsert: mocks.upsert, updateMany: mocks.updateMany, deleteMany: mocks.deleteMany },
+    pushSubscription: { findFirst: mocks.findSubscription, upsert: mocks.upsert, updateMany: mocks.updateMany, deleteMany: mocks.deleteMany },
   },
 }));
 
-import { DELETE, PATCH, POST } from "./route";
+import { DELETE, PATCH, POST, PUT } from "./route";
 
 const endpoint = "https://push.example.test/subscriptions/device-1";
 const subscription = { endpoint, keys: { p256dh: "p".repeat(40), auth: "a".repeat(20) } };
 const preferences = { order: true, system: false, recipe: true, promotion: false };
 
-function request(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>) {
+function request(method: "POST" | "PUT" | "PATCH" | "DELETE", body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/push/subscriptions", {
     method,
     headers: { "Content-Type": "application/json", "user-agent": "JMA mobile test" },
@@ -36,6 +37,17 @@ describe("push subscription preferences", () => {
     vi.clearAllMocks();
     mocks.authorize.mockResolvedValue({ id: "customer-auth-1", email: "awa@example.fr", role: "customer" });
     mocks.findUser.mockResolvedValue({ id: "user-1" });
+    mocks.findSubscription.mockResolvedValue({
+      id: "subscription-1",
+      endpoint,
+      deviceId: "device-1234",
+      locale: "fr",
+      userAgent: "JMA mobile test",
+      orderAlerts: true,
+      systemAlerts: true,
+      recipeAlerts: false,
+      promotionAlerts: false,
+    });
     mocks.upsert.mockResolvedValue({ id: "subscription-1" });
     mocks.updateMany.mockResolvedValue({ count: 1 });
     mocks.deleteMany.mockResolvedValue({ count: 1 });
@@ -71,6 +83,26 @@ describe("push subscription preferences", () => {
     expect(mocks.updateMany).toHaveBeenCalledWith({
       where: { endpoint, deviceId: "device-1234", userId: "user-1", enabled: true },
       data: expect.objectContaining({ orderAlerts: true, systemAlerts: false, recipeAlerts: true, promotionAlerts: false }),
+    });
+  });
+
+  it("renews a rotated browser subscription without losing customer preferences", async () => {
+    const renewedEndpoint = "https://push.example.test/subscriptions/device-1-renewed";
+    mocks.upsert.mockResolvedValueOnce({ id: "subscription-2" });
+
+    const response = await PUT(request("PUT", {
+      previousEndpoint: endpoint,
+      subscription: { ...subscription, endpoint: renewedEndpoint },
+    }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.findSubscription).toHaveBeenCalledWith({ where: { endpoint, userId: "user-1" } });
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { endpoint: renewedEndpoint },
+      create: expect.objectContaining({ deviceId: "device-1234", orderAlerts: true, promotionAlerts: false }),
+    }));
+    expect(mocks.deleteMany).toHaveBeenCalledWith({
+      where: { endpoint, userId: "user-1", id: { not: "subscription-2" } },
     });
   });
 

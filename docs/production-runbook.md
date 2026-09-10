@@ -26,8 +26,9 @@ npm run production:open-dashboards
 
 ## Frontend deployment
 
-The production frontend is Cloudflare Workers, not Vercel. Keep the root `wrangler.jsonc` committed as the source of truth for account, Worker name, assets and observability.
-The Worker custom domains are attached for `je-mange-africain.com`, `www.je-mange-africain.com` and `admin.je-mange-africain.com`. `workers_dev` stays disabled so no unrelated Cloudflare subdomain is exposed. Public traffic switches to the Worker only after the registrar delegates the zone to `anton.ns.cloudflare.com` and `kallie.ns.cloudflare.com`.
+The production frontend is Cloudflare Workers only. Keep the root `wrangler.jsonc` committed as the source of truth for account, Worker name, assets and observability. No Node or Vercel production runtime is supported.
+The Worker is available at `https://je-mange-africain.promise-corporation.workers.dev` while DNS delegation is pending. On that host, the customer storefront is served at `/` and the professional console at `/admin`.
+The Worker custom domains are attached for `je-mange-africain.com`, `www.je-mange-africain.com` and `admin.je-mange-africain.com`, but the public site URL remains the Workers domain while registrar DNS still resolves the custom domains elsewhere. `workers_dev` stays enabled as the verified Cloudflare-only production target until the registrar delegates the zone to `anton.ns.cloudflare.com` and `kallie.ns.cloudflare.com`. After delegation, set `CLOUDFLARE_DOMAIN_STATUS=attached` and `NEXT_PUBLIC_SITE_URL=https://je-mange-africain.com`, then publish a separate verified release.
 The deploy command refuses to publish when production secrets are incomplete or when Supabase points to a project other than `JMA` (`ahigidhuhqcmxzjxetnw`). The Worker itself reaches PostgreSQL through the `jma-supabase-db` Hyperdrive configuration.
 
 ```bash
@@ -48,7 +49,7 @@ To create the Cloudflare Worker before the production secrets are ready, publish
 npm run cloudflare:create
 ```
 
-For the first complete application release, `npm run cloudflare:deploy` uses a temporary secrets file with `wrangler deploy --secrets-file`, so the bootstrap Worker is replaced by the real platform and configured in the same release.
+For the first complete application release, `npm run cloudflare:deploy` uses a temporary secrets file with `wrangler deploy --secrets-file` when every required secret is available locally. On an already configured Worker, it verifies the remote secret names and deploys with `--keep-vars` without downloading or replacing their values.
 
 For a local Workers-runtime preview after a successful vinext build:
 
@@ -123,8 +124,8 @@ Catalogue search remains available with a local emergency limiter so browsing ca
 ```bash
 npm audit
 npm run lint
+npm run typecheck
 npm test
-npm run test:e2e
 npm run build
-npm run cloudflare:build
+npm run test:e2e
 ```

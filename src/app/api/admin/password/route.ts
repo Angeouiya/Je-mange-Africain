@@ -6,6 +6,7 @@ import { enforceRateLimit } from "@/lib/redis";
 export const dynamic = "force-dynamic";
 
 const ADMIN_RESET_URL = "https://admin.je-mange-africain.com/admin/reset";
+const WORKERS_DEV_HOST = "je-mange-africain.promise-corporation.workers.dev";
 const Recovery = z.object({ email: z.string().trim().email().max(254) });
 const Reset = z.object({ accessToken: z.string().min(20), password: z.string().min(8).max(256) });
 
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
     const response = await fetch(`${url}/auth/v1/recover`, {
       method: "POST",
       headers: { apikey: key, "Content-Type": "application/json" },
-      body: JSON.stringify({ email: parsed.data.email, redirect_to: ADMIN_RESET_URL }),
+      body: JSON.stringify({ email: parsed.data.email, redirect_to: adminResetRedirectUrl(request) }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
@@ -35,6 +36,21 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Le service de récupération professionnel est momentanément indisponible." }, { status: 503 });
   }
+}
+
+function adminResetRedirectUrl(request: Request) {
+  try {
+    const url = new URL(request.url);
+    if (url.protocol === "https:" && url.hostname.toLowerCase() === WORKERS_DEV_HOST) {
+      url.pathname = "/admin/reset";
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    }
+  } catch {
+    // Use the custom admin domain once DNS is delegated.
+  }
+  return ADMIN_RESET_URL;
 }
 
 export async function PUT(request: Request) {

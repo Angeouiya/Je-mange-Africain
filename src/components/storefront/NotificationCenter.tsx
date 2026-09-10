@@ -136,11 +136,28 @@ export function NotificationCenter() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     const onMessage = (event: MessageEvent) => {
-      if (event.data?.type === "JMA_PUSH_RECEIVED") refetch();
+      if (event.data?.type === "JMA_PUSH_RECEIVED" || event.data?.type === "JMA_PUSH_SUBSCRIPTION_RENEWED") refetch();
     };
     navigator.serviceWorker.addEventListener("message", onMessage);
     return () => navigator.serviceWorker.removeEventListener("message", onMessage);
   }, [refetch]);
+
+  useEffect(() => {
+    if (!customer) return;
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refetch();
+    };
+    const interval = window.setInterval(refreshWhenVisible, 60_000);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [customer, customer?.id, refetch]);
+
+  useEffect(() => {
+    if (open && customer) refetch();
+  }, [customer, open, refetch]);
 
   useEffect(() => {
     if (!preferencesReady) return;

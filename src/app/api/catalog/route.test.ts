@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   productCount: vi.fn(),
   categoryFindMany: vi.fn(),
   brandFindMany: vi.fn(),
+  recipeFindMany: vi.fn(),
   productReservedQtyField: { _ref: "Product.reservedQty" },
 }));
 
@@ -14,6 +15,7 @@ vi.mock("@/lib/db", () => ({
     product: { findMany: mocks.productFindMany, count: mocks.productCount, fields: { reservedQty: mocks.productReservedQtyField } },
     category: { findMany: mocks.categoryFindMany },
     brand: { findMany: mocks.brandFindMany },
+    recipe: { findMany: mocks.recipeFindMany },
   },
 }));
 vi.mock("@/lib/market-media", () => ({ getProductPhoto: () => "/products/attieke.webp", getRecipePhoto: () => "/recipes/fallback.webp" }));
@@ -26,6 +28,7 @@ describe("GET /api/catalog", () => {
     mocks.productCount.mockResolvedValue(1);
     mocks.categoryFindMany.mockResolvedValue([]);
     mocks.brandFindMany.mockResolvedValue([]);
+    mocks.recipeFindMany.mockResolvedValue([]);
     mocks.productFindMany
       .mockResolvedValueOnce([{
         id: "product-1",
@@ -94,5 +97,45 @@ describe("GET /api/catalog", () => {
 
     expect(response.status).toBe(200);
     expect(where).toMatchObject({ status: "published", isRecommended: true });
+  });
+
+  it("links every loaded-market card to a concrete product or recipe", async () => {
+    mocks.productFindMany.mockReset();
+    mocks.productFindMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{
+        id: "product-pepper",
+        sku: "JMA-PIM-043",
+        traditionalName: "Piment frais",
+        translations: [{ locale: "fr", name: "Piment frais", description: "Piment frais." }],
+        country: "Côte d'Ivoire",
+        price: 2.9,
+        stockQty: 12,
+        reservedQty: 0,
+        category: { id: "cat-1", slug: "legumes", nameFr: "Légumes", nameEn: "Vegetables" },
+        variants: [],
+      }]);
+    mocks.recipeFindMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{
+        id: "recipe-alloco",
+        slug: "alloco-poulet",
+        country: "Côte d'Ivoire",
+        category: "mains",
+        timeMinutes: 35,
+        translations: [{ locale: "fr", title: "Alloco-poulet", description: "Plantain et poulet." }],
+      }]);
+
+    const response = await GET(new NextRequest("http://localhost/api/catalog?section=home&locale=fr"));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.marketShowcase).toEqual([
+      expect.objectContaining({ kind: "recipe", id: "recipe-alloco", label: "Alloco-poulet" }),
+      expect.objectContaining({ kind: "product", id: "product-pepper", label: "Piment frais" }),
+    ]);
+    expect(payload.marketShowcase.every((item: { id?: string; kind?: string }) => Boolean(item.id && item.kind))).toBe(true);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOrderDeliveryOverview, getOrderDeliveryTimestamp, getOrderProgress, getOrderStageIndex, getShipmentTrackingHref, isTerminalOrder, orderNeedsAttention, summarizeOrders } from "@/lib/order-experience";
+import { getOrderDeliveryOverview, getOrderDeliveryTimestamp, getOrderProgress, getOrderStageIndex, getShipmentDeliveryOverview, getShipmentProgress, getShipmentStageIndex, getShipmentTrackingHref, isTerminalOrder, orderNeedsAttention, summarizeOrders } from "@/lib/order-experience";
 import type { Order } from "@/lib/types";
 
 const order = (status: string, total: number, id = status): Order => ({
@@ -70,5 +70,41 @@ describe("order experience", () => {
 
     expect(getOrderDeliveryOverview(inTransit)).toMatchObject({ stageIndex: 2, progress: 76, interrupted: false, packageCount: 2, trackingHref: "https://track.example.com/JMA%20FR%2F1" });
     expect(getShipmentTrackingHref({ trackingNumber: "JMA-1", trackingUrl: "javascript:alert(1)?ref={ref}" })).toBeNull();
+  });
+
+  it("tracks every parcel independently and flags a missed ETA", () => {
+    expect(getShipmentStageIndex("picked_up")).toBe(1);
+    expect(getShipmentStageIndex("out_for_delivery")).toBe(3);
+    expect(getShipmentProgress("delivered")).toBe(100);
+    expect(getShipmentDeliveryOverview({
+      status: "in_transit",
+      estimatedDelivery: "2026-09-04T12:00:00.000Z",
+      trackingNumber: "JMA-42",
+      trackingUrl: "https://track.example.com/{ref}",
+    }, new Date("2026-09-05T12:00:00.000Z").getTime())).toMatchObject({
+      stageIndex: 2,
+      progress: 55,
+      delayed: true,
+      interrupted: false,
+      trackingHref: "https://track.example.com/JMA-42",
+    });
+  });
+
+  it("aggregates multi-parcel progress, alerts and last activity", () => {
+    const split = order("in_transit", 48);
+    split.packageCount = 2;
+    split.timeline = [{ id: "event-1", status: "in_transit", label: "En transit", at: "2026-09-03T14:20:00.000Z", actor: null }];
+    split.shipments = [
+      { id: "cold", carrierId: null, carrierName: "Chrono Frais", trackingNumber: "COLD-1", thermalClass: "FROZEN", status: "delivered", confirmCode: "4821", estimatedDelivery: "2026-09-04T12:00:00.000Z", actualDelivery: "2026-09-03T16:30:00.000Z" },
+      { id: "ambient", carrierId: null, carrierName: "DPD", trackingNumber: "AMB-1", thermalClass: "AMBIANT", status: "lost", confirmCode: null, estimatedDelivery: "2026-09-04T16:00:00.000Z", actualDelivery: null },
+    ];
+
+    expect(getOrderDeliveryOverview(split)).toMatchObject({
+      packageCount: 2,
+      deliveredPackageCount: 1,
+      attentionPackageCount: 1,
+      parcelProgress: 50,
+      lastUpdateAt: "2026-09-03T16:30:00.000Z",
+    });
   });
 });

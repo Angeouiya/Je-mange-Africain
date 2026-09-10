@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "je-mange-africain",
   "account_id": "82164eca9557f63e18984230deac12bc",
-  "compatibility_date": "2026-09-06",
+  "compatibility_date": "2026-09-09",
   "compatibility_flags": [
     "nodejs_compat"
   ],
@@ -34,8 +34,8 @@
   "vars": {
     "CLOUDFLARE_ACCOUNT_ID": "82164eca9557f63e18984230deac12bc",
     "CLOUDFLARE_DEPLOYMENT_TARGET": "workers",
-    "CLOUDFLARE_DOMAIN_STATUS": "attached",
-    "NEXT_PUBLIC_SITE_URL": "https://je-mange-africain.com",
+    "CLOUDFLARE_DOMAIN_STATUS": "deferred",
+    "NEXT_PUBLIC_SITE_URL": "https://je-mange-africain.promise-corporation.workers.dev",
     "NEXT_PUBLIC_SUPABASE_URL": "https://ahigidhuhqcmxzjxetnw.supabase.co",
     "PAYMENTS_ENABLED": "false",
     "SUPABASE_URL": "https://ahigidhuhqcmxzjxetnw.supabase.co"

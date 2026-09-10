@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, ArrowRight, CalendarDays, Camera, CheckCircle2, Circle, ClipboardSignature, Download, ExternalLink, MapPin, Truck, Package, LogIn, ReceiptText, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarDays, Camera, CheckCircle2, Circle, ClipboardSignature, Download, ExternalLink, MapPin, Truck, Package, LogIn, ReceiptText, RefreshCw, ShieldCheck } from "lucide-react";
 import { CheckCircle as ReCheckCircle } from "reicon/icons/CheckCircle";
 import { Card as ReCard } from "reicon/icons/Card";
 import { Location as ReLocation } from "reicon/icons/Location";
@@ -21,7 +21,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { PaymentMethodIdentity } from "@/components/shared/PaymentMethodIdentity";
 import { JourneyRail, type JourneyStage } from "@/components/shared/JourneyRail";
 import { StorefrontWorkspaceHeader } from "@/components/storefront/StorefrontWorkspaceHeader";
-import { getOrderDeliveryOverview, getShipmentTrackingHref } from "@/lib/order-experience";
+import { getOrderDeliveryOverview, getShipmentDeliveryOverview, getShipmentTrackingHref, isTerminalOrder } from "@/lib/order-experience";
 import { MobileActionDock } from "@/components/storefront/MobileActionDock";
 import { OrderRefundSummary } from "@/components/storefront/OrderRefundSummary";
 import { STOREFRONT_DETAIL_TTL_MS } from "@/lib/storefront-prefetch";
@@ -36,10 +36,21 @@ export function OrderTrackingView() {
   const customer = useStore((s) => s.customer);
   const t = dict[locale];
   const [mobilePanel, setMobilePanel] = useState<"delivery" | "order">("delivery");
+  const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const { data: order, loading, error, refetch } = useFetch<Order>(customer && params.orderId ? `/api/orders/${params.orderId}?locale=${locale}` : null, [customer?.id, params.orderId, locale], {}, { cache: true, ttlMs: STOREFRONT_DETAIL_TTL_MS });
 
+  useEffect(() => {
+    if (order) setLastSyncAt(new Date());
+  }, [order]);
+
+  useEffect(() => {
+    if (!order || isTerminalOrder(order.status)) return;
+    const refreshTimer = window.setInterval(refetch, 60_000);
+    return () => window.clearInterval(refreshTimer);
+  }, [order, refetch]);
+
   if (!customer) return <div className="mx-auto grid min-h-[55vh] max-w-md place-items-center px-4 text-center"><div><span className="mx-auto grid h-11 w-11 place-items-center rounded-lg bg-terre/10 text-terre"><LogIn className="h-5 w-5" /></span><h1 className="mt-4 font-display text-2xl font-semibold text-charcoal">{locale === "fr" ? "Suivi protégé" : "Protected tracking"}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "fr" ? "Connectez-vous avec le compte ayant passé cette commande." : "Sign in with the account that placed this order."}</p><Button onClick={() => navigate("account")} className="mt-5 bg-terre text-white hover:bg-terre-dark">{t.nav.login}</Button></div></div>;
-  if (loading) return <div className="mx-auto max-w-3xl px-4 py-6"><Skeleton className="h-96 rounded-lg" /></div>;
+  if (loading && !order) return <div className="mx-auto max-w-3xl px-4 py-6"><Skeleton className="h-96 rounded-lg" /></div>;
   if (error) return <div className="mx-auto grid min-h-[45vh] max-w-md place-items-center px-4 text-center"><div><AlertCircle className="mx-auto h-8 w-8 text-destructive" /><p className="mt-3 text-sm font-bold text-charcoal">{locale === "fr" ? "Suivi momentanément indisponible" : "Tracking temporarily unavailable"}</p><Button type="button" variant="outline" size="sm" onClick={refetch} className="mt-3">{locale === "fr" ? "Réessayer" : "Retry"}</Button></div></div>;
   if (!order) return <div className="mx-auto max-w-3xl px-4 py-20 text-center text-muted-foreground">{locale === "fr" ? "Commande introuvable." : "Order not found."}</div>;
 
@@ -53,6 +64,13 @@ export function OrderTrackingView() {
     { id: "packed", icon: RePackage, label: locale === "fr" ? "Préparée" : "Packed" },
     { id: "transit", icon: ReTruck, label: locale === "fr" ? "En route" : "On the way" },
     { id: "delivered", icon: ReLocation, label: locale === "fr" ? "Livrée" : "Delivered" },
+  ];
+  const parcelStages: JourneyStage[] = [
+    { id: "created", icon: RePackage, label: locale === "fr" ? "Créé" : "Created" },
+    { id: "picked-up", icon: ReCheckCircle, label: locale === "fr" ? "Pris en charge" : "Picked up" },
+    { id: "transit", icon: ReTruck, label: locale === "fr" ? "Transit" : "Transit" },
+    { id: "last-mile", icon: ReLocation, label: locale === "fr" ? "Dernier km" : "Last mile" },
+    { id: "delivered", icon: ReCheckCircle, label: locale === "fr" ? "Livré" : "Delivered" },
   ];
 
   return (
@@ -112,6 +130,22 @@ export function OrderTrackingView() {
         className="mb-4"
       />
 
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-y border-charcoal/8 bg-white px-3 py-2.5" data-testid="tracking-live-status">
+        <div className="min-w-0">
+          <p className="text-[9px] font-black uppercase text-terre">{locale === "fr" ? "Dernière activité logistique" : "Latest logistics activity"}</p>
+          <p className="mt-0.5 text-[11px] font-bold text-charcoal">{formatDateTime(deliveryOverview.lastUpdateAt, locale)}</p>
+          <p className="mt-0.5 text-[9px] text-muted-foreground">{lastSyncAt ? `${locale === "fr" ? "Synchronisé à" : "Synced at"} ${lastSyncAt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}` : (locale === "fr" ? "Synchronisation en cours" : "Syncing")}</p>
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={refetch} disabled={loading} className="h-9 bg-white text-burgundy" aria-label={locale === "fr" ? "Actualiser le suivi" : "Refresh tracking"}><RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />{locale === "fr" ? "Actualiser" : "Refresh"}</Button>
+      </div>
+
+      {deliveryOverview.delayedPackageCount || deliveryOverview.attentionPackageCount ? (
+        <div className="mb-4 flex items-start gap-3 border-y border-destructive/25 bg-destructive/[0.045] px-3 py-3 text-destructive" role="status" data-testid="tracking-parcel-alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div><p className="text-xs font-black">{locale === "fr" ? "Un colis demande votre attention" : "A parcel needs your attention"}</p><p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">{locale === "fr" ? `${deliveryOverview.delayedPackageCount} en retard · ${deliveryOverview.attentionPackageCount} interrompu(s). Les autres colis continuent d'être suivis séparément.` : `${deliveryOverview.delayedPackageCount} delayed · ${deliveryOverview.attentionPackageCount} interrupted. Other parcels continue to be tracked separately.`}</p></div>
+        </div>
+      ) : null}
+
       {order.refunds?.length ? <div className="mb-4"><OrderRefundSummary refunds={order.refunds} paymentAmount={order.payments.find((payment) => ["captured", "refunded"].includes(payment.status))?.amount || order.total} locale={locale} /></div> : null}
 
       <nav className="mb-4 grid grid-cols-2 rounded-md border border-burgundy/12 bg-white p-1 md:hidden" aria-label={locale === "fr" ? "Informations de la commande" : "Order information"} data-testid="tracking-mobile-tabs">
@@ -145,20 +179,21 @@ export function OrderTrackingView() {
           <section className={`md:block ${mobilePanel !== "delivery" ? "hidden" : ""}`}>
             <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-charcoal"><Truck className="h-4 w-4 text-terre" /> {t.orders.packages}</h2>
             <div className="space-y-2">
-              {order.shipments.map((s) => {
+              {order.shipments.map((s, index) => {
                 const trackingHref = getShipmentTrackingHref(s);
+                const parcelOverview = deliveryOverview.parcelOverviews[index] || getShipmentDeliveryOverview(s);
                 return (
-                <div key={s.id} className="rounded-lg border border-border p-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="min-w-0 truncate text-xs font-semibold text-charcoal">{s.trackingNumber || (locale === "fr" ? "Suivi en cours d'attribution" : "Tracking pending")}</span>
-                    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] ${thermalColor(s.thermalClass)}`}>{thermalLabel(s.thermalClass, locale)}</span>
+                <article key={s.id} className={`rounded-lg border bg-white p-3 ${parcelOverview.delayed || parcelOverview.interrupted ? "border-destructive/30" : "border-border"}`} data-testid={`tracking-parcel-${s.id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0"><p className="text-[9px] font-black uppercase text-terre">{locale === "fr" ? `Colis ${index + 1} sur ${packageCount}` : `Parcel ${index + 1} of ${packageCount}`}</p><p className="mt-0.5 break-all text-xs font-semibold text-charcoal">{s.trackingNumber || (locale === "fr" ? "Suivi en cours d'attribution" : "Tracking pending")}</p></div>
+                    <span className={`inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 text-[10px] ${thermalColor(s.thermalClass)}`}>{thermalLabel(s.thermalClass, locale)}</span>
                   </div>
-                  <p className="mt-1 text-[11px] text-muted-foreground">{s.carrier || s.carrierName || (locale === "fr" ? "Transporteur à attribuer" : "Carrier pending")} · <span>{t.orders.statuses[orderStatusKey(s.status) as keyof typeof t.orders.statuses] || s.status}</span></p>
-                  <p className="text-[11px] text-muted-foreground">{t.orders.estimatedDelivery} : {s.estimatedDelivery ? formatDate(s.estimatedDelivery, locale) : "—"}</p>
-                  {s.confirmCode && <p className="mt-0.5 text-[11px] font-medium text-burgundy">Code : {s.confirmCode}</p>}
+                  <p className="mt-1 text-[11px] text-muted-foreground">{s.carrier || s.carrierName || (locale === "fr" ? "Transporteur à attribuer" : "Carrier pending")} · <span className={parcelOverview.delayed || parcelOverview.interrupted ? "font-bold text-destructive" : "font-bold text-charcoal"}>{t.orders.statuses[orderStatusKey(s.status) as keyof typeof t.orders.statuses] || s.status}</span></p>
+                  <JourneyRail stages={parcelStages} activeIndex={parcelOverview.stageIndex} progress={parcelOverview.progress} label={locale === "fr" ? `Progression du colis ${index + 1}` : `Parcel ${index + 1} progress`} progressLabel={locale === "fr" ? `Colis ${index + 1} suivi à ${parcelOverview.progress} %` : `Parcel ${index + 1} is ${parcelOverview.progress}% complete`} interrupted={parcelOverview.interrupted} surface="flush" className="mt-3 border-y border-border py-1.5" />
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px]"><span className={parcelOverview.delayed ? "font-black text-destructive" : "text-muted-foreground"}>{parcelOverview.delayed ? (locale === "fr" ? "Retard détecté · nouvelle estimation attendue" : "Delay detected · awaiting a new estimate") : `${t.orders.estimatedDelivery} : ${s.estimatedDelivery ? formatDate(s.estimatedDelivery, locale) : "—"}`}</span>{s.confirmCode ? <span className="rounded bg-burgundy/[0.06] px-2 py-1 font-black text-burgundy">{locale === "fr" ? "Code remise" : "Handover code"} : {s.confirmCode}</span> : null}</div>
                   {trackingHref ? <a href={trackingHref} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-terre hover:underline">{locale === "fr" ? "Suivre chez le transporteur" : "Track with carrier"}<ExternalLink className="h-3 w-3" /></a> : null}
                   {s.actualDelivery || s.proofPhoto || s.signature ? <div className="mt-3 border-t border-border pt-3"><p className="flex items-center gap-1.5 text-[10px] font-black uppercase text-burgundy"><CheckCircle2 className="h-3.5 w-3.5" />{locale === "fr" ? "Preuve de remise" : "Delivery proof"}</p>{s.actualDelivery ? <p className="mt-1 text-[10px] text-muted-foreground">{locale === "fr" ? "Remis le" : "Handed over on"} {formatDateTime(s.actualDelivery, locale)}</p> : null}{s.proofPhoto ? <ProductImage src={s.proofPhoto} alt={locale === "fr" ? `Preuve de livraison du colis ${s.trackingNumber || ""}` : `Delivery proof for parcel ${s.trackingNumber || ""}`} emoji="" color="#F7F4F3" size="lg" className="mt-2 h-32 w-full" rounded="rounded-md" priority /> : null}{s.signature ? <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-charcoal"><ClipboardSignature className="h-3.5 w-3.5 text-burgundy" />{locale === "fr" ? "Reçu par" : "Received by"} {s.signature}</p> : s.proofPhoto ? <p className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground"><Camera className="h-3.5 w-3.5" />{locale === "fr" ? "Photo enregistrée par le livreur" : "Photo recorded by the courier"}</p> : null}</div> : null}
-                </div>
+                </article>
                 );
               })}
               {!order.shipments.length ? <p className="text-xs leading-5 text-muted-foreground">{locale === "fr" ? "Le colis sera attribué après la préparation." : "A parcel will be assigned after packing."}</p> : null}

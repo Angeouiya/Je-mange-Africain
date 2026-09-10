@@ -196,10 +196,11 @@ test("the installable storefront exposes a safe app shell and public discovery m
   const workerResponse = await request.get("/sw.js");
   expect(workerResponse.ok()).toBeTruthy();
   const workerSource = await workerResponse.text();
-  expect(workerSource).toContain('const CACHE_NAME = "jma-shell-v5"');
+  expect(workerSource).toContain('const CACHE_NAME = "jma-shell-v7"');
   expect(workerSource).toContain('const PUBLIC_API_CACHE_NAME = "jma-public-api-v1"');
   expect(workerSource).toContain('const OFFLINE_URL = "/offline.html"');
   expect(workerSource).toContain("navigationResponse(request)");
+  expect(workerSource).toContain('requestUrl.pathname === "/" && !requestUrl.search');
   expect(workerSource).toContain("await caches.match(OFFLINE_URL)");
   expect(workerSource).toContain("/^\\/api\\/catalog$/");
   expect(workerSource).toContain("/^\\/api\\/products\\/[^/]+$/");
@@ -208,6 +209,7 @@ test("the installable storefront exposes a safe app shell and public discovery m
   expect(workerSource).toContain("SAFE_NOTIFICATION_VIEWS");
   expect(workerSource).toContain('"wholesale"');
   expect(workerSource).toContain("safeNotificationTargetUrl(event.notification.data?.url)");
+  expect(workerSource).toContain('self.addEventListener("pushsubscriptionchange"');
   expect(workerSource).toContain('notificationUrl.pathname !== "/"');
   expect(workerSource).toContain('view === "product" && !notificationUrl.searchParams.get("productId")');
 

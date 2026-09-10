@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, Box, Boxes, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardList, Clock3, CreditCard, Landmark, LockKeyhole, MapPin, PackageCheck, ShieldAlert, Smartphone, Snowflake, Truck, WalletCards } from "lucide-react";
+import { AlertTriangle, ArrowRight, Box, Boxes, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardList, Clock3, CreditCard, ExternalLink, Landmark, LockKeyhole, MapPin, PackageCheck, ShieldAlert, Smartphone, Snowflake, Truck, WalletCards } from "lucide-react";
 import { BoxTick as ReBoxTick } from "reicon/icons/BoxTick";
 import { CheckCircle as ReCheckCircle } from "reicon/icons/CheckCircle";
 import { Clock3 as ReClock3 } from "reicon/icons/Clock3";
@@ -19,6 +19,7 @@ import { OrderFulfillmentControl } from "@/components/admin/OrderFulfillmentCont
 import { fulfillmentStatusLabel, nextFulfillmentStatus } from "@/lib/admin-order-fulfillment";
 import { paymentMethodFamily, paymentMethodFamilyLabel, paymentMethodLabel, paymentStatusLabel } from "@/lib/payment-methods";
 import { europeanCountryLabel } from "@/lib/european-countries";
+import { getShipmentDeliveryOverview, getShipmentTrackingHref } from "@/lib/order-experience";
 
 type FlowId = "all" | "validate" | "prepare" | "deliver" | "closed";
 
@@ -88,6 +89,7 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
     const matchesQuery = normalize(`${order.number} ${order.deliveryName} ${order.deliveryCity} ${order.deliveryPostalCode}`).includes(normalize(query));
     return matchesFlow && matchesQuery;
   }), [orders, flow, query]);
+  const delayedOrderCount = useMemo(() => orders.filter((order) => order.shipments.some((shipment) => getShipmentDeliveryOverview(shipment).delayed)).length, [orders]);
 
   if (loading && !data) return <AdminSectionLoading label={isFr ? "Synchronisation des commandes" : "Synchronising orders"} />;
   if (error && !data) return <AdminErrorState locale={locale} message={error} onRetry={refetch} />;
@@ -123,6 +125,7 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
           { label: isFr ? "À valider" : "To validate", value: String(counts.validate), icon: <Clock3 className="h-3.5 w-3.5" />, tone: "earth" },
           { label: isFr ? "Préparation" : "Packing", value: String(counts.prepare), icon: <PackageCheck className="h-3.5 w-3.5" />, tone: "gold" },
           { label: isFr ? "Livraison" : "Delivery", value: String(counts.deliver), icon: <Truck className="h-3.5 w-3.5" />, tone: "burgundy" },
+          { label: isFr ? "En retard" : "Delayed", value: String(delayedOrderCount), icon: <AlertTriangle className="h-3.5 w-3.5" />, tone: "coral" },
         ]}
         flow={[
           { label: isFr ? "Valider" : "Validate", detail: isFr ? "Paiement et antifraude" : "Payment and fraud check", icon: <ShieldAlert className="h-3.5 w-3.5" />, tone: "burgundy", active: flow === "validate" },
@@ -162,13 +165,18 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
             const coldChain = order.items.some((item) => item.thermalClass === "FROZEN" || item.thermalClass === "REFRIGERATED");
             const securityWarning = orderSecurityWarning(order, isFr);
             const SecurityIcon = securityWarning?.icon;
+            const parcelStates = order.shipments.map((shipment) => getShipmentDeliveryOverview(shipment));
+            const delayedParcels = parcelStates.filter((parcel) => parcel.delayed).length;
+            const attentionParcels = parcelStates.filter((parcel) => parcel.interrupted).length;
+            const deliveredParcels = parcelStates.filter((parcel) => parcel.stageIndex === 4).length;
             return (
             <button key={order.id} type="button" data-testid={`admin-order-card-${order.id}`} onClick={() => setSelectedOrder(order)} className="group rounded-lg border border-charcoal/8 bg-white p-4 text-left transition [contain-intrinsic-size:236px] [content-visibility:auto] hover:-translate-y-0.5 hover:border-terre/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terre">
               <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-terre">{order.number}</p><p className="mt-1 text-[10px] text-muted-foreground">{formatDateTime(order.createdAt, locale)}</p></div><Badge className={`border ${orderStatusColor(order.status)}`}>{statusLabel(order.status, isFr)}</Badge></div>
               {securityWarning && SecurityIcon ? <div className={`mt-3 flex items-start gap-2 rounded-md border px-2.5 py-2 ${securityWarning.tone}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-md shadow-sm ${securityWarning.iconTone}`}><SecurityIcon className="h-3.5 w-3.5" /></span><span className="min-w-0"><span className="block text-[10px] font-black uppercase">{securityWarning.label}</span><span className="mt-0.5 block text-[9px] leading-4 text-muted-foreground">{securityWarning.detail}</span></span></div> : null}
+              {delayedParcels || attentionParcels ? <div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/25 bg-destructive/[0.045] px-2.5 py-2 text-destructive"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="text-[9px] font-black uppercase leading-4">{isFr ? `${delayedParcels} retard(s) · ${attentionParcels} incident(s) colis` : `${delayedParcels} delay(s) · ${attentionParcels} parcel incident(s)`}</span></div> : null}
               <div className="mt-4 flex items-center gap-3 border-y border-charcoal/8 py-3"><span className="flex shrink-0 -space-x-2" aria-label={isFr ? "Aperçu des produits" : "Product preview"}>{order.items.slice(0, 3).map((item) => <ProductImage key={item.id} src={item.imageUrl} alt={isFr ? item.nameFr : item.nameEn} emoji="" color="#F8F3EF" size="sm" className="h-9 w-9 border-2 border-white" rounded="rounded-md" />)}{order.items.length > 3 ? <span className="relative grid h-9 w-9 place-items-center rounded-md border-2 border-white bg-burgundy/10 text-[9px] font-black text-burgundy">+{order.items.length - 3}</span> : null}</span><span className="min-w-0 flex-1"><span className="block break-words text-xs font-extrabold leading-4 text-charcoal">{order.deliveryName}</span><span className="mt-0.5 flex items-start gap-1 text-[10px] leading-4 text-muted-foreground"><MapPin className="mt-0.5 h-3 w-3 shrink-0" /><span className="break-words">{order.deliveryPostalCode} {order.deliveryCity}</span></span></span>{coldChain ? <Snowflake className="h-4 w-4 shrink-0 text-burgundy" aria-label={isFr ? "Chaîne du froid" : "Cold chain"} /> : null}</div>
               <div className="mt-3 grid grid-cols-4 gap-1" role="progressbar" aria-label={`${isFr ? "Progression" : "Progress"}: ${statusLabel(order.status, isFr)}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={(flowIndex + 1) * 25}>{FLOW_ORDER.map((stage, index) => <span key={stage} className={`h-1 rounded-sm ${index <= flowIndex ? "bg-terre" : "bg-charcoal/10"}`} />)}</div>
-              <div className="mt-3 flex items-end justify-between gap-3"><div className="min-w-0"><p className="text-[10px] text-muted-foreground">{order.items.length} {isFr ? "article(s)" : "item(s)"} · {order.packageCount} {isFr ? "colis" : "parcel(s)"} · {formatWeight(order.weightGrams, locale)}</p><p className="mt-1 flex items-center gap-1 text-[9px] font-black uppercase text-burgundy">{nextStatus ? <>{isFr ? "Prochaine" : "Next"}: {fulfillmentStatusLabel(nextStatus, locale)} <ArrowRight className="h-3 w-3" /></> : (isFr ? "Flux terminé" : "Workflow complete")}</p></div><p className="shrink-0 text-base font-black tabular-nums text-charcoal">{formatPrice(order.total, locale)}</p></div>
+              <div className="mt-3 flex items-end justify-between gap-3"><div className="min-w-0"><p className="text-[10px] text-muted-foreground">{order.items.length} {isFr ? "article(s)" : "item(s)"} · {deliveredParcels}/{Math.max(order.packageCount, order.shipments.length)} {isFr ? "colis livré(s)" : "parcel(s) delivered"} · {formatWeight(order.weightGrams, locale)}</p><p className="mt-1 flex items-center gap-1 text-[9px] font-black uppercase text-burgundy">{nextStatus ? <>{isFr ? "Prochaine" : "Next"}: {fulfillmentStatusLabel(nextStatus, locale)} <ArrowRight className="h-3 w-3" /></> : (isFr ? "Flux terminé" : "Workflow complete")}</p></div><p className="shrink-0 text-base font-black tabular-nums text-charcoal">{formatPrice(order.total, locale)}</p></div>
             </button>
             );
           })}
@@ -176,7 +184,7 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
       ) : <AdminEmptyState icon={<Box className="h-5 w-5" />} title={isFr ? "Aucune commande dans cette vue" : "No orders in this view"} description={isFr ? "Modifiez l'étape ou la recherche pour retrouver une commande." : "Change the stage or search to find an order."} />}
 
       <Dialog open={Boolean(selectedOrder)} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
-        <DialogContent closeLabel={isFr ? "Fermer" : "Close"} className="max-h-[92dvh] overflow-y-auto p-0 sm:max-w-4xl">
+        <DialogContent mobileFullscreen closeLabel={isFr ? "Fermer" : "Close"} className="overflow-x-hidden overflow-y-auto overscroll-contain p-0 [overflow-wrap:anywhere] sm:max-w-4xl">
           {selectedOrder ? <>
             <DialogHeader className="border-b border-border px-5 py-5 sm:px-6"><div className="flex flex-wrap items-center gap-2 pr-8"><DialogTitle className="text-xl font-black text-terre">{selectedOrder.number}</DialogTitle><Badge className={`border ${orderStatusColor(selectedOrder.status)}`}>{statusLabel(selectedOrder.status, isFr)}</Badge></div><DialogDescription>{formatDateTime(selectedOrder.createdAt, locale)} · {selectedOrder.deliveryName}</DialogDescription><div className="mt-4 grid grid-cols-3 divide-x divide-charcoal/10 border-y border-charcoal/8 py-3 text-left"><OrderDialogFact icon={CircleDollarSign} label={isFr ? "Total" : "Total"} value={formatPrice(selectedOrder.total, locale)} /><OrderDialogFact icon={PackageCheck} label={isFr ? "Préparation" : "Fulfilment"} value={`${selectedOrder.items.length} ${isFr ? "article(s)" : "item(s)"}`} /><OrderDialogFact icon={Truck} label={isFr ? "Expédition" : "Shipping"} value={`${selectedOrder.packageCount} ${isFr ? "colis" : "parcel(s)"}`} /></div></DialogHeader>
             <JourneyRail
@@ -210,7 +218,8 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
               </div>
               <div className="space-y-6">
                 <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Progression" : "Progress"}</h3>{selectedOrder.timeline.length ? <ol className="mt-3 space-y-0">{selectedOrder.timeline.map((event, index) => <li key={`${event.status}-${event.at}`} className="relative flex gap-3 pb-5 last:pb-0"><span className={`relative z-10 mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full ${index === selectedOrder.timeline.length - 1 ? "bg-terre text-white" : "bg-burgundy/10 text-burgundy"}`}><CheckCircle2 className="h-3.5 w-3.5" /></span>{index < selectedOrder.timeline.length - 1 ? <span className="absolute bottom-0 left-[13px] top-7 w-px bg-border" /> : null}<div><p className="text-xs font-bold text-charcoal">{event.label || statusLabel(event.status, isFr)}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{formatDateTime(event.at, locale)}{event.actor ? ` · ${event.actor}` : ""}</p></div></li>)}</ol> : <p className="mt-3 text-xs text-muted-foreground">{isFr ? "Aucun événement enregistré." : "No event recorded."}</p>}</section>
-                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Paiement et colis" : "Payment and parcels"}</h3><div className="mt-3 divide-y divide-border border-y border-border text-xs">{selectedOrder.payments.map((payment, index) => <div key={`${payment.reference}-${index}`} className="flex items-center gap-3 py-3"><OrderPaymentIcon method={payment.method} /><div className="min-w-0 flex-1"><p className="font-bold text-charcoal">{paymentMethodLabel(payment.method, locale)}</p><p className="mt-0.5 break-all text-[10px] text-muted-foreground">{paymentMethodFamilyLabel(payment.method, locale)} · {paymentStatusLabel(payment.status, locale)}{payment.reference ? ` · ${payment.reference}` : ""}</p></div><strong className="shrink-0 tabular-nums">{formatPrice(payment.amount, locale)}</strong></div>)}{selectedOrder.shipments.map((shipment) => <div key={shipment.id} className="py-3"><div className="flex justify-between gap-3"><span className="font-bold">{shipment.carrier || (isFr ? "Transporteur" : "Carrier")}</span><span className="text-muted-foreground">{statusLabel(shipment.status, isFr)}</span></div><p className="mt-1 text-[10px] text-muted-foreground">{shipment.trackingNumber || (isFr ? "Suivi à attribuer" : "Tracking pending")}{shipment.estimatedDelivery ? ` · ${formatDate(shipment.estimatedDelivery, locale)}` : ""}</p></div>)}</div></section>
+                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Paiement" : "Payment"}</h3><div className="mt-3 divide-y divide-border border-y border-border text-xs">{selectedOrder.payments.map((payment, index) => <div key={`${payment.reference}-${index}`} className="flex items-center gap-3 py-3"><OrderPaymentIcon method={payment.method} /><div className="min-w-0 flex-1"><p className="font-bold text-charcoal">{paymentMethodLabel(payment.method, locale)}</p><p className="mt-0.5 break-all text-[10px] text-muted-foreground">{paymentMethodFamilyLabel(payment.method, locale)} · {paymentStatusLabel(payment.status, locale)}{payment.reference ? ` · ${payment.reference}` : ""}</p></div><strong className="shrink-0 tabular-nums">{formatPrice(payment.amount, locale)}</strong></div>)}</div></section>
+                <section><h3 className="text-xs font-extrabold uppercase text-muted-foreground">{isFr ? "Suivi détaillé des colis" : "Detailed parcel tracking"}</h3><div className="mt-3 space-y-3">{selectedOrder.shipments.map((shipment, index) => <AdminShipmentTracking key={shipment.id} shipment={shipment} index={index} total={Math.max(selectedOrder.packageCount, selectedOrder.shipments.length)} locale={locale} />)}{!selectedOrder.shipments.length ? <p className="border-y border-border py-3 text-xs text-muted-foreground">{isFr ? "Aucun colis créé. Utilisez le centre d'exécution ci-dessous." : "No parcel created. Use the fulfilment centre below."}</p> : null}</div></section>
               </div>
             </div>
             <OrderFulfillmentControl
@@ -227,6 +236,36 @@ export default function OrdersSection({ locale, canUpdate }: { locale: "fr" | "e
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function AdminShipmentTracking({ shipment, index, total, locale }: { shipment: AdminOrder["shipments"][number]; index: number; total: number; locale: "fr" | "en" }) {
+  const isFr = locale === "fr";
+  const overview = getShipmentDeliveryOverview(shipment);
+  const trackingHref = getShipmentTrackingHref(shipment);
+  const parcelStages: JourneyStage[] = [
+    { id: "created", icon: ReBoxTick, label: isFr ? "Créé" : "Created" },
+    { id: "picked-up", icon: ReCheckCircle, label: isFr ? "Pris en charge" : "Picked up" },
+    { id: "transit", icon: ReTruck, label: isFr ? "Transit" : "Transit" },
+    { id: "last-mile", icon: ReTruck, label: isFr ? "Dernier km" : "Last mile" },
+    { id: "delivered", icon: ReCheckCircle, label: isFr ? "Livré" : "Delivered" },
+  ];
+
+  return (
+    <article className={`rounded-lg border bg-white p-3 ${overview.delayed || overview.interrupted ? "border-destructive/30" : "border-charcoal/10"}`} data-testid={`admin-shipment-${shipment.id}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0"><p className="text-[9px] font-black uppercase text-terre">{isFr ? `Colis ${index + 1} sur ${total}` : `Parcel ${index + 1} of ${total}`}</p><p className="mt-0.5 break-all text-xs font-black text-charcoal">{shipment.trackingNumber || (isFr ? "Suivi à attribuer" : "Tracking pending")}</p></div>
+        <Badge className={`shrink-0 border ${overview.interrupted ? "border-destructive/25 bg-destructive/[0.07] text-destructive" : overview.delayed ? "border-gold/40 bg-gold/[0.14] text-charcoal" : "border-burgundy/15 bg-burgundy/[0.05] text-burgundy"}`}>{overview.delayed ? (isFr ? "Retard" : "Delayed") : statusLabel(shipment.status, isFr)}</Badge>
+      </div>
+      <p className="mt-1 text-[10px] text-muted-foreground">{shipment.carrier || (isFr ? "Transporteur à attribuer" : "Carrier pending")} · {thermalLabel(shipment.thermalClass, locale)}</p>
+      <JourneyRail stages={parcelStages} activeIndex={overview.stageIndex} progress={overview.progress} label={isFr ? `Progression du colis ${index + 1}` : `Parcel ${index + 1} progress`} progressLabel={isFr ? `Colis traité à ${overview.progress} %` : `Parcel ${overview.progress}% complete`} interrupted={overview.interrupted} surface="flush" className="mt-2 border-y border-border py-1.5" />
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[10px]">
+        <div><p className="font-black uppercase text-muted-foreground">{isFr ? "Arrivée estimée" : "Estimated arrival"}</p><p className={`mt-0.5 font-bold ${overview.delayed ? "text-destructive" : "text-charcoal"}`}>{shipment.estimatedDelivery ? formatDateTime(shipment.estimatedDelivery, locale) : (isFr ? "À renseigner" : "Pending")}</p></div>
+        <div><p className="font-black uppercase text-muted-foreground">{isFr ? "Remise" : "Handover"}</p><p className="mt-0.5 font-bold text-charcoal">{shipment.actualDelivery ? formatDateTime(shipment.actualDelivery, locale) : shipment.confirmCode ? `${isFr ? "Code" : "Code"} ${shipment.confirmCode}` : (isFr ? "Non remise" : "Not delivered")}</p></div>
+      </div>
+      {trackingHref ? <a href={trackingHref} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] font-black text-terre hover:underline">{isFr ? "Ouvrir le suivi transporteur" : "Open carrier tracking"}<ExternalLink className="h-3 w-3" /></a> : null}
+      {shipment.proofPhoto || shipment.signature ? <div className="mt-2 border-t border-border pt-2"><p className="text-[9px] font-black uppercase text-burgundy">{isFr ? "Preuve de livraison" : "Delivery evidence"}</p>{shipment.proofPhoto ? <ProductImage src={shipment.proofPhoto} alt={isFr ? `Preuve du colis ${shipment.trackingNumber || index + 1}` : `Evidence for parcel ${shipment.trackingNumber || index + 1}`} emoji="" color="#F8F3EF" size="lg" className="mt-2 h-28 w-full" rounded="rounded-md" /> : null}{shipment.signature ? <p className="mt-1.5 text-[10px] font-bold text-charcoal">{isFr ? "Reçu par" : "Received by"} {shipment.signature}</p> : null}</div> : null}
+    </article>
   );
 }
 

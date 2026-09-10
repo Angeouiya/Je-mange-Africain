@@ -6,22 +6,26 @@ import { enforceRateLimit } from "@/lib/redis";
 export const dynamic = "force-dynamic";
 
 const PRODUCTION_RESET_URL = "https://je-mange-africain.com/auth/reset";
-const PRODUCTION_RESET_HOSTS = new Set(["je-mange-africain.com", "www.je-mange-africain.com"]);
+const WORKERS_DEV_HOST = "je-mange-africain.promise-corporation.workers.dev";
+const PRODUCTION_RESET_HOSTS = new Set(["je-mange-africain.com", "www.je-mange-africain.com", WORKERS_DEV_HOST]);
 const Recovery = z.object({ email: z.string().trim().email().max(254) });
 const Reset = z.object({ accessToken: z.string().min(20), password: z.string().min(8).max(256) });
 
-function passwordResetRedirectUrl() {
+function passwordResetRedirectUrl(request: Request) {
   const publicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://je-mange-africain.com";
-  try {
-    const url = new URL("/auth/reset", publicSiteUrl);
-    if (url.protocol !== "https:" || !PRODUCTION_RESET_HOSTS.has(url.hostname.toLowerCase())) return PRODUCTION_RESET_URL;
-    url.hostname = "je-mange-africain.com";
-    url.search = "";
-    url.hash = "";
-    return url.toString();
-  } catch {
-    return PRODUCTION_RESET_URL;
+  for (const candidate of [request.url, publicSiteUrl]) {
+    try {
+      const url = new URL("/auth/reset", candidate);
+      if (url.protocol !== "https:" || !PRODUCTION_RESET_HOSTS.has(url.hostname.toLowerCase())) continue;
+      if (url.hostname.toLowerCase() === "www.je-mange-africain.com") url.hostname = "je-mange-africain.com";
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    } catch {
+      continue;
+    }
   }
+  return PRODUCTION_RESET_URL;
 }
 
 export async function POST(request: Request) {
@@ -42,7 +46,7 @@ export async function POST(request: Request) {
       headers: { apikey: key, "Content-Type": "application/json" },
       body: JSON.stringify({
         email: parsed.data.email,
-        redirect_to: passwordResetRedirectUrl(),
+        redirect_to: passwordResetRedirectUrl(request),
       }),
       signal: AbortSignal.timeout(10_000),
     });

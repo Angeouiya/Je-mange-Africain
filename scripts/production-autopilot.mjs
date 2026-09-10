@@ -13,7 +13,8 @@ export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12b
 export const PRODUCTION_HYPERDRIVE_ID = "ecda2d6ebe7e44babfe8e29ab4fabecc";
 export const PRODUCTION_WORKER_NAME = "je-mange-africain";
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
-export const CLOUDFLARE_PUBLICATION_MODE = "Cloudflare Workers custom-domain deployment";
+export const PRODUCTION_WORKERS_DEV_URL = "https://je-mange-africain.promise-corporation.workers.dev";
+export const CLOUDFLARE_PUBLICATION_MODE = "Cloudflare Workers deployment";
 export const SUPABASE_OPERATIONAL_KEYS = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "DIRECT_URL"];
 
 const DOTENV_FILES = [".env", ".env.local", ".env.production.local"];
@@ -243,8 +244,11 @@ function evaluateRequirement(key, label, values, sources) {
   if (key === "NEXT_PUBLIC_SITE_URL" && !/^https:\/\//i.test(normalizedUrl(value))) {
     return { key, label, ok: false, source, problem: "must be an HTTPS URL" };
   }
-  if (key === "NEXT_PUBLIC_SITE_URL" && normalizedUrl(value) !== PRODUCTION_SITE_URL) {
-    return { key, label, ok: false, source, problem: `must be ${PRODUCTION_SITE_URL}` };
+  if (key === "NEXT_PUBLIC_SITE_URL") {
+    const expectedSiteUrl = values.CLOUDFLARE_DOMAIN_STATUS === "attached" ? PRODUCTION_SITE_URL : PRODUCTION_WORKERS_DEV_URL;
+    if (normalizedUrl(value) !== expectedSiteUrl) {
+      return { key, label, ok: false, source, problem: `must be ${expectedSiteUrl} while domain status is ${values.CLOUDFLARE_DOMAIN_STATUS || "deferred"}` };
+    }
   }
   if (key === "PAYMENTS_ENABLED" && !["true", "false"].includes(value.toLowerCase())) {
     return { key, label, ok: false, source, problem: "must be true or false" };
@@ -287,7 +291,7 @@ export function productionReadiness(environment = loadProductionEnvironment()) {
       cloudflareAccountId: PRODUCTION_CLOUDFLARE_ACCOUNT_ID,
       hyperdriveId: PRODUCTION_HYPERDRIVE_ID,
       workerName: PRODUCTION_WORKER_NAME,
-      siteUrl: PRODUCTION_SITE_URL,
+      siteUrl: environment.values.NEXT_PUBLIC_SITE_URL || PRODUCTION_WORKERS_DEV_URL,
       domainStatus: environment.values.CLOUDFLARE_DOMAIN_STATUS || "deferred",
       publicationMode: CLOUDFLARE_PUBLICATION_MODE,
     },
@@ -660,6 +664,57 @@ function cloudflareSecrets(values) {
   );
 }
 
+export function cloudflareDeployReadiness({
+  environment = loadProductionEnvironment(),
+  runner = (command, args) => runCapture(command, args, environment.values, environment.cwd),
+} = {}) {
+  const report = productionReadiness(environment);
+  const requiredSecretKeys = environment.values.PAYMENTS_ENABLED === "true"
+    ? REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS
+    : REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS_WITHOUT_PAYMENTS;
+  const localSecretsReady = requiredSecretKeys.every((key) => hasUsableValue(key, environment.values[key]));
+  const configurationBlockers = report.blockers.filter((blocker) => !requiredSecretKeys.includes(blocker.key));
+  const secretResult = localSecretsReady
+    ? null
+    : runner("npx", ["wrangler", "secret", "list", "--config", "wrangler.jsonc", "--name", PRODUCTION_WORKER_NAME]);
+  const secretPayload = secretResult ? parseJsonPayload(`${secretResult.stdout || ""}\n${secretResult.stderr || ""}`) : [];
+  const remoteSecrets = localSecretsReady ? [] : cloudflareSecretNames(secretPayload);
+  const missingRemoteSecretKeys = localSecretsReady ? [] : requiredSecretKeys.filter((key) => !remoteSecrets.includes(key));
+  const remoteSecretsReady = !localSecretsReady && secretResult?.status === 0 && Array.isArray(secretPayload) && missingRemoteSecretKeys.length === 0;
+  const blockers = [...configurationBlockers];
+  if (!localSecretsReady && !remoteSecretsReady) {
+    blockers.push({
+      key: "CLOUDFLARE_SECRETS",
+      problem: missingRemoteSecretKeys.length
+        ? `${missingRemoteSecretKeys.length} required remote secret(s) missing`
+        : "remote Worker secrets cannot be verified",
+    });
+  }
+
+  return {
+    ready: blockers.length === 0,
+    blockers,
+    requiredSecretKeys,
+    localSecretsReady,
+    remoteSecretsReady,
+    remoteSecrets,
+    missingRemoteSecretKeys,
+    secretSource: localSecretsReady ? "local" : remoteSecretsReady ? "remote" : "missing",
+  };
+}
+
+function printCloudflareDeployReadiness(report, writer = console.log) {
+  writer(`Cloudflare deploy secrets: ${report.secretSource === "local" ? "local values will be uploaded" : report.secretSource === "remote" ? "existing Worker secrets will be preserved" : "unavailable"}.`);
+  for (const blocker of report.blockers) writer(`BLOCKED ${blocker.key} - ${blocker.problem}`);
+  writer(report.ready ? "Cloudflare deployment is ready." : `${report.blockers.length} Cloudflare deployment blocker(s) remain.`);
+}
+
+function ensureCloudflareDeployReady(report) {
+  if (report.ready) return;
+  printCloudflareDeployReadiness(report, (line) => console.error(line));
+  process.exit(1);
+}
+
 function writeTemporarySecretsFile(values) {
   const dir = mkdtempSync(join(tmpdir(), "jma-cloudflare-secrets-"));
   const filePath = join(dir, "secrets.json");
@@ -771,8 +826,12 @@ function pushSupabaseMigrations(values) {
   run("npx", args, values);
 }
 
-function deployCloudflare(values) {
+function deployCloudflare(values, secretSource) {
   run("npm", ["run", "cloudflare:build"], values);
+  if (secretSource !== "local") {
+    run("npx", ["wrangler", "deploy", "--config", "dist/server/wrangler.json", "--keep-vars"], values);
+    return;
+  }
   const { dir, filePath } = writeTemporarySecretsFile(values);
   try {
     run("npx", ["wrangler", "deploy", "--config", "dist/server/wrangler.json", "--keep-vars", "--secrets-file", filePath], values);
@@ -843,7 +902,7 @@ Options:
   --baseline-prisma    Mark Prisma PostgreSQL migrations as applied only after a zero-diff schema check.
   --sync-cloudflare    Upload current env values to Cloudflare secrets for an existing Worker.
   --migrate            Run PostgreSQL migrations against Supabase using DATABASE_URL or DIRECT_URL.
-  --deploy             Build and deploy the Cloudflare Worker with a temporary secrets file.
+  --deploy             Build and deploy the Worker; preserve verified remote secrets when local values are absent.
 `);
 }
 
@@ -857,17 +916,19 @@ function main() {
 
   const environment = loadProductionEnvironment();
   const report = productionReadiness(environment);
+  const deployReport = args.has("--deploy") ? cloudflareDeployReadiness({ environment }) : null;
   if (args.has("--check")) printProductionReadiness(report);
   if (args.has("--check-supabase")) printSupabaseCliReadiness(supabaseCliReadiness(environment));
   if (args.has("--check-remote")) printRemoteProductionReadiness(remoteProductionReadiness({ environment }));
   if (args.has("--open-dashboards")) openDashboards();
-  if (args.has("--assert") || args.has("--sync-cloudflare") || args.has("--deploy")) ensureReady(report);
+  if (args.has("--assert") || args.has("--sync-cloudflare")) ensureReady(report);
+  if (deployReport) ensureCloudflareDeployReady(deployReport);
   if (args.has("--link-supabase")) linkSupabaseProject(environment.values);
   if (args.has("--push-supabase")) pushSupabaseMigrations(environment.values);
   if (args.has("--baseline-prisma")) baselinePrismaMigrations(environment.values);
   if (args.has("--sync-cloudflare")) syncCloudflareSecrets(environment.values);
   if (args.has("--migrate")) migrateDatabase(environment.values);
-  if (args.has("--deploy")) deployCloudflare(environment.values);
+  if (args.has("--deploy")) deployCloudflare(environment.values, deployReport.secretSource);
 }
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : "";

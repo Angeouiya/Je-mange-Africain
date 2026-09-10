@@ -60,6 +60,13 @@ type HomeCatalog = {
   news: ProductListItem[];
   onSale: ProductListItem[];
   popularRecipes: RecipeListItem[];
+  marketShowcase: Array<{
+    kind: "product" | "recipe";
+    id: string;
+    label: string;
+    detail: string;
+    imageUrl: string;
+  }>;
 };
 
 export function HomeView() {
@@ -228,7 +235,7 @@ export function HomeView() {
 
       {!error ? <div className="order-3 mx-auto w-full max-w-7xl space-y-5 px-4 pb-5 pt-5 md:order-2 md:px-8 md:pb-9 md:pt-8">
         <HomeQuickLaunch actions={quickActions} onSelect={selectDestination} onWarm={warmDestination} locale={locale} />
-        <MarketAbundanceShelf title={copy.marketTitle} intent={copy.marketIntent} locale={locale} onSelect={selectDestination} onWarm={warmDestination} />
+        <MarketAbundanceShelf items={data?.marketShowcase || []} title={copy.marketTitle} intent={copy.marketIntent} locale={locale} onSelect={selectDestination} onWarm={warmDestination} />
         <Section
           title={copy.favourites}
           intent={copy.favouritesIntent}
@@ -348,36 +355,17 @@ type MarketShowcaseItem = {
   featured?: boolean;
 };
 
-function MarketAbundanceShelf({ title, intent, locale, onSelect, onWarm }: { title: string; intent: string; locale: "fr" | "en"; onSelect: (view: ViewId, params?: ViewParams) => void; onWarm: (view: ViewId, params?: ViewParams) => void }) {
-  const items: MarketShowcaseItem[] = locale === "fr"
-    ? [
-        { label: "Marché garni", detail: "Épices, plats, condiments", src: "/market-collage-premium.jpg", view: "catalog", featured: true },
-        { label: "Jollof & dodo", detail: "Riz parfumé, plantain doré", src: "/showcase/jollof-dodo.webp", view: "recipes", params: { query: "jollof" } },
-        { label: "Alloco poulet", detail: "Assiette chaude et généreuse", src: "/recipes/alloco-poulet.webp", view: "recipes", params: { query: "alloco" } },
-        { label: "Egusi & eba", detail: "Sauce riche, base fondante", src: "/recipe-library-hero.webp", view: "recipes", params: { query: "egusi" } },
-        { label: "Attiéké poisson", detail: "Ivoirien, frais, relevé", src: "/recipes/attieke-poisson.webp", view: "recipes", params: { query: "attieke" } },
-        { label: "Maffé", detail: "Sauce arachide profonde", src: "/showcase/groundnut-stew.webp", view: "recipes", params: { query: "mafe" } },
-        { label: "Piments frais", detail: "Couleur et intensité", src: "/products/piment-frais.webp", view: "catalog", params: { query: "piment" } },
-        { label: "Pâte d'arachide", detail: "Texture dense et crémeuse", src: "/products/pate-arachide.webp", view: "catalog", params: { query: "arachide" } },
-        { label: "Gombo frais", detail: "Produit net, prêt à cuisiner", src: "/products/gombo-frais.webp", view: "catalog", params: { query: "gombo" } },
-        { label: "Fonio", detail: "Grain fin, cuisson légère", src: "/products/fonio.webp", view: "catalog", params: { query: "fonio" } },
-        { label: "Bissap", detail: "Hibiscus intense", src: "/products/bissap.webp", view: "catalog", params: { query: "bissap" } },
-        { label: "Dodo", detail: "Plantain mûr doré", src: "/showcase/dodo-fried.webp", view: "catalog", params: { query: "plantain" } },
-      ]
-    : [
-        { label: "Loaded market", detail: "Spices, dishes, condiments", src: "/market-collage-premium.jpg", view: "catalog", featured: true },
-        { label: "Jollof & dodo", detail: "Spiced rice, golden plantain", src: "/showcase/jollof-dodo.webp", view: "recipes", params: { query: "jollof" } },
-        { label: "Plantain chicken", detail: "Warm, generous plate", src: "/recipes/alloco-poulet.webp", view: "recipes", params: { query: "plantain chicken" } },
-        { label: "Egusi & eba", detail: "Rich sauce, soft base", src: "/recipe-library-hero.webp", view: "recipes", params: { query: "egusi" } },
-        { label: "Attieke fish", detail: "Ivorian, fresh, spicy", src: "/recipes/attieke-poisson.webp", view: "recipes", params: { query: "attieke" } },
-        { label: "Groundnut stew", detail: "Deep peanut sauce", src: "/showcase/groundnut-stew.webp", view: "recipes", params: { query: "groundnut" } },
-        { label: "Fresh peppers", detail: "Color and intensity", src: "/products/piment-frais.webp", view: "catalog", params: { query: "pepper" } },
-        { label: "Peanut paste", detail: "Dense, creamy texture", src: "/products/pate-arachide.webp", view: "catalog", params: { query: "peanut" } },
-        { label: "Fresh okra", detail: "Clear product shot", src: "/products/gombo-frais.webp", view: "catalog", params: { query: "okra" } },
-        { label: "Fonio", detail: "Fine grain, light cooking", src: "/products/fonio.webp", view: "catalog", params: { query: "fonio" } },
-        { label: "Bissap", detail: "Deep hibiscus", src: "/products/bissap.webp", view: "catalog", params: { query: "hibiscus" } },
-        { label: "Dodo", detail: "Golden ripe plantain", src: "/showcase/dodo-fried.webp", view: "catalog", params: { query: "plantain" } },
-      ];
+function MarketAbundanceShelf({ items: assignedItems, title, intent, locale, onSelect, onWarm }: { items: HomeCatalog["marketShowcase"]; title: string; intent: string; locale: "fr" | "en"; onSelect: (view: ViewId, params?: ViewParams) => void; onWarm: (view: ViewId, params?: ViewParams) => void }) {
+  const items: MarketShowcaseItem[] = [
+    { label: locale === "fr" ? "Marché garni" : "Loaded market", detail: locale === "fr" ? "Épices, plats, condiments" : "Spices, dishes, condiments", src: "/market-collage-premium.jpg", view: "catalog", featured: true },
+    ...assignedItems.map((item) => ({
+      label: item.label,
+      detail: item.detail,
+      src: item.imageUrl,
+      view: item.kind === "product" ? "product" as const : "recipe-config" as const,
+      params: item.kind === "product" ? { productId: item.id } : { recipeId: item.id },
+    })),
+  ];
 
   return (
     <section data-testid="home-market-abundance" aria-label={title} className="-mx-4 border-y border-burgundy/10 bg-[#FFFCFA] py-3 md:mx-0 md:px-3 md:py-4">

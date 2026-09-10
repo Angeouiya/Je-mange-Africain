@@ -103,8 +103,8 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
   return (
     <Dialog open={Boolean(dish)} onOpenChange={(open) => { if (!open) onClose(); }}>
       {dish ? (
-        <DialogContent closeLabel={locale === "fr" ? "Fermer" : "Close"} className="min-w-0 max-h-[calc(100svh-1rem)] overflow-x-hidden overflow-y-auto p-0 sm:max-w-4xl">
-          <div className="relative h-60 min-w-0 max-w-full overflow-hidden rounded-t-lg bg-muted sm:h-auto sm:aspect-[16/6] sm:min-h-52">
+        <DialogContent mobileFullscreen closeLabel={locale === "fr" ? "Fermer" : "Close"} className="min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain p-0 [overflow-wrap:anywhere] sm:max-w-4xl">
+          <div className="relative h-[min(18rem,38dvh)] min-w-0 max-w-full shrink-0 overflow-hidden rounded-none bg-muted sm:h-auto sm:aspect-[16/6] sm:min-h-52 sm:rounded-t-lg">
             <ProductImage src={getRecipePhoto({ name: dish.name, title: dish.name, country: dish.country, category: dish.categoryLabel })} alt={dish.name} emoji="🍽️" color="#8A3042" size="lg" className="h-full w-full" rounded="rounded-none" />
             <div className="absolute inset-0 bg-gradient-to-t from-burgundy/95 via-burgundy/15 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 min-w-0 p-4 text-white sm:p-7">
@@ -116,7 +116,7 @@ export function DishDetailsDialog({ dish, onClose }: { dish: DishLibraryItem | n
             </div>
           </div>
 
-          <div className="space-y-6 p-5 sm:p-7">
+          <div className="space-y-6 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-5 sm:p-7">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <DetailMetric icon={Clock} label={locale === "fr" ? "Temps" : "Time"} value={`${dish.timeMinutes} min`} />
               <DetailMetric icon={UserHands} label={locale === "fr" ? "Portions" : "Servings"} value={String(dish.servings)} />

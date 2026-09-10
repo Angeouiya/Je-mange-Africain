@@ -1,6 +1,6 @@
 const DEFAULT_ICON = "/brand/notification-icon-burgundy.png";
 const DEFAULT_BADGE = "/brand/notification-badge.png";
-const CACHE_NAME = "jma-shell-v5";
+const CACHE_NAME = "jma-shell-v7";
 const PUBLIC_API_CACHE_NAME = "jma-public-api-v1";
 const PUBLIC_API_CACHE_MAX_ENTRIES = 80;
 const PUBLIC_API_DEFAULT_MAX_AGE_MS = 30 * 1000;
@@ -91,7 +91,8 @@ function isPublicApiRequest(url) {
 async function navigationResponse(request) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    const requestUrl = new URL(request.url);
+    if (response.ok && requestUrl.pathname === "/" && !requestUrl.search) {
       const cache = await caches.open(CACHE_NAME);
       await cache.put("/", response.clone());
     }
@@ -209,6 +210,39 @@ self.addEventListener("push", (event) => {
         { action: "dismiss", title: "Fermer" },
       ],
     });
+  })());
+});
+
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil((async () => {
+    const previous = event.oldSubscription;
+    const applicationServerKey = previous?.options?.applicationServerKey;
+    if (!previous || !applicationServerKey) return;
+
+    try {
+      const subscription = await self.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+      const serialized = subscription.toJSON();
+      if (!serialized.endpoint || !serialized.keys?.p256dh || !serialized.keys?.auth) return;
+
+      const response = await fetch("/api/push/subscriptions", {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          previousEndpoint: previous.endpoint,
+          subscription: { endpoint: serialized.endpoint, keys: serialized.keys },
+        }),
+      });
+      if (!response.ok) return;
+
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      windows.forEach((client) => client.postMessage({ type: "JMA_PUSH_SUBSCRIPTION_RENEWED" }));
+    } catch {
+      // The next authenticated application visit reconciles the live subscription.
+    }
   })());
 });
 

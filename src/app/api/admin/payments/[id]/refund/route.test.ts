@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/admin-auth", () => ({ authorizeAdminRequest: mocks.authorize }));
-vi.mock("@/lib/push-server", () => ({ sendPushToUser: vi.fn() }));
+vi.mock("@/lib/user-notifications", () => ({ createAndSendUserNotification: vi.fn() }));
 vi.mock("@/lib/stripe", () => ({
   stripe: { refunds: { create: mocks.createProviderRefund } },
   stripeConfigurationError: () => "Stripe unavailable",

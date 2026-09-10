@@ -334,6 +334,14 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   }
   await dishGrid.getByRole("button", { name: /voir la fiche|view record/i }).first().click();
   const dishDialog = page.getByRole("dialog");
+  if (isMobile) {
+    const viewport = page.viewportSize();
+    const dialogBox = await dishDialog.boundingBox();
+    expect(dialogBox?.x || 0).toBeLessThanOrEqual(1);
+    expect(dialogBox?.y || 0).toBeLessThanOrEqual(1);
+    expect(dialogBox?.width || 0).toBeGreaterThanOrEqual((viewport?.width || 0) - 1);
+    expect(dialogBox?.height || 0).toBeGreaterThanOrEqual((viewport?.height || 0) - 1);
+  }
   await expect(dishDialog.getByRole("heading", { name: /ingrédients|ingredients/i })).toBeVisible();
   await expect(dishDialog.getByRole("heading", { name: /préparation|preparation/i })).toBeVisible();
   await expect(dishDialog.getByTestId("dish-detailed-steps")).toContainText(/résultat|result/i);
@@ -345,6 +353,10 @@ test("the client application exposes clear catalogue, recipe and basket workspac
   await expectLoadedProductImages(dishDialog.getByRole("img"), 1);
   await expectNoHorizontalOverflow(page, dishDialog);
   await expectBrandSafeUiColors(page);
+  if (isMobile) {
+    await dishDialog.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+    await expect(dishDialog.getByRole("button", { name: /fermer|close/i })).toBeVisible();
+  }
   if (process.env.CLIENT_SCREENSHOTS) await page.screenshot({ path: `output/playwright/audit/dish-details-reference-${isMobile ? "mobile" : "desktop"}.png`, scale: "css" });
   await page.keyboard.press("Escape");
   await expect(dishDialog).toBeHidden();

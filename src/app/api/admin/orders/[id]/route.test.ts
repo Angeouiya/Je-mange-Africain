@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/admin-auth", () => ({ authorizeAdminRequest: mocks.authorize }));
-vi.mock("@/lib/push-server", () => ({ sendPushToUser: vi.fn() }));
+vi.mock("@/lib/user-notifications", () => ({ createAndSendUserNotification: vi.fn() }));
 vi.mock("@/lib/db", () => ({
   db: {
     order: { findUnique: mocks.findOrder, findUniqueOrThrow: mocks.findUpdatedOrder },

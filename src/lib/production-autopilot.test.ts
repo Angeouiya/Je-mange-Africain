@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync } from "node:fs";
 import {
   CLOUDFLARE_PUBLICATION_MODE,
+  cloudflareDeployReadiness,
   cloudflareSecretNames,
   parseJsonPayload,
   preferredDashboardBrowser,
@@ -17,6 +18,7 @@ import {
   PRODUCTION_SUPABASE_PROJECT_NAME,
   PRODUCTION_SUPABASE_PROJECT_REF,
   PRODUCTION_SUPABASE_URL,
+  PRODUCTION_WORKERS_DEV_URL,
   remoteProductionReadiness,
   REQUIRED_CLOUDFLARE_REMOTE_SECRET_KEYS,
   supabaseCliReadiness,
@@ -72,10 +74,12 @@ describe("production autopilot", () => {
     const report = productionReadiness(environment({
       ...readyValues,
       CLOUDFLARE_DOMAIN_STATUS: "deferred",
+      NEXT_PUBLIC_SITE_URL: PRODUCTION_WORKERS_DEV_URL,
     }));
 
     expect(report.ready).toBe(true);
     expect(report.blockers).toEqual([]);
+    expect(report.target.siteUrl).toBe(PRODUCTION_WORKERS_DEV_URL);
   });
 
   it("accepts an explicit payment shutdown without requiring Stripe credentials", () => {
@@ -93,6 +97,38 @@ describe("production autopilot", () => {
 
     expect(report.ready).toBe(true);
     expect(report.requirements.map((item) => item.key)).not.toContain("STRIPE_SECRET_KEY");
+  });
+
+  it("deploys safely with existing Worker secrets when local secret values are absent", () => {
+    const {
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: _publishableKey,
+      SUPABASE_SECRET_KEY: _supabaseSecret,
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: _stripePublishable,
+      STRIPE_SECRET_KEY: _stripeSecret,
+      STRIPE_WEBHOOK_SECRET: _stripeWebhook,
+      UPSTASH_REDIS_REST_URL: _redisUrl,
+      UPSTASH_REDIS_REST_TOKEN: _redisToken,
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: _vapidPublic,
+      VAPID_PRIVATE_KEY: _vapidPrivate,
+      VAPID_SUBJECT: _vapidSubject,
+      ...publicValues
+    } = readyValues;
+    const requiredRemoteSecrets = [
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+      "SUPABASE_SECRET_KEY",
+      "UPSTASH_REDIS_REST_URL",
+      "UPSTASH_REDIS_REST_TOKEN",
+      "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+      "VAPID_PRIVATE_KEY",
+      "VAPID_SUBJECT",
+    ];
+    const report = cloudflareDeployReadiness({
+      environment: environment({ ...publicValues, PAYMENTS_ENABLED: "false" }),
+      runner: () => cliResult(JSON.stringify(requiredRemoteSecrets.map((name) => ({ name, type: "secret_text" })))),
+    });
+
+    expect(report).toMatchObject({ ready: true, localSecretsReady: false, remoteSecretsReady: true, secretSource: "remote" });
+    expect(report.blockers).toEqual([]);
   });
 
   it("refuses an ambiguous payment switch", () => {

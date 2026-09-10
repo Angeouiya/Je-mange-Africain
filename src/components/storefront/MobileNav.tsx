@@ -130,7 +130,7 @@ export function MobileNav({ ready = true }: { ready?: boolean }) {
 
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           {desktopGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? "mt-3" : ""}>
-            <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-burgundy">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-burgundy/70">{group.intent}</span></div>
+            <div className="flex items-center px-3 pb-2"><p className="text-[9px] font-extrabold uppercase text-burgundy">{group.label}</p><span className="ml-auto text-[8px] font-bold uppercase text-burgundy">{group.intent}</span></div>
             <div className="space-y-1">{group.items.map((item) => {
               const active = desktopActiveTarget === item.id;
               return (

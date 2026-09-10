@@ -3,7 +3,7 @@ import { AdminRefundInput, isFullRefund, providerRefundStatus, refundAmounts, re
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
 import { db } from "@/lib/db";
-import { sendPushToUser } from "@/lib/push-server";
+import { createAndSendUserNotification } from "@/lib/user-notifications";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -175,10 +175,12 @@ async function notifyCustomer(userId: string, orderId: string, amount: number, f
   const bodyFr = fullRefund ? `${amountFr} ont été remboursés sur votre moyen de paiement.` : `Un remboursement de ${amountFr} a été confirmé.`;
   const bodyEn = fullRefund ? `${amountEn} has been refunded to your payment method.` : `A refund of ${amountEn} has been confirmed.`;
   const url = `/?view=order-tracking&orderId=${orderId}`;
-  const notification = await db.notification.create({ data: { userId, channel: "push", type: "order", titleFr, titleEn, bodyFr, bodyEn, url } });
-  const delivery = await sendPushToUser(userId, {
-    fr: { title: titleFr, body: bodyFr, url, type: "order", tag: `refund-${orderId}` },
-    en: { title: titleEn, body: bodyEn, url, type: "order", tag: `refund-${orderId}` },
+  await createAndSendUserNotification({
+    userId,
+    type: "order",
+    url,
+    tag: `refund-${orderId}`,
+    fr: { title: titleFr, body: bodyFr },
+    en: { title: titleEn, body: bodyEn },
   });
-  if (delivery.sent > 0) await db.notification.update({ where: { id: notification.id }, data: { sent: true, deliveredCount: delivery.sent, failedCount: delivery.failed } });
 }

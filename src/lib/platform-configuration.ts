@@ -110,7 +110,8 @@ export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_PROJECT_RE
 export const PRODUCTION_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_AUIg2aOqbAJKzAvkEFdG8A_qYZiGd7D";
 export const PRODUCTION_CLOUDFLARE_ACCOUNT_ID = "82164eca9557f63e18984230deac12bc";
 export const PRODUCTION_SITE_URL = "https://je-mange-africain.com";
-export const CLOUDFLARE_PUBLICATION_MODE = "Cloudflare Workers custom-domain deployment";
+export const PRODUCTION_WORKERS_DEV_URL = "https://je-mange-africain.promise-corporation.workers.dev";
+export const CLOUDFLARE_PUBLICATION_MODE = "Cloudflare Workers deployment";
 
 export type DeploymentRequirementGroup = "database" | "identity" | "payments" | "cache" | "push" | "hosting";
 
@@ -188,6 +189,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
   const cloudflareAccount = environment.CLOUDFLARE_ACCOUNT_ID === PRODUCTION_CLOUDFLARE_ACCOUNT_ID;
   const cloudflareWorkers = environment.CLOUDFLARE_DEPLOYMENT_TARGET === "workers";
   const productionDomain = siteUrl === PRODUCTION_SITE_URL;
+  const workersDevFallback = siteUrl === PRODUCTION_WORKERS_DEV_URL;
   const domainAttached = productionDomain && environment.CLOUDFLARE_DOMAIN_STATUS === "attached";
   const cloudflareRuntime = cloudflareWorkers || Boolean(environment.CLOUDFLARE_ENV || environment.CF_PAGES);
   const cloudflareHosting = Boolean(cloudflareAccount && cloudflareRuntime);
@@ -211,7 +213,7 @@ export function platformIntegrationStatus(databaseAvailable: boolean, environmen
     { id: "identity", state: supabaseCore && supabaseServerAccess ? "ready" : supabaseCore ? "partial" : "attention", provider: "Supabase", capabilities: { connection: supabaseCore, project: supabaseProject, publishableKey: productionSupabasePublishableKey, serverAccess: supabaseServerAccess } },
     { id: "cache", state: environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN ? "ready" : "attention", provider: "Upstash Redis", capabilities: { connection: Boolean(environment.UPSTASH_REDIS_REST_URL && environment.UPSTASH_REDIS_REST_TOKEN) } },
     { id: "push", state: environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY ? "ready" : "attention", provider: "Web Push", capabilities: { connection: Boolean(environment.NEXT_PUBLIC_VAPID_PUBLIC_KEY && environment.VAPID_PRIVATE_KEY) } },
-    { id: "hosting", state: cloudflareHosting ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: cloudflareAccount, workers: cloudflareWorkers, runtime: cloudflareRuntime, domainConfigured: productionDomain, domainDeferred: !domainAttached, domain: domainAttached } },
+    { id: "hosting", state: cloudflareHosting && (productionDomain || workersDevFallback) ? "ready" : cloudflareRuntime ? "partial" : "attention", provider: "Cloudflare Workers", capabilities: { account: cloudflareAccount, workers: cloudflareWorkers, runtime: cloudflareRuntime, domainConfigured: productionDomain, domainDeferred: !domainAttached, domain: domainAttached, workersDevFallback } },
   ] as const;
 }
 

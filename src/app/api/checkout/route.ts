@@ -5,7 +5,7 @@ import { CheckoutPricingError, priceCheckout } from "@/lib/checkout-pricing";
 import { CheckoutStockReservationError, planCheckoutBatchAllocations } from "@/lib/checkout-stock-reservation";
 import { authorizeCustomerRequest } from "@/lib/customer-auth";
 import { db } from "@/lib/db";
-import { sendPushToSubscriptionId } from "@/lib/push-server";
+import { createAndSendUserNotification } from "@/lib/user-notifications";
 import { enforceRateLimit } from "@/lib/redis";
 import { stripe, stripeConfigurationError } from "@/lib/stripe";
 import { deliveryContactFingerprint, isVerifiedCheckoutPaymentIntent } from "@/lib/checkout-security";
@@ -274,14 +274,21 @@ export async function POST(request: NextRequest) {
     }, { isolationLevel: "Serializable", maxWait: 5_000, timeout: 15_000 });
     paidIntent = null;
 
-    if (body.pushSubscriptionId && result.created) {
-      await sendPushToSubscriptionId(body.pushSubscriptionId, {
-        title: body.locale === "en" ? "Order confirmed" : "Commande confirmée",
-        body: body.locale === "en" ? `${result.order.number} is being prepared. We will keep you updated.` : `${result.order.number} est en préparation. Nous vous tiendrons informé ici.`,
-        url: "/?view=orders",
+    if (result.created) {
+      await createAndSendUserNotification({
+        userId: user.id,
         type: "order",
+        url: `/?view=order-tracking&orderId=${result.order.id}`,
         tag: `order-${result.order.id}`,
-      }).catch(() => undefined);
+        fr: {
+          title: "Commande confirmée",
+          body: `${result.order.number} est confirmée et sa préparation va commencer.`,
+        },
+        en: {
+          title: "Order confirmed",
+          body: `${result.order.number} is confirmed and preparation will begin shortly.`,
+        },
+      });
     }
 
     return orderResponse(result.order);

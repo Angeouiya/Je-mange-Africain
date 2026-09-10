@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/customer-auth", () => ({ authorizeCustomerRequest: mocks.authorizeCustomerRequest }));
 vi.mock("@/lib/redis", () => ({ enforceRateLimit: mocks.enforceRateLimit }));
-vi.mock("@/lib/push-server", () => ({ sendPushToSubscriptionId: vi.fn() }));
+vi.mock("@/lib/user-notifications", () => ({ createAndSendUserNotification: vi.fn() }));
 vi.mock("@/lib/db", () => ({
   db: {
     payment: { findUnique: mocks.paymentFindUnique },

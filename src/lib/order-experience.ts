@@ -3,6 +3,7 @@ import type { Order, OrderShipment } from "@/lib/types";
 const terminalStatuses = new Set(["delivered", "cancelled", "canceled", "refunded", "failed", "partialrefund"]);
 const attentionStatuses = new Set(["awaitingclient", "replacement", "failed", "paymentpending"]);
 const excludedValueStatuses = new Set(["cart", "paymentpending", "cancelled", "canceled", "refunded", "failed"]);
+const interruptedShipmentStatuses = new Set(["cancelled", "canceled", "failed", "lost", "returned"]);
 
 const canonicalStatus = (status: string) => status.replace(/[^a-z0-9]/gi, "").toLowerCase();
 
@@ -28,6 +29,43 @@ export function getOrderProgress(status: string) {
   return stage < 0 ? 0 : [18, 48, 76, 100][stage];
 }
 
+export function getShipmentStageIndex(status: string) {
+  const canonical = canonicalStatus(status);
+  if (interruptedShipmentStatuses.has(canonical)) return -1;
+  if (canonical === "delivered") return 4;
+  if (["outfordelivery", "delivering"].includes(canonical)) return 3;
+  if (canonical === "intransit") return 2;
+  if (["pickedup", "shipped"].includes(canonical)) return 1;
+  return 0;
+}
+
+export function getShipmentProgress(status: string) {
+  const stage = getShipmentStageIndex(status);
+  return stage < 0 ? 0 : [8, 30, 55, 82, 100][stage];
+}
+
+type ShipmentTrackingSnapshot = {
+  status: string;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  estimatedDelivery?: string | null;
+  actualDelivery?: string | null;
+};
+
+export function getShipmentDeliveryOverview(shipment: ShipmentTrackingSnapshot, now = Date.now()) {
+  const stageIndex = getShipmentStageIndex(shipment.status);
+  const estimatedDeliveryAt = shipment.estimatedDelivery ? new Date(shipment.estimatedDelivery).getTime() : Number.NaN;
+  const delayed = stageIndex >= 0 && stageIndex < 4 && Number.isFinite(estimatedDeliveryAt) && estimatedDeliveryAt < now;
+
+  return {
+    stageIndex,
+    progress: getShipmentProgress(shipment.status),
+    interrupted: stageIndex < 0,
+    delayed,
+    trackingHref: getShipmentTrackingHref(shipment),
+  };
+}
+
 export function getOrderDeliveryTimestamp(order: Pick<Order, "status" | "shipments">) {
   const delivered = canonicalStatus(order.status) === "delivered";
   const values = order.shipments
@@ -37,7 +75,7 @@ export function getOrderDeliveryTimestamp(order: Pick<Order, "status" | "shipmen
   return values[0] || null;
 }
 
-export function getShipmentTrackingHref(shipment: Pick<OrderShipment, "trackingNumber" | "trackingUrl">) {
+export function getShipmentTrackingHref(shipment: Pick<ShipmentTrackingSnapshot, "trackingNumber" | "trackingUrl">) {
   if (!shipment.trackingNumber || !shipment.trackingUrl) return null;
   try {
     const url = new URL(shipment.trackingUrl.replace("{ref}", encodeURIComponent(shipment.trackingNumber)));
@@ -49,6 +87,7 @@ export function getShipmentTrackingHref(shipment: Pick<OrderShipment, "trackingN
 
 export function getOrderDeliveryOverview(order: Order) {
   const stageIndex = getOrderStageIndex(order.status);
+  const parcelOverviews = order.shipments.map((item) => getShipmentDeliveryOverview(item));
   const shipment = order.shipments.find((item) => {
     const status = canonicalStatus(item.status);
     return !["delivered", "cancelled", "canceled", "returned"].includes(status) && Boolean(item.trackingNumber);
@@ -62,6 +101,14 @@ export function getOrderDeliveryOverview(order: Order) {
     trackingHref: shipment ? getShipmentTrackingHref(shipment) : null,
     deliveryTimestamp: getOrderDeliveryTimestamp(order),
     packageCount: Math.max(1, Number(order.packageCount || 0), order.shipments.length),
+    parcelOverviews,
+    parcelProgress: parcelOverviews.length ? Math.round(parcelOverviews.reduce((sum, item) => sum + item.progress, 0) / parcelOverviews.length) : 0,
+    deliveredPackageCount: parcelOverviews.filter((item) => item.stageIndex === 4).length,
+    activePackageCount: parcelOverviews.filter((item) => item.stageIndex >= 1 && item.stageIndex < 4).length,
+    delayedPackageCount: parcelOverviews.filter((item) => item.delayed).length,
+    attentionPackageCount: parcelOverviews.filter((item) => item.interrupted).length,
+    lastUpdateAt: [...order.timeline.map((event) => event.at), ...order.shipments.map((item) => item.actualDelivery).filter((value): value is string => Boolean(value))]
+      .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] || order.createdAt,
   };
 }
 

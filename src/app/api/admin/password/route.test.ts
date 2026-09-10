@@ -14,8 +14,8 @@ vi.mock("@/lib/admin-auth", () => ({
 
 import { POST, PUT } from "./route";
 
-function request(body: Record<string, unknown>) {
-  return new Request("https://admin.je-mange-africain.com/api/admin/password", {
+function request(body: Record<string, unknown>, url = "https://admin.je-mange-africain.com/api/admin/password") {
+  return new Request(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -57,6 +57,22 @@ describe("admin password recovery", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
       error: "Le service de récupération professionnel est momentanément indisponible.",
+    });
+  });
+
+  it("keeps professional recovery on the Cloudflare Worker fallback", async () => {
+    mocks.fetch.mockResolvedValue(new Response("{}", { status: 200 }));
+
+    const response = await POST(request(
+      { email: "ezechielouiya@gmail.com" },
+      "https://je-mange-africain.promise-corporation.workers.dev/api/admin/password",
+    ));
+    const init = mocks.fetch.mock.calls[0][1] as RequestInit;
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(String(init.body))).toEqual({
+      email: "ezechielouiya@gmail.com",
+      redirect_to: "https://je-mange-africain.promise-corporation.workers.dev/admin/reset",
     });
   });
 

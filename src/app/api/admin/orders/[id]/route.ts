@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authorizeAdminRequest } from "@/lib/admin-auth";
 import { adminRateLimitSubject, enforceAdminCriticalPerimeterRateLimit, enforceAdminCriticalSubjectRateLimit } from "@/lib/admin-rate-limit";
-import { sendPushToUser } from "@/lib/push-server";
+import { createAndSendUserNotification } from "@/lib/user-notifications";
 import {
   canTransitionOrder,
   fulfillmentReadinessIssue,
@@ -205,25 +205,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const titleEn = "Your order is moving";
     const bodyFr = `${order.number} : ${fulfillmentStatusLabel(input.status, "fr").toLowerCase()}.`;
     const bodyEn = `${order.number}: ${fulfillmentStatusLabel(input.status, "en").toLowerCase()}.`;
-    const notification = await db.notification.create({
-      data: {
-        userId: order.customer.userId,
-        channel: "push",
-        type: "order",
-        titleFr,
-        titleEn,
-        bodyFr,
-        bodyEn,
-        url: `/?view=order-tracking&orderId=${id}`,
-      },
-    }).catch(() => null);
-    const delivery = await sendPushToUser(order.customer.userId, {
-      fr: { title: titleFr, body: bodyFr, url: `/?view=order-tracking&orderId=${id}`, type: "order", tag: `order-${id}` },
-      en: { title: titleEn, body: bodyEn, url: `/?view=order-tracking&orderId=${id}`, type: "order", tag: `order-${id}` },
-    }).catch(() => ({ total: 0, sent: 0, failed: 0, configured: false }));
-    if (notification && delivery.sent > 0) {
-      await db.notification.update({ where: { id: notification.id }, data: { sent: true } }).catch(() => undefined);
-    }
+    await createAndSendUserNotification({
+      userId: order.customer.userId,
+      type: "order",
+      url: `/?view=order-tracking&orderId=${id}`,
+      tag: `order-${id}`,
+      fr: { title: titleFr, body: bodyFr },
+      en: { title: titleEn, body: bodyEn },
+    });
   }
 
   const updated = await db.order.findUniqueOrThrow({

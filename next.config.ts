@@ -1,21 +1,8 @@
 import type { NextConfig } from "next";
-import fs from "node:fs";
-import path from "node:path";
-
-const projectRoot = fs.existsSync(path.join(process.cwd(), "node_modules", "next", "package.json"))
-  ? process.cwd()
-  : path.resolve(process.cwd(), "..", "..");
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  turbopack: {
-    root: projectRoot,
-  },
   allowedDevOrigins: ["127.0.0.1"],
   devIndicators: false,
-  outputFileTracingIncludes: {
-    "/api/**/*": ["./db/custom.db"],
-  },
   images: {
     remotePatterns: [
       {
