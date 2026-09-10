@@ -635,6 +635,26 @@ test("the adaptive client navigation keeps every destination clear and touch fri
   await expectNoSeriousA11yViolations(page);
 });
 
+test("the mobile account menu fills the usable viewport without lateral gaps", async ({ page }) => {
+  test.skip((page.viewportSize()?.width || 0) >= 768, "Mobile account menu only");
+  await seedAuthenticatedCustomer(page);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  await page.getByRole("button", { name: "Menu" }).click();
+  const menu = page.getByTestId("mobile-account-menu");
+  await expect(menu).toBeVisible();
+
+  const viewport = page.viewportSize();
+  const menuBox = await menu.boundingBox();
+  expect(menuBox?.x || 0).toBeLessThanOrEqual(1);
+  expect(menuBox?.y || 0).toBeLessThanOrEqual(1);
+  expect(menuBox?.width || 0).toBeGreaterThanOrEqual((viewport?.width || 0) - 1);
+  expect(menuBox?.height || 0).toBeGreaterThanOrEqual((viewport?.height || 0) - 1);
+  expect(await menu.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  await expect(menu.getByRole("navigation", { name: /assistance et informations|help and information/i })).toBeVisible();
+  await expectNoSeriousA11yViolations(page);
+});
+
 test("the wholesale market applies volume pricing and preserves case quantities in the basket", async ({ page }) => {
   let quotePayload: { company?: string; contactName?: string; country?: string; postalCode?: string; deliveryRequirements?: string; items?: Array<{ productId: string; packs: number }> } | null = null;
   const customer = { id: "customer-wholesale-flow", email: "awa@example.fr", phone: "+33612345678", firstName: "Awa", lastName: "Traore", role: "customer", loyaltyPoints: 120, walletCredit: 0 };

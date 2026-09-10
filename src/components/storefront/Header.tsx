@@ -76,13 +76,17 @@ export function Header() {
               <ReiconGlyph icon={Menu} className="h-[1.15rem] w-[1.15rem]" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[min(22rem,calc(100vw-1rem))] bg-white p-0">
-            <SheetHeader className="border-b border-charcoal/10 p-5">
+          <SheetContent
+            side="left"
+            data-testid="mobile-account-menu"
+            className="inset-0 h-dvh w-screen max-w-none gap-0 overflow-hidden border-0 bg-white p-0 sm:max-w-none"
+          >
+            <SheetHeader className="shrink-0 border-b border-charcoal/10 p-5 pr-16">
               <SheetTitle className="text-left">
                 <BrandLockup locale={locale} />
               </SheetTitle>
             </SheetHeader>
-            <nav className="flex flex-col p-4" aria-label={locale === "fr" ? "Assistance et informations" : "Help and information"}>
+            <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]" aria-label={locale === "fr" ? "Assistance et informations" : "Help and information"}>
               <p className="px-3 pb-2 text-[10px] font-extrabold uppercase text-muted-foreground">{locale === "fr" ? "Mon espace" : "My space"}</p>
               <button
                 type="button"

@@ -242,7 +242,12 @@ test("the installable storefront exposes a safe app shell and public discovery m
   expect(robots).toContain("Disallow: /*?view=checkout");
   expect(robots).toContain("Disallow: /*?view=orders");
   expect(robots).toContain("Disallow: /*?view=info&infoPage=contact");
-  expect(robots).toContain("Sitemap: https://je-mange-africain.com/sitemap.xml");
+  const robotsHost = robots.match(/^Host: (https:\/\/[^\s]+)$/m)?.[1];
+  expect([
+    "https://je-mange-africain.com",
+    "https://je-mange-africain.promise-corporation.workers.dev",
+  ]).toContain(robotsHost);
+  expect(robots).toContain(`Sitemap: ${robotsHost}/sitemap.xml`);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect.poll(() => page.evaluate(async () => Boolean(await navigator.serviceWorker.getRegistration()))).toBe(true);
