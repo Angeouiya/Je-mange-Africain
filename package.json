@@ -14,6 +14,7 @@
     "build": "npm run cloudflare:build",
     "start": "npm run cloudflare:preview",
     "lint": "eslint .",
+    "pretypecheck": "npm run db:generate:all",
     "typecheck": "node scripts/clean-next-dev-types.mjs && next typegen && tsc --noEmit",
     "pretest": "npm run db:generate:all",
     "test": "vitest run",
